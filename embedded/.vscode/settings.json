@@ -1,0 +1,8 @@
+{
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+    "files.associations": {
+        "*.v": "bsv",
+        "stdio.h": "c",
+        "string.h": "c"
+    }
+}
