@@ -3,6 +3,13 @@
     "files.associations": {
         "*.v": "bsv",
         "stdio.h": "c",
-        "string.h": "c"
-    }
+        "string.h": "c",
+        "pem_export.h": "c",
+        "types.h": "c",
+        "tls_cipher_suites.h": "c",
+        "yarrow.h": "c"
+    },
+    "C_Cpp.autocompleteAddParentheses": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false
 }

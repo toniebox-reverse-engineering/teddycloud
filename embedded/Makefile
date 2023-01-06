@@ -4,15 +4,23 @@ INCLUDES = \
 	-Iinclude \
 	-Icyclone/common \
 	-Icyclone/cyclone_ssl \
+	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix
 
 SOURCES = \
 	src/main.c \
+	src/cloud_request.c \
+	src/platform_linux.c \
 	cyclone/common/cpu_endian.c \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/date_time.c \
 	cyclone/common/debug.c \
+	cyclone/common/str.c \
+	cyclone/cyclone_tcp/http/http_client.c \
+	cyclone/cyclone_tcp/http/http_client_misc.c \
+	cyclone/cyclone_tcp/http/http_client_transport.c \
+	cyclone/cyclone_tcp/http/http_common.c \
 	cyclone/cyclone_ssl/tls.c \
 	cyclone/cyclone_ssl/tls_cipher_suites.c \
 	cyclone/cyclone_ssl/tls_handshake.c \
@@ -83,6 +91,7 @@ HEADERS = \
 	cyclone/common/date_time.h \
 	cyclone/common/error.h \
 	cyclone/common/debug.h \
+	cyclone/cyclone_tcp/http/http_client.h \
 	cyclone/cyclone_ssl/tls.h \
 	cyclone/cyclone_ssl/tls_cipher_suites.h \
 	cyclone/cyclone_ssl/tls_handshake.h \
@@ -166,12 +175,12 @@ build: $(BINARY)
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 
-$(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
+$(BINARY): $(OBJECTS) $(HEADERS)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 $(OBJECTS): | $(OBJ_DIR)
 
-$(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
+$(OBJ_DIR)/%.o: %.c $(HEADERS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
