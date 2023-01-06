@@ -21,6 +21,10 @@ void platform_init()
 {
 }
 
+void platform_deinit()
+{
+}
+
 Socket *socketOpen(uint_t type, uint_t protocol)
 {
     // printf("socketOpen %d %d\n", type, protocol);

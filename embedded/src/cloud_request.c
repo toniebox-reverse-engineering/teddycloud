@@ -13,23 +13,15 @@
 #include "tls.h"
 #include "pem_export.h"
 #include "tls_cipher_suites.h"
+#include "http/http_client.h"
 #include "rng/yarrow.h"
 #include "debug.h"
-#include "http/http_client.h"
+
+#include "tls_adapter.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-extern char_t *clientCert;
-extern size_t clientCertLen;
-extern char_t *clientPrivateKey;
-extern size_t clientPrivateKeyLen;
-extern char_t *trustedCaList;
-extern size_t trustedCaListLen;
-extern YarrowContext yarrowContext;
-extern const uint16_t *cipherSuites;
-extern size_t cipherSuitesLen;
 
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)

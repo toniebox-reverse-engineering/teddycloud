@@ -8,7 +8,10 @@
         "types.h": "c",
         "tls_cipher_suites.h": "c",
         "yarrow.h": "c",
-        "cloud_request.h": "c"
+        "cloud_request.h": "c",
+        "debug.h": "c",
+        "tls_adapter.h": "c",
+        "errno.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,
