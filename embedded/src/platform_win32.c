@@ -10,7 +10,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-int main_win32()
+void platform_init()
 {
     WSADATA wsaData;
     HCRYPTPROV hProvider;

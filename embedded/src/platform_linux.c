@@ -17,12 +17,9 @@
 #include "core/tcp.h"
 #include "debug.h"
 
-#define SOCKET intptr_t
-#define SOCKET_ERROR -1
-#define SOCKADDR_IN struct sockaddr_in
-#define PSOCKADDR struct sockaddr *
-#define HOSTENT struct hostent
-#define closesocket close
+void platform_init()
+{
+}
 
 Socket *socketOpen(uint_t type, uint_t protocol)
 {
@@ -30,13 +27,13 @@ Socket *socketOpen(uint_t type, uint_t protocol)
     int ret = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     // printf("socketOpen: %d\n", ret);
-    return (Socket *)ret;
+    return (Socket *)(intptr_t)ret;
 }
 
 error_t socketSetTimeout(Socket *socket, systime_t timeout)
 {
     // printf("socketSetTimeout %d\n", timeout);
-    SOCKET sock = (SOCKET)socket;
+    intptr_t sock = (intptr_t)socket;
     struct timeval tv;
     tv.tv_sec = timeout / 1000;
     tv.tv_usec = (timeout % 1000) * 1000;
@@ -55,12 +52,14 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
 void socketClose(Socket *socket)
 {
     // printf("socketClose\n");
-    close((SOCKET)socket);
+    intptr_t sock = (intptr_t)socket;
+    close(sock);
 }
 
 error_t socketShutdown(Socket *socket, uint_t how)
 {
-    shutdown((SOCKET)socket, how);
+    intptr_t sock = (intptr_t)socket;
+    shutdown(sock, how);
     return NO_ERROR;
 }
 
@@ -73,11 +72,11 @@ error_t socketSetInterface(Socket *socket, NetInterface *interface)
 error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
                       uint16_t remotePort)
 {
-    SOCKET sock = (SOCKET)socket;
+    intptr_t sock = (intptr_t)socket;
     struct sockaddr addr;
     memset(&addr, 0, sizeof(addr));
 
-    SOCKADDR_IN *sa = (SOCKADDR_IN *)&addr;
+    struct sockaddr_in *sa = (struct sockaddr_in *)&addr;
     sa->sin_family = AF_INET;
     sa->sin_port = htons(remotePort);
     sa->sin_addr.s_addr = remoteIpAddr->ipv4Addr;
@@ -98,7 +97,7 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     error_t error;
 
     // Send data
-    n = send((SOCKET)socket, data, length, 0);
+    n = send((intptr_t)socket, data, length, 0);
 
     // Check return value
     if (n > 0)
@@ -130,7 +129,7 @@ error_t socketReceive(Socket *socket, void *data,
     error_t error;
 
     // Receive data
-    n = recv((SOCKET)socket, data, size, 0);
+    n = recv((intptr_t)socket, data, size, 0);
 
     // Check return value
     if (n > 0)

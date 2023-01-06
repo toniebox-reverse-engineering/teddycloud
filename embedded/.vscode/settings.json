@@ -7,7 +7,8 @@
         "pem_export.h": "c",
         "types.h": "c",
         "tls_cipher_suites.h": "c",
-        "yarrow.h": "c"
+        "yarrow.h": "c",
+        "cloud_request.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

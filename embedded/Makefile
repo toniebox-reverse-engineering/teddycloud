@@ -1,5 +1,7 @@
 BINARY ?= teddycloud
 
+PLATFORM=linux
+
 INCLUDES = \
 	-Iinclude \
 	-Icyclone/common \
@@ -11,7 +13,7 @@ INCLUDES = \
 SOURCES = \
 	src/main.c \
 	src/cloud_request.c \
-	src/platform_linux.c \
+	src/platform_$(PLATFORM).c \
 	cyclone/common/cpu_endian.c \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/date_time.c \

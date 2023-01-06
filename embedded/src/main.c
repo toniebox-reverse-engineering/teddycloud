@@ -46,6 +46,8 @@
 #include "rng/yarrow.h"
 #include "debug.h"
 
+#include "cloud_request.h"
+
 // Trusted CA bundle
 #define APP_CA_CERT_BUNDLE "certs/ca.der"
 #define APP_CLIENT_CERT "certs/client.der"
@@ -58,6 +60,8 @@ size_t clientPrivateKeyLen = 0;
 char_t *trustedCaList = NULL;
 size_t trustedCaListLen = 0;
 YarrowContext yarrowContext;
+
+void platform_init(void);
 
 /**
  * @brief Load the specified PEM file
@@ -205,6 +209,8 @@ int_t main(int argc, char *argv[])
     }
 
     TRACE_ERROR("\r\n");
+
+    platform_init();
 
     // Generate a random seed
     ret = getrandom(seed, sizeof(seed), GRND_RANDOM);
