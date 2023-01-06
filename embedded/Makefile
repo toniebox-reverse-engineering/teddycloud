@@ -121,18 +121,22 @@ build: $(BINARY)
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 
-$(BINARY): $(OBJECTS) $(HEADERS)
+$(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 $(OBJECTS): | $(OBJ_DIR)
 
-$(OBJ_DIR)/%.o: %.c $(HEADERS)
+$(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(BINARY)
-	rm -f $(BINARY).map
-	rm -f $(OBJ_DIR)/*.o
 	$(foreach O,$(OBJECTS),rm -f $(O);)
+
+time_test: $(BINARY)
+	$(BINARY) /v1/time
+
+content_test: $(BINARY)
+	$(BINARY) /v2/content/aa760e1a500304e0 7c3a78e961fe863af4c577d7747b703672c488e0738f522790a2aa3cb96090f2
