@@ -12,6 +12,7 @@ INCLUDES = \
 
 SOURCES = \
 	src/main.c \
+	src/server.c \
 	src/tls_adapter.c \
 	src/cloud_request.c \
 	src/platform_$(PLATFORM).c \
@@ -32,7 +33,12 @@ CYCLONE_SOURCES = \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/date_time.c \
 	cyclone/common/debug.c \
+	cyclone/common/path.c \
 	cyclone/common/str.c \
+	cyclone/cyclone_tcp/http/mime.c \
+	cyclone/cyclone_tcp/http/http_server.c \
+	cyclone/cyclone_tcp/http/http_server_auth.c \
+	cyclone/cyclone_tcp/http/http_server_misc.c \
 	cyclone/cyclone_tcp/http/http_client.c \
 	cyclone/cyclone_tcp/http/http_client_misc.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
@@ -104,6 +110,7 @@ SRC_DIR = src
 
 
 CFLAGS += -Wall
+CFLAGS += -ggdb
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += $(INCLUDES)
 
@@ -124,8 +131,6 @@ OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
-
-$(OBJECTS): | $(OBJ_DIR)
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)

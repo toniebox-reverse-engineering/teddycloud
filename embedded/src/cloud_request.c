@@ -180,6 +180,10 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
             {
                 binary = false;
             }
+            else if (!strncmp(content_type, "application/json", 16))
+            {
+                binary = false;
+            }
             else
             {
                 TRACE_INFO("Binary data, not dumping body\r\n");

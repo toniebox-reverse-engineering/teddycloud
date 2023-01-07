@@ -11,7 +11,9 @@
         "cloud_request.h": "c",
         "debug.h": "c",
         "tls_adapter.h": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "net.h": "c",
+        "http_server.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

@@ -16,6 +16,16 @@ int_t main(int argc, char *argv[])
 {
     error_t error;
 
+    /* platform specific init */
+    platform_init();
+
+    /* load certificates and TLS RNG */
+    if (tls_adapter_init() != NO_ERROR)
+    {
+        return -1;
+    }
+
+#if 0
     TRACE_INFO("**********************************\r\n");
     TRACE_INFO("***       Cloud API test       ***\r\n");
     TRACE_INFO("**********************************\r\n");
@@ -42,20 +52,13 @@ int_t main(int argc, char *argv[])
 
     TRACE_INFO("\r\n");
 
-    /* platform specific init */
-    platform_init();
-
-    /* load certificates and TLS RNG */
-    if (tls_adapter_init() != NO_ERROR)
-    {
-        return -1;
-    }
-
     error = cloud_request_get(NULL, 0, request, hash);
+#else
+    error = server_init();
+#endif
 
     tls_adapter_deinit();
     platform_deinit();
-
     // Return status code
     return error;
 }
