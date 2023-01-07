@@ -37,7 +37,6 @@ CYCLONE_SOURCES = \
 	cyclone/common/str.c \
 	cyclone/cyclone_tcp/http/mime.c \
 	cyclone/cyclone_tcp/http/http_server.c \
-	cyclone/cyclone_tcp/http/http_server_auth.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
 	cyclone/cyclone_tcp/http/http_client.c \
 	cyclone/cyclone_tcp/http/http_client_misc.c \

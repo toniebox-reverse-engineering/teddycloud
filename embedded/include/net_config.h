@@ -31,6 +31,16 @@
 #ifndef _NET_CONFIG_H
 #define _NET_CONFIG_H
 
+#define AUTH_TOKEN_LENGTH 32
+typedef struct
+{
+    uint8_t authenticated;
+    uint8_t authentication_token[AUTH_TOKEN_LENGTH];
+} http_connection_private_t;
+
+#define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
+#define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
+
 // Trace level for TCP/IP stack debugging
 #define MEM_TRACE_LEVEL TRACE_LEVEL_INFO
 #define NIC_TRACE_LEVEL TRACE_LEVEL_INFO
