@@ -42,7 +42,7 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 error_t httpServerRequestCallback(HttpConnection *connection,
                                   const char_t *uri)
 {
-    if (connection->private.authenticated)
+    if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
         char uid[18];
         uint8_t *token = connection->private.authentication_token;
@@ -143,7 +143,8 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
             }
         }
         /* if we come across this part, this means the token was most likely correctly *parsed* */
-        connection->private.authenticated = 1;
+        connection->request.auth.found = 1;
+        connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
     }
 }
 
@@ -171,11 +172,6 @@ void server_init()
     settings.port = 80;
     settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     settings.connections = httpConnections;
-
-    for (int pos = 0; pos < APP_HTTP_MAX_CONNECTIONS; pos++)
-    {
-        httpConnections[pos].private.authenticated = 0;
-    }
 
     strcpy(settings.rootDirectory, "www/");
     strcpy(settings.defaultDocument, "index.shtm");

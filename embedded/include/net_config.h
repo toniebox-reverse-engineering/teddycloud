@@ -34,7 +34,6 @@
 #define AUTH_TOKEN_LENGTH 32
 typedef struct
 {
-    uint8_t authenticated;
     uint8_t authentication_token[AUTH_TOKEN_LENGTH];
 } http_connection_private_t;
 
