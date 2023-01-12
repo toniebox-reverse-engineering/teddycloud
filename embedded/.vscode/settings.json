@@ -13,7 +13,8 @@
         "tls_adapter.h": "c",
         "errno.h": "c",
         "net.h": "c",
-        "http_server.h": "c"
+        "http_server.h": "c",
+        "http_client.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

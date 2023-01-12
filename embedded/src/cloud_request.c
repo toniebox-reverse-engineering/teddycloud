@@ -13,6 +13,7 @@
 #include "tls.h"
 #include "pem_export.h"
 #include "tls_cipher_suites.h"
+#include "cloud_request.h"
 #include "http/http_client.h"
 #include "rng/yarrow.h"
 #include "debug.h"
@@ -55,11 +56,13 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    TRACE_INFO("Initializing TLS done\r\n");
+
     // Successful processing
     return NO_ERROR;
 }
 
-int_t cloud_request_get(const char *server, int port, const char *request, const char *hash)
+int_t cloud_request_get(const char *server, int port, const char *request, const uint8_t *hash, req_cbr_t *cbr)
 {
     HttpClientContext httpClientContext;
     IpAddr ipAddr;
@@ -97,15 +100,13 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
     for (int i = 0; addr_list[i] != NULL; i++)
     {
         bool success = FALSE;
+
         TRACE_INFO("#  trying IP: %s\n", inet_ntoa(*addr_list[i]));
         memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
 
         ipAddr.length = host->h_length;
         do
         {
-            // Debug message
-
-            // Connect to the HTTP server
             error = httpClientConnect(&httpClientContext, &ipAddr,
                                       port);
             // Any error to report?
@@ -128,8 +129,16 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
 
             if (hash)
             {
+                char tmp[3];
                 char auth_line[128];
-                sprintf(auth_line, "BD %s", hash);
+
+                osStrcpy(auth_line, "BD ");
+
+                for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
+                {
+                    osSprintf(tmp, "%02X", hash[pos]);
+                    osStrcat(auth_line, tmp);
+                }
                 httpClientAddHeaderField(&httpClientContext, "Authorization", auth_line);
             }
 
@@ -157,21 +166,43 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
 
             // Retrieve HTTP status code
             uint_t status = httpClientGetStatus(&httpClientContext);
-            // Debug message
-            TRACE_INFO("HTTP code: %u\r\n", status);
 
-            // Retrieve the value of the Content-Type header field
-            const char *content_type = httpClientGetHeaderField(&httpClientContext, "Content-Type");
+            if (cbr && cbr->response)
+            {
+                cbr->response(cbr->ctx);
+            }
+
+            TRACE_INFO("HTTP code: %u\r\n", status);
+            char content_type[64];
+
+            strcpy(content_type, "");
+
+            do
+            {
+                const char *header_name = NULL;
+                const char *header_value = NULL;
+                error_t ret = httpClientGetNextHeaderField(&httpClientContext, &header_name, &header_value);
+
+                if (cbr && cbr->header)
+                {
+                    cbr->header(cbr->ctx, header_name, header_value);
+                }
+
+                if (ret != NO_ERROR)
+                {
+                    break;
+                }
+
+                if (!osStrcmp(header_name, "Content-Type"))
+                {
+                    osStrncpy(content_type, header_value, sizeof(content_type) - 1);
+                    TRACE_INFO("# Content-Type is %s\r\n", content_type);
+                }
+            } while (1);
 
             // Header field found?
-            if (content_type != NULL)
+            if (strlen(content_type) == 0)
             {
-                // Debug message
-                TRACE_INFO("# Content-Type is %s\r\n", content_type);
-            }
-            else
-            {
-                // Debug message
                 TRACE_INFO("# Content-Type header field not found!\r\n");
             }
 
@@ -189,14 +220,20 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
                 TRACE_INFO("Binary data, not dumping body\r\n");
             }
 
+            size_t maxSize = 1024;
+            uint8_t *buffer = osAllocMem(maxSize + 1);
             // Receive HTTP response body
             while (!error)
             {
                 // Read data
-                size_t length;
-                char_t buffer[128];
-                error = httpClientReadBody(&httpClientContext, buffer,
-                                           sizeof(buffer) - 1, &length, 0);
+                size_t length = 0;
+
+                error = httpClientReadBody(&httpClientContext, buffer, maxSize, &length, 0);
+
+                if (cbr && cbr->body)
+                {
+                    cbr->body(cbr->ctx, buffer, length);
+                }
 
                 // Check status code
                 if (!error)
@@ -204,12 +241,15 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
                     if (!binary)
                     {
                         // Properly terminate the string with a NULL character
-                        buffer[length] = '\0';
+                        buffer[maxSize] = '\0';
                         // Dump HTTP response body
                         TRACE_INFO("%s", buffer);
                     }
                 }
             }
+
+            osFreeMem(buffer);
+
             // Terminate the HTTP response body with a CRLF
             TRACE_INFO("\r\n");
 
@@ -229,6 +269,10 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
 
             // Gracefully disconnect from the HTTP server
             httpClientDisconnect(&httpClientContext);
+            if (cbr && cbr->disconnect)
+            {
+                cbr->disconnect(cbr->ctx);
+            }
 
             // Debug message
             TRACE_INFO("Connection closed\r\n");

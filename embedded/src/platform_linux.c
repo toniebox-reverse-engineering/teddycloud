@@ -255,6 +255,14 @@ error_t socketReceive(Socket *socket, void *data_in,
             return_count = size;
         }
 
+        if (!(flags & SOCKET_FLAG_WAIT_ALL) && !(flags & SOCKET_FLAG_BREAK_CHAR))
+        {
+            if (sock->buffer_used > 0)
+            {
+                return_count = sock->buffer_used;
+            }
+        }
+
         /* we shall return that many bytes and have them in buffer */
         if (return_count > 0)
         {

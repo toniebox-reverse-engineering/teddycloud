@@ -39,15 +39,76 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
     return NO_ERROR;
 }
 
+typedef struct
+{
+    uint32_t status;
+    HttpConnection *connection;
+} cbr_ctx_t;
+
+void httpServerResponseCbr(void *ctx_in)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    char line[128];
+
+    osSprintf(line, "HTTP/%u.%u %u ", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
+
+    osStrcat(line, "Some response");
+
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    ctx->status = 1;
+}
+
+void httpServerHeaderCbr(void *ctx_in, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    char line[128];
+
+    if (header)
+    {
+        TRACE_INFO(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
+        osSprintf(line, "%s: %s\r\n", header, value);
+    }
+    else
+    {
+        TRACE_INFO(">> httpServerHeaderCbr: NULL\r\n");
+        osStrcpy(line, "\r\n");
+    }
+
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    ctx->status = 1;
+}
+
+void httpServerBodyCbr(void *ctx_in, const char *payload, size_t length)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+
+    TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
+    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+
+    ctx->status = 2;
+}
+
+void httpServerDiscCbr(void *ctx_in)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+
+    TRACE_INFO(">> httpServerDiscCbr\r\n");
+    ctx->status = 3;
+}
+
 error_t httpServerRequestCallback(HttpConnection *connection,
                                   const char_t *uri)
 {
+    TRACE_INFO("httpServerRequestCallback: '%s'\n", uri);
+
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
         char uid[18];
         uint8_t *token = connection->private.authentication_token;
 
-        TRACE_INFO("httpServerRequestCallback: '%s'\n", uri);
+        TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
 
         if (!strncmp("/v2/content/", uri, 12))
         {
@@ -63,6 +124,8 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
             httpInitResponseHeader(connection);
 
+/* sending response */
+#if 0
             char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
             char *footer_data = " - if there was any...\r\n";
 
@@ -97,9 +160,28 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
             // Properly close output stream
             error = httpCloseStream(connection);
+#endif
+
+            cbr_ctx_t ctx = {
+                .status = 0,
+                .connection = connection};
+            req_cbr_t cbr = {
+                .ctx = &ctx,
+                .response = &httpServerResponseCbr,
+                .header = &httpServerHeaderCbr,
+                .body = &httpServerBodyCbr,
+                .disconnect = &httpServerDiscCbr};
 
             /* here call cloud request, which has to get extended for cbr for header fields and content packets */
-            // error = cloud_request_get(NULL, 0, request, hash);
+            error_t error = cloud_request_get(NULL, 0, uri, token, &cbr);
+
+            TRACE_INFO("httpServerRequestCallback: %s (waiting)\n", uri);
+            while (ctx.status != 3)
+            {
+                sleep(100);
+            }
+            error = httpCloseStream(connection);
+            TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
             return NO_ERROR;
         }
     }
@@ -145,6 +227,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
         /* if we come across this part, this means the token was most likely correctly *parsed* */
         connection->request.auth.found = 1;
         connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
+        connection->status = HTTP_ACCESS_ALLOWED;
     }
 }
 
