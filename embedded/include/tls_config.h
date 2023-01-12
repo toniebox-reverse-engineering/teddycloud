@@ -42,7 +42,7 @@
 // Client mode of operation
 #define TLS_CLIENT_SUPPORT ENABLED
 // Server mode of operation
-#define TLS_SERVER_SUPPORT DISABLED
+#define TLS_SERVER_SUPPORT ENABLED
 
 // Minimum version that can be negotiated
 #define TLS_MIN_VERSION TLS_VERSION_1_2
@@ -60,7 +60,7 @@
 #define TLS_TICKET_LIFETIME 3600000
 
 // SNI (Server Name Indication) extension
-#define TLS_SNI_SUPPORT DISABLED
+#define TLS_SNI_SUPPORT ENABLED
 // Maximum Fragment Length extension
 #define TLS_MAX_FRAG_LEN_SUPPORT ENABLED
 // Record Size Limit extension
@@ -76,12 +76,12 @@
 // RPK (Raw Public Key) support
 #define TLS_RAW_PUBLIC_KEY_SUPPORT ENABLED
 // Secure renegotiation support
-#define TLS_SECURE_RENEGOTIATION_SUPPORT DISABLED
+#define TLS_SECURE_RENEGOTIATION_SUPPORT ENABLED
 // Fallback SCSV support
 #define TLS_FALLBACK_SCSV_SUPPORT DISABLED
 
 // Maximum number of certificates the end entity can load
-#define TLS_MAX_CERTIFICATES 3
+#define TLS_MAX_CERTIFICATES 4
 
 // RSA key exchange support
 #define TLS_RSA_KE_SUPPORT DISABLED
@@ -92,7 +92,7 @@
 // DH_anon key exchange support (insecure)
 #define TLS_DH_ANON_KE_SUPPORT DISABLED
 // ECDHE_RSA key exchange support
-#define TLS_ECDHE_RSA_KE_SUPPORT DISABLED
+#define TLS_ECDHE_RSA_KE_SUPPORT ENABLED
 // ECDHE_ECDSA key exchange support
 #define TLS_ECDHE_ECDSA_KE_SUPPORT DISABLED
 // ECDH_anon key exchange support (insecure)
@@ -154,7 +154,7 @@
 // AES 128-bit cipher support
 #define TLS_AES_128_SUPPORT ENABLED
 // AES 256-bit cipher support
-#define TLS_AES_256_SUPPORT DISABLED
+#define TLS_AES_256_SUPPORT ENABLED
 // Camellia 128-bit cipher support
 #define TLS_CAMELLIA_128_SUPPORT DISABLED
 // Camellia 256-bit cipher support
@@ -175,7 +175,7 @@
 // SHA-256 hash support
 #define TLS_SHA256_SUPPORT ENABLED
 // SHA-384 hash support
-#define TLS_SHA384_SUPPORT DISABLED
+#define TLS_SHA384_SUPPORT ENABLED
 // SHA-512 hash support
 #define TLS_SHA512_SUPPORT DISABLED
 
@@ -217,7 +217,7 @@
 // brainpoolP512r1 elliptic curve support
 #define TLS_BRAINPOOLP512R1_SUPPORT DISABLED
 // Curve25519 elliptic curve support
-#define TLS_X25519_SUPPORT DISABLED
+#define TLS_X25519_SUPPORT ENABLED
 // Curve448 elliptic curve support
 #define TLS_X448_SUPPORT DISABLED
 // Ed25519 elliptic curve support

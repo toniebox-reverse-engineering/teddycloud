@@ -187,7 +187,7 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     error_t error;
 
     // Send data
-    n = send(sock->sockfd, data, length, 0);
+    n = send(sock->sockfd, data, length, MSG_NOSIGNAL);
 
     // Check return value
     if (n > 0)

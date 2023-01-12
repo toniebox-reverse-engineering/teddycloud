@@ -22,6 +22,7 @@ int_t main(int argc, char *argv[])
     /* load certificates and TLS RNG */
     if (tls_adapter_init() != NO_ERROR)
     {
+        TRACE_ERROR("tls_adapter_init() failed\r\n");
         return -1;
     }
 

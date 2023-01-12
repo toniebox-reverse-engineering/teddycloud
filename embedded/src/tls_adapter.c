@@ -3,6 +3,7 @@
 
 #include "pem_export.h"
 #include "rng/yarrow.h"
+#include "tls_adapter.h"
 #include "error.h"
 #include "debug.h"
 
@@ -10,12 +11,26 @@
 #define APP_CLIENT_CERT "certs/client.der"
 #define APP_CLIENT_PRIVATE_KEY "certs/private.der"
 
+#define SRV_CA_CERT_BUNDLE "certs/server/ca-root.pem"
+#define SRV_SERVER_CERT "certs/server/teddy-cert.pem"
+#define SRV_SERVER_PRIVATE_KEY "certs/server/teddy-key.pem"
+
 char_t *clientCert = NULL;
 size_t clientCertLen = 0;
 char_t *clientPrivateKey = NULL;
 size_t clientPrivateKeyLen = 0;
 char_t *trustedCaList = NULL;
 size_t trustedCaListLen = 0;
+
+char_t *caCert = NULL;
+size_t caCertLen = 0;
+char_t *serverCert = NULL;
+size_t serverCertLen = 0;
+char_t *serverKey = NULL;
+size_t serverKeyLen = 0;
+
+TlsCache *tlsCache;
+
 YarrowContext yarrowContext;
 
 /**
@@ -187,6 +202,26 @@ error_t tls_adapter_init()
                         &clientPrivateKeyLen, "RSA PRIVATE KEY");
     if (error)
         return error;
+
+    // Load trusted CA certificates
+    // error = readPemFile(SRV_CA_CERT_BUNDLE, &caCert, &caCertLen, NULL);
+    // if (error)
+    //    return error;
+    error = readPemFile(SRV_SERVER_CERT, &serverCert, &serverCertLen, NULL);
+    if (error)
+        return error;
+    error = readPemFile(SRV_SERVER_PRIVATE_KEY, &serverKey, &serverKeyLen, NULL);
+    if (error)
+        return error;
+
+    // TLS session cache initialization
+    tlsCache = tlsInitCache(8);
+    // Any error to report?
+    if (tlsCache == NULL)
+    {
+        // Debug message
+        TRACE_ERROR("Failed to initialize TLS session cache!\r\n");
+    }
 
     return NO_ERROR;
 }

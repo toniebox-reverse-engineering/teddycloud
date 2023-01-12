@@ -68,6 +68,8 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_ssl/tls_misc.c \
 	cyclone/cyclone_crypto/hash/sha1.c \
 	cyclone/cyclone_crypto/hash/sha256.c \
+	cyclone/cyclone_crypto/hash/sha384.c \
+	cyclone/cyclone_crypto/hash/sha512.c \
 	cyclone/cyclone_crypto/mac/hmac.c \
 	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_crypto/cipher_modes/cbc.c \
