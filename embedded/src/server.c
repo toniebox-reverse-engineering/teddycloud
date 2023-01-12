@@ -103,15 +103,40 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 {
     TRACE_INFO("httpServerRequestCallback: '%s'\n", uri);
 
-    if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+    char uid[18];
+    uint8_t *token = connection->private.authentication_token;
+
+    if (!osStrncmp("/reverse", uri, 8))
     {
-        char uid[18];
-        uint8_t *token = connection->private.authentication_token;
+        cbr_ctx_t ctx = {
+            .status = 0,
+            .connection = connection};
 
-        TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
+        req_cbr_t cbr = {
+            .ctx = &ctx,
+            .response = &httpServerResponseCbr,
+            .header = &httpServerHeaderCbr,
+            .body = &httpServerBodyCbr,
+            .disconnect = &httpServerDiscCbr};
 
-        if (!strncmp("/v2/content/", uri, 12))
+        /* here call cloud request, which has to get extended for cbr for header fields and content packets */
+        error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
+
+        TRACE_INFO("httpServerRequestCallback: %s (waiting)\n", uri);
+        while (ctx.status != 3)
         {
+            sleep(100);
+        }
+        error = httpCloseStream(connection);
+        TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
+        return NO_ERROR;
+    }
+    else if (!osStrncmp("/v2/content/", uri, 12))
+    {
+        if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+        {
+            TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
+
             osStrncpy(uid, &uri[12], sizeof(uid));
             uid[17] = 0;
 
@@ -124,12 +149,10 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
             httpInitResponseHeader(connection);
 
-/* sending response */
-#if 0
             char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
             char *footer_data = " - if there was any...\r\n";
 
-            char *build_string = malloc(strlen(header_data) + osStrlen(uid) + 2 * AUTH_TOKEN_LENGTH + osStrlen(footer_data));
+            char *build_string = osAllocMem(strlen(header_data) + osStrlen(uid) + 2 * AUTH_TOKEN_LENGTH + osStrlen(footer_data));
 
             osSprintf(build_string, header_data, uid);
             for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
@@ -146,12 +169,12 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
             if (error != NO_ERROR)
             {
-                free(build_string);
+                osFreeMem(build_string);
                 TRACE_ERROR("Failed to send header");
                 return error;
             }
             error = httpWriteStream(connection, build_string, connection->response.contentLength);
-            free(build_string);
+            osFreeMem(build_string);
             if (error != NO_ERROR)
             {
                 TRACE_ERROR("Failed to send header");
@@ -160,34 +183,54 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
             // Properly close output stream
             error = httpCloseStream(connection);
-#endif
 
-            cbr_ctx_t ctx = {
-                .status = 0,
-                .connection = connection};
-            req_cbr_t cbr = {
-                .ctx = &ctx,
-                .response = &httpServerResponseCbr,
-                .header = &httpServerHeaderCbr,
-                .body = &httpServerBodyCbr,
-                .disconnect = &httpServerDiscCbr};
-
-            /* here call cloud request, which has to get extended for cbr for header fields and content packets */
-            error_t error = cloud_request_get(NULL, 0, uri, token, &cbr);
-
-            TRACE_INFO("httpServerRequestCallback: %s (waiting)\n", uri);
-            while (ctx.status != 3)
-            {
-                sleep(100);
-            }
-            error = httpCloseStream(connection);
-            TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
             return NO_ERROR;
         }
-    }
-    TRACE_INFO("httpServerRequestCallback: %s (ignoring)\n", uri);
+        else
+        {
+            const char *response = "<html><head></head><body>No content for you</body></html>";
+            httpInitResponseHeader(connection);
+            connection->response.contentType = "text/html";
+            connection->response.contentLength = osStrlen(response);
 
-    return ERROR_NOT_FOUND;
+            error_t error = httpWriteHeader(connection);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to send header");
+                return error;
+            }
+
+            error = httpWriteStream(connection, response, connection->response.contentLength);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to send header");
+                return error;
+            }
+        }
+    }
+
+    const char *response = "<html><head></head><body>HTML body goes brrrt</body></html>";
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/html";
+    connection->response.contentLength = osStrlen(response);
+
+    error_t error = httpWriteHeader(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header");
+        return error;
+    }
+
+    error = httpWriteStream(connection, response, connection->response.contentLength);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header");
+        return error;
+    }
+
+    TRACE_INFO("httpServerRequestCallback: %s -> ERROR_NOT_FOUND\n", uri);
+
+    return NO_ERROR;
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
@@ -231,6 +274,11 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     }
 }
 
+HttpAccessStatus httpServerAuthCallback(HttpConnection *connection, const char_t *user, const char_t *uri)
+{
+    return HTTP_ACCESS_ALLOWED;
+}
+
 size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 {
     TRACE_INFO("httpAddAuthenticateField\n");
@@ -262,6 +310,7 @@ void server_init()
     settings.cgiCallback = httpServerCgiCallback;
     settings.requestCallback = httpServerRequestCallback;
     settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
+    settings.authCallback = httpServerAuthCallback;
 
     httpServerInit(&context, &settings);
     httpServerStart(&context);
