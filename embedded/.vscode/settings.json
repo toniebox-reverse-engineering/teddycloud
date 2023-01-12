@@ -14,7 +14,8 @@
         "errno.h": "c",
         "net.h": "c",
         "http_server.h": "c",
-        "http_client.h": "c"
+        "http_client.h": "c",
+        "error.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,
