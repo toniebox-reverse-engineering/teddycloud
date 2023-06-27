@@ -1,0 +1,18 @@
+{
+    "configurations": [
+    {
+        "name": "(gdb) Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/embedded/bin/teddycloud",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}/embedded/",
+        "environment": [],
+        "externalConsole": false,
+        "linux": {
+            "MIMode": "gdb",
+          },
+    }
+    ]
+}
