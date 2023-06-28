@@ -297,17 +297,17 @@ error_t socketReceive(Socket *socket, void *data_in,
         {
             int_t n = recv(sock->sockfd, &sock->buffer[sock->buffer_used], max_size, (flags >> 8) & 0x0F);
 
-            if (n < 0)
+            if (n <= 0)
             {
+                *received = 0;
                 /* receive failed, purge buffered content */
                 if ((flags & SOCKET_FLAG_BREAK_CHAR) && sock->buffer_used)
                 {
                     *received = sock->buffer_used;
                     memcpy(data, sock->buffer, sock->buffer_used);
                     sock->buffer_used = 0;
-                    return NO_ERROR;
                 }
-                return ERROR_TIMEOUT;
+                return NO_ERROR;
             }
 
             sock->buffer_used += n;
