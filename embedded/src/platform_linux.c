@@ -144,6 +144,12 @@ void socketClose(Socket *socket)
 {
     socket_info_t *sock = (socket_info_t *)socket;
 
+    if (sock->buffer)
+    {
+        free(sock->buffer);
+        sock->buffer = NULL;
+    }
+
     close(sock->sockfd);
 
     free(sock);
