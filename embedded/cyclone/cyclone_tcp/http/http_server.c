@@ -328,7 +328,7 @@ void httpListenerTask(void *param)
             else
             {
                //Just for sanity
-               osReleaseSemaphore(&connection->serverContext->semaphore);
+               osReleaseSemaphore(&context->semaphore);
                
             }
 
