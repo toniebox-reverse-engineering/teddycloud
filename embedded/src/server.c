@@ -150,6 +150,9 @@ error_t httpServerRequestCallback(HttpConnection *connection,
     else if (!osStrcmp("/v1/ota", uri))
     {
     }
+    else if (!osStrcmp("/v1/log", uri))
+    {
+    }
     else if (!osStrcmp("/v1/time", uri))
     {
         TRACE_INFO(" >> respond with current time\n");
@@ -429,6 +432,7 @@ void server_init()
     http_settings.requestCallback = httpServerRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
+    http_settings.port = 80;
 
     /* use them for HTTPS */
     https_settings = http_settings;
