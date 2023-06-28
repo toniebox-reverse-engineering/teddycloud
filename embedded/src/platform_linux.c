@@ -295,19 +295,46 @@ error_t socketReceive(Socket *socket, void *data_in,
 
         if (max_size > 0)
         {
-            int_t n = recv(sock->sockfd, &sock->buffer[sock->buffer_used], max_size, (flags >> 8) & 0x0F);
+            uint32_t posix_flags = 0;
+
+            posix_flags |= (flags & SOCKET_FLAG_PEEK) ? MSG_PEEK : 0;
+            posix_flags |= (flags & SOCKET_FLAG_WAIT_ALL) ? MSG_WAITALL : 0;
+
+            int_t n = recv(sock->sockfd, &sock->buffer[sock->buffer_used], max_size, posix_flags);
 
             if (n <= 0)
             {
-                *received = 0;
                 /* receive failed, purge buffered content */
                 if ((flags & SOCKET_FLAG_BREAK_CHAR) && sock->buffer_used)
                 {
-                    *received = sock->buffer_used;
-                    memcpy(data, sock->buffer, sock->buffer_used);
-                    sock->buffer_used = 0;
+                    int copy_size = max_size;
+
+                    if(copy_size > sock->buffer_used)
+                    {
+                        copy_size = sock->buffer_used;
+                    }
+                    
+                    *received = copy_size;
+                    memcpy(data, sock->buffer, copy_size);
+                    sock->buffer_used -= copy_size;
+                    memmove(sock->buffer, &sock->buffer[copy_size], sock->buffer_used);
+                    
+                    return NO_ERROR;
                 }
-                return NO_ERROR;
+
+                /* connection closed and obviously nothing left in buffer */
+                if(n == 0)
+                {
+                    return ERROR_END_OF_STREAM;
+                }
+
+                /* would block, nothing in buffer */
+                if((errno == EAGAIN) || (errno == EWOULDBLOCK))
+                {
+                    return NO_ERROR;
+                }
+
+                return ERROR_CONNECTION_FAILED;
             }
 
             sock->buffer_used += n;
