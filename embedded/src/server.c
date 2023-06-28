@@ -440,10 +440,26 @@ void server_init()
     https_settings.port = 443;
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
 
-    httpServerInit(&http_context, &http_settings);
-    httpServerInit(&https_context, &https_settings);
-    httpServerStart(&http_context);
-    httpServerStart(&https_context);
+    if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerInit() for HTTP failed\n");
+        return;
+    }
+    if (httpServerInit(&https_context, &https_settings) != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerInit() for HTTPS failed\n");
+        return;
+    }
+    if (httpServerStart(&http_context) != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerStart() for HTTP failed\n");
+        return;
+    }
+    if (httpServerStart(&https_context) != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerStart() for HTTPS failed\n");
+        return;
+    }
 
     while (1)
     {
