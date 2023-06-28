@@ -65,6 +65,13 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
     sa->sin_port = htons(localPort);
     sa->sin_addr.s_addr = localIpAddr->ipv4Addr;
 
+    int enable = 1;
+    if (setsockopt(sock->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        return ERROR_FAILURE;
+    }
+
     int ret = bind(sock->sockfd, &addr, sizeof(addr));
 
     if (ret < 0)
