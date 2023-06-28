@@ -646,6 +646,8 @@ void httpConnectionTask(void *param)
       //Release semaphore
       osReleaseSemaphore(&connection->serverContext->semaphore);
    }
+
+   osDeleteTask(OS_SELF_TASK_ID);
 }
 
 
