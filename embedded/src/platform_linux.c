@@ -111,11 +111,10 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
         ret = accept(sock->sockfd, &addr, &addr_len);
         if (ret < 0)
         {
-            if(errno == EINTR)
+            if(errno != EINTR)
             {
-                continue;
+                perror("accept failed\n");
             }
-            perror("accept failed\n");
             return NULL;
         }
     } while (0);
