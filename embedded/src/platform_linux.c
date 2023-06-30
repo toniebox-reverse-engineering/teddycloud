@@ -307,7 +307,7 @@ error_t socketReceive(Socket *socket, void *data_in,
                 /* receive failed, purge buffered content */
                 if ((flags & SOCKET_FLAG_BREAK_CHAR) && sock->buffer_used)
                 {
-                    int copy_size = max_size;
+                    int copy_size = size;
 
                     if(copy_size > sock->buffer_used)
                     {

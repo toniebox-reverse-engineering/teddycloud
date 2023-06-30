@@ -106,8 +106,13 @@ void osDeleteTask(OsTaskId taskId)
       //Kill ourselves
       pthread_exit(NULL);
    }
-}
+   else
+   {
+      pthread_t thread = (pthread_t)taskId;
 
+      pthread_cancel(thread);
+   }
+}
 
 /**
  * @brief Delay routine
@@ -416,6 +421,11 @@ bool_t osWaitForSemaphore(OsSemaphore *semaphore, systime_t timeout)
 
 void osReleaseSemaphore(OsSemaphore *semaphore)
 {
+   if(semaphore == NULL)
+   {
+      TRACE_ERROR("osReleaseSemaphore() failed because semaphore is NULL");
+      return;
+   }
    //Release the semaphore
    sem_post(semaphore);
 }
