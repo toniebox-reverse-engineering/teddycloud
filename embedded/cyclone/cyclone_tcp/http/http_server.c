@@ -272,6 +272,7 @@ void httpListenerTask(void *param)
    uint_t counter;
    uint16_t clientPort;
    IpAddr clientIpAddr;
+   uint32_t dummy = 0;
    HttpServerContext *context;
    HttpConnection *connection;
    Socket *socket;
@@ -285,11 +286,22 @@ void httpListenerTask(void *param)
    //Process incoming connections to the server
    for(counter = 1; ; counter++)
    {
+      dummy++;
+
+      if(dummy != counter)
+      {
+         TRACE_ERROR("stack check failed\r\n");
+         return;
+      }
       //Debug message
       TRACE_INFO("Ready to accept a new connection...\r\n");
 
       //Limit the number of simultaneous connections to the HTTP server
-      osWaitForSemaphore(&context->semaphore, INFINITE_DELAY);
+      if(!osWaitForSemaphore(&context->semaphore, INFINITE_DELAY))
+      {
+         TRACE_ERROR("Semaphore wait unexpectedly returned\r\n");
+         return;
+      }
 
       //Loop through the connection table
       for(i = 0; i < context->settings.maxConnections; i++)
