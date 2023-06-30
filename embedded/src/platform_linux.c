@@ -105,12 +105,21 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
     struct sockaddr addr;
     socklen_t addr_len = sizeof(addr);
 
-    int ret = accept(sock->sockfd, &addr, &addr_len);
-    if (ret < 0)
+    int ret = 0;
+    do
     {
-        perror("accept failed\n");
-        return NULL;
-    }
+        ret = accept(sock->sockfd, &addr, &addr_len);
+        if (ret < 0)
+        {
+            if(errno == EINTR)
+            {
+                continue;
+            }
+            perror("accept failed\n");
+            return NULL;
+        }
+    } while (0);
+
     struct sockaddr_in *sa = (struct sockaddr_in *)&addr;
 
     *clientPort = sa->sin_port;
