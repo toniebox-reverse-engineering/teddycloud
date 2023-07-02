@@ -134,14 +134,14 @@ error_t httpServerRequestCallback(HttpConnection *connection,
             return error;
         }
 
-        TRACE_INFO("httpServerRequestCallback: %s (waiting)\n", uri);
+        TRACE_INFO("httpServerRequestCallback: (waiting)\n");
         while (ctx.status != PROX_STATUS_DONE)
         {
             sleep(100);
         }
         error = httpCloseStream(connection);
 
-        TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
+        TRACE_INFO("httpServerRequestCallback: (done)\n");
         return NO_ERROR;
     }
     else 
@@ -179,7 +179,7 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                     return error;
                 }
 
-                TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
+                TRACE_INFO("httpServerRequestCallback: (done)\n");
                 return NO_ERROR;
             }
             else if (!osStrncmp("/v1/ota/", uri, 8))
@@ -202,8 +202,6 @@ error_t httpServerRequestCallback(HttpConnection *connection,
             {
                 if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
                 {
-                    TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
-
                     osStrncpy(uid, &uri[12], sizeof(uid));
                     uid[17] = 0;
 
@@ -295,7 +293,7 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                 return error;
             }
 
-            TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
+            TRACE_INFO("httpServerRequestCallback: (done)\n");
             return NO_ERROR;
         }
     }
