@@ -4,6 +4,8 @@ PLATFORM=linux
 
 INCLUDES = \
 	-Iinclude \
+	-Iinclude/protobuf-c \
+	-Isrc/proto \
 	-Icyclone/common \
 	-Icyclone/cyclone_ssl \
 	-Icyclone/cyclone_tcp \
@@ -11,15 +13,9 @@ INCLUDES = \
 	-Icyclone/cyclone_crypto/pkix
 
 SOURCES = \
-	src/main.c \
-	src/server.c \
-	src/tls_adapter.c \
-	src/cloud_request.c \
-	src/platform_$(PLATFORM).c \
-	include/protobuf-c/protobuf-c.c \
-	include/protobuf/toniebox.pb.freshness-check.fc-request.pb-c.c \
-	include/protobuf/toniebox.pb.freshness-check.fc-response.pb-c.c \
-	include/protobuf/toniebox.pb.rtnl.pb-c.c \
+	$(wildcard $(SRC_DIR)/*.c) \
+	$(wildcard $(SRC_DIR)/proto/*.c) \
+	src/platform/platform_$(PLATFORM).c \
 	$(CYCLONE_SOURCES)
 
 HEADERS = \
@@ -29,10 +25,6 @@ HEADERS = \
 	include/os_port_config.h \
 	include/tls_config.h \
 	include/crypto_config.h \
-	include/protobuf-c/protobuf-c.h \
-	include/protobuf/toniebox.pb.freshness-check.fc-request.pb-c.h \
-	include/protobuf/toniebox.pb.freshness-check.fc-response.pb-c.h \
-	include/protobuf/toniebox.pb.rtnl.pb-c.h \
 	$(CYCLONE_SOURCES:.c=.h)
 
 
@@ -130,6 +122,24 @@ OBJCOPY = objcopy
 SIZE = size
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
+
+# Location of your .proto files
+PROTO_DIR := proto
+PROTO_GEN_DIR := src/proto
+
+# Find all .proto files in the PROTO_DIR directory
+PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
+
+# Get the corresponding .c and .h filenames
+PROTO_C_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c, $(PROTO_FILES))
+PROTO_H_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h, $(PROTO_FILES))
+
+# Rule to build .c files from .proto files
+$(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $(PROTO_DIR)/%.proto
+	protoc-c --c_out=$(PROTO_GEN_DIR) $<
+
+SOURCES += $(PROTO_C_FILES)
+HEADERS += $(PROTO_H_FILES)
 
 all: build
 

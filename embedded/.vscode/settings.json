@@ -15,7 +15,9 @@
         "net.h": "c",
         "http_server.h": "c",
         "http_client.h": "c",
-        "error.h": "c"
+        "error.h": "c",
+        "protobuf-c.h": "c",
+        "toniebox.pb.rtnl.pb-c.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

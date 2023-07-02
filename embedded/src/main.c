@@ -11,10 +11,11 @@
 
 void platform_init(void);
 void platform_deinit(void);
+void server_init(void);
 
 int_t main(int argc, char *argv[])
 {
-    error_t error;
+    error_t error = 0;
 
     /* platform specific init */
     platform_init();
@@ -55,7 +56,7 @@ int_t main(int argc, char *argv[])
 
     error = cloud_request_get(NULL, 0, request, hash);
 #else
-    error = server_init();
+    server_init();
 #endif
 
     tls_adapter_deinit();

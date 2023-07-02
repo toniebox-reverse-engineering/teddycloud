@@ -24,9 +24,9 @@
 #include "debug.h"
 
 #include "cloud_request.h"
-#include "protobuf/toniebox.pb.freshness-check.fc-request.pb-c.h"
-#include "protobuf/toniebox.pb.freshness-check.fc-response.pb-c.h"
-#include "protobuf/toniebox.pb.rtnl.pb-c.h"
+#include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
+#include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
+#include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
 #define BODY_BUFFER_SIZE 4096
