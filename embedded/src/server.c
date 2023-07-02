@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
+#include <stdbool.h>
 
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -148,9 +150,10 @@ error_t httpServerRequestCallback(HttpConnection *connection,
         TRACE_INFO("httpServerRequestCallback: (done)\n");
         return NO_ERROR;
     }
-    else 
+    else
     {
-        if(!osStrcasecmp(connection->request.method, "GET")) {
+        if (!osStrcasecmp(connection->request.method, "GET"))
+        {
             if (!osStrcmp("/v1/time", uri))
             {
                 TRACE_INFO(" >> respond with current time\n");
@@ -200,7 +203,6 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                 }
                 TRACE_INFO(" >> client requested UID %s\n", uid);
                 TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
-
             }
             else if (!osStrncmp("/v2/content/", uri, 12))
             {
@@ -260,7 +262,9 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                     return NO_ERROR;
                 }
             }
-        } else if(!osStrcasecmp(connection->request.method, "POST")) {
+        }
+        else if (!osStrcasecmp(connection->request.method, "POST"))
+        {
             if (!osStrcmp("/v1/freshness-check", uri))
             {
                 char_t data[BODY_BUFFER_SIZE];
@@ -269,7 +273,7 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                 {
                     TRACE_ERROR("Body size %li bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
                 }
-                else 
+                else
                 {
                     error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
                     if (error != NO_ERROR)
@@ -277,20 +281,43 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                         TRACE_ERROR("httpReceive failed!");
                         return error;
                     }
-                    TRACE_INFO("Content (%li of %li): %s\n", size, connection->request.byteCount, data);
-                    TonieFreshnessCheckRequest* freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t*)data);
+                    TRACE_INFO("Content (%li of %li)\n", size, connection->request.byteCount);
+                    TonieFreshnessCheckRequest *freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t *)data);
                     if (freshReq == NULL)
                     {
                         TRACE_ERROR("Unpacking freshness request failed!\n");
                     }
                     else
                     {
-                        TRACE_INFO("Found %li tonies\n", freshReq->n_tonie_infos);
-                        for(uint16_t i=0; i<freshReq->n_tonie_infos; i++) {
-                            TRACE_INFO(" uid: %li, audioid, %i\n",
-                                freshReq->tonie_infos[i]->uid,
-                                freshReq->tonie_infos[i]->audio_id
-                            );
+                        TRACE_INFO("Found %li tonies:\n", freshReq->n_tonie_infos);
+                        for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
+                        {
+                            struct tm tm_info;
+                            char date_buffer[32];
+                            bool custom = false;
+                            time_t unix_time = freshReq->tonie_infos[i]->audio_id;
+
+                            /* custom tonies from TeddyBench have the audio id reduced by a constant */
+                            if (unix_time < 0x50000000)
+                            {
+                                unix_time += 0x50000000;
+                                custom = true;
+                            }
+
+                            if (localtime_r(&unix_time, &tm_info) == NULL)
+                            {
+                                sprintf(date_buffer, "(localtime failed)");
+                            }
+                            else
+                            {
+                                strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
+                            }
+
+                            TRACE_INFO("  uid: %016lX, audioid: %08X (%s%s)\n",
+                                       freshReq->tonie_infos[i]->uid,
+                                       freshReq->tonie_infos[i]->audio_id,
+                                       date_buffer,
+                                       custom ? ", custom" : "");
                         }
                         tonie_freshness_check_request__free_unpacked(freshReq, NULL);
                     }
