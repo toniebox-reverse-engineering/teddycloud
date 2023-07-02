@@ -187,6 +187,16 @@ error_t httpServerRequestCallback(HttpConnection *connection,
             }
             else if (!osStrncmp("/v1/claim/", uri, 10))
             {
+                osStrncpy(uid, &uri[10], sizeof(uid));
+                uid[17] = 0;
+
+                if (osStrlen(uid) != 16)
+                {
+                    TRACE_WARNING(" >>  invalid URI\n");
+                }
+                TRACE_INFO(" >> client requested UID %s\n", uid);
+                TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
+
             }
             else if (!osStrncmp("/v2/content/", uri, 12))
             {
