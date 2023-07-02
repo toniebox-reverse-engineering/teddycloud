@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+message TonieRtnlLog2 {
+  required fixed64 field1 = 1;
+  required uint32 field2 = 2;
+  required uint32 field3 = 3;
+  required uint32 field4 = 4;
+  required uint32 field5 = 5;
+  required bytes field6 = 6; //or string
+}
+
+message TonieRtnlLog3 {
+  required fixed32 field1 = 1;
+  required uint32 field2 = 2;
+}

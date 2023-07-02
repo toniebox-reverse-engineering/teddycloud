@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+message TonieFreshnessCheckResponse {
+  repeated fixed64 tonie_marked = 1;
+  required int32 field2 = 2;
+  required int32 max_vol_spk = 3; // 0-3
+  required int32 slap_en = 4; // 1=on, 0=off
+  required int32 slap_dir = 5; // 1=back-left_forw-right, 0=forw-left_back-right
+  required int32 field6 = 6;
+  required int32 max_vol_hdp = 7; // 0-3
+  required int32 led = 8; // 0=on, 1=off, 2=dimmed
+}

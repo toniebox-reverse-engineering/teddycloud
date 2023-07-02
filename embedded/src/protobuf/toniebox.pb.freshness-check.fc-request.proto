@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+message TonieFreshnessCheckRequest {
+  repeated TonieFCInfo tonie_infos = 1;
+}
+
+message TonieFCInfo {
+  required fixed64 uid = 1;
+  required fixed32 audio_id = 2;
+}
