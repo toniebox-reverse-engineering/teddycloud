@@ -185,6 +185,9 @@ error_t httpServerRequestCallback(HttpConnection *connection,
             else if (!osStrncmp("/v1/ota/", uri, 8))
             {
             }
+            else if (!osStrncmp("/v1/claim/", uri, 10))
+            {
+            }
             else if (!osStrncmp("/v2/content/", uri, 12))
             {
                 if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
