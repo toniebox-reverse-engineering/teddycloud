@@ -22,8 +22,12 @@
 #include "debug.h"
 
 #include "cloud_request.h"
+#include "protobuf/toniebox.pb.freshness-check.fc-request.pb-c.h"
+#include "protobuf/toniebox.pb.freshness-check.fc-response.pb-c.h"
+#include "protobuf/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
+#define BODY_BUFFER_SIZE 4096
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
 HttpConnection httpsConnections[APP_HTTP_MAX_CONNECTIONS];
 
@@ -259,6 +263,39 @@ error_t httpServerRequestCallback(HttpConnection *connection,
         } else if(!osStrcasecmp(connection->request.method, "POST")) {
             if (!osStrcmp("/v1/freshness-check", uri))
             {
+                char_t data[BODY_BUFFER_SIZE];
+                size_t size;
+                if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+                {
+                    TRACE_ERROR("Body size %li bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
+                }
+                else 
+                {
+                    error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+                    if (error != NO_ERROR)
+                    {
+                        TRACE_ERROR("httpReceive failed!");
+                        return error;
+                    }
+                    TRACE_INFO("Content (%li of %li): %s\n", size, connection->request.byteCount, data);
+                    TonieFreshnessCheckRequest* freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t*)data);
+                    if (freshReq == NULL)
+                    {
+                        TRACE_ERROR("Unpacking freshness request failed!\n");
+                    }
+                    else
+                    {
+                        TRACE_INFO("Found %li tonies\n", freshReq->n_tonie_infos);
+                        for(uint16_t i=0; i<freshReq->n_tonie_infos; i++) {
+                            TRACE_INFO(" uid: %li, audioid, %i\n",
+                                freshReq->tonie_infos[i]->uid,
+                                freshReq->tonie_infos[i]->audio_id
+                            );
+                        }
+                        tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+                    }
+                    return NO_ERROR;
+                }
             }
             else if (!osStrcmp("/v1/log", uri))
             {

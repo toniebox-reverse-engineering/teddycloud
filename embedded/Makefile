@@ -16,6 +16,10 @@ SOURCES = \
 	src/tls_adapter.c \
 	src/cloud_request.c \
 	src/platform_$(PLATFORM).c \
+	include/protobuf-c/protobuf-c.c \
+	include/protobuf/toniebox.pb.freshness-check.fc-request.pb-c.c \
+	include/protobuf/toniebox.pb.freshness-check.fc-response.pb-c.c \
+	include/protobuf/toniebox.pb.rtnl.pb-c.c \
 	$(CYCLONE_SOURCES)
 
 HEADERS = \
@@ -25,6 +29,10 @@ HEADERS = \
 	include/os_port_config.h \
 	include/tls_config.h \
 	include/crypto_config.h \
+	include/protobuf-c/protobuf-c.h \
+	include/protobuf/toniebox.pb.freshness-check.fc-request.pb-c.h \
+	include/protobuf/toniebox.pb.freshness-check.fc-response.pb-c.h \
+	include/protobuf/toniebox.pb.rtnl.pb-c.h \
 	$(CYCLONE_SOURCES:.c=.h)
 
 
