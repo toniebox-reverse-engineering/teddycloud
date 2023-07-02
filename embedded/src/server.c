@@ -108,7 +108,7 @@ void httpServerDiscCbr(void *ctx_in)
 error_t httpServerRequestCallback(HttpConnection *connection,
                                   const char_t *uri)
 {
-    TRACE_INFO(" >> client requested '%s'\n", uri);
+    TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     char uid[18];
     uint8_t *token = connection->private.authentication_token;
@@ -144,110 +144,116 @@ error_t httpServerRequestCallback(HttpConnection *connection,
         TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
         return NO_ERROR;
     }
-    else if (!osStrcmp("/v1/freshness-check", uri))
+    else 
     {
-    }
-    else if (!osStrcmp("/v1/ota", uri))
-    {
-    }
-    else if (!osStrcmp("/v1/log", uri))
-    {
-    }
-    else if (!osStrcmp("/v1/time", uri))
-    {
-        TRACE_INFO(" >> respond with current time\n");
+        if(!osStrcasecmp(connection->request.method, "GET")) {
+            if (!osStrcmp("/v1/time", uri))
+            {
+                TRACE_INFO(" >> respond with current time\n");
 
-        char response[32];
+                char response[32];
 
-        sprintf(response, "%ld", time(NULL));
+                sprintf(response, "%ld", time(NULL));
 
-        httpInitResponseHeader(connection);
-        connection->response.contentType = "text/plain; charset=utf-8";
-        connection->response.contentLength = osStrlen(response);
+                httpInitResponseHeader(connection);
+                connection->response.contentType = "text/plain; charset=utf-8";
+                connection->response.contentLength = osStrlen(response);
 
-        error_t error = httpWriteHeader(connection);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to send header");
-            return error;
+                error_t error = httpWriteHeader(connection);
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to send header");
+                    return error;
+                }
+
+                error = httpWriteStream(connection, response, connection->response.contentLength);
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to send payload");
+                    return error;
+                }
+                error = httpCloseStream(connection);
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to close");
+                    return error;
+                }
+
+                TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
+                return NO_ERROR;
+            }
+            else if (!osStrncmp("/v1/ota/", uri, 8))
+            {
+            }
+            else if (!osStrncmp("/v2/content/", uri, 12))
+            {
+                if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+                {
+                    TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
+
+                    osStrncpy(uid, &uri[12], sizeof(uid));
+                    uid[17] = 0;
+
+                    if (osStrlen(uid) != 16)
+                    {
+                        TRACE_WARNING(" >>  invalid URI\n");
+                    }
+                    TRACE_INFO(" >> client requested UID %s\n", uid);
+                    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
+
+                    httpInitResponseHeader(connection);
+
+                    char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
+                    char *footer_data = " - if there was any...\r\n";
+
+                    char *build_string = osAllocMem(strlen(header_data) + osStrlen(uid) + 2 * AUTH_TOKEN_LENGTH + osStrlen(footer_data));
+
+                    osSprintf(build_string, header_data, uid);
+                    for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
+                    {
+                        char buf[3];
+                        osSprintf(buf, "%02X", token[pos]);
+                        osStrcat(build_string, buf);
+                    }
+                    osStrcat(build_string, footer_data);
+                    connection->response.contentType = "application/binary";
+                    connection->response.contentLength = osStrlen(build_string);
+
+                    error_t error = httpWriteHeader(connection);
+                    if (error != NO_ERROR)
+                    {
+                        osFreeMem(build_string);
+                        TRACE_ERROR("Failed to send header");
+                        return error;
+                    }
+
+                    error = httpWriteStream(connection, build_string, connection->response.contentLength);
+                    osFreeMem(build_string);
+                    if (error != NO_ERROR)
+                    {
+                        TRACE_ERROR("Failed to send payload");
+                        return error;
+                    }
+
+                    error = httpCloseStream(connection);
+                    if (error != NO_ERROR)
+                    {
+                        TRACE_ERROR("Failed to close");
+                        return error;
+                    }
+
+                    return NO_ERROR;
+                }
+            }
+        } else if(!osStrcasecmp(connection->request.method, "POST")) {
+            if (!osStrcmp("/v1/freshness-check", uri))
+            {
+            }
+            else if (!osStrcmp("/v1/log", uri))
+            {
+            }
         }
-
-        error = httpWriteStream(connection, response, connection->response.contentLength);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to send payload");
-            return error;
-        }
-        error = httpCloseStream(connection);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to close");
-            return error;
-        }
-
-        TRACE_INFO("httpServerRequestCallback: %s (done)\n", uri);
-        return NO_ERROR;
-    }
-    else if (!osStrncmp("/v2/content/", uri, 12))
-    {
-        if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
-        {
-            TRACE_INFO("httpServerRequestCallback: '%s' auth\n", uri);
-
-            osStrncpy(uid, &uri[12], sizeof(uid));
-            uid[17] = 0;
-
-            if (osStrlen(uid) != 16)
-            {
-                TRACE_WARNING(" >>  invalid URI\n");
-            }
-            TRACE_INFO(" >> client requested UID %s\n", uid);
-            TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
-
-            httpInitResponseHeader(connection);
-
-            char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
-            char *footer_data = " - if there was any...\r\n";
-
-            char *build_string = osAllocMem(strlen(header_data) + osStrlen(uid) + 2 * AUTH_TOKEN_LENGTH + osStrlen(footer_data));
-
-            osSprintf(build_string, header_data, uid);
-            for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
-            {
-                char buf[3];
-                osSprintf(buf, "%02X", token[pos]);
-                osStrcat(build_string, buf);
-            }
-            osStrcat(build_string, footer_data);
-            connection->response.contentType = "application/binary";
-            connection->response.contentLength = osStrlen(build_string);
-
-            error_t error = httpWriteHeader(connection);
-            if (error != NO_ERROR)
-            {
-                osFreeMem(build_string);
-                TRACE_ERROR("Failed to send header");
-                return error;
-            }
-
-            error = httpWriteStream(connection, build_string, connection->response.contentLength);
-            osFreeMem(build_string);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send payload");
-                return error;
-            }
-
-            error = httpCloseStream(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to close");
-                return error;
-            }
-
-            return NO_ERROR;
-        }
-        else
+        if (1 == 0)
         {
             const char *response = "<html><head></head><body>No content for you</body></html>";
 
