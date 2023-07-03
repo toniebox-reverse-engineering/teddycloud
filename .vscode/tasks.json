@@ -9,7 +9,7 @@
     "version": "2.0.0",
     "command": "bash",
     "options": {
-        "cwd": "${workspaceRoot}/embedded"
+        "cwd": "${workspaceRoot}"
     },
     "tasks": [
         {

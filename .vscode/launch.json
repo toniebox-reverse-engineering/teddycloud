@@ -1,19 +1,19 @@
 {
-    "configurations": [ 
-    {
-        "name": "Launch",
-        "type": "cppdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/embedded/bin/teddycloud",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${workspaceFolder}/embedded/",
-        "environment": [],
-        "externalConsole": false,
-        "preLaunchTask": "build",
-        "linux": {
-            "MIMode": "gdb",
-          },
-    }
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        }
     ]
 }
