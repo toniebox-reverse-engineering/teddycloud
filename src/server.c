@@ -297,20 +297,26 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                             bool custom = false;
                             time_t unix_time = freshReq->tonie_infos[i]->audio_id;
 
-                            /* custom tonies from TeddyBench have the audio id reduced by a constant */
-                            if (unix_time < 0x50000000)
+                            if (unix_time < 0x0e000000)
                             {
-                                unix_time += 0x50000000;
-                                custom = true;
-                            }
-
-                            if (localtime_r(&unix_time, &tm_info) == NULL)
-                            {
-                                sprintf(date_buffer, "(localtime failed)");
+                                sprintf(date_buffer, "(special)");
                             }
                             else
                             {
-                                strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
+                                /* custom tonies from TeddyBench have the audio id reduced by a constant */
+                                if (unix_time < 0x50000000)
+                                {
+                                    unix_time += 0x50000000;
+                                    custom = true;
+                                }
+                                if (localtime_r(&unix_time, &tm_info) == NULL)
+                                {
+                                    sprintf(date_buffer, "(localtime failed)");
+                                }
+                                else
+                                {
+                                    strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
+                                }
                             }
 
                             TRACE_INFO("  uid: %016lX, audioid: %08X (%s%s)\n",
