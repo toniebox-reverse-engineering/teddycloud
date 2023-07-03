@@ -33,6 +33,33 @@
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
 HttpConnection httpsConnections[APP_HTTP_MAX_CONNECTIONS];
 
+/* todo */
+#if 0
+enum eRequestType
+{
+    REQ_ANY,
+    REQ_GET,
+    REQ_POST
+};
+
+typedef struct
+{
+    enum eRequestType request;
+    char *path;
+    error_t (*handler)(...); /* parameters t.b.d */
+} request_type_t;
+
+/* const for now. later maybe dynamic? */
+request_type_t request_paths[] = {
+    {REQ_ANY, "/reverse", &handle_reverse},
+    {REQ_GET, "/v1/time", &handle_client_time},
+    {REQ_GET, "/v1/ota/", &handle_client_ota},
+    {REQ_GET, "/v1/claim/", &handle_client_claim},
+    {REQ_GET, "/v2/content", &handle_client_content},
+    {REQ_POST, "/v1/freshness-check", &handle_client_freshness},
+    {REQ_GET, "/v1/log", &handle_client_log}};
+#endif
+
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
 {
     return "(not implemented)";
@@ -111,8 +138,9 @@ void httpServerDiscCbr(void *ctx_in)
     ctx->status = PROX_STATUS_DONE;
 }
 
-error_t httpServerRequestCallback(HttpConnection *connection,
-                                  const char_t *uri)
+error_t
+httpServerRequestCallback(HttpConnection *connection,
+                          const char_t *uri)
 {
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
