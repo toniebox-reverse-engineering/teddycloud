@@ -299,7 +299,7 @@ error_t httpServerRequestCallback(HttpConnection *connection,
 
                             if (unix_time < 0x0e000000)
                             {
-                                sprintf(date_buffer, "(special)");
+                                sprintf(date_buffer, "special");
                             }
                             else
                             {
