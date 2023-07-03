@@ -289,6 +289,7 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                     }
                     else
                     {
+                        uint32_t uidTest;
                         TRACE_INFO("Found %li tonies:\n", freshReq->n_tonie_infos);
                         for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
                         {
@@ -324,8 +325,54 @@ error_t httpServerRequestCallback(HttpConnection *connection,
                                        freshReq->tonie_infos[i]->audio_id,
                                        date_buffer,
                                        custom ? ", custom" : "");
+                            if (custom)
+                                uidTest = freshReq->tonie_infos[i]->uid;
                         }
                         tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+                        // Upstream
+                        // TODO push to Boxine
+                        TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
+                        freshResp.max_vol_spk = 3;
+                        freshResp.slap_en = 1;
+                        freshResp.slap_dir = 0;
+                        freshResp.max_vol_hdp = 3;
+                        freshResp.led = 1;
+                        freshResp.n_tonie_marked = 1;
+                        freshResp.tonie_marked = malloc(sizeof(char *) * freshResp.n_tonie_marked);
+                        freshResp.tonie_marked[0] = uidTest;
+                        size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
+                        tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
+                        free(freshResp.tonie_marked);
+                        TRACE_INFO("Freshness check response: size=%li, content=%s\n", dataLen, data);
+
+                        httpInitResponseHeader(connection);
+                        connection->response.contentType = "application/octet-stream; charset=utf-8";
+                        connection->response.contentLength = dataLen;
+
+                        error_t error = httpWriteHeader(connection);
+                        if (error != NO_ERROR)
+                        {
+                            TRACE_ERROR("Failed to send header");
+                            return error;
+                        }
+
+                        error = httpWriteStream(connection, data, connection->response.contentLength);
+                        if (error != NO_ERROR)
+                        {
+                            TRACE_ERROR("Failed to send payload");
+                            return error;
+                        }
+                        error = httpCloseStream(connection);
+                        if (error != NO_ERROR)
+                        {
+                            TRACE_ERROR("Failed to close");
+                            return error;
+                        }
+
+                        TRACE_INFO("httpServerRequestCallback: (done)\n");
+                        return NO_ERROR;
+
+                        // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
                     }
                     return NO_ERROR;
                 }
