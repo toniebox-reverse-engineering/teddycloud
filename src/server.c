@@ -33,9 +33,9 @@
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
 HttpConnection httpsConnections[APP_HTTP_MAX_CONNECTIONS];
 
-/* todo */
-#if 0
-enum eRequestType
+error_t handleClientTime(HttpConnection *connection, const char_t *uri);
+
+enum eRequestMethod
 {
     REQ_ANY,
     REQ_GET,
@@ -44,21 +44,21 @@ enum eRequestType
 
 typedef struct
 {
-    enum eRequestType request;
+    enum eRequestMethod method;
     char *path;
-    error_t (*handler)(...); /* parameters t.b.d */
+    error_t (*handler)(HttpConnection *connection, const char_t *uri);
 } request_type_t;
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
-    {REQ_ANY, "/reverse", &handle_reverse},
-    {REQ_GET, "/v1/time", &handle_client_time},
-    {REQ_GET, "/v1/ota/", &handle_client_ota},
-    {REQ_GET, "/v1/claim/", &handle_client_claim},
-    {REQ_GET, "/v2/content", &handle_client_content},
-    {REQ_POST, "/v1/freshness-check", &handle_client_freshness},
-    {REQ_GET, "/v1/log", &handle_client_log}};
-#endif
+    //    {REQ_ANY, "/reverse", &handle_reverse},
+    {REQ_GET, "/v1/time", &handleClientTime},
+    //    {REQ_GET, "/v1/ota/", &handle_client_ota},
+    //    {REQ_GET, "/v1/claim/", &handle_client_claim},
+    //    {REQ_GET, "/v2/content", &handle_client_content},
+    //    {REQ_POST, "/v1/freshness-check", &handle_client_freshness},
+    //    {REQ_GET, "/v1/log", &handle_client_log}
+};
 
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
 {
@@ -138,11 +138,55 @@ void httpServerDiscCbr(void *ctx_in)
     ctx->status = PROX_STATUS_DONE;
 }
 
+error_t handleClientTime(HttpConnection *connection, const char_t *uri)
+{
+    TRACE_INFO(" >> respond with current time\n");
+
+    char response[32];
+
+    sprintf(response, "%ld", time(NULL));
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/plain; charset=utf-8";
+    connection->response.contentLength = osStrlen(response);
+
+    error_t error = httpWriteHeader(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header");
+        return error;
+    }
+
+    error = httpWriteStream(connection, response, connection->response.contentLength);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send payload");
+        return error;
+    }
+    error = httpCloseStream(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to close");
+        return error;
+    }
+
+    TRACE_INFO("httpServerRequestCallback: (done)\n");
+    return NO_ERROR;
+}
+
 error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
+    for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
+    {
+        size_t pathLen = osStrlen(request_paths[i].path);
+        if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
+        {
+            return (*request_paths[i].handler)(connection, uri);
+        }
+    }
 
     char uid[18];
     uint8_t *token = connection->private.authentication_token;
@@ -182,42 +226,7 @@ httpServerRequestCallback(HttpConnection *connection,
     {
         if (!osStrcasecmp(connection->request.method, "GET"))
         {
-            if (!osStrcmp("/v1/time", uri))
-            {
-                TRACE_INFO(" >> respond with current time\n");
-
-                char response[32];
-
-                sprintf(response, "%ld", time(NULL));
-
-                httpInitResponseHeader(connection);
-                connection->response.contentType = "text/plain; charset=utf-8";
-                connection->response.contentLength = osStrlen(response);
-
-                error_t error = httpWriteHeader(connection);
-                if (error != NO_ERROR)
-                {
-                    TRACE_ERROR("Failed to send header");
-                    return error;
-                }
-
-                error = httpWriteStream(connection, response, connection->response.contentLength);
-                if (error != NO_ERROR)
-                {
-                    TRACE_ERROR("Failed to send payload");
-                    return error;
-                }
-                error = httpCloseStream(connection);
-                if (error != NO_ERROR)
-                {
-                    TRACE_ERROR("Failed to close");
-                    return error;
-                }
-
-                TRACE_INFO("httpServerRequestCallback: (done)\n");
-                return NO_ERROR;
-            }
-            else if (!osStrncmp("/v1/ota/", uri, 8))
+            if (!osStrncmp("/v1/ota/", uri, 8))
             {
             }
             else if (!osStrncmp("/v1/claim/", uri, 10))
