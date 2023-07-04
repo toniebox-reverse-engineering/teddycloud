@@ -248,6 +248,23 @@ error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
+    if (connection->tlsContext != NULL && connection->tlsContext->cert != NULL)
+    {
+        if (connection->tlsContext->clientCertRequested)
+        {
+            TRACE_INFO(" Client cert requested\n");
+        }
+        TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
+        for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
+        {
+            TRACE_INFO(" ID: %i CertType=%i \n", i, connection->tlsContext->certs[i].type);
+        }
+    }
+    else
+    {
+        TRACE_INFO(" No Cert or TLS \n");
+    }
+
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
