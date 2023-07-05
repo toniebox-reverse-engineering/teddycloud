@@ -5,6 +5,44 @@
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
 
+error_t httpWriteResponse(HttpConnection *connection, const void *data, bool freeMemory)
+{
+
+    error_t error = httpWriteHeader(connection);
+    if (error != NO_ERROR)
+    {
+        if (freeMemory)
+            osFreeMem(data);
+        TRACE_ERROR("Failed to send header");
+        return error;
+    }
+
+    error = httpWriteStream(connection, data, connection->response.contentLength);
+    if (freeMemory)
+        if (freeMemory)
+            osFreeMem(data);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send payload");
+        return error;
+    }
+
+    error = httpCloseStream(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to close");
+        return error;
+    }
+
+    return NO_ERROR;
+}
+void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)
+{
+    httpInitResponseHeader(connection);
+    connection->response.contentType = contentType;
+    connection->response.contentLength = contentLength;
+}
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 {
     TRACE_INFO(" >> respond with current time\n");
@@ -13,32 +51,8 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
     sprintf(response, "%ld", time(NULL));
 
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain; charset=utf-8";
-    connection->response.contentLength = osStrlen(response);
-
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send payload");
-        return error;
-    }
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close");
-        return error;
-    }
-
-    TRACE_INFO("httpServerRequestCallback: (done)\n");
-    return NO_ERROR;
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
+    return httpWriteResponse(connection, response, false);
 }
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
@@ -86,8 +100,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         TRACE_INFO(" >> client requested UID %s\n", uid);
         TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
 
-        httpInitResponseHeader(connection);
-
         char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
         char *footer_data = " - if there was any...\r\n";
 
@@ -101,33 +113,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             osStrcat(build_string, buf);
         }
         osStrcat(build_string, footer_data);
-        connection->response.contentType = "application/binary";
-        connection->response.contentLength = osStrlen(build_string);
 
-        error_t error = httpWriteHeader(connection);
-        if (error != NO_ERROR)
-        {
-            osFreeMem(build_string);
-            TRACE_ERROR("Failed to send header");
-            return error;
-        }
-
-        error = httpWriteStream(connection, build_string, connection->response.contentLength);
-        osFreeMem(build_string);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to send payload");
-            return error;
-        }
-
-        error = httpCloseStream(connection);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to close");
-            return error;
-        }
-
-        return NO_ERROR;
+        httpPrepareHeader(connection, "application/binary", osStrlen(build_string));
+        return httpWriteResponse(connection, build_string, true);
     }
 }
 
@@ -199,7 +187,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             // TODO push to Boxine
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
             freshResp.max_vol_spk = 3;
-            freshResp.slap_en = 1;
+            freshResp.slap_en = 0;
             freshResp.slap_dir = 0;
             freshResp.max_vol_hdp = 3;
             freshResp.led = 1;
@@ -211,33 +199,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             free(freshResp.tonie_marked);
             TRACE_INFO("Freshness check response: size=%li, content=%s\n", dataLen, data);
 
-            httpInitResponseHeader(connection);
-            connection->response.contentType = "application/octet-stream; charset=utf-8";
-            connection->response.contentLength = dataLen;
-
-            error_t error = httpWriteHeader(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send header");
-                return error;
-            }
-
-            error = httpWriteStream(connection, data, connection->response.contentLength);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send payload");
-                return error;
-            }
-            error = httpCloseStream(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to close");
-                return error;
-            }
-
-            TRACE_INFO("httpServerRequestCallback: (done)\n");
-            return NO_ERROR;
-
+            httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
+            return httpWriteResponse(connection, data, false);
             // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;

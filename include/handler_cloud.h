@@ -9,6 +9,9 @@
 
 #define BODY_BUFFER_SIZE 4096
 
+error_t httpWriteResponse(HttpConnection *connection, const void *data, bool freeMemory);
+void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri);
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri);
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri);
