@@ -110,30 +110,13 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 
         osSprintf(contentPath, "/CONTENT/%.8s/%.8s", uid, &uid[8]);
         strupr(contentPath);
+        connection->response.keepAlive = true;
         error_t error = httpSendResponse(connection, contentPath);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%lu...\n", contentPath, error);
         }
-
-#if 0
-        char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
-        char *footer_data = " - if there was any...\r\n";
-
-        char *build_string = osAllocMem(strlen(header_data) + osStrlen(uid) + 2 * AUTH_TOKEN_LENGTH + osStrlen(footer_data));
-
-        osSprintf(build_string, header_data, uid);
-        for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
-        {
-            char buf[3];
-            osSprintf(buf, "%02X", token[pos]);
-            osStrcat(build_string, buf);
-        }
-        osStrcat(build_string, footer_data);
-
-        httpPrepareHeader(connection, "application/binary", osStrlen(build_string));
-        return httpWriteResponse(connection, build_string, true);
-#endif
+        return error;
     }
     return NO_ERROR;
 }
