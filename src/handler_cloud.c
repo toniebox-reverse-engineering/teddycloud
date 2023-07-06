@@ -83,9 +83,17 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
+void strupr(char input[])
+{
+    for (uint16_t i = 0; input[i]; i++)
+    {
+        input[i] = toupper(input[i]);
+    }
+}
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 {
     char uid[18];
+    char contentPath[1 + 7 + 1 + 8 + 1 + 8 + 1];
     uint8_t *token = connection->private.authentication_token;
 
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
@@ -100,6 +108,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         TRACE_INFO(" >> client requested UID %s\n", uid);
         TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
 
+        osSprintf(contentPath, "/CONTENT/%.8s/%.8s", uid, &uid[8]);
+        strupr(contentPath);
+        error_t error = httpSendResponse(connection, contentPath);
+        if (error)
+        {
+            TRACE_ERROR(" >> file %s not available or not send, error=%lu...\n", contentPath, error);
+        }
+
+#if 0
         char *header_data = "Congratulations, here could have been the content for UID %s and the hash ";
         char *footer_data = " - if there was any...\r\n";
 
@@ -116,7 +133,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 
         httpPrepareHeader(connection, "application/binary", osStrlen(build_string));
         return httpWriteResponse(connection, build_string, true);
+#endif
     }
+    return NO_ERROR;
 }
 
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
