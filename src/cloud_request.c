@@ -62,7 +62,15 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     return NO_ERROR;
 }
 
-int_t cloud_request_get(const char *server, int port, const char *request, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_get(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
+{
+    return cloud_request(server, port, uri, "GET", hash, cbr);
+}
+int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
+{
+    return cloud_request(server, port, uri, "POST", hash, cbr);
+}
+int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *hash, req_cbr_t *cbr)
 {
     HttpClientContext httpClientContext;
     IpAddr ipAddr;
@@ -119,8 +127,8 @@ int_t cloud_request_get(const char *server, int port, const char *request, const
 
             // Create an HTTP request
             httpClientCreateRequest(&httpClientContext);
-            httpClientSetMethod(&httpClientContext, "GET");
-            httpClientSetUri(&httpClientContext, request);
+            httpClientSetMethod(&httpClientContext, method);
+            httpClientSetUri(&httpClientContext, uri);
 
             // Add HTTP header fields
             char host_line[128];
