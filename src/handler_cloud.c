@@ -5,7 +5,7 @@
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
 
-error_t httpWriteResponse(HttpConnection *connection, const void *data, bool freeMemory)
+error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory)
 {
 
     error_t error = httpWriteHeader(connection);
@@ -183,6 +183,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     uidTest = freshReq->tonie_infos[i]->uid;
             }
             tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+
             // Upstream
             // TODO push to Boxine
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
