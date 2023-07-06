@@ -263,7 +263,7 @@ httpServerRequestCallback(HttpConnection *connection,
         TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
         for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
         {
-            TRACE_INFO(" ID: %i CertType=%i \n", i, connection->tlsContext->certs[i].type);
+            TRACE_INFO(" ID: %li CertType=%i \n", i, connection->tlsContext->certs[i].type);
         }
     }
     else
