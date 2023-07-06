@@ -31,6 +31,7 @@ HEADERS = \
 CYCLONE_SOURCES = \
 	cyclone/common/cpu_endian.c \
 	cyclone/common/os_port_posix.c \
+	cyclone/common/fs_port_posix.c \
 	cyclone/common/date_time.c \
 	cyclone/common/debug.c \
 	cyclone/common/path.c \

@@ -29,4 +29,6 @@
 #ifndef _OS_PORT_CONFIG_H
 #define _OS_PORT_CONFIG_H
 
+#define HTTP_SERVER_FS_SUPPORT ENABLED
+
 #endif

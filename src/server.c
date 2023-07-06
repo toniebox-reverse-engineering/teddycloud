@@ -43,9 +43,15 @@ typedef struct
     error_t (*handler)(HttpConnection *connection, const char_t *uri);
 } request_type_t;
 
+error_t handleWww(HttpConnection *connection, const char_t *uri)
+{
+    return httpSendResponse(connection, &uri[4]);
+}
+
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
     //    {REQ_ANY, "/reverse", &handle_reverse},
+    {REQ_GET, "/www", &handleWww},
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
