@@ -5,6 +5,24 @@
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
 
+void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
+{
+    osSprintf(contentPath, "www/CONTENT/%.8s/%.8s", ruid, &ruid[8]);
+    strupr(&contentPath[4]);
+}
+void getContentPathFromUID(uint64_t uid, char contentPath[30])
+{
+    uint16_t cuid[9];
+    osSprintf(cuid, "%016lX", uid);
+    uint16_t cruid[9];
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        cruid[i] = cuid[7 - i];
+    }
+    cruid[8] = 0;
+    getContentPathFromCharRUID(cruid, contentPath);
+}
+
 error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory)
 {
 
@@ -94,26 +112,25 @@ void strupr(char input[])
 }
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 {
-    char uid[18];
-    char contentPath[1 + 7 + 1 + 8 + 1 + 8 + 1];
+    char ruid[18];
+    char contentPath[31];
     uint8_t *token = connection->private.authentication_token;
 
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
-        osStrncpy(uid, &uri[12], sizeof(uid));
-        uid[17] = 0;
+        osStrncpy(ruid, &uri[12], sizeof(ruid));
+        ruid[17] = 0;
 
-        if (osStrlen(uid) != 16)
+        if (osStrlen(ruid) != 16)
         {
             TRACE_WARNING(" >>  invalid URI\n");
         }
-        TRACE_INFO(" >> client requested UID %s\n", uid);
+        TRACE_INFO(" >> client requested UID %s\n", ruid);
         TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
 
-        osSprintf(contentPath, "/CONTENT/%.8s/%.8s", uid, &uid[8]);
-        strupr(contentPath);
+        getContentPathFromCharRUID(ruid, contentPath);
         connection->response.keepAlive = true;
-        error_t error = httpSendResponse(connection, contentPath);
+        error_t error = httpSendResponse(connection, &contentPath[4]);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%lu...\n", contentPath, error);
@@ -155,11 +172,16 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
         {
             uint64_t uidTest;
             TRACE_INFO("Found %li tonies:\n", freshReq->n_tonie_infos);
+            TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
+            freshResp.n_tonie_marked = 0;
+            freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshReq->n_tonie_infos);
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
                 struct tm tm_info;
                 char date_buffer[32];
                 bool custom = false;
+                bool nocloud = false;
+                bool live = false;
                 time_t unix_time = freshReq->tonie_infos[i]->audio_id;
 
                 if (unix_time < 0x0e000000)
@@ -183,28 +205,34 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
                     }
                 }
-
-                TRACE_INFO("  uid: %016lX, audioid: %08X (%s%s)\n",
+                char contentPath[30 + 8]; //".nocloud" / ".live"
+                getContentPathFromUID(freshReq->tonie_infos[i]->uid, contentPath);
+                osStrcat(contentPath, ".nocloud");
+                nocloud = fsFileExists(contentPath);
+                contentPath[29] = 0;
+                osStrcat(contentPath, ".live");
+                live = fsFileExists(contentPath);
+                TRACE_INFO("  uid: %016lX, nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
                            freshReq->tonie_infos[i]->uid,
+                           nocloud,
+                           live,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer,
                            custom ? ", custom" : "");
-                if (custom)
-                    uidTest = freshReq->tonie_infos[i]->uid;
+                if (live)
+                {
+                    freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
+                }
             }
             tonie_freshness_check_request__free_unpacked(freshReq, NULL);
-            uidTest = 0xE004035055312189;
             // Upstream
             // TODO push to Boxine
-            TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
+
             freshResp.max_vol_spk = 3;
             freshResp.slap_en = 0;
             freshResp.slap_dir = 0;
             freshResp.max_vol_hdp = 3;
             freshResp.led = 2;
-            freshResp.n_tonie_marked = 1;
-            freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshResp.n_tonie_marked);
-            freshResp.tonie_marked[0] = uidTest;
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
             free(freshResp.tonie_marked);

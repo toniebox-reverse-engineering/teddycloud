@@ -9,6 +9,9 @@
 
 #define BODY_BUFFER_SIZE 4096
 
+void getContentPathFromCharRUID(char ruid[17], char contentPath[30]);
+void getContentPathFromUID(uint64_t uid, char contentPath[30]);
+
 error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory);
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);
 
