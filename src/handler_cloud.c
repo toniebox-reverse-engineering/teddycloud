@@ -39,6 +39,8 @@ error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t f
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)
 {
     httpInitResponseHeader(connection);
+    connection->response.keepAlive = true;
+    connection->response.chunkedEncoding = false;
     connection->response.contentType = contentType;
     connection->response.contentLength = contentLength;
 }
@@ -115,6 +117,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%lu...\n", contentPath, error);
+            if (error == ERROR_NOT_FOUND)
+            {
+                httpPrepareHeader(connection, NULL, 0);
+                connection->response.statusCode = 404;
+                return httpWriteResponse(connection, NULL, false);
+            }
         }
         return error;
     }
