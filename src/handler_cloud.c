@@ -153,7 +153,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
         }
         else
         {
-            uint32_t uidTest;
+            uint64_t uidTest;
             TRACE_INFO("Found %li tonies:\n", freshReq->n_tonie_infos);
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
@@ -193,7 +193,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     uidTest = freshReq->tonie_infos[i]->uid;
             }
             tonie_freshness_check_request__free_unpacked(freshReq, NULL);
-
+            uidTest = 0xE004035055312189;
             // Upstream
             // TODO push to Boxine
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
@@ -201,9 +201,9 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             freshResp.slap_en = 0;
             freshResp.slap_dir = 0;
             freshResp.max_vol_hdp = 3;
-            freshResp.led = 1;
+            freshResp.led = 2;
             freshResp.n_tonie_marked = 1;
-            freshResp.tonie_marked = malloc(sizeof(char *) * freshResp.n_tonie_marked);
+            freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshResp.n_tonie_marked);
             freshResp.tonie_marked[0] = uidTest;
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
