@@ -124,6 +124,12 @@ SIZE = size
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
 
+BIN_DIR := bin
+CONTRIB_DIR := contrib
+INSTALL_DIR := install
+PREINSTALL_DIR := install/pre
+ZIP_DIR := install/zip
+
 # Location of your .proto files
 PROTO_DIR := proto
 PROTO_GEN_DIR := src/proto
@@ -159,6 +165,15 @@ $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 clean:
 	rm -f $(BINARY)
 	$(foreach O,$(OBJECTS),rm -f $(O);)
+	rm -rf $(INSTALL_DIR)/
+
+preinstall: clean build
+	mkdir $(INSTALL_DIR)/
+	mkdir $(PREINSTALL_DIR)/
+	mkdir $(ZIP_DIR)/
+	cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
+	cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	zip -r $(ZIP_DIR)/release.zip $(PREINSTALL_DIR)/*
 
 time_test: $(BINARY)
 	$(BINARY) /v1/time

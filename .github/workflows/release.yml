@@ -1,0 +1,72 @@
+name: Build and zip
+
+on:
+  push:
+    tags:
+      - tc_nightly
+      - tc_v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get current datetime
+      id: get-datetime
+      run: echo "CURRENT_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+    - name: Set templates for nightly
+      id: set-templates-nightly
+      if: startsWith(github.ref, 'refs/tags/tc_nightly')
+      run: |
+        echo "TAG_NAME=${GITHUB_REF#refs/tags/}_${{ env.CURRENT_DATE }}_${{ github.run_number }}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=Nightly ${{ env.CURRENT_DATE }} - Run ID ${{ github.run_number }}" >> $GITHUB_ENV
+        echo "ASSET_APPENDIX=nightly_${{ env.CURRENT_DATE }}.${{ github.run_number }}" >> $GITHUB_ENV
+        echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+
+    - name: Set templates for release and delete trigger tag
+      id: set-templates-release
+      if: startsWith(github.ref, 'refs/tags/tc_v')
+      run: |
+        echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/hbng_bl_}" >> $GITHUB_ENV
+        echo "ASSET_APPENDIX=release_${GITHUB_REF#refs/tags/hbng_bl_}" >> $GITHUB_ENV
+        echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+
+    - uses: actions/checkout@v2
+      
+    - name: Build and zip
+      id:  build-zip
+      run: make preinstall
+    
+    - name: Check release zip existence
+      id: check_release
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "./install/zip/release.zip"  
+        allow_failure: true 
+    
+    - name: File exist
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: echo All files exist!
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: Teddy Cloud ${{ env.RELEASE_NAME }}
+        draft: true
+        prerelease: ${{ env.IS_PRERELEASE }}
+        
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ../install/zip/release.zip
+        asset_name: teddy_cloud.linux64.${{ env.ASSET_APPENDIX }}.zip
+        asset_content_type: application/zip

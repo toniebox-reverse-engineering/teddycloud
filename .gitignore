@@ -1,3 +1,12 @@
-bin
-obj
-certs
+/bin
+/obj
+/certs
+/install
+/www/CONTENT
+contrib/certs/server/ca-key.pem
+contrib/certs/server/ca-root.pem
+contrib/certs/server/ca-root.srl
+contrib/certs/server/ca.der
+contrib/certs/server/teddy-cert.pem
+contrib/certs/server/teddy-key.csr
+contrib/certs/server/teddy-key.pem
