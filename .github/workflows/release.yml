@@ -36,7 +36,7 @@ jobs:
       
     - name: Build and zip
       id:  build-zip
-      run: make preinstall
+      run: make zip
     
     - name: Check release zip existence
       id: check_release
