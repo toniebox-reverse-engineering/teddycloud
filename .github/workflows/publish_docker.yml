@@ -14,7 +14,7 @@ permissions:
   packages: write
 
 jobs:
-  build-arm64:
+  build-publish-container:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -33,6 +33,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Docker meta
+      if: github.event_name != 'pull_request'
       id: teddycloud_meta # you'll use this in the next step
       uses: docker/metadata-action@v3
       with:
@@ -50,6 +51,7 @@ jobs:
           type=sha
 
     - name: Build and push
+      if: github.event_name != 'pull_request'
       uses: docker/build-push-action@v2
       with:
         context: .
