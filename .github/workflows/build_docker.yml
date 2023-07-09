@@ -26,10 +26,10 @@ jobs:
       with:
         platforms: arm64
     - name: Build Docker arm64 image
-      run: docker buildx build --platform linux/arm64 . --tag revvox/teddycloud-server-arm64:$(date +%s) --tag revvox/teddycloud-arm64:latest
+      run: docker buildx build --platform linux/arm64 . --tag revvox/teddycloud-arm64:$(date +%s) --tag revvox/teddycloud-arm64:latest
   build-armhf:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Build the HBS Docker armhf image
-      run: docker buildx build --platform linux/armhf . --tag revvox/teddycloud-server-armhf:$(date +%s) --tag revvox/teddycloud-armhf:latest
+    - name: Build Docker armhf image
+      run: docker buildx build --platform linux/armhf . --tag revvox/teddycloud-armhf:$(date +%s) --tag revvox/teddycloud-armhf:latest
