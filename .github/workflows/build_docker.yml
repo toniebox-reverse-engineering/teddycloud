@@ -1,0 +1,35 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - tc_nightly
+      - tc_v*
+    branches: [ "master", "develop" ]
+  pull_request:
+    branches: [ "master", "develop" ]
+
+jobs:
+  build-amd64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Docker amd64 image
+      run: docker buildx build --platform linux/amd64 . --tag revvox/teddycloud-amd64:$(date +%s) --tag revvox/teddycloud:latest
+  build-arm64:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: arm64
+    - name: Build Docker arm64 image
+      run: docker buildx build --platform linux/arm64 . --tag revvox/teddycloud-server-arm64:$(date +%s) --tag revvox/teddycloud-arm64:latest
+  build-armhf:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the HBS Docker armhf image
+      run: docker buildx build --platform linux/armhf . --tag revvox/teddycloud-server-armhf:$(date +%s) --tag revvox/teddycloud-armhf:latest
