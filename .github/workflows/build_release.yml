@@ -76,6 +76,38 @@ jobs:
     - id: set_data2
       run: echo "appendix=${{ env.ASSET_APPENDIX }}" >> "$GITHUB_OUTPUT"
 
+      build-arm64:
+        runs-on: ubuntu-latest
+        needs: build-amd64
+        steps:
+        - uses: actions/checkout@v3
+        - name: Set up QEMU
+          uses: docker/setup-qemu-action@v2
+          with:
+            platforms: arm64
+        - name: Build and zip arm64
+          id:  build-zip
+          run: make zip
+        - name: Check arm64 release zip existence
+          id: check_release
+          uses: andstor/file-existence-action@v1
+          with:
+            files: "./install/zip/release.zip"  
+            allow_failure: true 
+        - name: File exist
+          if: steps.check_files.outputs.files_exists == 'true'
+          run: echo amd64 release zip exists!
+          
+        - name: Upload Release Asset
+          id: upload-release-asset 
+          uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            upload_url: ${{ needs.build-amd64.outputs.upload_url }}
+            asset_path: ./install/zip/release.zip
+            asset_name: teddy_cloud.arm64.${{ needs.build-amd64.outputs.appendix }}.zip
+            asset_content_type: application/zip
   build-arm64:
     runs-on: ubuntu-latest
     needs: build-amd64
@@ -108,3 +140,70 @@ jobs:
         asset_path: ./install/zip/release.zip
         asset_name: teddy_cloud.arm64.${{ needs.build-amd64.outputs.appendix }}.zip
         asset_content_type: application/zip
+
+  build-arm:
+    runs-on: ubuntu-latest
+    needs: build-amd64
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: arm
+    - name: Build and zip arm
+      id:  build-zip
+      run: make zip
+    - name: Check arm release zip existence
+      id: check_release
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "./install/zip/release.zip"  
+        allow_failure: true 
+    - name: File exist
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: echo amd64 release zip exists!
+      
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build-amd64.outputs.upload_url }}
+        asset_path: ./install/zip/release.zip
+        asset_name: teddy_cloud.arm.${{ needs.build-amd64.outputs.appendix }}.zip
+        asset_content_type: application/zip
+
+  build-s390x:
+    runs-on: ubuntu-latest
+    needs: build-amd64
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: s390x
+    - name: Build and zip s390x
+      id:  build-zip
+      run: make zip
+    - name: Check s390x release zip existence
+      id: check_release
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "./install/zip/release.zip"  
+        allow_failure: true 
+    - name: File exist
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: echo amd64 release zip exists!
+      
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build-amd64.outputs.upload_url }}
+        asset_path: ./install/zip/release.zip
+        asset_name: teddy_cloud.s390x.${{ needs.build-amd64.outputs.appendix }}.zip
+        asset_content_type: application/zip
+  
