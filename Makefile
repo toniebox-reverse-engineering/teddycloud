@@ -170,10 +170,14 @@ clean:
 preinstall: clean build
 	mkdir $(INSTALL_DIR)/
 	mkdir $(PREINSTALL_DIR)/
-	mkdir $(ZIP_DIR)/
 	cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
-	zip -r $(ZIP_DIR)/release.zip $(PREINSTALL_DIR)/*
+
+zip: preinstall
+	mkdir $(ZIP_DIR)/
+	cd $(PREINSTALL_DIR)/ \
+		&& zip -r ../../$(ZIP_DIR)/release.zip * \
+		&& cd -
 
 time_test: $(BINARY)
 	$(BINARY) /v1/time
