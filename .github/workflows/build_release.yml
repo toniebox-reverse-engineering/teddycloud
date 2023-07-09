@@ -103,9 +103,8 @@ jobs:
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        UPLOAD_URL: ${{ needs.build-amd64.outputs.upload_url }}
-        APPENDIX: ${{ needs.build-amd64.outputs.appendix }}
       with:
-        upload_url: ${{ env.UPLOAD_URL }}
-        asset_name: teddy_cloud.arm64.${{ env.APPENDIX }}.zip
+        upload_url: ${{ needs.build-amd64.outputs.upload_url }}
+        asset_path: ./install/zip/release.zip
+        asset_name: teddy_cloud.arm64.${{ needs.build-amd64.outputs.appendix }}.zip
         asset_content_type: application/zip
