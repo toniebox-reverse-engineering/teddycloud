@@ -8,6 +8,9 @@ SRV_KEY="certs/server/teddy-key.pem"
 SRV_CRT="certs/server/teddy-cert.pem"
 DAYS="9000"
 
+#TODO faketime / libfaketime!
+#faketime '2015-11-04 00:00:00' 
+
 mkdir -p certs/server
 openssl genrsa -out ${CA_KEY} 4096
 openssl req -x509 -new -nodes -extensions v3_ca -key ${CA_KEY} -days ${DAYS} -out ${CA_CRT} -sha512 -subj '/C=DE/CN=Teddy CA'

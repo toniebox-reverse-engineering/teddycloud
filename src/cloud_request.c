@@ -121,7 +121,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to connect to HTTP server! Error=%lu\r\n", error);
+                TRACE_ERROR("Failed to connect to HTTP server! Error=%u\r\n", error);
                 break;
             }
 
@@ -240,7 +240,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
                 if (cbr && cbr->body)
                 {
-                    cbr->body(cbr->ctx, buffer, length);
+                    cbr->body(cbr->ctx, (const char *)buffer, length);
                 }
 
                 // Check status code

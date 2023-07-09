@@ -1,0 +1,18 @@
+version: '3'
+services:
+  teddycloud:
+    container_name: teddycloud
+    hostname: teddycloud
+    image: teddycloud:latest
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - certs:/teddycloud/certs
+      - config:/teddycloud/config
+      - content:/teddycloud/www/CONTENT
+    restart: unless-stopped
+volumes:
+  certs:
+  config:
+  content:

@@ -133,7 +133,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         error_t error = httpSendResponse(connection, &contentPath[4]);
         if (error)
         {
-            TRACE_ERROR(" >> file %s not available or not send, error=%lu...\n", contentPath, error);
+            TRACE_ERROR(" >> file %s not available or not send, error=%u...\n", contentPath, error);
             if (error == ERROR_NOT_FOUND)
             {
                 httpPrepareHeader(connection, NULL, 0);
