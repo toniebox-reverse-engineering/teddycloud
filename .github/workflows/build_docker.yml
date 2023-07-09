@@ -26,16 +26,6 @@ jobs:
         platforms: arm64
     - name: Build Docker arm64 image
       run: docker buildx build --platform linux/arm64 . --tag revvox/teddycloud-arm64:$(date +%s) --tag revvox/teddycloud-arm64:latest
-  build-s390x:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
-      with:
-        platforms: s390x
-    - name: Build Docker s390x image
-      run: docker buildx build --platform linux/s390x . --tag revvox/teddycloud-s390x:$(date +%s) --tag revvox/teddycloud-s390x:latest
   build-arm:
     runs-on: ubuntu-latest
     steps:
@@ -46,3 +36,13 @@ jobs:
         platforms: arm
     - name: Build Docker arm image
       run: docker buildx build --platform linux/arm . --tag revvox/teddycloud-arm:$(date +%s) --tag revvox/teddycloud-arm:latest
+  build-s390x:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: s390x
+    - name: Build Docker s390x image
+      run: docker buildx build --platform linux/s390x . --tag revvox/teddycloud-s390x:$(date +%s) --tag revvox/teddycloud-s390x:latest
