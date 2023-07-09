@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - tc_nightly*
+      - tc_nightly
       - tc_v*.*.*
   pull_request:
     branches: [ "master", "develop" ]
