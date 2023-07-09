@@ -1,7 +1,7 @@
-# Teddy Cloud
+# TeddyCloud
 
 ## Features
-Teddy Cloud is an alternative cloudless server for your Toniebox. 
+TeddyCloud is an alternative cloudless server for your Toniebox. 
 * Send content over the air
 * Simulate live content
 
