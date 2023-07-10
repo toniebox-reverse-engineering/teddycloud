@@ -19,12 +19,7 @@ SOURCES = \
 	$(CYCLONE_SOURCES)
 
 HEADERS = \
-	include/tls_adapter.h \
-	include/cloud_request.h \
-	include/net_config.h \
-	include/os_port_config.h \
-	include/tls_config.h \
-	include/crypto_config.h \
+	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h)
 
 
