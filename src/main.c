@@ -39,7 +39,7 @@ int_t main(int argc, char *argv[])
         TRACE_INFO("\r\n");
 
         char *request = NULL;
-        char *hash = NULL;
+        uint8_t *hash = NULL;
 
         if (argc < 2)
         {
@@ -53,7 +53,7 @@ int_t main(int argc, char *argv[])
         }
         if (argc > 2)
         {
-            hash = argv[2];
+            hash = (uint8_t *)argv[2];
             TRACE_ERROR("Hash: %s\r\n", hash);
         }
 
