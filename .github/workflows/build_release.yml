@@ -31,8 +31,8 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/tc_v')
       run: |
         echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/hbng_bl_}" >> $GITHUB_ENV
-        echo "ASSET_APPENDIX=release_${GITHUB_REF#refs/tags/hbng_bl_}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=Release ${GITHUB_REF#refs/tags/tc_}" >> $GITHUB_ENV
+        echo "ASSET_APPENDIX=release_${GITHUB_REF#refs/tags/tc_}" >> $GITHUB_ENV
         echo "IS_PRERELEASE=false" >> $GITHUB_ENV
     
     - uses: actions/checkout@v2
@@ -57,7 +57,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.TAG_NAME }}
-        release_name: Teddy Cloud ${{ env.RELEASE_NAME }}
+        release_name: TeddyCloud ${{ env.RELEASE_NAME }}
         draft: true
         prerelease: ${{ env.IS_PRERELEASE }}
         
@@ -69,7 +69,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./install/zip/release.zip
-        asset_name: teddy_cloud.amd64.${{ env.ASSET_APPENDIX }}.zip
+        asset_name: teddycloud.amd64.${{ env.ASSET_APPENDIX }}.zip
         asset_content_type: application/zip
     - id: set_data1
       run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
