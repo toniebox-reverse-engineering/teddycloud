@@ -55,6 +55,10 @@ jobs:
           type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
           type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
           type=ref,event=tag
+          type=match,pattern=tc_v(\d+),group=1
+          type=match,pattern=tc_v(\d+.\d+),group=1
+          type=match,pattern=tc_v(\d+.\d+.\d+),group=1
+          type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
 
     - name: Build and push
       if: github.event_name != 'pull_request'
