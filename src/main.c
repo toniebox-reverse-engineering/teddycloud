@@ -9,12 +9,16 @@
 #include "tls_adapter.h"
 #include "cloud_request.h"
 
+#include "settings.h"
+
 void platform_init(void);
 void platform_deinit(void);
 void server_init(void);
 
 int_t main(int argc, char *argv[])
 {
+    Settings.cloud = false;
+
     error_t error = 0;
 
     /* platform specific init */
