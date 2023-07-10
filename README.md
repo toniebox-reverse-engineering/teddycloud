@@ -45,10 +45,10 @@ Replace the original CA within your flash dump with the replacement CA and refla
 
 ### DNS
 #### CC3200 with altUrl patch
-With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries for ```prod.revvox``` and ```rtnl.revvox``` to the Teddy Cloud servers ip-address. 
+With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries for ```prod.revvox``` and ```rtnl.revvox``` to the TeddyCloud servers ip-address. 
 
 #### CC3235 / ESP32
-Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the Teddy Cloud servers ip-address. Beware, this will cut off the connection of all tonieboxes within your network, which arn't patched with your replacement CA!
+Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the TeddyCloud servers ip-address. Beware, this will cut off the connection of all tonieboxes within your network, which arn't patched with your replacement CA!
 
 ### Content
 Please put your content into the ```/www/CONTENT/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live.
