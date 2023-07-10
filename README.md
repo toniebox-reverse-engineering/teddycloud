@@ -56,4 +56,4 @@ Please put your content into the ```/www/CONTENT/``` in the same structure as on
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxing CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
 
-An example [docker-compose.yaml can be found within the docker subdir.](blob/master/docker/docker-compose.yaml)
+An example [docker-compose.yaml can be found within the docker subdir.](docker/docker-compose.yaml)
