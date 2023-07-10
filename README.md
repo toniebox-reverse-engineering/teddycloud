@@ -21,7 +21,7 @@ First of all you'll need to generate the CA and certificates with the starting d
 This also generates the replacement CA for the toniebox ```certs/server/ca.der```.
 
 ### Dump certificates of your toniebox
-You'll need the ```flash:/cert/ca.der``` (Boxing CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/*```
+You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/*```
 #### CC3200
 You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box.
 ```
@@ -54,6 +54,6 @@ Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the Ted
 Please put your content into the ```/www/CONTENT/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live.
 
 ## Docker hints
-The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxing CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
+The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
 
 An example [docker-compose.yaml can be found within the docker subdir.](docker/docker-compose.yaml)
