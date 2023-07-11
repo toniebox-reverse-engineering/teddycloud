@@ -195,6 +195,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             else
             {
                 // TODO Cloud
+                cloud_request_get(NULL, 0, uri, NULL, NULL);
+                return NO_ERROR;
             }
         }
     }
