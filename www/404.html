@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        @keyframes spin {
+            from {
+                transform: rotateY(0deg);
+            }
+
+            to {
+                transform: rotateY(1turn);
+            }
+        }
+
+        .not-found {
+            position: absolute;
+            left: 50%;
+            top: 30%;
+            transform: translate(-50%, -50%);
+            max-width: 520px;
+            width: 100%;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .not-found-404 {
+            position: relative;
+            height: 250px;
+        }
+
+        .not-found-404 h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 236px;
+            font-weight: 200;
+            margin: 0px;
+            color: #211b19;
+            text-transform: uppercase;
+        }
+
+        .not-found-404 h1>span {
+            display: inline-block;
+            animation: spin 5s infinite linear;
+        }
+
+        .not-found h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 400;
+            text-transform: uppercase;
+            color: #211b19;
+            margin: 0;
+        }
+
+        .not-found p {
+            font-family: 'Montserrat', sans-serif;
+            color: #2c2c2c;
+            font-size: 14px;
+            font-weight: 400;
+            margin-top: 0px;
+            margin-bottom: 15px;
+        }
+
+        .not-found a {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            text-decoration: none;
+            text-transform: uppercase;
+            background: #4EAD7C;
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 40px;
+            color: #fff;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+            transition: 0.2s all;
+        }
+
+        .not-found a:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+        function FourOFourPage() {
+            return (
+                <div className="not-found">
+                    <div className="not-found-404">
+                        <h1><span>4</span><span>0</span><span>4</span></h1>
+                    </div>
+                    <h2>We are sorry, Page not found!</h2>
+                    <p>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+                    <a href="/">Back To Index</a>
+                </div>
+            );
+        }
+
+        ReactDOM.render(
+            <FourOFourPage />,
+            document.getElementById('root')
+        );
+    </script>
+</body>
+
+</html>

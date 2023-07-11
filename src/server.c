@@ -54,11 +54,15 @@ error_t handleWww(HttpConnection *connection, const char_t *uri)
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
+    /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
+    /* web interface directory */
     {REQ_GET, "/www", &handleWww},
+    /* custom API */
     {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/api/get", &handleApiGet},
     {REQ_POST, "/api/set", &handleApiSet},
+    /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
@@ -227,67 +231,18 @@ httpServerRequestCallback(HttpConnection *connection,
         }
     }
 
-    if (1 == 0)
+    if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
     {
-        const char *response = "<html><head></head><body>No content for you</body></html>";
-
-        httpInitResponseHeader(connection);
-        connection->response.contentType = "text/html";
-        connection->response.contentLength = osStrlen(response);
-
-        error_t error = httpWriteHeader(connection);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to send header\r\n");
-            return error;
-        }
-
-        error = httpWriteStream(connection, response, connection->response.contentLength);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to send payload\r\n");
-            return error;
-        }
-
-        error = httpCloseStream(connection);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("Failed to close: %d\r\n", error);
-            return error;
-        }
-
-        TRACE_INFO("httpServerRequestCallback: (done)\r\n");
-        return NO_ERROR;
+        return httpSendResponse(connection, "index.html");
     }
 
-    const char *response = "<html><head><title>Nothing found here</title></head><body>There is nothing to see</body></html>";
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/html";
-    connection->response.contentLength = osStrlen(response);
-
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    TRACE_INFO(" >> ERROR_NOT_FOUND\r\n");
-    return NO_ERROR;
+    return ERROR_NOT_FOUND;
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
                                       const char_t *uri)
 {
-    TRACE_INFO("httpServerUriNotFoundCallback: %s (ignoring)\r\n", uri);
-    return ERROR_NOT_FOUND;
+    return httpSendResponse(connection, "404.html");
 }
 
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
