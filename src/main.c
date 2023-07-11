@@ -17,7 +17,16 @@ void server_init(void);
 
 int_t main(int argc, char *argv[])
 {
-    Settings.cloud = true;
+    settings_cloud_t settings_cloud = {
+        .enabled = TRUE,
+        .enableV1Claim = TRUE,
+        .enableV1FreshnessCheck = TRUE,
+        .enableV1Log = FALSE,
+        .enableV1Ota = FALSE,
+        .enableV1Time = FALSE,
+        .enableV2Content = TRUE,
+    };
+    Settings.cloud = settings_cloud;
 
     error_t error = 0;
 

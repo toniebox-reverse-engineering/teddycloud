@@ -185,7 +185,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
     char response[32];
 
-    if (!Settings.cloud)
+    if (!Settings.cloud.enabled || !Settings.cloud.enableV1Time)
     {
         sprintf(response, "%ld", time(NULL));
     }
@@ -193,7 +193,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
-        if (!cloud_request_get(NULL, 0, "/v1/time", NULL, &cbr))
+        if (!cloud_request_get(NULL, 0, uri, NULL, &cbr))
         {
             return NO_ERROR;
         }
@@ -209,11 +209,23 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 {
+    if (Settings.cloud.enabled && Settings.cloud.enableV1Ota)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
+        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+    }
     return NO_ERROR;
 }
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
 {
+    if (Settings.cloud.enabled && Settings.cloud.enableV1Log)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, V1_LOG, &ctx);
+        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+    }
     return NO_ERROR;
 }
 
@@ -236,7 +248,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!Settings.cloud || tonieInfo.nocloud)
+    if (!Settings.cloud.enabled || !Settings.cloud.enableV1Claim || tonieInfo.nocloud)
     {
         return NO_ERROR;
     }
@@ -287,7 +299,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         }
         else
         {
-            if (!Settings.cloud || tonieInfo.nocloud)
+            if (!Settings.cloud.enabled || !Settings.cloud.enableV2Content || tonieInfo.nocloud)
             {
                 httpPrepareHeader(connection, NULL, 0);
                 connection->response.statusCode = 404;
@@ -370,7 +382,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, tonieInfo.contentPath);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-                if (Settings.cloud && !tonieInfo.nocloud)
+                if (!tonieInfo.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
@@ -388,10 +400,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 }
             }
 
-            if (Settings.cloud)
+            if (Settings.cloud.enabled && Settings.cloud.enableV1FreshnessCheck)
             {
-                // Upstream
-                // TODO push to Boxine
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
                 tonie_freshness_check_request__free_unpacked(freshReq, NULL);

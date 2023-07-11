@@ -20,6 +20,7 @@
 
 #include "tls_adapter.h"
 #include "handler_api.h"
+#include "settings.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -74,6 +75,11 @@ int_t cloud_request_post(const char *server, int port, const char *uri, const ui
 
 int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
+    if (!Settings.cloud.enabled)
+    {
+        return -1;
+    }
+
     HttpClientContext httpClientContext;
     IpAddr ipAddr;
 
