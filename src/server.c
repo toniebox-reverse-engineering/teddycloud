@@ -24,6 +24,7 @@
 #include "cloud_request.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
+#include "handler_api.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -53,6 +54,7 @@ error_t handleWww(HttpConnection *connection, const char_t *uri)
 request_type_t request_paths[] = {
     {REQ_ANY, "/reverse", &handleReverse},
     {REQ_GET, "/www", &handleWww},
+    {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
@@ -192,6 +194,8 @@ error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
+    stats_update("connections", 1);
+
     if (connection->tlsContext != NULL && connection->tlsContext->cert != NULL)
     {
         if (connection->tlsContext->clientCertRequested)
