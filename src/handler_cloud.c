@@ -303,21 +303,21 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             else
             {
                 tonie_freshness_check_request__free_unpacked(freshReq, NULL);
-                freshResp.max_vol_spk = 3;
-                freshResp.slap_en = 0;
-                freshResp.slap_dir = 0;
-                freshResp.max_vol_hdp = 3;
-                freshResp.led = 2;
-                size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
-                tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
-                osFreeMem(freshReqCloud.tonie_infos);
-                osFreeMem(freshResp.tonie_marked);
-                TRACE_INFO("Freshness check response: size=%li, content=%s\n", dataLen, data);
-
-                httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
-                return httpWriteResponse(connection, data, false);
-                // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
             }
+            freshResp.max_vol_spk = 3;
+            freshResp.slap_en = 0;
+            freshResp.slap_dir = 0;
+            freshResp.max_vol_hdp = 3;
+            freshResp.led = 2;
+            size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
+            tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
+            osFreeMem(freshReqCloud.tonie_infos);
+            osFreeMem(freshResp.tonie_marked);
+            TRACE_INFO("Freshness check response: size=%li, content=%s\n", dataLen, data);
+
+            httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
+            return httpWriteResponse(connection, data, false);
+            // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;
     }
