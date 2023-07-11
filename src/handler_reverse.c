@@ -86,17 +86,17 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
     error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("cloud_request_get() failed");
+        TRACE_ERROR("cloud_request_get() failed\r\n");
         return error;
     }
 
-    TRACE_INFO("httpServerRequestCallback: (waiting)\n");
+    TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
     while (ctx.status != PROX_STATUS_DONE)
     {
         sleep(100);
     }
     error = httpCloseStream(connection);
 
-    TRACE_INFO("httpServerRequestCallback: (done)\n");
+    TRACE_INFO("httpServerRequestCallback: (done)\r\n");
     return NO_ERROR;
 }
