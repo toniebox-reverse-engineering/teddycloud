@@ -146,7 +146,7 @@ error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t f
     {
         if (freeMemory)
             osFreeMem(data);
-        TRACE_ERROR("Failed to send header");
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
@@ -156,14 +156,14 @@ error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t f
             osFreeMem(data);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send payload");
+        TRACE_ERROR("Failed to send payload\r\n");
         return error;
     }
 
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close");
+        TRACE_ERROR("Failed to close\r\n");
         return error;
     }
 
@@ -181,7 +181,7 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 {
     error_t error = NO_ERROR;
-    TRACE_INFO(" >> respond with current time\n");
+    TRACE_INFO(" >> respond with current time\r\n");
 
     char response[32];
 
@@ -227,10 +227,10 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
 
     if (osStrlen(ruid) != 16)
     {
-        TRACE_WARNING(" >>  invalid URI\n");
+        TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO(" >> client requested UID %s\n", ruid);
-    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
+    TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
@@ -266,10 +266,10 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 
         if (osStrlen(ruid) != 16)
         {
-            TRACE_WARNING(" >>  invalid URI\n");
+            TRACE_WARNING(" >>  invalid URI\r\n");
         }
-        TRACE_INFO(" >> client requested UID %s\n", ruid);
-        TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\n", token[0], token[1], token[2], token[3]);
+        TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+        TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
         tonie_info_t tonieInfo;
         getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
@@ -281,7 +281,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%u...\n", tonieInfo.contentPath, error);
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
                 return error;
             }
         }
@@ -325,7 +325,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
         TonieFreshnessCheckRequest *freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t *)data);
         if (freshReq == NULL)
         {
-            TRACE_ERROR("Unpacking freshness request failed!\n");
+            TRACE_ERROR("Unpacking freshness request failed!\r\n");
         }
         else
         {

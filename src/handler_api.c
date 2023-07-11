@@ -45,21 +45,21 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send header");
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
     error = httpWriteStream(connection, json, connection->response.contentLength);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send header");
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close");
+        TRACE_ERROR("Failed to close\r\n");
         return error;
     }
 

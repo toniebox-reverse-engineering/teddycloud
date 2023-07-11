@@ -202,7 +202,7 @@ httpServerRequestCallback(HttpConnection *connection,
     {
         if (connection->tlsContext->clientCertRequested)
         {
-            TRACE_INFO(" Client cert requested\n");
+            TRACE_INFO(" Client cert requested\r\n");
         }
         TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
         for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
@@ -212,7 +212,7 @@ httpServerRequestCallback(HttpConnection *connection,
     }
     else
     {
-        TRACE_INFO(" No Cert or TLS \n");
+        TRACE_INFO(" No Cert or TLS\r\n");
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
@@ -236,25 +236,25 @@ httpServerRequestCallback(HttpConnection *connection,
         error_t error = httpWriteHeader(connection);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Failed to send header");
+            TRACE_ERROR("Failed to send header\r\n");
             return error;
         }
 
         error = httpWriteStream(connection, response, connection->response.contentLength);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Failed to send payload");
+            TRACE_ERROR("Failed to send payload\r\n");
             return error;
         }
 
         error = httpCloseStream(connection);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Failed to close");
+            TRACE_ERROR("Failed to close\r\n");
             return error;
         }
 
-        TRACE_INFO("httpServerRequestCallback: (done)\n");
+        TRACE_INFO("httpServerRequestCallback: (done)\r\n");
         return NO_ERROR;
     }
 
@@ -266,25 +266,25 @@ httpServerRequestCallback(HttpConnection *connection,
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send header");
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
     error = httpWriteStream(connection, response, connection->response.contentLength);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send header");
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
-    TRACE_INFO(" >> ERROR_NOT_FOUND\n");
+    TRACE_INFO(" >> ERROR_NOT_FOUND\r\n");
     return NO_ERROR;
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
                                       const char_t *uri)
 {
-    TRACE_INFO("httpServerUriNotFoundCallback: %s (ignoring)\n", uri);
+    TRACE_INFO("httpServerUriNotFoundCallback: %s (ignoring)\r\n", uri);
     return ERROR_NOT_FOUND;
 }
 
@@ -294,7 +294,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     {
         if (strlen(value) != 3 + 2 * AUTH_TOKEN_LENGTH)
         {
-            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
+            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
             return;
         }
         for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
@@ -329,7 +329,7 @@ HttpAccessStatus httpServerAuthCallback(HttpConnection *connection, const char_t
 
 size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 {
-    TRACE_INFO("httpAddAuthenticateField\n");
+    TRACE_INFO("httpAddAuthenticateField\r\n");
     return 0;
 }
 
@@ -337,7 +337,7 @@ error_t httpServerCgiCallback(HttpConnection *connection,
                               const char_t *param)
 {
     // Not implemented
-    TRACE_INFO("httpServerCgiCallback: %s\n", param);
+    TRACE_INFO("httpServerCgiCallback: %s\r\n", param);
     return NO_ERROR;
 }
 
@@ -377,11 +377,11 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     {
         if (error == ERROR_BAD_CERTIFICATE)
         {
-            TRACE_INFO("Adding certificate failed: ERROR_BAD_CERTIFICATE\n");
+            TRACE_INFO("Adding certificate failed: ERROR_BAD_CERTIFICATE\r\n");
         }
         else
         {
-            TRACE_INFO("Adding certificate failed: %d\n", error);
+            TRACE_INFO("Adding certificate failed: %d\r\n", error);
         }
         return error;
     }
@@ -501,22 +501,22 @@ void server_init()
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTP failed\n");
+        TRACE_ERROR("httpServerInit() for HTTP failed\r\n");
         return;
     }
     if (httpServerInit(&https_context, &https_settings) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS failed\n");
+        TRACE_ERROR("httpServerInit() for HTTPS failed\r\n");
         return;
     }
     if (httpServerStart(&http_context) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTP failed\n");
+        TRACE_ERROR("httpServerStart() for HTTP failed\r\n");
         return;
     }
     if (httpServerStart(&https_context) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTPS failed\n");
+        TRACE_ERROR("httpServerStart() for HTTPS failed\r\n");
         return;
     }
 
