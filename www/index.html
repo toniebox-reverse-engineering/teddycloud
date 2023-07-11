@@ -18,15 +18,10 @@
         }
 
         .app {
-            padding: 20px;
+            padding: 10px;
             border-radius: 5px;
             background-color: #fff;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .counter {
-            font-size: 2em;
-            margin-bottom: 20px;
         }
 
         .button {
@@ -54,15 +49,15 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .tile {
             border: 1px solid #000;
-            padding: 20px;
+            padding: 10px;
             width: 100%;
             box-sizing: border-box;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .tile:last-child {
@@ -160,21 +155,41 @@
                 fetch('/api/getIndex')
                     .then(response => response.json())
                     .then(data => {
-                        this.setState({ options: data.options });
+                        this.setState({ options: data.options.sort((a, b) => a.ID.localeCompare(b.ID)) });
                     });
+            }
+
+            renderOption = (option, index, array) => {
+                const parts = option.ID.split('.');
+                const lastParts = array[index - 1] ? array[index - 1].ID.split('.') : [];
+                return (
+                    <div key={option.ID}>
+                        {parts.slice(0, -1).map((part, index) => {
+                            if (lastParts[index] !== part) {
+                                return (
+                                    <h4 style={{ marginLeft: `${index * 40}px` }} key={index}>Category {part}</h4>
+                                )
+                            }
+                            return null;
+                        })}
+                        {this.renderOptionItem(option)}
+                    </div>
+                )
+            }
+
+            renderOptionItem = (option) => {
+                switch (option.type) {
+                    case 'bool':
+                        return <Checkbox id={option.ID} label={option.description} />
+                    default:
+                        return null;
+                }
             }
 
             render() {
                 return (
                     <div>
-                        {this.state.options.map(option => {
-                            switch (option.type) {
-                                case 'bool':
-                                    return <Checkbox key={option.ID} id={option.ID} label={option.description} />
-                                default:
-                                    return null;
-                            }
-                        })}
+                        {this.state.options.map(this.renderOption)}
                     </div>
                 );
             }
@@ -185,7 +200,7 @@
             render() {
                 return (
                     <div className="tile time-tile">
-                        <h2>Server Time {this.props.time}</h2>
+                        <h3>{this.props.name} Time {this.props.time}</h3>
                     </div>
                 );
             }
@@ -195,11 +210,11 @@
             render() {
                 return (
                     <div className="tile stats-tile">
-                        <h2>Server Statistics</h2>
+                        <h3>Server Statistics</h3>
                         <p>{this.props.stats.connections} HTTP connections made to this server</p>
                         <p>{this.props.stats.reverse_requests} reverse proxy calls made by clients</p>
                         <p>{this.props.stats.cloud_requests} cloud requests</p>
-                        <p>{this.props.stats.cloud_failed} failed cloud requests</p>
+                        <p>{this.props.stats.cloud_failed} failed/blocked cloud requests</p>
                     </div>
                 );
             }
@@ -209,7 +224,7 @@
             render() {
                 return (
                     <div className="tile actions-tile">
-                        <h2>Actions</h2>
+                        <h3>Actions</h3>
                     </div>
                 );
             }
@@ -219,7 +234,7 @@
             render() {
                 return (
                     <div className="tile settings-tile">
-                        <h2>Settings</h2>
+                        <h3>Settings</h3>
                         <OptionList />
                     </div>
                 );
@@ -231,6 +246,7 @@
                 super(props);
                 this.state = {
                     time: 0,
+                    cloud_time: 0,
                     stats: {
                         connections: 0,
                         reverse_requests: 0,
@@ -238,19 +254,23 @@
                         cloud_failed: 0
                     }
                 };
-                this.fetchTimeFromServer = this.fetchTimeFromServer.bind(this);
-                this.doNothing = this.doNothing.bind(this);
+                this.fetchFromServer = this.fetchFromServer.bind(this);
+                this.fetchTimeFromCloud = this.fetchTimeFromCloud.bind(this);
+                this.fetchFromServer();
+                this.fetchTimeFromCloud();
             }
 
             componentDidMount() {
-                this.interval = setInterval(this.fetchTimeFromServer, 1000);
+                this.interval = setInterval(this.fetchFromServer, 1000);
+                this.intervalCloud = setInterval(this.fetchTimeFromCloud, 10000);
             }
 
             componentWillUnmount() {
                 clearInterval(this.interval);
+                clearInterval(this.intervalCloud);
             }
 
-            fetchTimeFromServer() {
+            fetchFromServer() {
                 fetch('/api/stats')
                     .then(response => response.json())
                     .then(data => this.setState({ stats: data }));
@@ -267,8 +287,17 @@
                     });
             }
 
-            doNothing() {
-                fetch('/api/doNothing');
+            fetchTimeFromCloud() {
+                fetch('/reverse/v1/time')
+                    .then(response => response.text())
+                    .then(unixTime => {
+                        let date = new Date(unixTime * 1000);
+                        let hours = date.getHours();
+                        let minutes = "0" + date.getMinutes();
+                        let seconds = "0" + date.getSeconds();
+                        let formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+                        this.setState({ cloud_time: formattedTime });
+                    });
             }
 
             render() {
@@ -276,10 +305,11 @@
                     <div className="app">
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
-                            <TimeTile time={this.state.time} />
+                            <TimeTile name="TeddyCloud" time={this.state.time} />
+                            <TimeTile name="Boxine" time={this.state.cloud_time} />
                             <StatsTile stats={this.state.stats} />
-                            <ActionsTile doNothing={this.doNothing} />
                             <SettingsTile />
+                            <ActionsTile />
                         </div>
                     </div>
                 );
