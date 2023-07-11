@@ -231,7 +231,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshReq->n_tonie_infos);
 
             TonieFreshnessCheckRequest freshReqCloud = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
-            freshReqCloud.tonie_infos = malloc(sizeof(TonieFCInfo **) * freshReq->n_tonie_infos);
+            freshReqCloud.n_tonie_infos = 0;
+            freshReqCloud.tonie_infos = malloc(sizeof(TonieFCInfo *) * freshReq->n_tonie_infos);
 
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
@@ -282,7 +283,6 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
             }
-            tonie_freshness_check_request__free_unpacked(freshReq, NULL);
 
             if (Settings.cloud)
             {
@@ -290,12 +290,19 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 // TODO push to Boxine
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
+                tonie_freshness_check_request__free_unpacked(freshReq, NULL);
 
                 osFreeMem(freshReqCloud.tonie_infos);
                 osFreeMem(freshResp.tonie_marked);
+
+                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, NULL))
+                {
+                    return NO_ERROR;
+                }
             }
             else
             {
+                tonie_freshness_check_request__free_unpacked(freshReq, NULL);
                 freshResp.max_vol_spk = 3;
                 freshResp.slap_en = 0;
                 freshResp.slap_dir = 0;

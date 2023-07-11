@@ -64,13 +64,13 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
 
 int_t cloud_request_get(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, uri, "GET", hash, cbr);
+    return cloud_request(server, port, uri, "GET", NULL, 0, hash, cbr);
 }
-int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, uri, "POST", hash, cbr);
+    return cloud_request(server, port, uri, "POST", body, bodyLen, hash, cbr);
 }
-int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
     HttpClientContext httpClientContext;
     IpAddr ipAddr;
@@ -129,6 +129,10 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             httpClientCreateRequest(&httpClientContext);
             httpClientSetMethod(&httpClientContext, method);
             httpClientSetUri(&httpClientContext, uri);
+            if (bodyLen > 0)
+            {
+                error = httpClientSetContentLength(&httpClientContext, bodyLen);
+            }
 
             // Add HTTP header fields
             char host_line[128];
@@ -156,7 +160,17 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to write HTTP request header!\r\n");
+                TRACE_ERROR("Failed to write HTTP request header, error=%u!\r\n", error);
+                break;
+            }
+            // Send HTTP request body
+            size_t n;
+            error = httpClientWriteBody(&httpClientContext, body, bodyLen, &n, 0);
+            // Any error to report?
+            if (error)
+            {
+                // Debug message
+                TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
                 break;
             }
 
