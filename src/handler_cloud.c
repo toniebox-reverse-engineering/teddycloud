@@ -142,7 +142,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
         return NO_ERROR;
     }
 
-    // TODO Cloud
+    cloud_request_get(NULL, 0, uri, NULL, NULL);
     return NO_ERROR;
 }
 
