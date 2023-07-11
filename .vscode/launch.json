@@ -1,11 +1,28 @@
 {
     "configurations": [
         {
-            "name": "Launch",
+            "name": "Launch Server",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        },
+        {
+            "name": "Launch Cloud Time Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [
+                "/v1/time"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
             "environment": [],
