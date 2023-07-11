@@ -18,7 +18,7 @@ void server_init(void);
 int_t main(int argc, char *argv[])
 {
     settings_cloud_t settings_cloud = {
-        .enabled = TRUE,
+        .enabled = FALSE,
         .enableV1Claim = TRUE,
         .enableV1FreshnessCheck = TRUE,
         .enableV1Log = FALSE,
