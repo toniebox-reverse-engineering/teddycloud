@@ -1,19 +1,27 @@
 # TeddyCloud
 
 ## Features
-TeddyCloud is an alternative cloudless server for your Toniebox. 
-* Send content over the air
+TeddyCloud is an alternative server for your Toniebox, allowing you to host the could services locally.
+This gives you the control about which data is sent to the original manufacturer's cloud and allows you
+to host your own figurine audio files on e.g. your NAS or any other server.
+
+Currently implemented is:
+* Provide audio content over the air
 * Simulate live content
+* no communication with Boxine's cloud, see planned
 
 ## Planned
-* Passthrough and cache original tonies
-* Update live content only when changed
+* Passthrough and cache original tonie audio content
+* Update live content only when changed (based on file date)
 * Configure maximum volume for speaker and headphones
 * Configure LED
 * Configure slapping
 * Filter custom tags to prevent deletion (.nocloud)
 * Decode RTNL logs
 * MQTT client
+* Home Assistant integration (ideas welcome)
+* TeddyBench integration
+* Web frontend (full stack developers welcome)
 
 ## Preparation
 ### Generate certificates
@@ -42,6 +50,7 @@ python cc.py -p COM3 write_file certs/ca.der /cert/c2.der
 
 #### CC3235 / ESP32
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
+(no manual or tool available yet)
 
 ### DNS
 #### CC3200 with altUrl patch

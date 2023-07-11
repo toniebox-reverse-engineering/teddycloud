@@ -177,5 +177,3 @@ zip: preinstall
 time_test: $(BINARY)
 	$(BINARY) /v1/time
 
-content_test: $(BINARY)
-	$(BINARY) /v2/content/aa760e1a500304e0 7c3a78e961fe863af4c577d7747b703672c488e0738f522790a2aa3cb96090f2
