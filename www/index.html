@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TeddyCloud administration interface</title>
+    <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .app {
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .counter {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            font-size: 1em;
+            padding: 10px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    time: 0,
+                    stats: {
+                        connections: 0,
+                        reverse_requests: 0,
+                        cloud_requests: 0,
+                        cloud_failed: 0
+                    }
+                };
+                this.fetchTimeFromServer = this.fetchTimeFromServer.bind(this);
+            }
+
+            componentDidMount() {
+                this.interval = setInterval(this.fetchTimeFromServer, 1000);
+            }
+
+            componentWillUnmount() {
+                clearInterval(this.interval);
+            }
+
+            fetchTimeFromServer() {
+                fetch('/api/stats')
+                    .then(response => response.json())
+                    .then(data => this.setState({ stats: data }));
+
+                fetch('/v1/time')
+                    .then(response => response.text())
+                    .then(unixTime => {
+                        let date = new Date(unixTime * 1000);
+                        let hours = date.getHours();
+                        let minutes = "0" + date.getMinutes();
+                        let seconds = "0" + date.getSeconds();
+                        let formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+                        this.setState({ time: formattedTime });
+                    });
+            }
+
+            doNothing() {
+                fetch('/api/doNothing');
+            }
+            render() {
+                return (
+                    <div className="app">
+                        <h1>TeddyCloud administration interface</h1>
+                        <p className="counter">Server time: {this.state.time}</p>
+
+                        <button className="button" onClick={this.doNothing}>Do nothing</button>
+
+                        <h1>Server Statistics</h1>
+                        <p>HTTP connections made to this server: {this.state.stats.connections}</p>
+                        <p>Reverse proxy calls made by clients: {this.state.stats.reverse_requests}</p>
+                        <p>Number of cloud requests: {this.state.stats.cloud_requests} made, {this.state.stats.cloud_failed} failed</p>
+                    </div>
+                );
+            }
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
