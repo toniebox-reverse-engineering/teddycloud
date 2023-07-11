@@ -242,7 +242,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     }
 
     cbr_ctx_t ctx;
-    req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+    req_cbr_t cbr = getCloudCbr(connection, uri, V1_CLAIM, &ctx);
     cloud_request_get(NULL, 0, uri, token, &cbr);
     return NO_ERROR;
 }
@@ -296,7 +296,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             else
             {
                 cbr_ctx_t ctx;
-                req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+                req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
                 cloud_request_get(NULL, 0, uri, token, &cbr);
                 return NO_ERROR;
             }
@@ -400,7 +400,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 osFreeMem(freshResp.tonie_marked);
 
                 cbr_ctx_t ctx;
-                req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+                req_cbr_t cbr = getCloudCbr(connection, uri, V1_FRESHNESS_CHECK, &ctx);
                 if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, &cbr))
                 {
                     return NO_ERROR;
