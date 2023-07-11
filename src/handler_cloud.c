@@ -4,8 +4,105 @@
 #include "settings.h"
 
 #include "handler_cloud.h"
+#include "cloud_request.h"
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
+
+#define PROX_STATUS_IDLE 0
+#define PROX_STATUS_CONN 1
+#define PROX_STATUS_HEAD 2
+#define PROX_STATUS_BODY 3
+#define PROX_STATUS_DONE 4
+
+typedef enum
+{
+    NONE = 0,
+    V1_TIME,
+    V1_OTA,
+    V1_CLAIM,
+    V2_CONTENT,
+    V1_FRESHNESS_CHECK,
+    V1_LOG
+} cloudapi_t;
+
+typedef struct
+{
+    const char_t *uri;
+    cloudapi_t api;
+    uint32_t status;
+    HttpConnection *connection;
+} cbr_ctx_t;
+
+static void cbrCloudResponsePassthrough(void *ctx_in);
+static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value);
+static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length);
+static void cbrCloudServerDiskPasshtorugh(void *ctx_in);
+
+static void cbrCloudResponsePassthrough(void *ctx_in)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    char line[128];
+
+    osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    ctx->status = PROX_STATUS_CONN;
+}
+
+static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    char line[128];
+
+    if (header)
+    {
+        TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+        osSprintf(line, "%s: %s\r\n", header, value);
+    }
+    else
+    {
+        TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
+        osStrcpy(line, "\r\n");
+    }
+
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    ctx->status = PROX_STATUS_HEAD;
+}
+
+static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+
+    TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
+    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+    ctx->status = PROX_STATUS_BODY;
+}
+
+static void cbrCloudServerDiskPasshtorugh(void *ctx_in)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+
+    TRACE_INFO(">> cbrCloudServerDiskPasshtorugh\r\n");
+    ctx->status = PROX_STATUS_DONE;
+}
+
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx);
+
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx)
+{
+    ctx->uri = uri;
+    ctx->api = api;
+    ctx->status = PROX_STATUS_IDLE;
+    ctx->connection = connection;
+
+    req_cbr_t cbr = {
+        .ctx = ctx,
+        .response = &cbrCloudResponsePassthrough,
+        .header = &cbrCloudHeaderPassthrough,
+        .body = &cbrCloudBodyPassthrough,
+        .disconnect = &cbrCloudServerDiskPasshtorugh};
+
+    return cbr;
+}
 
 void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
 {
@@ -94,7 +191,9 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     }
     else
     {
-        if (!cloud_request_get(NULL, 0, "/v1/time", NULL, NULL))
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+        if (!cloud_request_get(NULL, 0, "/v1/time", NULL, &cbr))
         {
             return NO_ERROR;
         }
@@ -142,7 +241,9 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
         return NO_ERROR;
     }
 
-    cloud_request_get(NULL, 0, uri, NULL, NULL);
+    cbr_ctx_t ctx;
+    req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+    cloud_request_get(NULL, 0, uri, NULL, &cbr);
     return NO_ERROR;
 }
 
@@ -194,8 +295,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             }
             else
             {
-                // TODO Cloud
-                cloud_request_get(NULL, 0, uri, NULL, NULL);
+                cbr_ctx_t ctx;
+                req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+                cloud_request_get(NULL, 0, uri, token, &cbr);
                 return NO_ERROR;
             }
         }
@@ -297,7 +399,9 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 osFreeMem(freshReqCloud.tonie_infos);
                 osFreeMem(freshResp.tonie_marked);
 
-                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, NULL))
+                cbr_ctx_t ctx;
+                req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
+                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, &cbr))
                 {
                     return NO_ERROR;
                 }
