@@ -43,6 +43,58 @@
         .button:hover {
             background-color: #0056b3;
         }
+
+        .app {
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            width: 80%;
+        }
+
+        .tiles {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .tile {
+            border: 1px solid #000;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        .tile:last-child {
+            margin-bottom: 0;
+        }
+
+
+        .time-tile {
+            background-color: #f9f9f9;
+        }
+
+        .stats-tile {
+            background-color: #f0f0f0;
+        }
+
+        .actions-tile {
+            background-color: #e7e7e7;
+        }
+
+        .button {
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 
@@ -50,6 +102,41 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        class TimeTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile time-tile">
+                        <h2>Server Time {this.props.time}</h2>
+                    </div>
+                );
+            }
+        }
+
+        class StatsTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile stats-tile">
+                        <h2>Server Statistics</h2>
+                        <p>{this.props.stats.connections} HTTP connections made to this server</p>
+                        <p>{this.props.stats.reverse_requests} reverse proxy calls made by clients</p>
+                        <p>{this.props.stats.cloud_requests} cloud requests</p>
+                        <p>{this.props.stats.cloud_failed} failed cloud requests</p>
+                    </div>
+                );
+            }
+        }
+
+        class ActionsTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile actions-tile">
+                        <h2>Actions</h2>
+                        <button className="button" onClick={this.props.doNothing}>Do nothing</button>
+                    </div>
+                );
+            }
+        }
+
         class App extends React.Component {
             constructor(props) {
                 super(props);
@@ -63,6 +150,7 @@
                     }
                 };
                 this.fetchTimeFromServer = this.fetchTimeFromServer.bind(this);
+                this.doNothing = this.doNothing.bind(this);
             }
 
             componentDidMount() {
@@ -93,24 +181,23 @@
             doNothing() {
                 fetch('/api/doNothing');
             }
+
             render() {
                 return (
                     <div className="app">
                         <h1>TeddyCloud administration interface</h1>
-                        <p className="counter">Server time: {this.state.time}</p>
-
-                        <button className="button" onClick={this.doNothing}>Do nothing</button>
-
-                        <h1>Server Statistics</h1>
-                        <p>HTTP connections made to this server: {this.state.stats.connections}</p>
-                        <p>Reverse proxy calls made by clients: {this.state.stats.reverse_requests}</p>
-                        <p>Number of cloud requests: {this.state.stats.cloud_requests} made, {this.state.stats.cloud_failed} failed</p>
+                        <div className="tiles">
+                            <TimeTile time={this.state.time} />
+                            <StatsTile stats={this.state.stats} />
+                            <ActionsTile doNothing={this.doNothing} />
+                        </div>
                     </div>
                 );
             }
         }
 
         ReactDOM.render(<App />, document.getElementById('root'));
+
     </script>
 </body>
 
