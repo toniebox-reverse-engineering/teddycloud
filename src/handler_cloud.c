@@ -243,7 +243,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
 
     cbr_ctx_t ctx;
     req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
-    cloud_request_get(NULL, 0, uri, NULL, &cbr);
+    cloud_request_get(NULL, 0, uri, token, &cbr);
     return NO_ERROR;
 }
 
