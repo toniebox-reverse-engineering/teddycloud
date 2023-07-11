@@ -23,6 +23,7 @@
 
 #include "cloud_request.h"
 #include "handler_cloud.h"
+#include "handler_reverse.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -50,7 +51,7 @@ error_t handleWww(HttpConnection *connection, const char_t *uri)
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
-    //    {REQ_ANY, "/reverse", &handle_reverse},
+    {REQ_ANY, "/reverse", &handleReverse},
     {REQ_GET, "/www", &handleWww},
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
@@ -187,63 +188,6 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
     return NO_ERROR;
 }
 
-#define PROX_STATUS_IDLE 0
-#define PROX_STATUS_CONN 1
-#define PROX_STATUS_HEAD 2
-#define PROX_STATUS_BODY 3
-#define PROX_STATUS_DONE 4
-
-typedef struct
-{
-    uint32_t status;
-    HttpConnection *connection;
-} cbr_ctx_t;
-
-void cbrCloudResponsePassthrough(void *ctx_in)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-    char line[128];
-
-    osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_CONN;
-}
-
-void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-    char line[128];
-
-    if (header)
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
-
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_HEAD;
-}
-void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-
-    TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
-    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_BODY;
-}
-void cbrCloudServerDiskPasshtorugh(void *ctx_in)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-
-    TRACE_INFO(">> httpServerDiscCbr\r\n");
-    ctx->status = PROX_STATUS_DONE;
-}
-
 error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
@@ -275,72 +219,37 @@ httpServerRequestCallback(HttpConnection *connection,
         }
     }
 
-    if (!osStrncmp("/reverse", uri, 8))
+    if (1 == 0)
     {
-        cbr_ctx_t ctx = {
-            .status = PROX_STATUS_IDLE,
-            .connection = connection};
+        const char *response = "<html><head></head><body>No content for you</body></html>";
 
-        req_cbr_t cbr = {
-            .ctx = &ctx,
-            .response = &cbrCloudResponsePassthrough,
-            .header = &cbrCloudHeaderPassthrough,
-            .body = &cbrCloudBodyPassthrough,
-            .disconnect = &cbrCloudServerDiskPasshtorugh};
+        httpInitResponseHeader(connection);
+        connection->response.contentType = "text/html";
+        connection->response.contentLength = osStrlen(response);
 
-        /* here call cloud request, which has to get extended for cbr for header fields and content packets */
-        uint8_t *token = connection->private.authentication_token;
-        error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
+        error_t error = httpWriteHeader(connection);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("cloud_request_get() failed");
+            TRACE_ERROR("Failed to send header");
             return error;
         }
 
-        TRACE_INFO("httpServerRequestCallback: (waiting)\n");
-        while (ctx.status != PROX_STATUS_DONE)
+        error = httpWriteStream(connection, response, connection->response.contentLength);
+        if (error != NO_ERROR)
         {
-            sleep(100);
+            TRACE_ERROR("Failed to send payload");
+            return error;
         }
+
         error = httpCloseStream(connection);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to close");
+            return error;
+        }
 
         TRACE_INFO("httpServerRequestCallback: (done)\n");
         return NO_ERROR;
-    }
-    else
-    {
-        if (1 == 0)
-        {
-            const char *response = "<html><head></head><body>No content for you</body></html>";
-
-            httpInitResponseHeader(connection);
-            connection->response.contentType = "text/html";
-            connection->response.contentLength = osStrlen(response);
-
-            error_t error = httpWriteHeader(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send header");
-                return error;
-            }
-
-            error = httpWriteStream(connection, response, connection->response.contentLength);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send payload");
-                return error;
-            }
-
-            error = httpCloseStream(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to close");
-                return error;
-            }
-
-            TRACE_INFO("httpServerRequestCallback: (done)\n");
-            return NO_ERROR;
-        }
     }
 
     const char *response = "<html><head><title>Nothing found here</title></head><body>There is nothing to see</body></html>";
