@@ -98,6 +98,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     }
 
     error = httpWriteStream(connection, json, connection->response.contentLength);
+    free(json);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
@@ -225,6 +226,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     }
 
     error = httpWriteStream(connection, json, connection->response.contentLength);
+    free(json);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
