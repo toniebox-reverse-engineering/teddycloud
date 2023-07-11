@@ -140,7 +140,6 @@ tonie_info_t getTonieInfo(char contentPath[30])
 
 error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory)
 {
-
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
@@ -163,7 +162,7 @@ error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t f
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close\r\n");
+        TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
 

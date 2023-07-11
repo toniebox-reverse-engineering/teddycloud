@@ -107,7 +107,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close\r\n");
+        TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
 
@@ -148,7 +148,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri)
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close\r\n");
+        TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
 
@@ -198,7 +198,6 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     int pos = 0;
     while (statistics[pos].name)
     {
-        printf("stat: %s\n", statistics[pos].name);
         char buf[128];
 
         if (pos != 0)
@@ -235,7 +234,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     error = httpCloseStream(connection);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close\r\n");
+        TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
 

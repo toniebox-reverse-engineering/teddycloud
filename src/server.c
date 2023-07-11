@@ -252,7 +252,7 @@ httpServerRequestCallback(HttpConnection *connection,
         error = httpCloseStream(connection);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Failed to close\r\n");
+            TRACE_ERROR("Failed to close: %d\r\n", error);
             return error;
         }
 
