@@ -17,7 +17,7 @@ void server_init(void);
 
 int_t main(int argc, char *argv[])
 {
-    Settings.cloud = false;
+    Settings.cloud = true;
 
     error_t error = 0;
 
