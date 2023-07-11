@@ -79,7 +79,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
         .body = &cbrCloudBodyPassthrough,
         .disconnect = &cbrCloudServerDiskPasshtorugh};
 
-    stats_update("reverse.requests", 1);
+    stats_update("reverse_requests", 1);
 
     /* here call cloud request, which has to get extended for cbr for header fields and content packets */
     uint8_t *token = connection->private.authentication_token;

@@ -82,6 +82,10 @@
             background-color: #e7e7e7;
         }
 
+        .config-tile {
+            background-color: #e7e7e7;
+        }
+
         .button {
             padding: 10px;
             background-color: #007BFF;
@@ -102,6 +106,81 @@
     <div id="root"></div>
 
     <script type="text/babel">
+
+        class Checkbox extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { isChecked: false };
+            }
+
+            componentDidMount() {
+                fetch(`/api/get${this.props.id}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        this.setState({ isChecked: data === 'true' });
+                    });
+            }
+
+            handleCheckboxChange = () => {
+                const newState = !this.state.isChecked;
+                this.setState({ isChecked: newState });
+
+                fetch(`/api/set${this.props.id}`, {
+                    method: 'POST',
+                    body: newState.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={this.state.isChecked}
+                                onChange={this.handleCheckboxChange}
+                            />
+                            {this.props.label}
+                        </label>
+                    </div>
+                );
+            }
+        }
+
+        class OptionList extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { options: [] };
+            }
+
+            componentDidMount() {
+                fetch('/api/getIndex')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.setState({ options: data.options });
+                    });
+            }
+
+            render() {
+                return (
+                    <div>
+                        {this.state.options.map(option => {
+                            switch (option.type) {
+                                case 'bool':
+                                    return <Checkbox key={option.ID} id={option.ID} label={option.description} />
+                                default:
+                                    return null;
+                            }
+                        })}
+                    </div>
+                );
+            }
+        }
+
+
         class TimeTile extends React.Component {
             render() {
                 return (
@@ -131,7 +210,17 @@
                 return (
                     <div className="tile actions-tile">
                         <h2>Actions</h2>
-                        <button className="button" onClick={this.props.doNothing}>Do nothing</button>
+                    </div>
+                );
+            }
+        }
+
+        class SettingsTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile settings-tile">
+                        <h2>Settings</h2>
+                        <OptionList />
                     </div>
                 );
             }
@@ -190,6 +279,7 @@
                             <TimeTile time={this.state.time} />
                             <StatsTile stats={this.state.stats} />
                             <ActionsTile doNothing={this.doNothing} />
+                            <SettingsTile />
                         </div>
                     </div>
                 );

@@ -57,6 +57,8 @@ request_type_t request_paths[] = {
     {REQ_ANY, "/reverse", &handleReverse},
     {REQ_GET, "/www", &handleWww},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/get", &handleApiGet},
+    {REQ_POST, "/api/set", &handleApiSet},
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},

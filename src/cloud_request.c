@@ -17,6 +17,7 @@
 #include "http/http_client.h"
 #include "rng/yarrow.h"
 #include "debug.h"
+#include "settings.h"
 
 #include "tls_adapter.h"
 #include "handler_api.h"
@@ -75,9 +76,11 @@ int_t cloud_request_post(const char *server, int port, const char *uri, const ui
 
 int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    if (!Settings.cloud.enabled)
+    if (!settings_get_bool("cloud.enabled"))
     {
-        return -1;
+        TRACE_ERROR("Cloud requests generally blocked in settings\r\n");
+        stats_update("cloud_failed", 1);
+        return ERROR_ADDRESS_NOT_FOUND;
     }
 
     HttpClientContext httpClientContext;
@@ -92,7 +95,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
         port = 443;
     }
 
-    stats_update("cloud.requests", 1);
+    stats_update("cloud_requests", 1);
 
     TRACE_INFO("# Connecting to HTTP server %s:%d...\r\n",
                server, port);
@@ -102,7 +105,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
     if (host->h_addrtype != AF_INET)
     {
         TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
-        stats_update("cloud.failed", 1);
+        stats_update("cloud_failed", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
     TRACE_INFO("#   resolved as: %s\n", host->h_name);
@@ -133,7 +136,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             {
                 // Debug message
                 TRACE_ERROR("Failed to connect to HTTP server! Error=%u\r\n", error);
-                stats_update("cloud.failed", 1);
+                stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -173,7 +176,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             {
                 // Debug message
                 TRACE_ERROR("Failed to write HTTP request header, error=%u!\r\n", error);
-                stats_update("cloud.failed", 1);
+                stats_update("cloud_failed", 1);
                 break;
             }
             // Send HTTP request body
@@ -184,7 +187,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             {
                 // Debug message
                 TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
-                stats_update("cloud.failed", 1);
+                stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -195,7 +198,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             {
                 // Debug message
                 TRACE_ERROR("Failed to read HTTP response header!\r\n");
-                stats_update("cloud.failed", 1);
+                stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -301,7 +304,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             {
                 // Debug message
                 TRACE_INFO("Failed to read HTTP response trailer!\r\n");
-                stats_update("cloud.failed", 1);
+                stats_update("cloud_failed", 1);
                 break;
             }
 

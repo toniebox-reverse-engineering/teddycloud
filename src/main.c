@@ -17,20 +17,10 @@ void server_init(void);
 
 int_t main(int argc, char *argv[])
 {
-    settings_cloud_t settings_cloud = {
-        .enabled = FALSE,
-        .enableV1Claim = TRUE,
-        .enableV1FreshnessCheck = TRUE,
-        .enableV1Log = FALSE,
-        .enableV1Ota = FALSE,
-        .enableV1Time = FALSE,
-        .enableV2Content = TRUE,
-    };
-    Settings.cloud = settings_cloud;
-
     error_t error = 0;
 
     /* platform specific init */
+    settings_init();
     platform_init();
 
     /* load certificates and TLS RNG */

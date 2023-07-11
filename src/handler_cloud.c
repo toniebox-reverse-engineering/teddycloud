@@ -185,7 +185,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
     char response[32];
 
-    if (!Settings.cloud.enabled || !Settings.cloud.enableV1Time)
+    if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Time"))
     {
         sprintf(response, "%ld", time(NULL));
     }
@@ -209,7 +209,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 {
-    if (Settings.cloud.enabled && Settings.cloud.enableV1Ota)
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
@@ -220,7 +220,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
 {
-    if (Settings.cloud.enabled && Settings.cloud.enableV1Log)
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, V1_LOG, &ctx);
@@ -248,7 +248,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!Settings.cloud.enabled || !Settings.cloud.enableV1Claim || tonieInfo.nocloud)
+    if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Claim") || tonieInfo.nocloud)
     {
         return NO_ERROR;
     }
@@ -299,7 +299,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         }
         else
         {
-            if (!Settings.cloud.enabled || !Settings.cloud.enableV2Content || tonieInfo.nocloud)
+            if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
             {
                 httpPrepareHeader(connection, NULL, 0);
                 connection->response.statusCode = 404;
@@ -400,7 +400,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 }
             }
 
-            if (Settings.cloud.enabled && Settings.cloud.enableV1FreshnessCheck)
+            if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1FreshnessCheck"))
             {
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
