@@ -236,7 +236,9 @@ httpServerRequestCallback(HttpConnection *connection,
         return httpSendResponse(connection, "index.html");
     }
 
-    return ERROR_NOT_FOUND;
+    char dest[128];
+    snprintf(dest, sizeof(dest), "www/%s", uri);
+    return httpSendResponse(connection, dest);
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
