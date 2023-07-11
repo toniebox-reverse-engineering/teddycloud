@@ -83,11 +83,26 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 {
+    error_t error = NO_ERROR;
     TRACE_INFO(" >> respond with current time\n");
 
     char response[32];
 
-    sprintf(response, "%ld", time(NULL));
+    if (!Settings.cloud)
+    {
+        sprintf(response, "%ld", time(NULL));
+    }
+    else
+    {
+        if (!cloud_request_get(NULL, 0, "/v1/time", NULL, NULL))
+        {
+            return NO_ERROR;
+        }
+        else
+        {
+            sprintf(response, "%ld", time(NULL));
+        }
+    }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
     return httpWriteResponse(connection, response, false);

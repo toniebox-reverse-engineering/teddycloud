@@ -199,19 +199,17 @@ typedef struct
     HttpConnection *connection;
 } cbr_ctx_t;
 
-void httpServerResponseCbr(void *ctx_in)
+void cbrCloudResponsePassthrough(void *ctx_in)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
     char line[128];
 
     osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
-
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-
     ctx->status = PROX_STATUS_CONN;
 }
 
-void httpServerHeaderCbr(void *ctx_in, const char *header, const char *value)
+void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
     char line[128];
@@ -228,21 +226,17 @@ void httpServerHeaderCbr(void *ctx_in, const char *header, const char *value)
     }
 
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-
     ctx->status = PROX_STATUS_HEAD;
 }
-
-void httpServerBodyCbr(void *ctx_in, const char *payload, size_t length)
+void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
 
     TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
     httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-
     ctx->status = PROX_STATUS_BODY;
 }
-
-void httpServerDiscCbr(void *ctx_in)
+void cbrCloudServerDiskPasshtorugh(void *ctx_in)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
 
@@ -289,10 +283,10 @@ httpServerRequestCallback(HttpConnection *connection,
 
         req_cbr_t cbr = {
             .ctx = &ctx,
-            .response = &httpServerResponseCbr,
-            .header = &httpServerHeaderCbr,
-            .body = &httpServerBodyCbr,
-            .disconnect = &httpServerDiscCbr};
+            .response = &cbrCloudResponsePassthrough,
+            .header = &cbrCloudHeaderPassthrough,
+            .body = &cbrCloudBodyPassthrough,
+            .disconnect = &cbrCloudServerDiskPasshtorugh};
 
         /* here call cloud request, which has to get extended for cbr for header fields and content packets */
         uint8_t *token = connection->private.authentication_token;
