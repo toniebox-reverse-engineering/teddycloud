@@ -193,7 +193,6 @@
             }
         }
 
-
         class StringInput extends React.Component {
             constructor(props) {
                 super(props);
@@ -209,8 +208,22 @@
             }
 
             handleInputChange = (event) => {
-                const newValue = event.target.value;
-                this.setState({ value: newValue });
+                this.setState({ value: event.target.value });
+            }
+
+            handleInputBlur = () => {
+                this.pushDataToServer();
+            }
+
+            handleKeyPress = (event) => {
+                if (event.key === 'Enter') {
+                    this.pushDataToServer();
+                    event.preventDefault(); // Prevent form submission if this input is part of a form
+                }
+            }
+
+            pushDataToServer = () => {
+                const newValue = this.state.value;
 
                 fetch(`/api/set/${this.props.id}`, {
                     method: 'POST',
@@ -229,6 +242,8 @@
                                 type="text"
                                 value={this.state.value}
                                 onChange={this.handleInputChange}
+                                onBlur={this.handleInputBlur}
+                                onKeyPress={this.handleKeyPress}
                             />
                             {this.props.label}
                         </label>
@@ -302,7 +317,7 @@
             }
 
             componentDidMount() {
-                this.interval = setInterval(this.fetchFromServer, 1000);
+                this.interval = setInterval(this.fetchFromServer, 5000);
             }
 
             componentWillUnmount() {
@@ -343,12 +358,11 @@
             }
         }
 
-
         class TimeTile extends React.Component {
             render() {
                 return (
                     <div className="tile time-tile">
-                        <h3>{this.props.name} Time {this.props.time}</h3>
+                        <h3>{this.props.name} Time: {this.props.time}</h3>
                     </div>
                 );
             }
@@ -417,57 +431,78 @@
                 this.state = {
                     time: 0,
                     cloud_time: 0,
-                    stats: {
-                        connections: 0,
-                        reverse_requests: 0,
-                        cloud_requests: 0,
-                        cloud_failed: 0
-                    }
+                    display_time: 0,
+                    display_cloud_time: 0
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
-                this.fetchTimeFromCloud = this.fetchTimeFromCloud.bind(this);
+                this.updateDisplayTime = this.updateDisplayTime.bind(this);
                 this.fetchFromServer();
-                this.fetchTimeFromCloud();
             }
 
             componentDidMount() {
-                this.interval = setInterval(this.fetchFromServer, 1000);
-                this.intervalCloud = setInterval(this.fetchTimeFromCloud, 10000);
+                this.interval = setInterval(this.fetchFromServer, 60000);
+                this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
             }
 
             componentWillUnmount() {
                 clearInterval(this.interval);
-                clearInterval(this.intervalCloud);
+                clearInterval(this.intervalDisplay);
+            }
+
+            updateDisplayTime() {
+                if (this.state.time !== 0 && this.state.time !== 'Error') {
+                    this.setState((prevState) => {
+                        const date = new Date(prevState.time * 1000 + 1000);
+                        const formattedTime = this.formatTime(date);
+                        return { time: prevState.time + 1, display_time: formattedTime };
+                    });
+                }
+                if (this.state.cloud_time !== 0 && this.state.cloud_time !== 'Error') {
+                    this.setState((prevState) => {
+                        const date = new Date(prevState.cloud_time * 1000 + 1000);
+                        const formattedTime = this.formatTime(date);
+                        return { cloud_time: prevState.cloud_time + 1, display_cloud_time: formattedTime };
+                    });
+                }
             }
 
             fetchFromServer() {
-                fetch('/api/stats')
-                    .then(response => response.json())
-                    .then(data => this.setState({ stats: data }));
-
                 fetch('/v1/time')
-                    .then(response => response.text())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
                     .then(unixTime => {
-                        let date = new Date(unixTime * 1000);
-                        let hours = date.getHours();
-                        let minutes = "0" + date.getMinutes();
-                        let seconds = "0" + date.getSeconds();
-                        let formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-                        this.setState({ time: formattedTime });
+                        this.setState({ time: parseInt(unixTime, 10) });
+                    })
+                    .catch(error => {
+                        console.error('There was an error!', error);
+                        this.setState({ time: 'Error', display_time: 'Error' });
+                    });
+
+                fetch('/reverse/v1/time')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(unixTime => {
+                        this.setState({ cloud_time: parseInt(unixTime, 10) });
+                    })
+                    .catch(error => {
+                        console.error('There was an error!', error);
+                        this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
                     });
             }
 
-            fetchTimeFromCloud() {
-                fetch('/reverse/v1/time')
-                    .then(response => response.text())
-                    .then(unixTime => {
-                        let date = new Date(unixTime * 1000);
-                        let hours = date.getHours();
-                        let minutes = "0" + date.getMinutes();
-                        let seconds = "0" + date.getSeconds();
-                        let formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
-                        this.setState({ cloud_time: formattedTime });
-                    });
+            formatTime(date) {
+                let hours = date.getHours();
+                let minutes = "0" + date.getMinutes();
+                let seconds = "0" + date.getSeconds();
+                return hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
             }
 
             render() {
@@ -475,9 +510,9 @@
                     <div className="app">
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
-                            <TimeTile name="TeddyCloud" time={this.state.time} />
-                            <TimeTile name="Boxine" time={this.state.cloud_time} />
-                            <StatsTile stats={this.state.stats} />
+                            <TimeTile name="TeddyCloud" time={this.state.display_time} />
+                            <TimeTile name="Boxine" time={this.state.display_cloud_time} />
+                            <StatsTile />
                             <SettingsTile />
                             <ActionsTile />
                         </div>
