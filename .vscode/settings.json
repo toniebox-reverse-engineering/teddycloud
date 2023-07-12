@@ -22,7 +22,9 @@
         "handler_cloud.h": "c",
         "handler_reverse.h": "c",
         "settings.h": "c",
-        "stats.h": "c"
+        "stats.h": "c",
+        "returncodes.h": "c",
+        "tcp.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

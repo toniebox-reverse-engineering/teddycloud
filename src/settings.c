@@ -11,7 +11,7 @@ settings_t Settings;
 
 OPTION_START()
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
-OPTION_INTERNAL_INT("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
+OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
@@ -23,11 +23,11 @@ OPTION_BOOL("cloud.enableV2Content", &Settings.cloud.enableV2Content, TRUE, "Pas
 OPTION_BOOL("cloud.cacheContent", &Settings.cloud.cacheContent, FALSE, "Cache cloud content on local server")
 
 OPTION_BOOL("toniebox.overrideCloud", &Settings.toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
-OPTION_INT("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")
-OPTION_INT("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume (0-3)")
+OPTION_UNSIGNED("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")
+OPTION_UNSIGNED("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume (0-3)")
 OPTION_BOOL("toniebox.slap_enabled", &Settings.toniebox.slap_enabled, TRUE, "Enable slapping to skip a track")
 OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
-OPTION_INT("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
+OPTION_UNSIGNED("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
 
 OPTION_END()
 
@@ -43,10 +43,14 @@ void settings_init()
             TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].init.bool_value ? "true" : "false");
             *((bool *)option_map[pos].ptr) = option_map[pos].init.bool_value;
             break;
-        case TYPE_INTEGER:
+        case TYPE_SIGNED:
+            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.signed_value);
+            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.signed_value;
+            break;
+        case TYPE_UNSIGNED:
         case TYPE_HEX:
-            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.integer_value);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.integer_value;
+            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.unsigned_value);
+            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.unsigned_value;
             break;
         case TYPE_FLOAT:
             TRACE_INFO("  %s = %f\r\n", option_map[pos].option_name, option_map[pos].init.float_value);
@@ -59,7 +63,7 @@ void settings_init()
     }
 }
 
-option_map_t *settings_get(int index)
+setting_item_t *settings_get(int index)
 {
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
@@ -70,91 +74,210 @@ option_map_t *settings_get(int index)
         }
         pos++;
     }
+    TRACE_WARNING("Setting item #%d not found\r\n", index);
     return NULL;
 }
 
-void settings_set_bool(const char *item, bool value)
+setting_item_t *settings_get_by_name(const char *item)
 {
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
         if (!strcmp(item, option_map[pos].option_name))
         {
-            switch (option_map[pos].type)
-            {
-            case TYPE_BOOL:
-                *((bool *)option_map[pos].ptr) = value;
-                return;
-            default:
-                break;
-            }
+            return &option_map[pos];
         }
         pos++;
     }
-    TRACE_WARNING("Option '%s' not found\r\n", item);
-}
-
-void settings_set_integer(const char *item, uint32_t value)
-{
-    int pos = 0;
-    while (option_map[pos].type != TYPE_END)
-    {
-        if (!strcmp(item, option_map[pos].option_name))
-        {
-            switch (option_map[pos].type)
-            {
-            case TYPE_INTEGER:
-            case TYPE_HEX:
-                *((uint32_t *)option_map[pos].ptr) = value;
-                return;
-            default:
-                break;
-            }
-        }
-        pos++;
-    }
-    TRACE_WARNING("Option '%s' not found\r\n", item);
+    TRACE_WARNING("Setting item '%s' not found\r\n", item);
+    return NULL;
 }
 
 bool settings_get_bool(const char *item)
 {
-    int pos = 0;
-    while (option_map[pos].type != TYPE_END)
+    if (!item)
     {
-        if (!strcmp(item, option_map[pos].option_name))
-        {
-            switch (option_map[pos].type)
-            {
-            case TYPE_BOOL:
-                return *((bool *)option_map[pos].ptr);
-            default:
-                return false;
-            }
-        }
-        pos++;
+        return false;
     }
-    TRACE_WARNING("Option '%s' not found\r\n", item);
-    return false;
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_BOOL)
+    {
+        return false;
+    }
+
+    return *((bool *)opt->ptr);
 }
 
-uint32_t settings_get_integer(const char *item)
+bool settings_set_bool(const char *item, bool value)
 {
-    int pos = 0;
-    while (option_map[pos].type != TYPE_END)
+    if (!item)
     {
-        if (!strcmp(item, option_map[pos].option_name))
-        {
-            switch (option_map[pos].type)
-            {
-            case TYPE_INTEGER:
-            case TYPE_HEX:
-                return *((uint32_t *)option_map[pos].ptr);
-            default:
-                return INT32_MIN;
-            }
-        }
-        pos++;
+        return false;
     }
-    TRACE_WARNING("Option '%s' not found\r\n", item);
-    return INT32_MIN;
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_BOOL)
+    {
+        return false;
+    }
+
+    *((bool *)opt->ptr) = value;
+    return true;
+}
+
+int32_t settings_get_signed(const char *item)
+{
+    if (!item)
+    {
+        return 0;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_SIGNED)
+    {
+        return 0;
+    }
+
+    return *((int32_t *)opt->ptr);
+}
+
+bool settings_set_signed(const char *item, int32_t value)
+{
+    if (!item)
+    {
+        return false;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_SIGNED)
+    {
+        return false;
+    }
+
+    if (value < opt->min.signed_value || value > opt->max.signed_value)
+    {
+        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        return false;
+    }
+
+    *((int32_t *)opt->ptr) = value;
+    return true;
+}
+
+uint32_t settings_get_unsigned(const char *item)
+{
+    if (!item)
+    {
+        return 0;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_UNSIGNED)
+    {
+        return 0;
+    }
+
+    return *((uint32_t *)opt->ptr);
+}
+
+bool settings_set_unsigned(const char *item, uint32_t value)
+{
+    if (!item)
+    {
+        return false;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_UNSIGNED)
+    {
+        return false;
+    }
+
+    if (value < opt->min.unsigned_value || value > opt->max.unsigned_value)
+    {
+        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        return false;
+    }
+
+    *((uint32_t *)opt->ptr) = value;
+    return true;
+}
+
+float settings_get_float(const char *item)
+{
+    if (!item)
+    {
+        return 0;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_FLOAT)
+    {
+        return 0;
+    }
+
+    return *((float *)opt->ptr);
+}
+
+bool settings_set_float(const char *item, float value)
+{
+    if (!item)
+    {
+        return false;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_FLOAT)
+    {
+        return false;
+    }
+
+    if (value < opt->min.float_value || value > opt->max.float_value)
+    {
+        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        return false;
+    }
+
+    *((float *)opt->ptr) = value;
+    return true;
+}
+
+const char *settings_get_string(const char *item)
+{
+    if (!item)
+    {
+        return NULL;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_STRING)
+    {
+        return NULL;
+    }
+
+    return (const char *)opt->ptr;
+}
+
+bool settings_set_string(const char *item, const char *value)
+{
+    if (!item || !value)
+    {
+        return false;
+    }
+
+    setting_item_t *opt = settings_get_by_name(item);
+    if (!opt || opt->type != TYPE_STRING)
+    {
+        return false;
+    }
+
+    if (osStrlen(value) > opt->max.unsigned_value)
+    {
+        TRACE_WARNING("Setting item '%s' is too small for the %lu bytes requested to store\r\n", item, osStrlen(value));
+        return false;
+    }
+
+    osStrcpy((char *)opt->ptr, value);
+    return true;
 }

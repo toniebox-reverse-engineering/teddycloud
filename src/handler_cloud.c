@@ -53,6 +53,8 @@ static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const ch
 static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length);
 static void cbrCloudServerDiskPasshtorugh(void *ctx_in);
 
+static void strupr(char input[]);
+
 static void cbrCloudResponsePassthrough(void *ctx_in)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
@@ -159,7 +161,7 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
             // TODO: Check if size is stable and this is obsolete
             if (ctx->bufferLen < packSize)
             {
-                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %u / %u\r\n", ctx->bufferLen, packSize);
+                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %lu / %lu\r\n", ctx->bufferLen, packSize);
                 osFreeMem(ctx->buffer);
                 ctx->bufferLen = packSize;
                 ctx->buffer = osAllocMem(ctx->bufferLen);
@@ -215,6 +217,7 @@ void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
     osSprintf(contentPath, "www/CONTENT/%.8s/%.8s", ruid, &ruid[8]);
     strupr(&contentPath[4]);
 }
+
 void getContentPathFromUID(uint64_t uid, char contentPath[30])
 {
     uint16_t cuid[9];
@@ -227,6 +230,7 @@ void getContentPathFromUID(uint64_t uid, char contentPath[30])
     cruid[8] = 0;
     getContentPathFromCharRUID(cruid, contentPath);
 }
+
 tonie_info_t getTonieInfo(char contentPath[30])
 {
     tonie_info_t tonieInfo;
@@ -244,7 +248,7 @@ tonie_info_t getTonieInfo(char contentPath[30])
     return tonieInfo;
 }
 
-error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory)
+error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory)
 {
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
@@ -261,7 +265,7 @@ error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t f
             osFreeMem(data);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send payload\r\n");
+        TRACE_ERROR("Failed to send payload: %d\r\n", error);
         return error;
     }
 
@@ -285,7 +289,6 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 {
-    error_t error = NO_ERROR;
     TRACE_INFO(" >> respond with current time\r\n");
 
     char response[32];
@@ -364,13 +367,14 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-void strupr(char input[])
+static void strupr(char input[])
 {
     for (uint16_t i = 0; input[i]; i++)
     {
         input[i] = toupper(input[i]);
     }
 }
+
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 {
     char ruid[18];
@@ -424,7 +428,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
 {
-    char_t data[BODY_BUFFER_SIZE];
+    uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {

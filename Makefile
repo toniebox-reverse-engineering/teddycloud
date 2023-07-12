@@ -110,6 +110,7 @@ CFLAGS += -Wall
 CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
+#CFLAGS += -D TRACE_LEVEL=TRACE_LEVEL_WARNING
 CFLAGS += $(INCLUDES)
 
 CC = gcc
@@ -153,12 +154,11 @@ OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
+	cp -r $(CONTRIB_DIR)/www .
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-	cp -r $(CONTRIB_DIR)/www .
 
 clean:
 	rm -f $(BINARY)

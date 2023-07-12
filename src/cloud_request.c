@@ -212,7 +212,10 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                 cbr->response(cbr->ctx);
             }
 
-            TRACE_INFO("HTTP code: %u\r\n", status);
+            if (status)
+            {
+                TRACE_INFO("HTTP code: %u\r\n", status);
+            }
             char content_type[64];
 
             strcpy(content_type, "");

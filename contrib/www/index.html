@@ -231,6 +231,8 @@
                         return <Checkbox id={option.ID} label={option.description} />
                     case 'int':
                         return <IntegerInput id={option.ID} label={option.description} />
+                    case 'uint':
+                        return <IntegerInput id={option.ID} label={option.description} />
                     default:
                         return null;
                 }
