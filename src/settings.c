@@ -27,6 +27,12 @@ OPTION_BOOL("toniebox.slap_enabled", &Settings.toniebox.slap_enabled, TRUE, "Ena
 OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
 OPTION_UNSIGNED("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
 
+OPTION_BOOL("mqtt.enabled", &Settings.mqtt.enabled, FALSE, "Enable MQTT service")
+OPTION_STRING("mqtt.hostname", Settings.mqtt.hostname, sizeof(Settings.mqtt.hostname) - 1, "", "MQTT hostname")
+OPTION_STRING("mqtt.username", Settings.mqtt.username, sizeof(Settings.mqtt.username) - 1, "", "Username")
+OPTION_STRING("mqtt.password", Settings.mqtt.password, sizeof(Settings.mqtt.password) - 1, "", "Password")
+OPTION_STRING("mqtt.identification", Settings.mqtt.identification, sizeof(Settings.mqtt.identification) - 1, "", "Client identification")
+
 OPTION_END()
 
 void settings_init()
@@ -59,6 +65,18 @@ void settings_init()
         }
         pos++;
     }
+
+    settings_load();
+}
+
+void settings_save()
+{
+    TRACE_ERROR("settings_save() not implemented yet\r\n");
+}
+
+void settings_load()
+{
+    TRACE_ERROR("settings_load() not implemented yet\r\n");
 }
 
 setting_item_t *settings_get(int index)
@@ -233,7 +251,7 @@ bool settings_set_float(const char *item, float value)
 
     if (value < opt->min.float_value || value > opt->max.float_value)
     {
-        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        TRACE_ERROR("  %s = %f out of bounds\r\n", opt->option_name, value);
         return false;
     }
 

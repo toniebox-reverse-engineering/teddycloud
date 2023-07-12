@@ -17,6 +17,15 @@ typedef struct
 
 typedef struct
 {
+    bool enabled;
+    char hostname[128];
+    char username[128];
+    char password[128];
+    char identification[128];
+} settings_mqtt_t;
+
+typedef struct
+{
     bool overrideCloud;
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;
@@ -34,6 +43,7 @@ typedef struct
 typedef struct
 {
     settings_cloud_t cloud;
+    settings_mqtt_t mqtt;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
 } settings_t;
@@ -106,11 +116,13 @@ typedef struct
 #define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i},
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i},
 #define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i},
+#define OPTION_ADV_STRING(o, p, maxLen, d, desc, i) {.option_name = o, .ptr = p, .max = {.unsigned_value = maxLen}, .type = TYPE_STRING, .description = desc, .internal = i},
 
 #define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false)
 #define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false)
 #define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false)
 #define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false)
+#define OPTION_STRING(o, p, max, d, desc) OPTION_ADV_STRING(o, p, max, d, desc, false)
 
 #define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true)
 #define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true)
@@ -132,6 +144,43 @@ extern settings_t Settings;
  * This function should be called once, before any other settings functions are used.
  */
 void settings_init();
+/**
+ * @brief Saves the current settings to a persistent storage (like a file or database).
+ *
+ * The settings_save() function is used to persistently store the current settings,
+ * allowing them to be reloaded after the program is restarted. The exact method of storage
+ * depends on the specific implementation: it may be saved to a file, a database, or another
+ * type of persistent storage.
+ *
+ * This function does not return a value, and it is assumed that it will handle any errors
+ * internally. If the settings cannot be saved for some reason (for instance, if the storage
+ * medium is not available), it is up to the function implementation to handle this case.
+ *
+ * Usage:
+ * @code
+ *    settings_save();
+ * @endcode
+ */
+void settings_save();
+
+/**
+ * @brief Loads settings from a persistent storage (like a file or database).
+ *
+ * The settings_load() function is used to load settings that have been saved persistently,
+ * such as when the program is first started. The settings are loaded from the same place
+ * that the settings_save() function saves to.
+ *
+ * This function does not return a value, and it is assumed that it will handle any errors
+ * internally. If the settings cannot be loaded for some reason (for instance, if the storage
+ * medium is not available or the settings file is corrupted), it is up to the function
+ * implementation to handle this case.
+ *
+ * Usage:
+ * @code
+ *    settings_load();
+ * @endcode
+ */
+void settings_load();
 
 /**
  * @brief Gets the setting item at a specific index.
