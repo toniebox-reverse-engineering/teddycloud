@@ -8,6 +8,7 @@
 #include "handler_cloud.h"
 #include "settings.h"
 #include "stats.h"
+#include "returncodes.h"
 
 #define BODY_BUFFER_SIZE 128
 
@@ -15,16 +16,21 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
 {
     char *json = strdup("{\"options\": [");
     int pos = 0;
+    bool first = true;
 
     json = realloc(json, osStrlen(json) + 10);
     while (true)
     {
-        char buf[1024];
         option_map_t *opt = settings_get(pos);
 
         if (!opt)
         {
             break;
+        }
+        if (opt->internal)
+        {
+            pos++;
+            continue;
         }
         const char *type = "unknown";
 
@@ -49,11 +55,13 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
             break;
         }
 
-        if (pos != 0)
+        if (!first)
         {
             strcat(json, ",");
         }
+        first = false;
 
+        char buf[1024];
         sprintf(buf, "{\"ID\": \"%s\", \"shortname\": \"%s\", \"description\": \"%s\", \"type\": \"%s\"}",
                 opt->option_name, opt->option_name, opt->description, type);
 
@@ -95,11 +103,50 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
 {
     const char *item = &uri[5];
+    char response[256];
+
+    sprintf(response, "FAILED");
 
     if (!strcmp(item, "triggerExit"))
     {
-        exit(0);
+        TRACE_INFO("Triggered Exit\r\n");
+        settings_set_bool("internal.exit", TRUE);
+        settings_set_integer("internal.returncode", RETURNCODE_USER_QUIT);
+        sprintf(response, "OK");
     }
+    else if (!strcmp(item, "triggerRestart"))
+    {
+        TRACE_INFO("Triggered Restart\r\n");
+        settings_set_bool("internal.exit", TRUE);
+        settings_set_integer("internal.returncode", RETURNCODE_USER_RESTART);
+        sprintf(response, "OK");
+    }
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/plain";
+    connection->response.contentLength = osStrlen(response);
+
+    error_t error = httpWriteHeader(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header\r\n");
+        return error;
+    }
+
+    error = httpWriteStream(connection, response, connection->response.contentLength);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header\r\n");
+        return error;
+    }
+
+    error = httpCloseStream(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to close: %d\r\n", error);
+        return error;
+    }
+
     return NO_ERROR;
 }
 

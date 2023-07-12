@@ -1,0 +1,6 @@
+#pragma once
+
+
+#define RETURNCODE_UNKNOWN 0
+#define RETURNCODE_USER_QUIT -1
+#define RETURNCODE_USER_RESTART -2

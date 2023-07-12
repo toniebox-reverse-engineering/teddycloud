@@ -10,6 +10,8 @@
 settings_t Settings;
 
 OPTION_START()
+OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
+OPTION_INTERNAL_INT("internal.returncode", &Settings.internal.returncode, FALSE, "Returncode when exiting")
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1FreshnessCheck", &Settings.cloud.enableV1FreshnessCheck, TRUE, "Pass 'freshnessCheck' queries to boxine cloud")
@@ -80,7 +82,7 @@ void settings_set_bool(const char *item, bool value)
             {
             case TYPE_BOOL:
                 *((bool *)option_map[pos].ptr) = value;
-                break;
+                return;
             default:
                 break;
             }
@@ -90,7 +92,7 @@ void settings_set_bool(const char *item, bool value)
     TRACE_WARNING("Option '%s' not found\r\n", item);
 }
 
-void settings_set_int(const char *item, uint32_t value)
+void settings_set_integer(const char *item, uint32_t value)
 {
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
@@ -102,7 +104,7 @@ void settings_set_int(const char *item, uint32_t value)
             case TYPE_INTEGER:
             case TYPE_HEX:
                 *((uint32_t *)option_map[pos].ptr) = value;
-                break;
+                return;
             default:
                 break;
             }
@@ -133,7 +135,7 @@ bool settings_get_bool(const char *item)
     return false;
 }
 
-uint32_t settings_get_int(const char *item)
+uint32_t settings_get_integer(const char *item)
 {
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
