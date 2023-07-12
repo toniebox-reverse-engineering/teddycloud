@@ -3,9 +3,11 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "handler_reverse.h"
 #include "settings.h"
+#include "stats.h"
 #include "cloud_request.h"
 
 typedef struct
@@ -93,7 +95,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
     TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
     while (ctx.status != PROX_STATUS_DONE)
     {
-        sleep(100);
+        usleep(50000);
     }
     error = httpCloseStream(connection);
 

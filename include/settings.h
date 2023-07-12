@@ -90,7 +90,7 @@ extern settings_t Settings;
 void settings_set_bool(const char *item, bool value);
 void settings_set_integer(const char *item, uint32_t value);
 bool settings_get_bool(const char *item);
-uint32_t settings_get_intger(const char *item);
+uint32_t settings_get_integer(const char *item);
 option_map_t *settings_get(int index);
 void settings_init();
 

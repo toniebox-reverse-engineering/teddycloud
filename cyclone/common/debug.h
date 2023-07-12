@@ -44,7 +44,7 @@
 
 //Default trace level
 #ifndef TRACE_LEVEL
-   #define TRACE_LEVEL TRACE_LEVEL_DEBUG
+   #define TRACE_LEVEL TRACE_LEVEL_WARNING
 #endif
 
 //Trace output redirection

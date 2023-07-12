@@ -10,8 +10,6 @@
 #include "stats.h"
 #include "returncodes.h"
 
-#define BODY_BUFFER_SIZE 128
-
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
 {
     char *json = strdup("{\"options\": [");
