@@ -8,16 +8,16 @@ to host your own figurine audio files on e.g. your NAS or any other server.
 Currently implemented is:
 * Provide audio content over the air
 * Simulate live content
-* no communication with Boxine's cloud, see planned
 * Passthrough original tonie audio content
+* Basic Web fronted
+* Filter custom tags to prevent deletion (.nocloud)
+* Configure maximum volume for speaker and headphones
+* Configure LED
+* Configure slapping
 
 ## Planned
 * Cache original tonie audio content
 * Update live content only when changed (based on file date)
-* Configure maximum volume for speaker and headphones
-* Configure LED
-* Configure slapping
-* Filter custom tags to prevent deletion (.nocloud)
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (ideas welcome)

@@ -17,7 +17,18 @@ typedef struct
 
 typedef struct
 {
+    bool overrideCloud;
+    uint8_t max_vol_spk;
+    uint8_t max_vol_hdp;
+    bool slap_enabled;
+    bool slap_back_left;
+    uint8_t led;
+} settings_toniebox_t;
+
+typedef struct
+{
     settings_cloud_t cloud;
+    settings_toniebox_t toniebox;
 } settings_t;
 
 typedef enum
@@ -49,6 +60,7 @@ typedef struct
 
 #define OPTION_START() option_map_t option_map[] = {
 #define OPTION_BOOL(name, p, default, desc) {.option_name = name, .ptr = p, .defaults = {.bool_default = default}, .type = TYPE_BOOL, .description = desc},
+#define OPTION_INT(name, p, default, desc) {.option_name = name, .ptr = p, .defaults = {.integer_default = default}, .type = TYPE_INTEGER, .description = desc},
 #define OPTION_END()     \
     {                    \
         .type = TYPE_END \
