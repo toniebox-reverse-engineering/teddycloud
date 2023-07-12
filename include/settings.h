@@ -50,11 +50,11 @@ typedef enum
 
 typedef union
 {
-    bool bool_default;
-    int integer_default;
-    int hex_default;
-    float float_default;
-} option_default_t;
+    bool bool_value;
+    int integer_value;
+    int hex_value;
+    float float_value;
+} option_value_t;
 
 typedef struct
 {
@@ -62,19 +62,21 @@ typedef struct
     const char *description;
     void *ptr;
     settings_type type;
-    option_default_t defaults;
+    option_value_t init;
+    option_value_t min;
+    option_value_t max;
     bool internal;
 } option_map_t;
 
 #define OPTION_START() option_map_t option_map[] = {
-#define OPTION_ADV_BOOL(o, p, d, desc, i) {.option_name = o, .ptr = p, .defaults = {.bool_default = d}, .type = TYPE_BOOL, .description = desc, .internal = i},
-#define OPTION_ADV_INT(o, p, d, desc, i) {.option_name = o, .ptr = p, .defaults = {.integer_default = d}, .type = TYPE_INTEGER, .description = desc, .internal = i},
+#define OPTION_ADV_BOOL(o, p, d, desc, i) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i},
+#define OPTION_ADV_INT(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.integer_value = d}, .min = {.integer_value = minVal}, .max = {.integer_value = maxVal}, .type = TYPE_INTEGER, .description = desc, .internal = i},
 
 #define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false)
-#define OPTION_INT(o, p, d, desc) OPTION_ADV_INT(o, p, d, desc, false)
+#define OPTION_INT(o, p, d, min, max, desc) OPTION_ADV_INT(o, p, d, min, max, desc, false)
 
 #define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true)
-#define OPTION_INTERNAL_INT(o, p, d, desc) OPTION_ADV_INT(o, p, d, desc, true)
+#define OPTION_INTERNAL_INT(o, p, d, min, max, desc) OPTION_ADV_INT(o, p, d, min, max, desc, true)
 
 #define OPTION_END()     \
     {                    \

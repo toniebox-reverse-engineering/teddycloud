@@ -11,7 +11,7 @@ settings_t Settings;
 
 OPTION_START()
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
-OPTION_INTERNAL_INT("internal.returncode", &Settings.internal.returncode, FALSE, "Returncode when exiting")
+OPTION_INTERNAL_INT("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1FreshnessCheck", &Settings.cloud.enableV1FreshnessCheck, TRUE, "Pass 'freshnessCheck' queries to boxine cloud")
@@ -21,11 +21,11 @@ OPTION_BOOL("cloud.enableV1Ota", &Settings.cloud.enableV1Ota, FALSE, "Pass 'ota'
 OPTION_BOOL("cloud.enableV2Content", &Settings.cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
 
 OPTION_BOOL("toniebox.overrideCloud", &Settings.toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
-OPTION_INT("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, "Limit speaker volume (0-3)")
-OPTION_INT("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, "Limit headphone volume (0-3)")
+OPTION_INT("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")
+OPTION_INT("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume (0-3)")
 OPTION_BOOL("toniebox.slap_enabled", &Settings.toniebox.slap_enabled, TRUE, "Enable slapping to skip a track")
 OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
-OPTION_INT("toniebox.led", &Settings.toniebox.led, 0, "0=on, 1=off, 2=dimmed")
+OPTION_INT("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
 
 OPTION_END()
 
@@ -38,17 +38,17 @@ void settings_init()
         switch (option_map[pos].type)
         {
         case TYPE_BOOL:
-            TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].defaults.bool_default ? "true" : "false");
-            *((bool *)option_map[pos].ptr) = option_map[pos].defaults.bool_default;
+            TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].init.bool_value ? "true" : "false");
+            *((bool *)option_map[pos].ptr) = option_map[pos].init.bool_value;
             break;
         case TYPE_INTEGER:
         case TYPE_HEX:
-            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].defaults.integer_default);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].defaults.integer_default;
+            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.integer_value);
+            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.integer_value;
             break;
         case TYPE_FLOAT:
-            TRACE_INFO("  %s = %f\r\n", option_map[pos].option_name, option_map[pos].defaults.float_default);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].defaults.float_default;
+            TRACE_INFO("  %s = %f\r\n", option_map[pos].option_name, option_map[pos].init.float_value);
+            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.float_value;
             break;
         default:
             break;

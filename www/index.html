@@ -150,6 +150,49 @@
             }
         }
 
+        class IntegerInput extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { value: 0 };
+            }
+
+            componentDidMount() {
+                fetch(`/api/get/${this.props.id}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        this.setState({ value: parseInt(data, 10) });
+                    });
+            }
+
+            handleInputChange = (event) => {
+                const newValue = parseInt(event.target.value, 10);
+                this.setState({ value: newValue });
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newValue.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="number"
+                                value={this.state.value}
+                                onChange={this.handleInputChange}
+                            />
+                            {this.props.label}
+                        </label>
+                    </div>
+                );
+            }
+        }
+
         class OptionList extends React.Component {
             constructor(props) {
                 super(props);
@@ -186,6 +229,8 @@
                 switch (option.type) {
                     case 'bool':
                         return <Checkbox id={option.ID} label={option.description} />
+                    case 'int':
+                        return <IntegerInput id={option.ID} label={option.description} />
                     default:
                         return null;
                 }
