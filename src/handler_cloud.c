@@ -33,6 +33,8 @@ typedef struct
     size_t bufferPos;
     size_t bufferLen;
     uint32_t status;
+    FsFile *file;
+    tonie_info_t tonieInfo;
     HttpConnection *connection;
 } cbr_ctx_t;
 
@@ -93,6 +95,7 @@ static bool fillCbrBodyCache(cbr_ctx_t *ctx, const char *payload, size_t length)
     }
     osMemcpy(&ctx->buffer[ctx->bufferPos], payload, length);
     ctx->bufferPos += length;
+    return true;
 }
 
 static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
@@ -102,6 +105,50 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
     switch (ctx->api)
     {
+    case V2_CONTENT:
+        if (Settings.cloud.cacheContent && ctx->connection->response.statusCode == 200)
+        {
+            // CATCH: {"error":{"title":"Gone","status":410}}!!!!
+            // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
+            // TRACE_INFO(">> %s\r\n", ctx->uri);
+            if (ctx->status == PROX_STATUS_HEAD)
+            {
+                TRACE_INFO(">> Start caching uri=%s\r\n", ctx->uri);
+                // TODO detect partial downloads
+                char ruid[17];
+                osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
+                ruid[17] = 0;
+                getContentPathFromCharRUID(ruid, ctx->tonieInfo.contentPath);
+                char tmpPath[34];
+                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
+                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
+                tmpPath[29] = 0;
+                osStrcat(tmpPath, ".tmp");
+                tmpPath[20] = 0;
+                fsCreateDir(tmpPath);
+                tmpPath[20] = '/';
+                ctx->file = fsOpenFile(tmpPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            }
+            if (length > 0)
+            {
+                error_t error = fsWriteFile(ctx->file, payload, length);
+                if (error)
+                    TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
+            }
+            else
+            {
+                fsCloseFile(ctx->file);
+                char tmpPath[34];
+                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
+                tmpPath[29] = 0;
+                osStrcat(tmpPath, ".tmp");
+                fsDeleteFile(ctx->tonieInfo.contentPath);
+                fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
+                TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+            }
+        }
+        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        break;
     case V1_FRESHNESS_CHECK:
         if (Settings.toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, payload, length))
         {
@@ -121,8 +168,12 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
             tonie_freshness_check_response__free_unpacked(freshResp, NULL);
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
             osFreeMem(ctx->buffer);
-            break;
         }
+        else
+        {
+            httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        }
+        break;
     default:
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         break;
@@ -133,7 +184,6 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
 static void cbrCloudServerDiskPasshtorugh(void *ctx_in)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-
     TRACE_INFO(">> cbrCloudServerDiskPasshtorugh\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
