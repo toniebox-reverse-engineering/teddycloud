@@ -17,6 +17,16 @@ typedef struct
 
 typedef struct
 {
+    bool overrideCloud;
+    uint8_t max_vol_spk;
+    uint8_t max_vol_hdp;
+    bool slap_enabled;
+    bool slap_back_left;
+    uint8_t led;
+} settings_toniebox_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
 } settings_internal_t;
@@ -24,6 +34,7 @@ typedef struct
 typedef struct
 {
     settings_cloud_t cloud;
+    settings_toniebox_t toniebox;
     settings_internal_t internal;
 } settings_t;
 

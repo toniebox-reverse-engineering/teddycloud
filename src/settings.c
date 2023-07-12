@@ -19,6 +19,14 @@ OPTION_BOOL("cloud.enableV1Log", &Settings.cloud.enableV1Log, FALSE, "Pass 'log'
 OPTION_BOOL("cloud.enableV1Time", &Settings.cloud.enableV1Time, FALSE, "Pass 'time' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Ota", &Settings.cloud.enableV1Ota, FALSE, "Pass 'ota' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV2Content", &Settings.cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
+
+OPTION_BOOL("toniebox.overrideCloud", &Settings.toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
+OPTION_INT("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, "Limit speaker volume (0-3)")
+OPTION_INT("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, "Limit headphone volume (0-3)")
+OPTION_BOOL("toniebox.slap_enabled", &Settings.toniebox.slap_enabled, TRUE, "Enable slapping to skip a track")
+OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
+OPTION_INT("toniebox.led", &Settings.toniebox.led, 0, "0=on, 1=off, 2=dimmed")
+
 OPTION_END()
 
 void settings_init()

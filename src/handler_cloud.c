@@ -419,11 +419,13 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             {
                 tonie_freshness_check_request__free_unpacked(freshReq, NULL);
             }
-            freshResp.max_vol_spk = 3;
-            freshResp.slap_en = 0;
-            freshResp.slap_dir = 0;
-            freshResp.max_vol_hdp = 3;
-            freshResp.led = 2;
+
+            freshResp.max_vol_spk = Settings.toniebox.max_vol_spk;
+            freshResp.max_vol_hdp = Settings.toniebox.max_vol_hdp;
+            freshResp.slap_en = Settings.toniebox.slap_enabled;
+            freshResp.slap_dir = Settings.toniebox.slap_back_left;
+            freshResp.led = Settings.toniebox.led;
+
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
             osFreeMem(freshReqCloud.tonie_infos);
