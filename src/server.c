@@ -1,4 +1,6 @@
 
+#define TRACE_LEVEL TRACE_LEVEL_WARNING
+
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -58,9 +60,10 @@ request_type_t request_paths[] = {
     {REQ_GET, "/www", &handleWww},
     /* custom API */
     {REQ_GET, "/api/stats", &handleApiStats},
-    {REQ_GET, "/api/get", &handleApiGet},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
-    {REQ_POST, "/api/set", &handleApiSet},
+    {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_GET, "/api/get/", &handleApiGet},
+    {REQ_POST, "/api/set/", &handleApiSet},
     /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
@@ -403,8 +406,8 @@ void server_init()
         usleep(100000);
     }
 
-    TRACE_INFO("Exiting TeddyClout with returncode %d\r\n", settings_get_integer("internal.returncode"));
+    TRACE_INFO("Exiting TeddyClout with returncode %d\r\n", settings_get_signed("internal.returncode"));
     usleep(100000);
 
-    exit(settings_get_integer("internal.returncode"));
+    exit(settings_get_signed("internal.returncode"));
 }

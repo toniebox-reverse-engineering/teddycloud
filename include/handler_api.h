@@ -9,6 +9,7 @@
 
 void stats_update(const char *item, int count);
 error_t handleApiStats(HttpConnection *connection, const char_t *uri);
+error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri);
 error_t handleApiGet(HttpConnection *connection, const char_t *uri);
 error_t handleApiSet(HttpConnection *connection, const char_t *uri);
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri);

@@ -19,7 +19,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     json = realloc(json, osStrlen(json) + 10);
     while (true)
     {
-        option_map_t *opt = settings_get(pos);
+        setting_item_t *opt = settings_get(pos);
 
         if (!opt)
         {
@@ -37,7 +37,10 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
         case TYPE_BOOL:
             type = "bool";
             break;
-        case TYPE_INTEGER:
+        case TYPE_UNSIGNED:
+            type = "uint";
+            break;
+        case TYPE_SIGNED:
             type = "int";
             break;
         case TYPE_HEX:
@@ -109,14 +112,14 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
     {
         TRACE_INFO("Triggered Exit\r\n");
         settings_set_bool("internal.exit", TRUE);
-        settings_set_integer("internal.returncode", RETURNCODE_USER_QUIT);
+        settings_set_signed("internal.returncode", RETURNCODE_USER_QUIT);
         sprintf(response, "OK");
     }
     else if (!strcmp(item, "triggerRestart"))
     {
         TRACE_INFO("Triggered Restart\r\n");
         settings_set_bool("internal.exit", TRUE);
-        settings_set_integer("internal.returncode", RETURNCODE_USER_RESTART);
+        settings_set_signed("internal.returncode", RETURNCODE_USER_RESTART);
         sprintf(response, "OK");
     }
 
@@ -152,14 +155,34 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri)
 {
     const char *item = &uri[5 + 3 + 1];
 
-    if (!strcmp(&uri[5 + 3], "Index"))
-    {
-        return handleApiGetIndex(connection, uri);
-    }
-
     char json[256];
+    strcpy(json, "ERROR");
+    setting_item_t *opt = settings_get_by_name(item);
 
-    sprintf(json, "%s", settings_get_bool(item) ? "true" : "false");
+    if (opt)
+    {
+        switch (opt->type)
+        {
+        case TYPE_BOOL:
+            sprintf(json, "%s", settings_get_bool(item) ? "true" : "false");
+            break;
+        case TYPE_HEX:
+        case TYPE_UNSIGNED:
+            sprintf(json, "%d", settings_get_unsigned(item));
+            break;
+        case TYPE_SIGNED:
+            sprintf(json, "%d", settings_get_signed(item));
+            break;
+        case TYPE_STRING:
+            sprintf(json, "%s", settings_get_string(item));
+            break;
+        case TYPE_FLOAT:
+            sprintf(json, "%f", settings_get_float(item));
+            break;
+        default:
+            break;
+        }
+    }
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
@@ -192,7 +215,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri)
 error_t handleApiSet(HttpConnection *connection, const char_t *uri)
 {
     char response[256];
-    sprintf(response, "OK");
+    sprintf(response, "ERROR");
     const char *item = &uri[9];
 
     TRACE_INFO("Setting: '%s' to ", item);
@@ -214,12 +237,84 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
         data[size] = 0;
         TRACE_INFO("'%s'\r\n", data);
 
-        settings_set_bool(item, !strcmp(data, "true"));
+        setting_item_t *opt = settings_get_by_name(item);
+        if (opt)
+        {
+            switch (opt->type)
+            {
+            case TYPE_BOOL:
+            {
+                if (settings_set_bool(item, !strcasecmp(data, "true")))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+            case TYPE_STRING:
+            {
+                if (settings_set_string(item, data))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+            case TYPE_HEX:
+            {
+                uint32_t value = strtoul(data, NULL, 16);
+
+                if (settings_set_unsigned(item, value))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+
+            case TYPE_UNSIGNED:
+            {
+                uint32_t value = strtoul(data, NULL, 10);
+
+                if (settings_set_unsigned(item, value))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+
+            case TYPE_SIGNED:
+            {
+                int32_t value = strtol(data, NULL, 10);
+
+                if (settings_set_signed(item, value))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+
+            case TYPE_FLOAT:
+            {
+                float value = strtof(data, NULL);
+
+                if (settings_set_float(item, value))
+                {
+                    strcpy(response, "OK");
+                }
+                break;
+            }
+
+            default:
+                break;
+            }
+        }
+        else
+        {
+
+            TRACE_ERROR("Setting '%s' is unknown", item);
+        }
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
-    return httpWriteResponse(connection, "", false);
-    return NO_ERROR;
+    return httpWriteResponse(connection, response, false);
 }
 
 error_t handleApiStats(HttpConnection *connection, const char_t *uri)

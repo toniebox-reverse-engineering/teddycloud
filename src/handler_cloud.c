@@ -217,7 +217,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
             osFreeMem(data);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send payload\r\n");
+        TRACE_ERROR("Failed to send payload: %d\r\n", error);
         return error;
     }
 
