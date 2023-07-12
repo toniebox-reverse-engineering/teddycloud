@@ -13,6 +13,7 @@ typedef struct
     bool enableV1Time;
     bool enableV1Ota;
     bool enableV2Content;
+    bool cacheContent;
 } settings_cloud_t;
 
 typedef struct
