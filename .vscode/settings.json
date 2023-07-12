@@ -20,7 +20,9 @@
         "toniebox.pb.rtnl.pb-c.h": "c",
         "stdbool.h": "c",
         "handler_cloud.h": "c",
-        "handler_reverse.h": "c"
+        "handler_reverse.h": "c",
+        "settings.h": "c",
+        "stats.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,

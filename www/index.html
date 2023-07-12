@@ -195,6 +195,44 @@
             }
         }
 
+        class StatsList extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { stats: [] };
+            }
+
+            componentDidMount() {
+                fetch('/api/stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.setState({ stats: data.stats.sort((a, b) => a.ID.localeCompare(b.ID)) });
+                    });
+            }
+            renderStats = (stats) => {
+                return (
+                    <div key={stats.ID}>
+                        {this.renderStatsItem(stats)}
+                    </div>
+                )
+            }
+            renderStatsItem(stats) {
+                return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>{stats.description}</div>
+                        <div>{stats.value}</div>
+                    </div>
+                );
+            }
+
+            render() {
+                return (
+                    <div>
+                        {this.state.stats.map(this.renderStats)}
+                    </div>
+                );
+            }
+        }
+
 
         class TimeTile extends React.Component {
             render() {
@@ -211,20 +249,27 @@
                 return (
                     <div className="tile stats-tile">
                         <h3>Server Statistics</h3>
-                        <p>{this.props.stats.connections} HTTP connections made to this server</p>
-                        <p>{this.props.stats.reverse_requests} reverse proxy calls made by clients</p>
-                        <p>{this.props.stats.cloud_requests} cloud requests</p>
-                        <p>{this.props.stats.cloud_failed} failed/blocked cloud requests</p>
+                        <StatsList />
                     </div>
                 );
             }
         }
 
         class ActionsTile extends React.Component {
+            constructor(props) {
+                super(props);
+                this.exitServer = this.exitServer.bind(this);
+            }
+
+            exitServer() {
+                fetch('/api/triggerExit');
+            }
+
             render() {
                 return (
                     <div className="tile actions-tile">
                         <h3>Actions</h3>
+                        <button className="button" onClick={this.exitServer}>Exit Server</button>
                     </div>
                 );
             }

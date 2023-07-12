@@ -47,7 +47,7 @@ void settings_init()
     }
 }
 
-option_map_t *settings_get_id(int index)
+option_map_t *settings_get(int index)
 {
     int pos = 0;
     while (option_map[pos].type != TYPE_END)

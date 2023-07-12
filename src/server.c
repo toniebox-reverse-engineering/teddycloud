@@ -61,6 +61,7 @@ request_type_t request_paths[] = {
     /* custom API */
     {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/api/get", &handleApiGet},
+    {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_POST, "/api/set", &handleApiSet},
     /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},

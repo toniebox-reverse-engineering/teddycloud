@@ -62,7 +62,7 @@ void settings_set_bool(const char *item, bool value);
 void settings_set_int(const char *item, uint32_t value);
 bool settings_get_bool(const char *item);
 uint32_t settings_get_int(const char *item);
-option_map_t *settings_get_id(int index);
+option_map_t *settings_get(int index);
 void settings_init();
 
 #endif

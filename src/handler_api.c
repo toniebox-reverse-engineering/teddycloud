@@ -5,34 +5,11 @@
 #include <stdint.h>
 
 #include "handler_api.h"
+#include "handler_cloud.h"
 #include "settings.h"
+#include "stats.h"
 
-typedef struct
-{
-    const char *name;
-    uint32_t counter;
-} stat_t;
-
-stat_t statistics[] = {
-    {"connections", 0},
-    {"reverse_requests", 0},
-    {"cloud_requests", 0},
-    {"cloud_failed", 0},
-    {NULL, 0}};
-
-void stats_update(const char *item, int count)
-{
-    int pos = 0;
-    while (statistics[pos].name)
-    {
-        if (!strcmp(item, statistics[pos].name))
-        {
-            statistics[pos].counter += count;
-            return;
-        }
-        pos++;
-    }
-}
+#define BODY_BUFFER_SIZE 128
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
 {
@@ -43,7 +20,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     while (true)
     {
         char buf[1024];
-        option_map_t *opt = settings_get_id(pos);
+        option_map_t *opt = settings_get(pos);
 
         if (!opt)
         {
@@ -115,16 +92,27 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
+error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
+{
+    const char *item = &uri[5];
+
+    if (!strcmp(item, "triggerExit"))
+    {
+        exit(0);
+    }
+    return NO_ERROR;
+}
+
 error_t handleApiGet(HttpConnection *connection, const char_t *uri)
 {
-    char json[256];
+    const char *item = &uri[5];
 
-    char *item = &uri[8];
-
-    if (!strcmp(item, "Index"))
+    if (!strcmp(item, "getIndex"))
     {
         return handleApiGetIndex(connection, uri);
     }
+
+    char json[256];
 
     sprintf(json, "%s", settings_get_bool(item) ? "true" : "false");
 
@@ -156,13 +144,11 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-#define BODY_BUFFER_SIZE 128
-
 error_t handleApiSet(HttpConnection *connection, const char_t *uri)
 {
     char response[256];
     sprintf(response, "OK");
-    char *item = &uri[8];
+    const char *item = &uri[8];
 
     TRACE_INFO("Setting: '%s' to ", item);
 
@@ -193,29 +179,36 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
 
 error_t handleApiStats(HttpConnection *connection, const char_t *uri)
 {
-    char *json = strdup("{");
+    char *json = strdup("{\"stats\": [");
+    int pos = 0;
 
     json = realloc(json, osStrlen(json) + 10);
-    int pos = 0;
-    while (statistics[pos].name)
+    while (true)
     {
-        char buf[128];
+        char buf[1024];
+        stat_t *stat = stats_get(pos);
+
+        if (!stat)
+        {
+            break;
+        }
 
         if (pos != 0)
         {
             strcat(json, ",");
         }
-        sprintf(buf, "\"%s\": %d", statistics[pos].name, statistics[pos].counter);
+
+        sprintf(buf, "{\"ID\": \"%s\", \"description\": \"%s\", \"value\": \"%d\" }",
+                stat->name, stat->description, stat->value);
 
         json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
         strcat(json, buf);
 
         pos++;
     }
-    strcat(json, "}");
-
+    strcat(json, "]}");
     httpInitResponseHeader(connection);
-    connection->response.contentType = "text/json";
+    connection->response.contentType = "text/plain";
     connection->response.contentLength = osStrlen(json);
 
     error_t error = httpWriteHeader(connection);
