@@ -16,4 +16,11 @@ if [ ! -f "/teddycloud/certs/server/ca.der" ]; then
   fi
 fi
 
-exec teddycloud
+while true
+do
+  teddycloud
+  retVal=$?
+  if [ $retVal -ne -2 ]; then
+      exit $retVal
+  fi
+done
