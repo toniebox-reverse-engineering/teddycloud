@@ -105,9 +105,9 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
 
 error_t handleApiGet(HttpConnection *connection, const char_t *uri)
 {
-    const char *item = &uri[5];
+    const char *item = &uri[5 + 3];
 
-    if (!strcmp(item, "getIndex"))
+    if (!strcmp(item, "Index"))
     {
         return handleApiGetIndex(connection, uri);
     }

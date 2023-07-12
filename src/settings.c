@@ -79,6 +79,7 @@ void settings_set_bool(const char *item, bool value)
         }
         pos++;
     }
+    TRACE_WARNING("Option '%s' not found\r\n", item);
 }
 
 void settings_set_int(const char *item, uint32_t value)
@@ -100,6 +101,7 @@ void settings_set_int(const char *item, uint32_t value)
         }
         pos++;
     }
+    TRACE_WARNING("Option '%s' not found\r\n", item);
 }
 
 bool settings_get_bool(const char *item)
@@ -119,6 +121,7 @@ bool settings_get_bool(const char *item)
         }
         pos++;
     }
+    TRACE_WARNING("Option '%s' not found\r\n", item);
     return false;
 }
 
@@ -140,5 +143,6 @@ uint32_t settings_get_int(const char *item)
         }
         pos++;
     }
+    TRACE_WARNING("Option '%s' not found\r\n", item);
     return INT32_MIN;
 }
