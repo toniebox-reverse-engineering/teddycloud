@@ -17,7 +17,14 @@ typedef struct
 
 typedef struct
 {
+    bool exit;
+    int32_t returncode;
+} settings_internal_t;
+
+typedef struct
+{
     settings_cloud_t cloud;
+    settings_internal_t internal;
 } settings_t;
 
 typedef enum
@@ -45,10 +52,19 @@ typedef struct
     void *ptr;
     settings_type type;
     option_default_t defaults;
+    bool internal;
 } option_map_t;
 
 #define OPTION_START() option_map_t option_map[] = {
-#define OPTION_BOOL(name, p, default, desc) {.option_name = name, .ptr = p, .defaults = {.bool_default = default}, .type = TYPE_BOOL, .description = desc},
+#define OPTION_ADV_BOOL(o, p, d, desc, i) {.option_name = o, .ptr = p, .defaults = {.bool_default = d}, .type = TYPE_BOOL, .description = desc, .internal = i},
+#define OPTION_ADV_INT(o, p, d, desc, i) {.option_name = o, .ptr = p, .defaults = {.integer_default = d}, .type = TYPE_INTEGER, .description = desc, .internal = i},
+
+#define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false)
+#define OPTION_INT(o, p, d, desc) OPTION_ADV_INT(o, p, d, desc, false)
+
+#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true)
+#define OPTION_INTERNAL_INT(o, p, d, desc) OPTION_ADV_INT(o, p, d, desc, true)
+
 #define OPTION_END()     \
     {                    \
         .type = TYPE_END \
@@ -59,9 +75,9 @@ typedef struct
 extern settings_t Settings;
 
 void settings_set_bool(const char *item, bool value);
-void settings_set_int(const char *item, uint32_t value);
+void settings_set_integer(const char *item, uint32_t value);
 bool settings_get_bool(const char *item);
-uint32_t settings_get_int(const char *item);
+uint32_t settings_get_intger(const char *item);
 option_map_t *settings_get(int index);
 void settings_init();
 

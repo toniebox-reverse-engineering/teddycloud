@@ -33,6 +33,7 @@
         .button {
             font-size: 1em;
             padding: 10px;
+            margin: 5px;
             color: #fff;
             background-color: #007BFF;
             border: none;
@@ -282,11 +283,16 @@
                 fetch('/api/triggerExit');
             }
 
+            restartServer() {
+                fetch('/api/triggerRestart');
+            }
+
             render() {
                 return (
                     <div className="tile actions-tile">
                         <h3>Actions</h3>
                         <button className="button" onClick={this.exitServer}>Exit Server</button>
+                        <button className="button" onClick={this.restartServer}>Restart Server</button>
                     </div>
                 );
             }

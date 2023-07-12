@@ -434,6 +434,8 @@ void server_init()
     error_t error;
     MqttClientContext mqtt_context;
 */
+    settings_set_bool("internal.exit", FALSE);
+
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;
     HttpServerContext http_context;
@@ -480,7 +482,7 @@ void server_init()
         return;
     }
 
-    while (1)
+    while (!settings_get_bool("internal.exit"))
     {
         /*
         if (!mqttConnected)
@@ -509,6 +511,11 @@ void server_init()
             osDelayTask(2000);
         }
         */
-        sleep(100);
+        usleep(100000);
     }
+
+    TRACE_INFO("Exiting TeddyClout with returncode %d\r\n", settings_get_integer("internal.returncode"));
+    usleep(100000);
+
+    exit(settings_get_integer("internal.returncode"));
 }
