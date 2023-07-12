@@ -21,9 +21,14 @@ RUN mkdir -p /teddycloud/certs/server \
     && mkdir /teddycloud/config
 
 COPY --from=buildenv \
-    /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+    /buildenv/install/pre/certs/ /teddycloud/certs/
+COPY --from=buildenv \
+    /buildenv/install/pre/www/ /teddycloud/www/
+
 COPY --from=buildenv \
     /buildenv/install/pre/*.sh /usr/local/bin/
+COPY --from=buildenv \
+    /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
 
 VOLUME [ \
     "/teddycloud/www/CONTENT", \
