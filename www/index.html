@@ -199,15 +199,26 @@
             constructor(props) {
                 super(props);
                 this.state = { stats: [] };
+                this.fetchFromServer = this.fetchFromServer.bind(this);
+                this.fetchFromServer();
             }
 
             componentDidMount() {
+                this.interval = setInterval(this.fetchFromServer, 1000);
+            }
+
+            componentWillUnmount() {
+                clearInterval(this.interval);
+            }
+
+            fetchFromServer() {
                 fetch('/api/stats')
                     .then(response => response.json())
                     .then(data => {
-                        this.setState({ stats: data.stats.sort((a, b) => a.ID.localeCompare(b.ID)) });
+                        this.setState({ stats: data.stats });
                     });
             }
+
             renderStats = (stats) => {
                 return (
                     <div key={stats.ID}>
