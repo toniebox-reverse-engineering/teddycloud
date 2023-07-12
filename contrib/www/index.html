@@ -3,6 +3,8 @@
 
 <head>
     <title>TeddyCloud administration interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.75">
+
     <script src="https://unpkg.com/react@16/umd/react.development.js"
         integrity="sha512-LVEAOXGRRqHiT+4awmHwL5emvXg+BTr8cC/eDF0pLuwEySgG55Pt2gfN2X6BenCsocmb2kKJ7QJVppWftFpcoA=="
         crossorigin="anonymous"></script>
@@ -48,7 +50,7 @@
         .app {
             font-family: Arial, sans-serif;
             margin: 0 auto;
-            width: 80%;
+            width: 90%;
         }
 
         .tiles {
@@ -192,7 +194,6 @@
                 );
             }
         }
-
         class StringInput extends React.Component {
             constructor(props) {
                 super(props);
@@ -251,6 +252,7 @@
                 );
             }
         }
+
 
         class OptionList extends React.Component {
             constructor(props) {
@@ -357,6 +359,7 @@
                 );
             }
         }
+
 
         class TimeTile extends React.Component {
             render() {
@@ -520,6 +523,8 @@
                 );
             }
         }
+
+
 
         ReactDOM.render(<App />, document.getElementById('root'));
 
