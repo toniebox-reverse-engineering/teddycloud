@@ -53,7 +53,7 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
 
-    TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
+    // TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
     httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_BODY;
 }
