@@ -152,9 +152,9 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
 
 error_t handleApiGet(HttpConnection *connection, const char_t *uri)
 {
-    const char *item = &uri[5 + 3];
+    const char *item = &uri[5 + 3 + 1];
 
-    if (!strcmp(item, "Index"))
+    if (!strcmp(&uri[5 + 3], "Index"))
     {
         return handleApiGetIndex(connection, uri);
     }
@@ -195,7 +195,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
 {
     char response[256];
     sprintf(response, "OK");
-    const char *item = &uri[8];
+    const char *item = &uri[9];
 
     TRACE_INFO("Setting: '%s' to ", item);
 

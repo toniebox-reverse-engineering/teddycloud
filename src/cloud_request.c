@@ -260,7 +260,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                 TRACE_INFO("Binary data, not dumping body\r\n");
             }
 
-            size_t maxSize = 1024;
+            size_t maxSize = 4096;
             uint8_t *buffer = osAllocMem(maxSize + 1);
             // Receive HTTP response body
             while (!error)

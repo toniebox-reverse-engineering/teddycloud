@@ -115,7 +115,7 @@
             }
 
             componentDidMount() {
-                fetch(`/api/get${this.props.id}`)
+                fetch(`/api/get/${this.props.id}`)
                     .then(response => response.text())
                     .then(data => {
                         this.setState({ isChecked: data === 'true' });
@@ -126,7 +126,7 @@
                 const newState = !this.state.isChecked;
                 this.setState({ isChecked: newState });
 
-                fetch(`/api/set${this.props.id}`, {
+                fetch(`/api/set/${this.props.id}`, {
                     method: 'POST',
                     body: newState.toString(),
                     headers: {
