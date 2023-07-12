@@ -9,9 +9,10 @@ Currently implemented is:
 * Provide audio content over the air
 * Simulate live content
 * no communication with Boxine's cloud, see planned
+* Passthrough original tonie audio content
 
 ## Planned
-* Passthrough and cache original tonie audio content
+* Cache original tonie audio content
 * Update live content only when changed (based on file date)
 * Configure maximum volume for speaker and headphones
 * Configure LED
@@ -47,6 +48,7 @@ It is recommended to flash the replacement CA to /cert/c2.der and use the hackie
 ```
 python cc.py -p COM3 write_file certs/ca.der /cert/c2.der
 ```
+**Beware** The ```blockCheckRemove.310``` patch is breaks the content passthrough to Boxine. Please disable it, if your are using it.
 
 #### CC3235 / ESP32
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
