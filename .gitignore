@@ -2,7 +2,7 @@
 /obj
 /certs
 /install
-/www/CONTENT
+/www
 contrib/certs/server/ca-key.pem
 contrib/certs/server/ca-root.pem
 contrib/certs/server/ca-root.srl

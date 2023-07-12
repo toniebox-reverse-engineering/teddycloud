@@ -158,6 +158,8 @@ $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+	cp -r $(CONTRIB_DIR)/www .
+
 clean:
 	rm -f $(BINARY)
 	$(foreach O,$(OBJECTS),rm -f $(O);)
