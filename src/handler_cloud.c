@@ -29,9 +29,22 @@ typedef struct
 {
     const char_t *uri;
     cloudapi_t api;
+    char_t *buffer;
+    size_t bufferPos;
+    size_t bufferLen;
     uint32_t status;
     HttpConnection *connection;
 } cbr_ctx_t;
+
+static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp);
+static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp)
+{
+    freshResp->max_vol_spk = Settings.toniebox.max_vol_spk;
+    freshResp->max_vol_hdp = Settings.toniebox.max_vol_hdp;
+    freshResp->slap_en = Settings.toniebox.slap_enabled;
+    freshResp->slap_dir = Settings.toniebox.slap_back_left;
+    freshResp->led = Settings.toniebox.led;
+}
 
 static void cbrCloudResponsePassthrough(void *ctx_in);
 static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value);
@@ -43,6 +56,7 @@ static void cbrCloudResponsePassthrough(void *ctx_in)
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
     char line[128];
 
+    // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
     osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
@@ -68,12 +82,51 @@ static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const ch
     ctx->status = PROX_STATUS_HEAD;
 }
 
+static bool fillCbrBodyCache(cbr_ctx_t *ctx, const char *payload, size_t length)
+{
+    if (ctx->bufferPos == 0)
+    {
+        // ctx->connection->response.contentLength > length
+        // TODO where to get content length if multipart... response.contentLength is 0?!
+        ctx->bufferLen = length; // ctx->connection->response.contentLength;
+        ctx->buffer = osAllocMem(ctx->bufferLen);
+    }
+    osMemcpy(&ctx->buffer[ctx->bufferPos], payload, length);
+    ctx->bufferPos += length;
+}
+
 static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
 
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
-    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+    switch (ctx->api)
+    {
+    case V1_FRESHNESS_CHECK:
+        if (Settings.toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, payload, length))
+        {
+            TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
+            setTonieboxSettings(freshResp);
+            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
+
+            // TODO: Check if size is stable and this is obsolete
+            if (ctx->bufferLen < packSize)
+            {
+                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %u / %u\r\n", ctx->bufferLen, packSize);
+                osFreeMem(ctx->buffer);
+                ctx->bufferLen = packSize;
+                ctx->buffer = osAllocMem(ctx->bufferLen);
+            }
+            tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
+            tonie_freshness_check_response__free_unpacked(freshResp, NULL);
+            httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
+            osFreeMem(ctx->buffer);
+            break;
+        }
+    default:
+        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        break;
+    }
     ctx->status = PROX_STATUS_BODY;
 }
 
@@ -91,6 +144,9 @@ static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, clou
 {
     ctx->uri = uri;
     ctx->api = api;
+    ctx->buffer = NULL;
+    ctx->bufferPos = 0;
+    ctx->bufferLen = 0;
     ctx->status = PROX_STATUS_IDLE;
     ctx->connection = connection;
 
@@ -419,12 +475,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             {
                 tonie_freshness_check_request__free_unpacked(freshReq, NULL);
             }
-
-            freshResp.max_vol_spk = Settings.toniebox.max_vol_spk;
-            freshResp.max_vol_hdp = Settings.toniebox.max_vol_hdp;
-            freshResp.slap_en = Settings.toniebox.slap_enabled;
-            freshResp.slap_dir = Settings.toniebox.slap_back_left;
-            freshResp.led = Settings.toniebox.led;
+            setTonieboxSettings(&freshResp);
 
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
