@@ -4,6 +4,8 @@
 #include "settings.h"
 
 #include "handler_cloud.h"
+#include "http/http_client.h"
+
 #include "cloud_request.h"
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
@@ -48,16 +50,16 @@ static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp)
     freshResp->led = Settings.toniebox.led;
 }
 
-static void cbrCloudResponsePassthrough(void *ctx_in);
-static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length);
-static void cbrCloudServerDiskPasshtorugh(void *ctx_in);
+static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
+static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length);
+static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx);
 
 static void strupr(char input[]);
 
-static void cbrCloudResponsePassthrough(void *ctx_in)
+static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
@@ -66,9 +68,9 @@ static void cbrCloudResponsePassthrough(void *ctx_in)
     ctx->status = PROX_STATUS_CONN;
 }
 
-static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value)
+static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     if (header)
@@ -86,31 +88,29 @@ static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const ch
     ctx->status = PROX_STATUS_HEAD;
 }
 
-static bool fillCbrBodyCache(cbr_ctx_t *ctx, const char *payload, size_t length)
+static bool fillCbrBodyCache(cbr_ctx_t *ctx, HttpClientContext *httpClientContext, const char *payload, size_t length)
 {
     if (ctx->bufferPos == 0)
     {
-        // ctx->connection->response.contentLength > length
-        // TODO where to get content length if multipart... response.contentLength is 0?!
-        ctx->bufferLen = length; // ctx->connection->response.contentLength;
+        ctx->bufferLen = httpClientContext->bodyLen; // ctx->connection->response.contentLength;
         ctx->buffer = osAllocMem(ctx->bufferLen);
     }
     osMemcpy(&ctx->buffer[ctx->bufferPos], payload, length);
     ctx->bufferPos += length;
-    return true;
+    return (ctx->bufferPos == ctx->bufferLen);
 }
 
-static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
 
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
     switch (ctx->api)
     {
     case V2_CONTENT:
-        if (Settings.cloud.cacheContent && ctx->connection->response.statusCode == 200)
+        if (Settings.cloud.cacheContent && httpClientContext->statusCode == 200)
         {
-            // CATCH: {"error":{"title":"Gone","status":410}}!!!!
             // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
             // TRACE_INFO(">> %s\r\n", ctx->uri);
             if (ctx->status == PROX_STATUS_HEAD)
@@ -152,7 +152,7 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         break;
     case V1_FRESHNESS_CHECK:
-        if (Settings.toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, payload, length))
+        if (Settings.toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
             TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
             setTonieboxSettings(freshResp);
@@ -183,9 +183,9 @@ static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t le
     ctx->status = PROX_STATUS_BODY;
 }
 
-static void cbrCloudServerDiskPasshtorugh(void *ctx_in)
+static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     TRACE_INFO(">> cbrCloudServerDiskPasshtorugh\r\n");
     ctx->status = PROX_STATUS_DONE;
 }

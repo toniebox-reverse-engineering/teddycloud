@@ -16,14 +16,14 @@ typedef struct
     HttpConnection *connection;
 } cbr_ctx_t;
 
-static void cbrCloudResponsePassthrough(void *ctx_in);
-static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length);
-static void cbrCloudServerDiskPasshtorugh(void *ctx_in);
+static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
+static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length);
+static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx);
 
-static void cbrCloudResponsePassthrough(void *ctx_in)
+static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
@@ -31,9 +31,9 @@ static void cbrCloudResponsePassthrough(void *ctx_in)
     ctx->status = PROX_STATUS_CONN;
 }
 
-static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const char *value)
+static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     if (header)
@@ -51,18 +51,18 @@ static void cbrCloudHeaderPassthrough(void *ctx_in, const char *header, const ch
     ctx->status = PROX_STATUS_HEAD;
 }
 
-static void cbrCloudBodyPassthrough(void *ctx_in, const char *payload, size_t length)
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
 
     // TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
     httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_BODY;
 }
 
-static void cbrCloudServerDiskPasshtorugh(void *ctx_in)
+static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
 
     TRACE_INFO(">> httpServerDiscCbr\r\n");
     ctx->status = PROX_STATUS_DONE;

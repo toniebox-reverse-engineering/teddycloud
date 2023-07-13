@@ -209,7 +209,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
             if (cbr && cbr->response)
             {
-                cbr->response(cbr->ctx);
+                cbr->response(cbr->ctx, &httpClientContext);
             }
 
             if (status)
@@ -228,7 +228,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
                 if (cbr && cbr->header)
                 {
-                    cbr->header(cbr->ctx, header_name, header_value);
+                    cbr->header(cbr->ctx, &httpClientContext, header_name, header_value);
                 }
 
                 if (ret != NO_ERROR)
@@ -275,7 +275,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
                 if (cbr && cbr->body)
                 {
-                    cbr->body(cbr->ctx, (const char *)buffer, length);
+                    cbr->body(cbr->ctx, &httpClientContext, (const char *)buffer, length);
                 }
 
                 // Check status code
@@ -315,7 +315,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             httpClientDisconnect(&httpClientContext);
             if (cbr && cbr->disconnect)
             {
-                cbr->disconnect(cbr->ctx);
+                cbr->disconnect(cbr->ctx, &httpClientContext);
             }
 
             // Debug message
