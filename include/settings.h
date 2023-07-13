@@ -4,6 +4,9 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#define CONFIG_PATH "config/config.ini"
+#define CONFIG_VERSION 1
+
 typedef struct
 {
     bool enabled;
@@ -37,6 +40,7 @@ typedef struct
 
 typedef struct
 {
+    uint32_t configVersion;
     bool exit;
     int32_t returncode;
 } settings_internal_t;

@@ -7,9 +7,12 @@
 #include "debug.h"
 #include "settings.h"
 
+#include "fs_port.h"
+
 settings_t Settings;
 
 OPTION_START()
+OPTION_INTERNAL_UNSIGNED("internal.configVersion", &Settings.internal.configVersion, CONFIG_VERSION, 0, 255, "Config version")
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 
@@ -62,6 +65,11 @@ void settings_init()
             TRACE_INFO("  %s = %f\r\n", option_map[pos].option_name, option_map[pos].init.float_value);
             *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.float_value;
             break;
+        case TYPE_STRING:
+            // TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].init.string_value);
+            // strncpy((char *)option_map[pos].ptr, option_map[pos].init.string_value, option_map[pos].max.unsigned_value);
+            //((char *)option_map[pos].ptr)[option_map[pos].max.unsigned_value] = '\0'; // Ensure null-terminated string
+            break;
         default:
             break;
         }
@@ -73,12 +81,171 @@ void settings_init()
 
 void settings_save()
 {
-    TRACE_ERROR("settings_save() not implemented yet\r\n");
+    TRACE_INFO("Save settings to %s\r\n", CONFIG_PATH);
+    FsFile *file = fsOpenFile(CONFIG_PATH, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+    if (file == NULL)
+    {
+        TRACE_WARNING("Failed to open config file for writing\r\n");
+        return;
+    }
+
+    int pos = 0;
+    char buffer[256]; // Buffer to hold the file content
+    while (option_map[pos].type != TYPE_END)
+    {
+        if (!option_map[pos].internal || !osStrcmp(option_map[pos].option_name, "internal.configVersion"))
+        {
+
+            switch (option_map[pos].type)
+            {
+            case TYPE_BOOL:
+                sprintf(buffer, "%s=%s\n", option_map[pos].option_name, *((bool *)option_map[pos].ptr) ? "true" : "false");
+                break;
+            case TYPE_SIGNED:
+                sprintf(buffer, "%s=%d\n", option_map[pos].option_name, *((int32_t *)option_map[pos].ptr));
+                break;
+            case TYPE_UNSIGNED:
+            case TYPE_HEX:
+                sprintf(buffer, "%s=%u\n", option_map[pos].option_name, *((uint32_t *)option_map[pos].ptr));
+                break;
+            case TYPE_FLOAT:
+                sprintf(buffer, "%s=%f\n", option_map[pos].option_name, *((float *)option_map[pos].ptr));
+                break;
+            case TYPE_STRING:
+                // sprintf(buffer, "%s=%s\n", option_map[pos].option_name, *((char_t *)option_map[pos].ptr));
+                // break;
+            default:
+                buffer[0] = 0;
+                break;
+            }
+            if (osStrlen(buffer) > 0)
+                fsWriteFile(file, buffer, osStrlen(buffer));
+        }
+        pos++;
+    }
+
+    fsCloseFile(file);
 }
 
 void settings_load()
 {
-    TRACE_ERROR("settings_load() not implemented yet\r\n");
+    TRACE_INFO("Load settings from %s\r\n", CONFIG_PATH);
+    if (!fsFileExists(CONFIG_PATH))
+    {
+        TRACE_WARNING("Config file does not exist\r\n");
+        settings_save();
+        return;
+    }
+
+    uint32_t file_size;
+    error_t result = fsGetFileSize(CONFIG_PATH, &file_size);
+    if (result != NO_ERROR)
+    {
+        TRACE_WARNING("Failed to get config file size\r\n");
+        return;
+    }
+
+    FsFile *file = fsOpenFile(CONFIG_PATH, FS_FILE_MODE_READ);
+    if (file == NULL)
+    {
+        TRACE_WARNING("Failed to open config file for reading\r\n");
+        return;
+    }
+
+    // Buffer to hold the file content
+    char buffer[256];
+    size_t read_length;
+    bool last_line_incomplete = false;
+    char *line;
+    while (fsReadFile(file, buffer, sizeof(buffer) - 1, &read_length) == NO_ERROR)
+    {
+        buffer[read_length] = '\0';
+
+        // Process each line in the buffer
+        line = buffer;
+        char *next_line;
+
+        while ((next_line = strchr(line, '\n')) != NULL)
+        {
+            *next_line = '\0'; // Terminate the line at the newline character
+
+            // Skip empty lines or lines starting with a comment character '#'
+            if (*line != '\0' && *line != '#')
+            {
+                // Split the line into option_name and value
+                char *option_name = strtok(line, "=");
+                char *value_str = strtok(NULL, "=");
+
+                if (option_name != NULL && value_str != NULL)
+                {
+                    // Find the corresponding setting item
+                    setting_item_t *opt = settings_get_by_name(option_name);
+                    if (opt != NULL)
+                    {
+                        // Update the setting value based on the type
+                        switch (opt->type)
+                        {
+                        case TYPE_BOOL:
+                            if (strcmp(value_str, "true") == 0)
+                                *((bool *)opt->ptr) = true;
+                            else if (strcmp(value_str, "false") == 0)
+                                *((bool *)opt->ptr) = false;
+                            else
+                                TRACE_WARNING("Invalid boolean value '%s' for setting '%s'\r\n", value_str, option_name);
+                            break;
+                        case TYPE_SIGNED:
+                            *((int32_t *)opt->ptr) = atoi(value_str);
+                            break;
+                        case TYPE_UNSIGNED:
+                        case TYPE_HEX:
+                            *((uint32_t *)opt->ptr) = strtoul(value_str, NULL, 10);
+                            break;
+                        case TYPE_FLOAT:
+                            *((float *)opt->ptr) = strtof(value_str, NULL);
+                            break;
+
+                        case TYPE_STRING:
+                            // strncpy((char *)opt->ptr, value_str, opt->max.unsigned_value);
+                            //((char *)opt->ptr)[opt->max.unsigned_value] = '\0'; // Ensure null-terminated string
+                            // break;
+
+                        default:
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Setting item '%s' not found\r\n", option_name);
+                    }
+                }
+            }
+
+            line = next_line + 1; // Move to the next line
+        }
+
+        // Check if the last line is incomplete (does not end with a newline character)
+        last_line_incomplete = (buffer[read_length - 1] != '\n');
+    }
+
+    // If the last line is incomplete, the buffer might contain a partial line
+    // Append the remaining content to the next read block
+    if (last_line_incomplete)
+    {
+        size_t remaining_length = strlen(line);
+        memmove(buffer, line, remaining_length);
+        read_length = remaining_length;
+    }
+    else
+    {
+        read_length = 0; // No remaining content
+    }
+
+    fsCloseFile(file);
+
+    if (Settings.internal.configVersion < CONFIG_VERSION)
+    {
+        settings_save();
+    }
 }
 
 setting_item_t *settings_get(int index)
