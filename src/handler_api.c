@@ -122,6 +122,18 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
         settings_set_signed("internal.returncode", RETURNCODE_USER_RESTART);
         sprintf(response, "OK");
     }
+    else if (!strcmp(item, "triggerReloadConfig"))
+    {
+        TRACE_INFO("Triggered ReloadConfig\r\n");
+        sprintf(response, "OK");
+        settings_load();
+    }
+    else if (!strcmp(item, "triggerWriteConfig"))
+    {
+        TRACE_INFO("Triggered WriteConfig\r\n");
+        sprintf(response, "OK");
+        settings_save();
+    }
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
