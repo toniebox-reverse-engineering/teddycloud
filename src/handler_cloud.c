@@ -52,8 +52,8 @@ static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp)
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
 static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length);
-static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx);
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
 
 static void strupr(char input[]);
 
@@ -100,7 +100,7 @@ static bool fillCbrBodyCache(cbr_ctx_t *ctx, HttpClientContext *httpClientContex
     return (ctx->bufferPos == ctx->bufferLen);
 }
 
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length)
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
@@ -137,7 +137,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 if (error)
                     TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
             }
-            else
+            if (error == ERROR_END_OF_STREAM)
             {
                 fsCloseFile(ctx->file);
                 char tmpPath[34];
@@ -183,10 +183,10 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
     ctx->status = PROX_STATUS_BODY;
 }
 
-static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx)
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(">> cbrCloudServerDiskPasshtorugh\r\n");
+    TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
 
@@ -207,7 +207,7 @@ static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, clou
         .response = &cbrCloudResponsePassthrough,
         .header = &cbrCloudHeaderPassthrough,
         .body = &cbrCloudBodyPassthrough,
-        .disconnect = &cbrCloudServerDiskPasshtorugh};
+        .disconnect = &cbrCloudServerDiscoPassthrough};
 
     return cbr;
 }

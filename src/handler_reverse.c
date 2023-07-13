@@ -18,8 +18,8 @@ typedef struct
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
 static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length);
-static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx);
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
 {
@@ -51,19 +51,17 @@ static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char
     ctx->status = PROX_STATUS_HEAD;
 }
 
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length)
+static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-
     // TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
     httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_BODY;
 }
 
-static void cbrCloudServerDiskPasshtorugh(void *src_ctx, void *cloud_ctx)
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-
     TRACE_INFO(">> httpServerDiscCbr\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
@@ -79,7 +77,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
         .response = &cbrCloudResponsePassthrough,
         .header = &cbrCloudHeaderPassthrough,
         .body = &cbrCloudBodyPassthrough,
-        .disconnect = &cbrCloudServerDiskPasshtorugh};
+        .disconnect = &cbrCloudServerDiscoPassthrough};
 
     stats_update("reverse_requests", 1);
 

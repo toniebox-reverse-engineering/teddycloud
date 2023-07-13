@@ -6,7 +6,7 @@ typedef struct
     void *ctx;
     void (*response)(void *src_ctx, void *cloud_ctx);
     void (*header)(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-    void (*body)(void *src_ctx, void *cloud_ctx, const char *payload, size_t length);
+    void (*body)(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
     void (*disconnect)(void *src_ctx, void *cloud_ctx);
 } req_cbr_t;
 

@@ -275,7 +275,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
                 if (cbr && cbr->body)
                 {
-                    cbr->body(cbr->ctx, &httpClientContext, (const char *)buffer, length);
+                    cbr->body(cbr->ctx, &httpClientContext, (const char *)buffer, length, error);
                 }
 
                 // Check status code
