@@ -416,6 +416,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             }
             else
             {
+                connection->response.keepAlive = true;
                 cbr_ctx_t ctx;
                 req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
                 cloud_request_get(NULL, 0, uri, token, &cbr);
