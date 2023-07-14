@@ -7,7 +7,8 @@ to host your own figurine audio files on e.g. your NAS or any other server.
 
 Currently implemented is:
 * Provide audio content over the air
-* Simulate live content
+* Cache original tonie audio content
+* Simulate live content (.live)
 * Passthrough original tonie audio content
 * Basic Web fronted
 * Filter custom tags to prevent deletion (.nocloud)
@@ -16,7 +17,6 @@ Currently implemented is:
 * Configure slapping
 
 ## Planned
-* Cache original tonie audio content
 * Update live content only when changed (based on file date)
 * Decode RTNL logs
 * MQTT client
