@@ -119,7 +119,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 // TODO detect partial downloads
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
-                ruid[17] = 0;
+                ruid[16] = 0;
                 getContentPathFromCharRUID(ruid, ctx->tonieInfo.contentPath);
                 char tmpPath[34];
                 ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
