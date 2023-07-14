@@ -187,11 +187,14 @@ void settings_load()
 
     // Buffer to hold the file content
     char buffer[256];
+    size_t from_read;
     size_t read_length;
     bool last_line_incomplete = false;
     char *line;
-    while (fsReadFile(file, buffer, sizeof(buffer) - 1, &read_length) == NO_ERROR)
+    from_read = 0;
+    while (fsReadFile(file, &buffer[from_read], sizeof(buffer) - from_read - 1, &read_length) == NO_ERROR || last_line_incomplete)
     {
+        read_length = from_read + read_length;
         buffer[read_length] = '\0';
 
         // Process each line in the buffer
@@ -207,7 +210,7 @@ void settings_load()
             {
                 // Split the line into option_name and value
                 char *option_name = strtok(line, "=");
-                char *value_str = strtok(NULL, "=");
+                char *value_str = &line[osStrlen(option_name) + 1];
 
                 if (option_name != NULL && value_str != NULL)
                 {
@@ -255,23 +258,21 @@ void settings_load()
             line = next_line + 1; // Move to the next line
         }
 
+        if (last_line_incomplete && read_length == 0)
+            break;
+
         // Check if the last line is incomplete (does not end with a newline character)
         last_line_incomplete = (buffer[read_length - 1] != '\n');
+        if (last_line_incomplete)
+        {
+            from_read = strlen(line);
+            memmove(buffer, line, from_read);
+        }
+        else
+        {
+            from_read = 0;
+        }
     }
-
-    // If the last line is incomplete, the buffer might contain a partial line
-    // Append the remaining content to the next read block
-    if (last_line_incomplete)
-    {
-        size_t remaining_length = strlen(line);
-        memmove(buffer, line, remaining_length);
-        read_length = remaining_length;
-    }
-    else
-    {
-        read_length = 0; // No remaining content
-    }
-
     fsCloseFile(file);
 
     if (Settings.internal.configVersion < CONFIG_VERSION)
