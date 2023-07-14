@@ -26,7 +26,7 @@ static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
-    osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
+    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }

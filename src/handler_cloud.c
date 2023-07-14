@@ -63,7 +63,7 @@ static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
+    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
