@@ -5,7 +5,7 @@ TeddyCloud is an alternative server for your Toniebox, allowing you to host the 
 This gives you the control about which data is sent to the original manufacturer's cloud and allows you
 to host your own figurine audio files on e.g. your NAS or any other server.
 
-Currently implemented is:
+Currently implemented are:
 * Provide audio content over the air
 * Cache original tonie audio content
 * Simulate live content (.live)
@@ -46,7 +46,7 @@ You can extract the flash memory either with a SOP8 clamp or via the debug port 
 #### CC3200
 It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate.
 ```
-python cc.py -p COM3 write_file certs/ca.der /cert/c2.der
+python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
 **Beware** The ```blockCheckRemove.310``` patch is breaks the content passthrough to Boxine. Please disable it, if your are using it.
 
