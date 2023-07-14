@@ -6,14 +6,11 @@
 #include "tls_adapter.h"
 #include "error.h"
 #include "debug.h"
+#include "settings.h"
 
 #define APP_CA_CERT_BUNDLE "certs/ca.der"
 #define APP_CLIENT_CERT "certs/client.der"
 #define APP_CLIENT_PRIVATE_KEY "certs/private.der"
-
-#define SRV_CA_CERT_BUNDLE "certs/server/ca-root.pem"
-#define SRV_SERVER_CERT "certs/server/teddy-cert.pem"
-#define SRV_SERVER_PRIVATE_KEY "certs/server/teddy-key.pem"
 
 char_t *clientCert = NULL;
 size_t clientCertLen = 0;
@@ -24,10 +21,6 @@ size_t trustedCaListLen = 0;
 
 char_t *caCert = NULL;
 size_t caCertLen = 0;
-char_t *serverCert = NULL;
-size_t serverCertLen = 0;
-char_t *serverKey = NULL;
-size_t serverKeyLen = 0;
 
 TlsCache *tlsCache;
 
@@ -48,6 +41,12 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
     // Initialize output parameters
     *buffer = NULL;
     *length = 0;
+
+    if (!filename)
+    {
+        TRACE_ERROR("readPemFile() Filename NULL\r\n");
+        return ERROR_READ_FAILED;
+    }
 
     // Start of exception handling block
     do
@@ -75,7 +74,8 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
         // Retrieve the length of the file
         *length = ftell(fp);
         // Allocate a buffer to hold the contents of the file
-        *buffer = malloc(*length);
+        *buffer = malloc(*length + 1);
+        memset(*buffer, 0x00, *length + 1);
 
         // Failed to allocate memory?
         if (*buffer == NULL)
@@ -134,6 +134,7 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
         }
 
         outBuf = malloc(outBufLen + 1);
+        memset(outBuf, 0x00, outBufLen + 1);
         error = pemEncodeFile(inBuf, inBufLen, type, outBuf, &outBufLen);
 
         free(inBuf);
@@ -155,6 +156,27 @@ error_t tls_adapter_deinit()
 
     // Release PRNG context
     yarrowRelease(&yarrowContext);
+
+    return NO_ERROR;
+}
+
+error_t load_cert(const char *dest_var, const char *src_file, const char *src_var)
+{
+    /* check if the source setting contains a cert */
+    if (strlen(src_var))
+    {
+        settings_set_string(dest_var, settings_get_string(src_var));
+    }
+    else
+    {
+        char_t *serverCert = NULL;
+        size_t serverCertLen = 0;
+        error_t error = readPemFile(settings_get_string(src_file), &serverCert, &serverCertLen, NULL);
+        if (error)
+            return error;
+        settings_set_string(dest_var, serverCert);
+        free(serverCert);
+    }
 
     return NO_ERROR;
 }
@@ -203,16 +225,8 @@ error_t tls_adapter_init()
     if (error)
         return error;
 
-    // Load trusted CA certificates
-    // error = readPemFile(SRV_CA_CERT_BUNDLE, &caCert, &caCertLen, NULL);
-    // if (error)
-    //    return error;
-    error = readPemFile(SRV_SERVER_CERT, &serverCert, &serverCertLen, NULL);
-    if (error)
-        return error;
-    error = readPemFile(SRV_SERVER_PRIVATE_KEY, &serverKey, &serverKeyLen, NULL);
-    if (error)
-        return error;
+    load_cert("internal.server_crt_data", "core.server_crt", "core.server_crt_data");
+    load_cert("internal.server_key_data", "core.server_key", "core.server_key_data");
 
     // TLS session cache initialization
     tlsCache = tlsInitCache(8);

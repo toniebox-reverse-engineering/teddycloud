@@ -331,19 +331,14 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Import server's certificate
+    const char *server_crt = settings_get_string("internal.server_crt_data");
+    const char *server_key = settings_get_string("internal.server_key_data");
 
-    error = tlsAddCertificate(tlsContext, serverCert, serverCertLen, serverKey, serverKeyLen);
-    // Any error to report?
+    error = tlsAddCertificate(tlsContext, server_crt, strlen(server_crt), server_key, strlen(server_key));
+
     if (error)
     {
-        if (error == ERROR_BAD_CERTIFICATE)
-        {
-            TRACE_INFO("Adding certificate failed: ERROR_BAD_CERTIFICATE\r\n");
-        }
-        else
-        {
-            TRACE_INFO("Adding certificate failed: %d\r\n", error);
-        }
+        TRACE_ERROR("  Failed to add cert: %d\r\n", error);
         return error;
     }
 

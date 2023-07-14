@@ -12,9 +12,17 @@
 settings_t Settings;
 
 OPTION_START()
+
+OPTION_INTERNAL_STRING("core.server_crt", &Settings.core.server_crt, "certs/server/teddy-cert.pem", "Server certificate")
+OPTION_INTERNAL_STRING("core.server_key", &Settings.core.server_key, "certs/server/teddy-key.pem", "Server key")
+OPTION_INTERNAL_STRING("core.server_crt_data", &Settings.core.server_crt_data, "", "Server certificate data")
+OPTION_INTERNAL_STRING("core.server_key_data", &Settings.core.server_key_data, "", "Server key data")
+
 OPTION_INTERNAL_UNSIGNED("internal.configVersion", &Settings.internal.configVersion, CONFIG_VERSION, 0, 255, "Config version")
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
+OPTION_INTERNAL_STRING("internal.server_crt_data", &Settings.internal.server_crt_data, "", "Server certificate data, either read from file or directly specified")
+OPTION_INTERNAL_STRING("internal.server_key_data", &Settings.internal.server_key_data, "", "Server key data, either read from file or directly specified")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
@@ -33,12 +41,35 @@ OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE,
 OPTION_UNSIGNED("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
 
 OPTION_BOOL("mqtt.enabled", &Settings.mqtt.enabled, FALSE, "Enable MQTT service")
-OPTION_STRING("mqtt.hostname", Settings.mqtt.hostname, sizeof(Settings.mqtt.hostname) - 1, "", "MQTT hostname")
-OPTION_STRING("mqtt.username", Settings.mqtt.username, sizeof(Settings.mqtt.username) - 1, "", "Username")
-OPTION_STRING("mqtt.password", Settings.mqtt.password, sizeof(Settings.mqtt.password) - 1, "", "Password")
-OPTION_STRING("mqtt.identification", Settings.mqtt.identification, sizeof(Settings.mqtt.identification) - 1, "", "Client identification")
+OPTION_STRING("mqtt.hostname", &Settings.mqtt.hostname, "", "MQTT hostname")
+OPTION_STRING("mqtt.username", &Settings.mqtt.username, "", "Username")
+OPTION_STRING("mqtt.password", &Settings.mqtt.password, "", "Password")
+OPTION_STRING("mqtt.identification", &Settings.mqtt.identification, "", "Client identification")
 
 OPTION_END()
+
+void settings_deinit()
+{
+    TRACE_INFO("Deinit Settings\r\n");
+    int pos = 0;
+    while (option_map[pos].type != TYPE_END)
+    {
+        setting_item_t *opt = &option_map[pos];
+
+        switch (opt->type)
+        {
+        case TYPE_STRING:
+            if (*((char **)opt->ptr))
+            {
+                free(*((char **)opt->ptr));
+            }
+            break;
+        default:
+            break;
+        }
+        pos++;
+    }
+}
 
 void settings_init()
 {
@@ -46,29 +77,30 @@ void settings_init()
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
-        switch (option_map[pos].type)
+        setting_item_t *opt = &option_map[pos];
+
+        switch (opt->type)
         {
         case TYPE_BOOL:
-            TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].init.bool_value ? "true" : "false");
-            *((bool *)option_map[pos].ptr) = option_map[pos].init.bool_value;
+            TRACE_INFO("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
+            *((bool *)opt->ptr) = opt->init.bool_value;
             break;
         case TYPE_SIGNED:
-            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.signed_value);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.signed_value;
+            TRACE_INFO("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
+            *((uint32_t *)opt->ptr) = opt->init.signed_value;
             break;
         case TYPE_UNSIGNED:
         case TYPE_HEX:
-            TRACE_INFO("  %s = %d\r\n", option_map[pos].option_name, option_map[pos].init.unsigned_value);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.unsigned_value;
+            TRACE_INFO("  %s = %d\r\n", opt->option_name, opt->init.unsigned_value);
+            *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
             break;
         case TYPE_FLOAT:
-            TRACE_INFO("  %s = %f\r\n", option_map[pos].option_name, option_map[pos].init.float_value);
-            *((uint32_t *)option_map[pos].ptr) = option_map[pos].init.float_value;
+            TRACE_INFO("  %s = %f\r\n", opt->option_name, opt->init.float_value);
+            *((uint32_t *)opt->ptr) = opt->init.float_value;
             break;
         case TYPE_STRING:
-            // TRACE_INFO("  %s = %s\r\n", option_map[pos].option_name, option_map[pos].init.string_value);
-            // strncpy((char *)option_map[pos].ptr, option_map[pos].init.string_value, option_map[pos].max.unsigned_value);
-            //((char *)option_map[pos].ptr)[option_map[pos].max.unsigned_value] = '\0'; // Ensure null-terminated string
+            TRACE_INFO("  %s = %s\r\n", opt->option_name, opt->init.string_value);
+            *((char **)opt->ptr) = strdup(opt->init.string_value);
             break;
         default:
             break;
@@ -95,25 +127,26 @@ void settings_save()
     {
         if (!option_map[pos].internal || !osStrcmp(option_map[pos].option_name, "internal.configVersion"))
         {
+            setting_item_t *opt = &option_map[pos];
 
-            switch (option_map[pos].type)
+            switch (opt->type)
             {
             case TYPE_BOOL:
-                sprintf(buffer, "%s=%s\n", option_map[pos].option_name, *((bool *)option_map[pos].ptr) ? "true" : "false");
+                sprintf(buffer, "%s=%s\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
                 break;
             case TYPE_SIGNED:
-                sprintf(buffer, "%s=%d\n", option_map[pos].option_name, *((int32_t *)option_map[pos].ptr));
+                sprintf(buffer, "%s=%d\n", opt->option_name, *((int32_t *)opt->ptr));
                 break;
             case TYPE_UNSIGNED:
             case TYPE_HEX:
-                sprintf(buffer, "%s=%u\n", option_map[pos].option_name, *((uint32_t *)option_map[pos].ptr));
+                sprintf(buffer, "%s=%u\n", opt->option_name, *((uint32_t *)opt->ptr));
                 break;
             case TYPE_FLOAT:
-                sprintf(buffer, "%s=%f\n", option_map[pos].option_name, *((float *)option_map[pos].ptr));
+                sprintf(buffer, "%s=%f\n", opt->option_name, *((float *)opt->ptr));
                 break;
             case TYPE_STRING:
-                // sprintf(buffer, "%s=%s\n", option_map[pos].option_name, *((char_t *)option_map[pos].ptr));
-                // break;
+                sprintf(buffer, "%s=%s\n", opt->option_name, *((char **)opt->ptr));
+                break;
             default:
                 buffer[0] = 0;
                 break;
@@ -203,11 +236,10 @@ void settings_load()
                         case TYPE_FLOAT:
                             *((float *)opt->ptr) = strtof(value_str, NULL);
                             break;
-
                         case TYPE_STRING:
-                            // strncpy((char *)opt->ptr, value_str, opt->max.unsigned_value);
-                            //((char *)opt->ptr)[opt->max.unsigned_value] = '\0'; // Ensure null-terminated string
-                            // break;
+                            free(*((char **)opt->ptr));
+                            *((char **)opt->ptr) = strdup(value_str);
+                            break;
 
                         default:
                             break;
@@ -441,7 +473,7 @@ const char *settings_get_string(const char *item)
         return NULL;
     }
 
-    return (const char *)opt->ptr;
+    return *(const char **)opt->ptr;
 }
 
 bool settings_set_string(const char *item, const char *value)
@@ -457,12 +489,13 @@ bool settings_set_string(const char *item, const char *value)
         return false;
     }
 
-    if (osStrlen(value) > opt->max.unsigned_value)
+    char **ptr = (char **)opt->ptr;
+
+    if (*ptr)
     {
-        TRACE_WARNING("Setting item '%s' is too small for the %lu bytes requested to store\r\n", item, osStrlen(value));
-        return false;
+        free(*ptr);
     }
 
-    osStrcpy((char *)opt->ptr, value);
+    *ptr = strdup(value);
     return true;
 }

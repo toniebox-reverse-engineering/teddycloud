@@ -22,10 +22,10 @@ typedef struct
 typedef struct
 {
     bool enabled;
-    char hostname[128];
-    char username[128];
-    char password[128];
-    char identification[128];
+    char *hostname;
+    char *username;
+    char *password;
+    char *identification;
 } settings_mqtt_t;
 
 typedef struct
@@ -43,10 +43,21 @@ typedef struct
     uint32_t configVersion;
     bool exit;
     int32_t returncode;
+    char *server_crt_data;
+    char *server_key_data;
 } settings_internal_t;
 
 typedef struct
 {
+    char *server_crt;
+    char *server_key;
+    char *server_crt_data;
+    char *server_key_data;
+} settings_core_t;
+
+typedef struct
+{
+    settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
     settings_toniebox_t toniebox;
@@ -71,6 +82,7 @@ typedef union
     uint32_t unsigned_value;
     uint32_t hex_value;
     float float_value;
+    const char *string_value;
 } setting_value_t;
 
 /**
@@ -121,18 +133,19 @@ typedef struct
 #define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i},
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i},
 #define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i},
-#define OPTION_ADV_STRING(o, p, maxLen, d, desc, i) {.option_name = o, .ptr = p, .max = {.unsigned_value = maxLen}, .type = TYPE_STRING, .description = desc, .internal = i},
+#define OPTION_ADV_STRING(o, p, d, desc, i) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i},
 
 #define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false)
 #define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false)
 #define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false)
 #define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false)
-#define OPTION_STRING(o, p, max, d, desc) OPTION_ADV_STRING(o, p, max, d, desc, false)
+#define OPTION_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, false)
 
 #define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true)
 #define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true)
 #define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true)
 #define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true)
+#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true)
 
 #define OPTION_END()     \
     {                    \
@@ -149,6 +162,14 @@ extern settings_t Settings;
  * This function should be called once, before any other settings functions are used.
  */
 void settings_init();
+
+/**
+ * @brief Deinitializes the settings subsystem.
+ *
+ * This function should be called to clean up all allocated memory.
+ */
+void settings_deinit();
+
 /**
  * @brief Saves the current settings to a persistent storage (like a file or database).
  *

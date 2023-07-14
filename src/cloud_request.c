@@ -144,7 +144,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             httpClientCreateRequest(&httpClientContext);
             httpClientSetMethod(&httpClientContext, method);
             httpClientSetUri(&httpClientContext, uri);
-            if (bodyLen > 0)
+            if (body && bodyLen > 0)
             {
                 error = httpClientSetContentLength(&httpClientContext, bodyLen);
             }
@@ -180,15 +180,18 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                 break;
             }
             // Send HTTP request body
-            size_t n;
-            error = httpClientWriteBody(&httpClientContext, body, bodyLen, &n, 0);
-            // Any error to report?
-            if (error)
+            if (body && bodyLen > 0)
             {
-                // Debug message
-                TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
-                stats_update("cloud_failed", 1);
-                break;
+                size_t n;
+                error = httpClientWriteBody(&httpClientContext, body, bodyLen, &n, 0);
+                // Any error to report?
+                if (error)
+                {
+                    // Debug message
+                    TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
+                    stats_update("cloud_failed", 1);
+                    break;
+                }
             }
 
             // Receive HTTP response header
