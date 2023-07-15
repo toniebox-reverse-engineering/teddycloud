@@ -319,8 +319,8 @@ void httpListenerTask(void *param)
             if(socket != NULL)
             {
                //Debug message
-               TRACE_INFO("Connection #%u established with client %s port %" PRIu16 "...\r\n",
-                  counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
+               TRACE_INFO("#%d Connection #%u established with client %s port %" PRIu16 "...\r\n",
+                  connection->socket->descriptor, counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
 
                //Reference to the HTTP server settings
                connection->settings = &context->settings;
@@ -383,7 +383,7 @@ void httpConnectionTask(void *param)
       if(connection->settings->tlsInitCallback != NULL)
       {
          //Debug message
-         TRACE_INFO("Initializing TLS session...\r\n");
+         TRACE_INFO("#%d Initializing TLS session...\r\n", connection->socket->descriptor);
 
          //Start of exception handling block
          do
@@ -460,7 +460,7 @@ void httpConnectionTask(void *param)
          for(counter = 0; counter < HTTP_SERVER_MAX_REQUESTS; counter++)
          {
             //Debug message
-            TRACE_INFO("Waiting for request...\r\n");
+            TRACE_INFO("#%d Waiting for request...\r\n", connection->socket->descriptor);
 
             //Clear request header
             osMemset(&connection->request, 0, sizeof(HttpRequest));
@@ -473,7 +473,7 @@ void httpConnectionTask(void *param)
             if(error)
             {
                //Debug message
-               TRACE_INFO("No HTTP request received or parsing error...\r\n");
+               TRACE_INFO("#%d No HTTP request received or parsing error...\r\n", connection->socket->descriptor);
                break;
             }
 
@@ -522,7 +522,7 @@ void httpConnectionTask(void *param)
             }
 #endif
             //Debug message
-            TRACE_INFO("Sending HTTP response to the client...\r\n");
+            TRACE_INFO("#%d Sending HTTP response to the client...\r\n", connection->socket->descriptor);
 
             //Check status code
             if(!error)
@@ -630,7 +630,7 @@ void httpConnectionTask(void *param)
       if(connection->tlsContext != NULL)
       {
          //Debug message
-         TRACE_INFO("Closing TLS session...\r\n");
+         TRACE_INFO("#%d Closing TLS session...\r\n", connection->socket->descriptor);
 
          //Gracefully close TLS session
          tlsShutdown(connection->tlsContext);
@@ -643,12 +643,12 @@ void httpConnectionTask(void *param)
       if(connection->socket != NULL)
       {
          //Debug message
-         TRACE_INFO("Graceful shutdown...\r\n");
+         TRACE_INFO("#%d Graceful shutdown...\r\n", connection->socket->descriptor);
          //Graceful shutdown
          socketShutdown(connection->socket, SOCKET_SD_BOTH);
 
          //Debug message
-         TRACE_INFO("Closing socket...\r\n");
+         TRACE_INFO("#%d Closing socket...\r\n", connection->socket->descriptor);
          //Close socket
          socketClose(connection->socket);
       }

@@ -385,6 +385,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         osStrncpy(ruid, &uri[12], sizeof(ruid));
         ruid[17] = 0;
 
+        // TODO check partial downloads here
+        httpReadRequestHeader(connection);
+        printf("\r\n\nToll: %s\n\n", connection->request.Range);
+        if (connection->request.ifRange || connection->request.Range)
+        {
+            TRACE_DEBUG("#%d >> client requested partial download\r\n", connection->socket->descriptor);
+        }
+
         if (osStrlen(ruid) != 16)
         {
             TRACE_WARNING(" >>  invalid URI\r\n");

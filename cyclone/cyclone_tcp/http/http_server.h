@@ -211,6 +211,19 @@
    #error HTTP_SERVER_HOST_MAX_LEN parameter is not valid
 #endif
 
+#ifndef HTTP_SERVER_IFRANGE_MAX_LEN
+   #define HTTP_SERVER_IFRANGE_MAX_LEN 31
+#elif (HTTP_SERVER_IFRANGE_MAX_LEN < 7)
+   #error HTTP_SERVER_IFRANGE_MAX_LEN parameter is not valid
+#endif
+
+#ifndef HTTP_SERVER_RANGE_MAX_LEN
+   #define HTTP_SERVER_RANGE_MAX_LEN 63
+#elif (HTTP_SERVER_RANGE_MAX_LEN < 7)
+   #error HTTP_SERVER_RANGE_MAX_LEN parameter is not valid
+#endif
+
+
 //Maximum user name length
 #ifndef HTTP_SERVER_USERNAME_MAX_LEN
    #define HTTP_SERVER_USERNAME_MAX_LEN 31
@@ -477,6 +490,8 @@ typedef struct
    char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///<Resource identifier
    char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///<Query string
    char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///<Host name
+   char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///<IfRange tag
+   char_t Range[HTTP_SERVER_RANGE_MAX_LEN + 1];              ///<Range field
    bool_t keepAlive;
    bool_t chunkedEncoding;
    size_t contentLength;

@@ -464,6 +464,17 @@ void httpParseHeaderField(HttpConnection *connection,
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
+   else if (!osStrcasecmp(name, "Range"))
+   {
+      strSafeCopy(connection->request.Range, value,
+         HTTP_SERVER_RANGE_MAX_LEN);
+      // httpParseRangeField(connection, value);
+   }
+   else if (!osStrcasecmp(name, "If-Range"))
+   {
+      strSafeCopy(connection->request.ifRange, value,
+         HTTP_SERVER_IFRANGE_MAX_LEN);
+   }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
    else if(!osStrcasecmp(name, "Upgrade"))
@@ -605,6 +616,18 @@ void httpParseContentTypeField(HttpConnection *connection,
 #endif
 }
 
+/**
+ * @brief Parse Range header field
+ * @param[in] connection Structure representing an HTTP connection
+ * @param[in] value Range field value
+ **/
+
+void httpParseRangeField(HttpConnection *connection,
+                                  char_t *value)
+{
+   // TODO
+   printf("\r\nParse range field\r\n");
+}
 
 /**
  * @brief Parse Accept-Encoding header field
