@@ -163,7 +163,7 @@ error_t tls_adapter_deinit()
 error_t load_cert(const char *dest_var, const char *src_file, const char *src_var)
 {
     /* check if the source setting contains a cert */
-    char *src_var_val = settings_get_string(src_var);
+    const char *src_var_val = settings_get_string(src_var);
     if (strlen(src_var_val))
     {
         settings_set_string(dest_var, src_var_val);

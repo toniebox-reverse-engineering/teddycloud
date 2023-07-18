@@ -133,7 +133,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             }
             if (length > 0)
             {
-                error_t error = fsWriteFile(ctx->file, payload, length);
+                error_t error = fsWriteFile(ctx->file, (char*)payload, length);
                 if (error)
                     TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
             }
@@ -386,9 +386,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         ruid[17] = 0;
 
         // TODO check partial downloads here
-        httpReadRequestHeader(connection);
-        printf("\r\n\nToll: %s\n\n", connection->request.Range);
-        if (connection->request.ifRange || connection->request.Range)
+        if (connection->request.Range.start != 0)
         {
             TRACE_DEBUG("#%d >> client requested partial download\r\n", connection->socket->descriptor);
         }
@@ -410,7 +408,18 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
+                switch (error)
+                {
+                    case ERROR_TIMEOUT:         TRACE_ERROR(" >> file %s not send, timeout!\r\n", tonieInfo.contentPath); 
+                                                break;
+                    case ERROR_WRITE_FAILED:    TRACE_ERROR(" >> file %s not send, write failed!\r\n", tonieInfo.contentPath); 
+                                                break;
+                    case ERROR_END_OF_FILE:     TRACE_ERROR(" >> file %s send, end of file reached!\r\n", tonieInfo.contentPath); 
+                                                break;
+                    default:                    TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error); 
+                                                break;
+                }
+                
                 return error;
             }
         }

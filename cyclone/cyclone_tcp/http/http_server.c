@@ -49,6 +49,7 @@
 #include "http/http_server_misc.h"
 #include "http/mime.h"
 #include "http/ssi.h"
+#include "str.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -319,8 +320,8 @@ void httpListenerTask(void *param)
             if(socket != NULL)
             {
                //Debug message
-               TRACE_INFO("#%d Connection #%u established with client %s port %" PRIu16 "...\r\n",
-                  connection->socket->descriptor, counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
+               TRACE_INFO("Connection #%u established with client %s port %" PRIu16 "...\r\n",
+                  counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
 
                //Reference to the HTTP server settings
                connection->settings = &context->settings;
@@ -1034,11 +1035,29 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    }
 #endif
 
-   //Format HTTP response header
-   connection->response.statusCode = 200;
+   //TODO add status 416 on invalid ranges
+   if (connection->request.Range.start > 0)
+   {
+      connection->request.Range.size = length;
+      if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0) 
+         connection->request.Range.end = connection->request.Range.size - 1;
+
+      if (connection->response.contentRange == NULL)
+         connection->response.contentRange = osAllocMem(255);
+
+      osSprintf((char*)connection->response.contentRange, "bytes %"PRIu64"-%"PRIu64"/%"PRIu64, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+      connection->response.statusCode = 206;
+      connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+   }
+   else
+   {
+      connection->response.statusCode = 200;
+      connection->response.contentLength = length;
+   }
    connection->response.contentType = mimeGetType(uri);
    connection->response.chunkedEncoding = FALSE;
-   connection->response.contentLength = length;
+   length = connection->response.contentLength;
 
    //Send the header to the client
    error = httpWriteHeader(connection);
@@ -1051,6 +1070,16 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
 #endif
       //Return status code
       return error;
+   }
+
+   if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+   {
+      TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+      fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
+   } 
+   else 
+   {
+      TRACE_DEBUG("No seeking, sending from beginning\r\n");
    }
 
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
