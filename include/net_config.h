@@ -175,4 +175,6 @@ typedef struct
 
 #define HTTP_SERVER_TLS_SUPPORT ENABLED
 
+#define HTTP_SERVER_IDLE_TIMEOUT 10000
+
 #endif
