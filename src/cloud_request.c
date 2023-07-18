@@ -123,7 +123,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
     {
         bool success = FALSE;
 
-        TRACE_INFO("#  trying IP: %s\n", inet_ntoa(*addr_list[i]));
+        TRACE_INFO("#   trying IP: %s\n", inet_ntoa(*addr_list[i]));
         memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
 
         ipAddr.length = host->h_length;
@@ -217,7 +217,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
             if (status)
             {
-                TRACE_INFO("HTTP code: %u\r\n", status);
+                TRACE_DEBUG("HTTP code: %u\r\n", status);
             }
             char content_type[64];
 
@@ -242,14 +242,14 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                 if (!osStrcmp(header_name, "Content-Type"))
                 {
                     osStrncpy(content_type, header_value, sizeof(content_type) - 1);
-                    TRACE_INFO("# Content-Type is %s\r\n", content_type);
+                    TRACE_DEBUG("# Content-Type is %s\r\n", content_type);
                 }
             } while (1);
 
             // Header field found?
             if (strlen(content_type) == 0)
             {
-                TRACE_INFO("# Content-Type header field not found!\r\n");
+                TRACE_DEBUG("# Content-Type header field not found!\r\n");
             }
 
             bool binary = true;
@@ -263,7 +263,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             }
             else
             {
-                TRACE_INFO("Binary data, not dumping body\r\n");
+                TRACE_DEBUG("Binary data, not dumping body\r\n");
             }
 
             size_t maxSize = 4096;
@@ -297,7 +297,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             osFreeMem(buffer);
 
             // Terminate the HTTP response body with a CRLF
-            TRACE_INFO("\r\n");
+            TRACE_DEBUG("\r\n");
 
             // Any error to report?
             if (error != ERROR_END_OF_STREAM)
@@ -309,7 +309,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             if (error)
             {
                 // Debug message
-                TRACE_INFO("Failed to read HTTP response trailer!\r\n");
+                TRACE_ERROR("Failed to read HTTP response trailer!\r\n");
                 stats_update("cloud_failed", 1);
                 break;
             }
