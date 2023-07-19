@@ -8,17 +8,6 @@
 #include "debug.h"
 #include "settings.h"
 
-#define APP_CA_CERT_BUNDLE "certs/ca.der"
-#define APP_CLIENT_CERT "certs/client.der"
-#define APP_CLIENT_PRIVATE_KEY "certs/private.der"
-
-char_t *clientCert = NULL;
-size_t clientCertLen = 0;
-char_t *clientPrivateKey = NULL;
-size_t clientPrivateKeyLen = 0;
-char_t *trustedCaList = NULL;
-size_t trustedCaListLen = 0;
-
 char_t *caCert = NULL;
 size_t caCertLen = 0;
 
@@ -149,11 +138,6 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
 
 error_t tls_adapter_deinit()
 {
-    // Free previously allocated resources
-    free(trustedCaList);
-    free(clientCert);
-    free(clientPrivateKey);
-
     // Release PRNG context
     yarrowRelease(&yarrowContext);
 
@@ -163,7 +147,8 @@ error_t tls_adapter_deinit()
 error_t load_cert(const char *dest_var, const char *src_file, const char *src_var)
 {
     /* check if the source setting contains a cert */
-    char *src_var_val = settings_get_string(src_var);
+    const char *src_var_val = settings_get_string(src_var);
+
     if (strlen(src_var_val))
     {
         settings_set_string(dest_var, src_var_val);
@@ -174,7 +159,10 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
         size_t serverCertLen = 0;
         error_t error = readPemFile(settings_get_string(src_file), &serverCert, &serverCertLen, NULL);
         if (error)
+        {
+            TRACE_ERROR("Loading cert '%s' failed\r\n", settings_get_string(src_file));
             return error;
+        }
         settings_set_string(dest_var, serverCert);
         free(serverCert);
     }
@@ -209,28 +197,16 @@ error_t tls_adapter_init()
 
     TRACE_INFO("Loading certificates...\r\n");
 
-    // Load trusted CA certificates
-    error = readPemFile(APP_CA_CERT_BUNDLE, &trustedCaList,
-                        &trustedCaListLen, "CERTIFICATE");
-    if (error)
-        return error;
-
-    // Load client's certificate
-    error = readPemFile(APP_CLIENT_CERT, &clientCert, &clientCertLen, "CERTIFICATE");
-    if (error)
-        return error;
-
-    // Load client's private key
-    error = readPemFile(APP_CLIENT_PRIVATE_KEY, &clientPrivateKey,
-                        &clientPrivateKeyLen, "RSA PRIVATE KEY");
-    if (error)
-        return error;
-
-    load_cert("internal.server_crt_data", "core.server_crt", "core.server_crt_data");
-    load_cert("internal.server_key_data", "core.server_key", "core.server_key_data");
+    load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca");
+    load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt");
+    load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key");
+    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca");
+    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt");
+    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key");
 
     // TLS session cache initialization
     tlsCache = tlsInitCache(8);
+
     // Any error to report?
     if (tlsCache == NULL)
     {

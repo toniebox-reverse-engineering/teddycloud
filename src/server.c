@@ -331,8 +331,14 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Import server's certificate
-    const char *server_crt = settings_get_string("internal.server_crt_data");
-    const char *server_key = settings_get_string("internal.server_key_data");
+    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *server_key = settings_get_string("internal.server.key");
+
+    if (!server_crt || !server_key)
+    {
+        TRACE_ERROR("Failed to get certificates\r\n");
+        return ERROR_FAILURE;
+    }
 
     error = tlsAddCertificate(tlsContext, server_crt, strlen(server_crt), server_key, strlen(server_key));
 

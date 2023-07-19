@@ -10,6 +10,8 @@
 typedef struct
 {
     bool enabled;
+    char *remote_hostname;
+    uint32_t remote_port;
     bool enableV1Claim;
     bool enableV1FreshnessCheck;
     bool enableV1Log;
@@ -40,19 +42,30 @@ typedef struct
 
 typedef struct
 {
+    char *ca;
+    char *crt;
+    char *key;
+} settings_cert_t;
+
+typedef struct
+{
     uint32_t configVersion;
     bool exit;
     int32_t returncode;
-    char *server_crt_data;
-    char *server_key_data;
+    settings_cert_t server;
+    settings_cert_t client;
 } settings_internal_t;
 
 typedef struct
 {
-    char *server_crt;
-    char *server_key;
-    char *server_crt_data;
-    char *server_key_data;
+    settings_cert_t file;
+    settings_cert_t data;
+} settings_cert_opt_t;
+
+typedef struct
+{
+    settings_cert_opt_t server_cert;
+    settings_cert_opt_t client_cert;
 } settings_core_t;
 
 typedef struct

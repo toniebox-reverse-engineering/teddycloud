@@ -13,18 +13,36 @@ settings_t Settings;
 
 OPTION_START()
 
-OPTION_INTERNAL_STRING("core.server_crt", &Settings.core.server_crt, "certs/server/teddy-cert.pem", "Server certificate")
-OPTION_INTERNAL_STRING("core.server_key", &Settings.core.server_key, "certs/server/teddy-key.pem", "Server key")
-OPTION_INTERNAL_STRING("core.server_crt_data", &Settings.core.server_crt_data, "", "Server certificate data")
-OPTION_INTERNAL_STRING("core.server_key_data", &Settings.core.server_key_data, "", "Server key data")
+/* settings for HTTPS server */
+OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
+OPTION_STRING("core.server_cert.file.crt", &Settings.core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")
+OPTION_STRING("core.server_cert.file.key", &Settings.core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key")
+OPTION_STRING("core.server_cert.data.ca", &Settings.core.server_cert.data.ca, "", "Server CA data")
+OPTION_STRING("core.server_cert.data.crt", &Settings.core.server_cert.data.crt, "", "Server certificate data")
+OPTION_STRING("core.server_cert.data.key", &Settings.core.server_cert.data.key, "", "Server key data")
+
+/* settings for HTTPS/cloud client */
+OPTION_STRING("core.client_cert.file.ca", &Settings.core.client_cert.file.ca, "certs/client/teddy-cert.pem", "Client CA")
+OPTION_STRING("core.client_cert.file.crt", &Settings.core.client_cert.file.crt, "certs/client/teddy-cert.pem", "Client certificate")
+OPTION_STRING("core.client_cert.file.key", &Settings.core.client_cert.file.key, "certs/client/teddy-key.pem", "Client key")
+OPTION_STRING("core.client_cert.data.ca", &Settings.core.client_cert.data.ca, "", "Client CA")
+OPTION_STRING("core.client_cert.data.crt", &Settings.core.client_cert.data.crt, "", "Client certificate data")
+OPTION_STRING("core.client_cert.data.key", &Settings.core.client_cert.data.key, "", "Client key data")
+
+OPTION_INTERNAL_STRING("internal.server.ca", &Settings.internal.server.ca, "", "Server CA data")
+OPTION_INTERNAL_STRING("internal.server.crt", &Settings.internal.server.crt, "", "Server certificate data")
+OPTION_INTERNAL_STRING("internal.server.key", &Settings.internal.server.key, "", "Server key data")
+OPTION_INTERNAL_STRING("internal.client.ca", &Settings.internal.client.ca, "", "Client CA")
+OPTION_INTERNAL_STRING("internal.client.crt", &Settings.internal.client.crt, "", "Client certificate data")
+OPTION_INTERNAL_STRING("internal.client.key", &Settings.internal.client.key, "", "Client key data")
 
 OPTION_INTERNAL_UNSIGNED("internal.configVersion", &Settings.internal.configVersion, CONFIG_VERSION, 0, 255, "Config version")
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
-OPTION_INTERNAL_STRING("internal.server_crt_data", &Settings.internal.server_crt_data, "", "Server certificate data, either read from file or directly specified")
-OPTION_INTERNAL_STRING("internal.server_key_data", &Settings.internal.server_key_data, "", "Server key data, either read from file or directly specified")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
+OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
+OPTION_UNSIGNED("cloud.port", &Settings.cloud.remote_port, 443, 1, 65535, "Port of remote cloud server")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1FreshnessCheck", &Settings.cloud.enableV1FreshnessCheck, TRUE, "Pass 'freshnessCheck' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Log", &Settings.cloud.enableV1Log, FALSE, "Pass 'log' queries to boxine cloud")

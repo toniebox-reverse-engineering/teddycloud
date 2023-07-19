@@ -45,15 +45,25 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    const char *client_ca = settings_get_string("internal.client.ca");
+    const char *client_crt = settings_get_string("internal.client.crt");
+    const char *client_key = settings_get_string("internal.client.key");
+
+    if (!client_ca || !client_crt || !client_key)
+    {
+        TRACE_ERROR("Failed to get certificates\r\n");
+        return ERROR_FAILURE;
+    }
+
     // Import the list of trusted CA certificates
-    error = tlsSetTrustedCaList(tlsContext, trustedCaList, trustedCaListLen);
+    error = tlsSetTrustedCaList(tlsContext, client_ca, strlen(client_ca));
     // Any error to report?
     if (error)
         return error;
 
     // Import the client's certificate
-    error = tlsAddCertificate(tlsContext, clientCert, clientCertLen,
-                              clientPrivateKey, clientPrivateKeyLen);
+    error = tlsAddCertificate(tlsContext, client_crt, strlen(client_crt), client_key, strlen(client_key));
+
     // Any error to report?
     if (error)
         return error;
@@ -88,11 +98,11 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
     if (!server)
     {
-        server = "prod.de.tbs.toys";
+        server = settings_get_string("cloud.hostname");
     }
     if (port <= 0)
     {
-        port = 443;
+        port = settings_get_unsigned("cloud.port");
     }
 
     stats_update("cloud_requests", 1);
