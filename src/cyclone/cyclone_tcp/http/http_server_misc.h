@@ -58,6 +58,9 @@ void httpParseContentTypeField(HttpConnection *connection,
 void httpParseAcceptEncodingField(HttpConnection *connection,
    char_t *value);
 
+void httpParseRangeField(HttpConnection *connection,
+   char_t *value);
+
 void httpParseCookieField(HttpConnection *connection, char_t *value);
 
 error_t httpReadChunkSize(HttpConnection *connection);

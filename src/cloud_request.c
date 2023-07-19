@@ -97,7 +97,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
     stats_update("cloud_requests", 1);
 
-    TRACE_INFO("# Connecting to HTTP server %s:%d...\r\n",
+    TRACE_DEBUG("# Connecting to HTTP server %s:%d...\r\n",
                server, port);
 
     struct hostent *host = gethostbyname(server);
@@ -108,7 +108,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
         stats_update("cloud_failed", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
-    TRACE_INFO("#   resolved as: %s\n", host->h_name);
+    TRACE_DEBUG("#   resolved as: %s\n", host->h_name);
 
     httpClientInit(&httpClientContext);
     error_t error = httpClientRegisterTlsInitCallback(&httpClientContext,
@@ -123,7 +123,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
     {
         bool success = FALSE;
 
-        TRACE_INFO("#   trying IP: %s\n", inet_ntoa(*addr_list[i]));
+        TRACE_DEBUG("#   trying IP: %s\n", inet_ntoa(*addr_list[i]));
         memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
 
         ipAddr.length = host->h_length;
@@ -289,7 +289,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                         // Properly terminate the string with a NULL character
                         buffer[maxSize] = '\0';
                         // Dump HTTP response body
-                        TRACE_INFO("%s", buffer);
+                        TRACE_DEBUG("Dump Body:\r\n%s", buffer);
                     }
                 }
             }
@@ -322,7 +322,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             }
 
             // Debug message
-            TRACE_INFO("Connection closed\r\n");
+            TRACE_DEBUG("Connection closed\r\n");
         } while (0);
 
         if (success)

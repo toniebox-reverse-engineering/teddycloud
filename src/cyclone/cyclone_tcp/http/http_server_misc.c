@@ -464,6 +464,20 @@ void httpParseHeaderField(HttpConnection *connection,
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
+   //Range header field?
+   else if (!osStrcasecmp(name, "Range"))
+   {
+      sscanf(value, "bytes=%ld-%ld", &connection->request.Range.start, &connection->request.Range.end);
+      if (connection->request.Range.start < 0) connection->request.Range.start = 0;
+      if (connection->request.Range.end < 0) connection->request.Range.end = 0;
+   
+   }
+   //If-Range header field?
+   else if (!osStrcasecmp(name, "If-Range"))
+   {
+      strSafeCopy(connection->request.ifRange, value,
+         HTTP_SERVER_IFRANGE_MAX_LEN);
+   }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
    else if(!osStrcasecmp(name, "Upgrade"))
@@ -858,6 +872,9 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Connection: close\r\n");
    }
 
+   //Add Range accept field
+   p += osSprintf(p, "Accept-Ranges: bytes\r\n");
+   
    //Specify the caching policy
    if(connection->response.noCache)
    {
@@ -905,6 +922,12 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    {
       //Content type
       p += osSprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
+   }
+
+   //Range included?
+   if(connection->response.contentRange != NULL)
+   {
+      p += osSprintf(p, "Content-Range: %s\r\n", connection->response.contentRange);
    }
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)

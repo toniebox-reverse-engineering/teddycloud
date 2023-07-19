@@ -49,6 +49,7 @@
 #include "http/http_server_misc.h"
 #include "http/mime.h"
 #include "http/ssi.h"
+#include "str.h"
 #include "debug.h"
 
 //Check TCP/IP stack configuration
@@ -383,7 +384,7 @@ void httpConnectionTask(void *param)
       if(connection->settings->tlsInitCallback != NULL)
       {
          //Debug message
-         TRACE_INFO("Initializing TLS session...\r\n");
+         TRACE_INFO("#%d Initializing TLS session...\r\n", connection->socket->descriptor);
 
          //Start of exception handling block
          do
@@ -460,7 +461,7 @@ void httpConnectionTask(void *param)
          for(counter = 0; counter < HTTP_SERVER_MAX_REQUESTS; counter++)
          {
             //Debug message
-            TRACE_INFO("Waiting for request...\r\n");
+            TRACE_INFO("#%d Waiting for request...\r\n", connection->socket->descriptor);
 
             //Clear request header
             osMemset(&connection->request, 0, sizeof(HttpRequest));
@@ -473,7 +474,7 @@ void httpConnectionTask(void *param)
             if(error)
             {
                //Debug message
-               TRACE_INFO("No HTTP request received or parsing error...\r\n");
+               TRACE_INFO("#%d No HTTP request received or parsing error...\r\n", connection->socket->descriptor);
                break;
             }
 
@@ -522,7 +523,7 @@ void httpConnectionTask(void *param)
             }
 #endif
             //Debug message
-            TRACE_INFO("Sending HTTP response to the client...\r\n");
+            TRACE_INFO("#%d Sending HTTP response to the client...\r\n", connection->socket->descriptor);
 
             //Check status code
             if(!error)
@@ -630,7 +631,7 @@ void httpConnectionTask(void *param)
       if(connection->tlsContext != NULL)
       {
          //Debug message
-         TRACE_INFO("Closing TLS session...\r\n");
+         TRACE_INFO("#%d Closing TLS session...\r\n", connection->socket->descriptor);
 
          //Gracefully close TLS session
          tlsShutdown(connection->tlsContext);
@@ -643,12 +644,12 @@ void httpConnectionTask(void *param)
       if(connection->socket != NULL)
       {
          //Debug message
-         TRACE_INFO("Graceful shutdown...\r\n");
+         TRACE_INFO("#%d Graceful shutdown...\r\n", connection->socket->descriptor);
          //Graceful shutdown
          socketShutdown(connection->socket, SOCKET_SD_BOTH);
 
          //Debug message
-         TRACE_INFO("Closing socket...\r\n");
+         TRACE_INFO("#%d Closing socket...\r\n", connection->socket->descriptor);
          //Close socket
          socketClose(connection->socket);
       }
@@ -1034,11 +1035,29 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    }
 #endif
 
-   //Format HTTP response header
-   connection->response.statusCode = 200;
+   //TODO add status 416 on invalid ranges
+   if (connection->request.Range.start > 0)
+   {
+      connection->request.Range.size = length;
+      if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0) 
+         connection->request.Range.end = connection->request.Range.size - 1;
+
+      if (connection->response.contentRange == NULL)
+         connection->response.contentRange = osAllocMem(255);
+
+      osSprintf((char*)connection->response.contentRange, "bytes %"PRIu64"-%"PRIu64"/%"PRIu64, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+      connection->response.statusCode = 206;
+      connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+   }
+   else
+   {
+      connection->response.statusCode = 200;
+      connection->response.contentLength = length;
+   }
    connection->response.contentType = mimeGetType(uri);
    connection->response.chunkedEncoding = FALSE;
-   connection->response.contentLength = length;
+   length = connection->response.contentLength;
 
    //Send the header to the client
    error = httpWriteHeader(connection);
@@ -1051,6 +1070,16 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
 #endif
       //Return status code
       return error;
+   }
+
+   if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+   {
+      TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+      fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
+   } 
+   else 
+   {
+      TRACE_DEBUG("No seeking, sending from beginning\r\n");
    }
 
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)

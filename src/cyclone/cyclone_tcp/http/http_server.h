@@ -211,6 +211,12 @@
    #error HTTP_SERVER_HOST_MAX_LEN parameter is not valid
 #endif
 
+#ifndef HTTP_SERVER_IFRANGE_MAX_LEN
+   #define HTTP_SERVER_IFRANGE_MAX_LEN 31
+#elif (HTTP_SERVER_IFRANGE_MAX_LEN < 7)
+   #error HTTP_SERVER_IFRANGE_MAX_LEN parameter is not valid
+#endif
+
 //Maximum user name length
 #ifndef HTTP_SERVER_USERNAME_MAX_LEN
    #define HTTP_SERVER_USERNAME_MAX_LEN 31
@@ -465,6 +471,16 @@ typedef struct
 #endif
 } HttpAuthenticateHeader;
 
+/**
+ * @brief Range header
+ * 
+ */
+typedef struct
+{
+   long start;
+   long end;
+   long size;
+} HttpRangeHeader;
 
 /**
  * @brief HTTP request
@@ -477,6 +493,8 @@ typedef struct
    char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///<Resource identifier
    char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///<Query string
    char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///<Host name
+   char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///<IfRange tag
+   HttpRangeHeader Range;                                    ///<Range field
    bool_t keepAlive;
    bool_t chunkedEncoding;
    size_t contentLength;
@@ -517,6 +535,7 @@ typedef struct
    uint_t maxAge;
    const char_t *location;
    const char_t *contentType;
+   const char_t *contentRange;
    bool_t chunkedEncoding;
    size_t contentLength;
    size_t byteCount;

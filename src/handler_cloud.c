@@ -186,7 +186,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(" >> cbrCloudServerDiscoPassthrough\r\n");
+    TRACE_DEBUG(" >> cbrCloudServerDiscoPassthrough\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
 
@@ -270,7 +270,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
     }
 
     error = httpCloseStream(connection);
-    if (error != NO_ERROR)
+    if (error != NO_ERROR && error != ERROR_TIMEOUT)
     {
         TRACE_ERROR("#%d Failed to close: %d\r\n", connection->socket->descriptor, error);
         return error;
@@ -347,7 +347,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
 
     if (osStrlen(ruid) != 16)
     {
-        TRACE_WARNING(" >>  invalid URI\r\n");
+        TRACE_WARNING("#%d >>  invalid URI\r\n", connection->socket->descriptor);
     }
     TRACE_INFO("#%d >> client requested UID %s\r\n", connection->socket->descriptor, ruid);
     TRACE_INFO("#%d >> client authenticated with %02X%02X%02X%02X...\r\n", connection->socket->descriptor, token[0], token[1], token[2], token[3]);
@@ -388,7 +388,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         // TODO check partial downloads here
         if (connection->request.Range.start != 0)
         {
-            TRACE_DEBUG("#%d >> client requested partial download\r\n", connection->socket->descriptor);
+            TRACE_INFO("#%d >> client requested partial download\r\n", connection->socket->descriptor);
         }
 
         if (osStrlen(ruid) != 16)

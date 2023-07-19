@@ -38,12 +38,12 @@ static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char
 
     if (header)
     {
-        TRACE_INFO(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
+        TRACE_DEBUG(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
         osSprintf(line, "%s: %s\r\n", header, value);
     }
     else
     {
-        TRACE_INFO(">> httpServerHeaderCbr: NULL\r\n");
+        TRACE_DEBUG(">> httpServerHeaderCbr: NULL\r\n");
         osStrcpy(line, "\r\n");
     }
 
@@ -62,7 +62,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(">> httpServerDiscCbr\r\n");
+    TRACE_DEBUG(">> httpServerDiscCbr\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
 
@@ -90,13 +90,13 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
         return error;
     }
 
-    TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
+    TRACE_DEBUG("httpServerRequestCallback: (waiting)\r\n");
     while (ctx.status != PROX_STATUS_DONE)
     {
         usleep(50000);
     }
     error = httpCloseStream(connection);
 
-    TRACE_INFO("httpServerRequestCallback: (done)\r\n");
+    TRACE_DEBUG("httpServerRequestCallback: (done)\r\n");
     return NO_ERROR;
 }

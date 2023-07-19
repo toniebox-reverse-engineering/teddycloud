@@ -27,6 +27,6 @@
         "tcp.h": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "editor.formatOnType": false
 }
