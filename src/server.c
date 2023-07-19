@@ -206,21 +206,12 @@ httpServerRequestCallback(HttpConnection *connection,
 {
     stats_update("connections", 1);
 
-    if (connection->tlsContext != NULL && connection->tlsContext->cert != NULL)
+    if (strlen(connection->tlsContext->client_cert_issuer))
     {
-        if (connection->tlsContext->clientCertRequested)
-        {
-            TRACE_INFO(" Client cert requested\r\n");
-        }
-        TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
-        for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
-        {
-            TRACE_INFO(" ID: %li CertType=%i \n", i, connection->tlsContext->certs[i].type);
-        }
-    }
-    else
-    {
-        TRACE_INFO(" No Cert or TLS\r\n");
+        TRACE_INFO("Certificate authentication:\r\n");
+        TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
+        TRACE_INFO("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
+        TRACE_INFO("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
