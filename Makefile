@@ -111,6 +111,7 @@ CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_COLORED
+CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 
 CC = gcc
