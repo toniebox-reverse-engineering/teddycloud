@@ -28,11 +28,12 @@ Currently implemented are:
 ### Generate certificates
 First of all you'll need to generate the CA and certificates with the starting date 2015-11-04: ```faketime '2015-11-04 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
 This also generates the replacement CA for the toniebox ```certs/server/ca.der```.
+If you are using docker, this will happen automatically.
 
 ### Dump certificates of your toniebox
 You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/*```
 #### CC3200
-You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box.
+You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
 python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
 ```
@@ -44,7 +45,7 @@ You can extract the flash memory either with a SOP8 clamp or via the debug port 
 
 ### Flash the replacement CA
 #### CC3200
-It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate.
+It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate. If you have installed the HackieboxNG Bootloader and the Hackiebox CFW you may upload the certificate via the webinterface of the CFW.
 ```
 python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
