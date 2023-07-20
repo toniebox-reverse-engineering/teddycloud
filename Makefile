@@ -152,28 +152,44 @@ build: $(BINARY)
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 
+CYAN=\033[0;36m
+RED=\033[0;31m
+YELLOW=\033[0;33m
+GREEN=\033[0;32m
+NC=\033[0m
+
+ifeq ($(VERBOSE),1)
+  QUIET=
+else
+  QUIET=@
+endif
+
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
-	cp -r $(CONTRIB_DIR)/www .
-	mkdir -p certs/server
-	mkdir -p certs/client
-	mkdir -p config
+	@echo "[ ${YELLOW}LD${NC} ] ${CYAN}$@${NC}"
+	$(QUIET)mkdir -p $(@D)
+	$(QUIET)$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@ || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@${NC}"; false)
+	$(QUIET)cp -r $(CONTRIB_DIR)/www .
+	$(QUIET)mkdir -p certs/server
+	$(QUIET)mkdir -p certs/client
+	$(QUIET)mkdir -p config
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "[ ${GREEN}CC${NC} ] ${CYAN}$<${NC}"
+	$(QUIET)mkdir -p $(@D)
+	$(QUIET)$(CC) $(CFLAGS) -c $< -o $@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) -c $< -o $@${NC}"; false)
 
 clean:
-	rm -f $(BINARY)
-	$(foreach O,$(OBJECTS),rm -f $(O);)
-	rm -rf $(INSTALL_DIR)/
+	@echo "[ ${GREEN}CLEAN${NC} ] Deleting output files..."
+	$(QUIET)rm -f $(BINARY)
+	$(QUIET)$(foreach O,$(OBJECTS),rm -f $(O);)
+	$(QUIET)rm -rf $(INSTALL_DIR)/
 
-preinstall: clean build
-	mkdir $(INSTALL_DIR)/
-	mkdir $(PREINSTALL_DIR)/
-	cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
-	cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+preinstall: clean all
+	@echo "[ ${GREEN}PRE${NC} ] Preinstall"
+	$(QUIET)mkdir $(INSTALL_DIR)/
+	$(QUIET)mkdir $(PREINSTALL_DIR)/
+	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
 
 zip: preinstall
 	mkdir $(ZIP_DIR)/
