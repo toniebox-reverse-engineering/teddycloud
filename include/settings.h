@@ -49,7 +49,6 @@ typedef struct
 
 typedef struct
 {
-    uint32_t configVersion;
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -70,6 +69,7 @@ typedef struct
 
 typedef struct
 {
+    uint32_t configVersion;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;

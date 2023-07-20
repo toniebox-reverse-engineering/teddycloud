@@ -13,6 +13,7 @@ settings_t Settings;
 
 OPTION_START()
 
+OPTION_INTERNAL_UNSIGNED("configVersion", &Settings.configVersion, 0, 0, 255, "Config version")
 /* settings for HTTPS server */
 OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
 OPTION_STRING("core.server_cert.file.crt", &Settings.core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")
@@ -36,7 +37,6 @@ OPTION_INTERNAL_STRING("internal.client.ca", &Settings.internal.client.ca, "", "
 OPTION_INTERNAL_STRING("internal.client.crt", &Settings.internal.client.crt, "", "Client certificate data")
 OPTION_INTERNAL_STRING("internal.client.key", &Settings.internal.client.key, "", "Client key data")
 
-OPTION_INTERNAL_UNSIGNED("internal.configVersion", &Settings.internal.configVersion, CONFIG_VERSION, 0, 255, "Config version")
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 
@@ -50,6 +50,8 @@ OPTION_BOOL("cloud.enableV1Time", &Settings.cloud.enableV1Time, FALSE, "Pass 'ti
 OPTION_BOOL("cloud.enableV1Ota", &Settings.cloud.enableV1Ota, FALSE, "Pass 'ota' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV2Content", &Settings.cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
 OPTION_BOOL("cloud.cacheContent", &Settings.cloud.cacheContent, FALSE, "Cache cloud content on local server")
+OPTION_BOOL("cloud.markCustomTagByPass", &Settings.cloud.markCustomTagByPass, TRUE, "Automatically mark custom tags by password")
+OPTION_BOOL("cloud.markCustomTagByUid", &Settings.cloud.markCustomTagByUid, TRUE, "Automatically mark custom tags by Uid")
 
 OPTION_BOOL("toniebox.overrideCloud", &Settings.toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
 OPTION_UNSIGNED("toniebox.max_vol_spk", &Settings.toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")
@@ -139,11 +141,13 @@ void settings_save()
         return;
     }
 
+    Settings.configVersion = CONFIG_VERSION;
+
     int pos = 0;
     char buffer[256]; // Buffer to hold the file content
     while (option_map[pos].type != TYPE_END)
     {
-        if (!option_map[pos].internal || !osStrcmp(option_map[pos].option_name, "internal.configVersion"))
+        if (!option_map[pos].internal || !osStrcmp(option_map[pos].option_name, "configVersion"))
         {
             setting_item_t *opt = &option_map[pos];
 
@@ -293,7 +297,7 @@ void settings_load()
     }
     fsCloseFile(file);
 
-    if (Settings.internal.configVersion < CONFIG_VERSION)
+    if (Settings.configVersion < CONFIG_VERSION)
     {
         settings_save();
     }
