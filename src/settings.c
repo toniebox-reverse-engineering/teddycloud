@@ -22,7 +22,7 @@ OPTION_STRING("core.server_cert.data.crt", &Settings.core.server_cert.data.crt, 
 OPTION_STRING("core.server_cert.data.key", &Settings.core.server_cert.data.key, "", "Server key data")
 
 /* settings for HTTPS/cloud client */
-OPTION_STRING("core.client_cert.file.ca", &Settings.core.client_cert.file.ca, "certs/client/teddy-cert.pem", "Client CA")
+OPTION_STRING("core.client_cert.file.ca", &Settings.core.client_cert.file.ca, "certs/server/ca-root.pem", "Client CA")
 OPTION_STRING("core.client_cert.file.crt", &Settings.core.client_cert.file.crt, "certs/client/teddy-cert.pem", "Client certificate")
 OPTION_STRING("core.client_cert.file.key", &Settings.core.client_cert.file.key, "certs/client/teddy-key.pem", "Client key")
 OPTION_STRING("core.client_cert.data.ca", &Settings.core.client_cert.data.ca, "", "Client CA")
