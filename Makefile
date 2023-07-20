@@ -156,6 +156,7 @@ $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
 	cp -r $(CONTRIB_DIR)/www .
 	mkdir -p certs/server
+	mkdir -p certs/client
 	mkdir -p config
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
