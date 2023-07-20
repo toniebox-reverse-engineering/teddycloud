@@ -106,7 +106,7 @@ OBJ_DIR = obj
 SRC_DIR = src
 
 
-CFLAGS += -Wall
+CFLAGS += -Wall -Werror
 CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED

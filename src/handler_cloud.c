@@ -125,8 +125,14 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             // TRACE_INFO(">> %s\r\n", ctx->uri);
             if (ctx->status == PROX_STATUS_HEAD)
             {
+                /* URI is always "/v2/content/xxxxxxxxxx0304E0" where the x's are hex digits. length has to be fixed */
                 TRACE_INFO(">> Start caching uri=%s\r\n", ctx->uri);
                 // TODO detect partial downloads
+                if (strlen(ctx->uri) < 28)
+                {
+                    TRACE_ERROR(">> ctx->uri is too short\r\n");
+                    return;
+                }
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
@@ -143,7 +149,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             }
             if (length > 0)
             {
-                error_t error = fsWriteFile(ctx->file, payload, length);
+                error_t error = fsWriteFile(ctx->file, (void *)payload, length);
                 if (error)
                     TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
             }
@@ -226,6 +232,7 @@ void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
 {
     osSprintf(contentPath, "www/CONTENT/%.8s/%.8s", ruid, &ruid[8]);
     strupr(&contentPath[4]);
+    contentPath[30] = '\0';
 }
 
 void getContentPathFromUID(uint64_t uid, char contentPath[30])
@@ -336,6 +343,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
     char *timestampTxt = cv ? strtok_r(&cv[3], "&", &cv) : NULL;
 
     uint8_t fileId = atoi(filename);
+    (void)fileId;
     time_t timestamp = timestampTxt ? atoi(timestampTxt) : 0;
 
     char date_buffer[32] = "";
@@ -547,6 +555,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 struct tm tm_info;
                 char date_buffer[32];
                 bool_t custom = false;
+                (void)custom;
                 time_t unix_time = freshReq->tonie_infos[i]->audio_id;
 
                 if (unix_time < 0x0e000000)

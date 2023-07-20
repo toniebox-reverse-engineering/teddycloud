@@ -228,7 +228,7 @@ error_t tls_adapter_init()
     return NO_ERROR;
 }
 
-static void copyAsString(char *dst, size_t dstLen, size_t srcLen, unsigned char *srcData)
+static void copyAsString(char *dst, size_t dstLen, size_t srcLen, const char_t *srcData)
 {
     if (srcLen == 0 || dstLen == 0)
     {
@@ -240,7 +240,7 @@ static void copyAsString(char *dst, size_t dstLen, size_t srcLen, unsigned char 
     dst[len] = '\0';
 }
 
-static void copyAsHex(char *dst, size_t dstLen, size_t payloadLen, unsigned char *payloadData)
+static void copyAsHex(char *dst, size_t dstLen, size_t payloadLen, const uint8_t *payloadData)
 {
     if (payloadLen <= 0 || dstLen <= 0)
     {
