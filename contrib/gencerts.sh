@@ -11,8 +11,20 @@ CL_KEY="certs/client/teddy-key.pem"
 CL_CRT="certs/client/teddy-cert.pem"
 DAYS="9000"
 
+DATE_START="20151103000000Z"
+DATE_END="20400624000000Z"
+#-startdate ${DATE_START} -enddate ${DATE_END}
+
 #TODO faketime / libfaketime!
-#faketime '2015-11-04 00:00:00' 
+#faketime '2015-11-03 00:00:00' 
+
+current_date=$(date +"%Y%m%d")
+wanted_date="2015-11-03"
+
+if [ "$wanted_date" != "$current_date" ]; then
+  echo "Datetime must be set to 2015-11-03 via faketime '2015-11-03 00:00:00' ./gencerts.sh"
+  exit 1
+fi
 
 mkdir -p certs/server
 mkdir -p certs/client
