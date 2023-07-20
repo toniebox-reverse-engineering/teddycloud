@@ -1,5 +1,6 @@
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "settings.h"
 
@@ -230,14 +231,14 @@ void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
 void getContentPathFromUID(uint64_t uid, char contentPath[30])
 {
     uint16_t cuid[9];
-    osSprintf(cuid, "%016lX", uid);
+    osSprintf((char *)cuid, "%016lX", uid);
     uint16_t cruid[9];
     for (uint8_t i = 0; i < 8; i++)
     {
         cruid[i] = cuid[7 - i];
     }
     cruid[8] = 0;
-    getContentPathFromCharRUID(cruid, contentPath);
+    getContentPathFromCharRUID((char *)cruid, contentPath);
 }
 
 tonie_info_t getTonieInfo(char contentPath[30])
@@ -326,28 +327,24 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 {
-    char *query = connection->request.queryString;
+    error_t ret = NO_ERROR;
+    char *query = strdup(connection->request.queryString);
+    char *localUri = strdup(uri);
 
-    char *filename = strtok(&uri[8], "?");
-    char *timestampTxt;
+    char *filename = strtok_r(&localUri[8], "?", &localUri);
     char *cv = strpbrk(query, "cv=");
-    if (cv)
-    {
-        timestampTxt = strtok(&cv[3], "&");
-    }
-    uint8_t fileId = atoi(filename);
-    uint64_t timestamp = atoi(timestampTxt);
+    char *timestampTxt = cv ? strtok_r(&cv[3], "&", &cv) : NULL;
 
-    char date_buffer[32];
+    uint8_t fileId = atoi(filename);
+    time_t timestamp = timestampTxt ? atoi(timestampTxt) : 0;
+
+    char date_buffer[32] = "";
     struct tm tm_info;
-    if (!localtime_r(&timestamp, &tm_info) == NULL)
+    if (localtime_r(&timestamp, &tm_info) != NULL)
     {
         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
     }
-    else
-    {
-        date_buffer[0] = '\0';
-    }
+
     TRACE_INFO(" >> OTA-Request for %u with timestamp %lu (%s)\r\n", fileId, timestamp, date_buffer);
 
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
@@ -355,14 +352,18 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
         cloud_request_get(NULL, 0, uri, NULL, &cbr);
-        return NO_ERROR;
     }
     else
     {
         httpPrepareHeader(connection, NULL, 0);
         connection->response.statusCode = 304; // No new firmware
-        return httpWriteResponse(connection, NULL, false);
+        ret = httpWriteResponse(connection, NULL, false);
     }
+
+    free(query);
+    free(localUri);
+
+    return ret;
 }
 
 bool checkCustomTonie(char *ruid, uint8_t *token)
@@ -374,7 +375,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
         return true;
     }
     if (Settings.cloud.markCustomTagByUid &&
-        (ruid[15] != "0" || ruid[14] != "E" || ruid[13] != "4" || ruid[12] != "0" || ruid[11] != "3" || ruid[10] != "0"))
+        (ruid[15] != '0' || ruid[14] != 'E' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
     {
         TRACE_INFO("Found possible custom tonie by uid\r\n");
         return true;
