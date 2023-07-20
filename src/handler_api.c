@@ -236,7 +236,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size %li bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size %zu bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
