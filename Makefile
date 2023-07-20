@@ -110,7 +110,7 @@ CFLAGS += -Wall
 CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
-#CFLAGS += -D TRACE_LEVEL=TRACE_LEVEL_WARNING
+CFLAGS += -D TRACE_COLORED
 CFLAGS += $(INCLUDES)
 
 CC = gcc
