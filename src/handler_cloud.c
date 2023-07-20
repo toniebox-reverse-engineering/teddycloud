@@ -27,6 +27,15 @@ typedef enum
     V1_LOG
 } cloudapi_t;
 
+typedef enum
+{
+    OTA_FIRMWARE_PD = 2,
+    OTA_FIRMWARE_EU = 3,
+    OTA_SERVICEPACK_CC3200 = 4,
+    OTA_HTML_CONFIG = 5,
+    OTA_SFX_BIN = 6,
+} cloudapi_ota_t;
+
 typedef struct
 {
     const char_t *uri;
@@ -317,13 +326,43 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 {
+    char *query = connection->request.queryString;
+
+    char *filename = strtok(&uri[8], "?");
+    char *timestampTxt;
+    char *cv = strpbrk(query, "cv=");
+    if (cv)
+    {
+        timestampTxt = strtok(&cv[3], "&");
+    }
+    uint8_t fileId = atoi(filename);
+    uint64_t timestamp = atoi(timestampTxt);
+
+    char date_buffer[32];
+    struct tm tm_info;
+    if (!localtime_r(&timestamp, &tm_info) == NULL)
+    {
+        strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
+    }
+    else
+    {
+        date_buffer[0] = '\0';
+    }
+    TRACE_INFO(" >> OTA-Request for %u with timestamp %lu (%s)\r\n", fileId, timestamp, date_buffer);
+
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
         cloud_request_get(NULL, 0, uri, NULL, &cbr);
+        return NO_ERROR;
     }
-    return NO_ERROR;
+    else
+    {
+        httpPrepareHeader(connection, NULL, 0);
+        connection->response.statusCode = 304; // No new firmware
+        return httpWriteResponse(connection, NULL, false);
+    }
 }
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
