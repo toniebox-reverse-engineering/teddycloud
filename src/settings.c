@@ -102,24 +102,24 @@ void settings_init()
         switch (opt->type)
         {
         case TYPE_BOOL:
-            TRACE_VERBOSE("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
+            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
             *((bool *)opt->ptr) = opt->init.bool_value;
             break;
         case TYPE_SIGNED:
-            TRACE_VERBOSE("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
+            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
             *((uint32_t *)opt->ptr) = opt->init.signed_value;
             break;
         case TYPE_UNSIGNED:
         case TYPE_HEX:
-            TRACE_VERBOSE("  %s = %d\r\n", opt->option_name, opt->init.unsigned_value);
+            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.unsigned_value);
             *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
             break;
         case TYPE_FLOAT:
-            TRACE_VERBOSE("  %s = %f\r\n", opt->option_name, opt->init.float_value);
+            TRACE_DEBUG("  %s = %f\r\n", opt->option_name, opt->init.float_value);
             *((uint32_t *)opt->ptr) = opt->init.float_value;
             break;
         case TYPE_STRING:
-            TRACE_VERBOSE("  %s = %s\r\n", opt->option_name, opt->init.string_value);
+            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
             *((char **)opt->ptr) = strdup(opt->init.string_value);
             break;
         default:
