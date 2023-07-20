@@ -365,6 +365,36 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
     }
 }
 
+bool checkCustomTonie(char *ruid, uint8_t *token)
+{
+    if (Settings.cloud.markCustomTagByPass &&
+        (token[0] == 0 && token[1] == 0 && token[2] == 0 && token[3] == 0))
+    {
+        TRACE_INFO("Found possible custom tonie by password\r\n");
+        return true;
+    }
+    if (Settings.cloud.markCustomTagByUid &&
+        (ruid[15] != "0" || ruid[14] != "E" || ruid[13] != "4" || ruid[12] != "0" || ruid[11] != "3" || ruid[10] != "0"))
+    {
+        TRACE_INFO("Found possible custom tonie by uid\r\n");
+        return true;
+    }
+    return false;
+}
+void markCustomTonie(tonie_info_t *tonieInfo)
+{
+    char contentDir[22];         //".nocloud" / ".live"
+    char contentPathDot[30 + 8]; //".nocloud" / ".live"
+    osMemcpy(contentDir, tonieInfo->contentPath, 21);
+    contentDir[21] = '\0';
+    osMemcpy(contentPathDot, tonieInfo->contentPath, 30);
+    osStrcat(contentPathDot, ".nocloud");
+    fsCreateDir(contentDir);
+    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
+    fsCloseFile(file);
+    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+}
+
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
 {
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
@@ -378,11 +408,11 @@ error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
 
 error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
 {
-    char ruid[18];
+    char ruid[17];
     uint8_t *token = connection->private.authentication_token;
 
     osStrncpy(ruid, &uri[10], sizeof(ruid));
-    ruid[17] = 0;
+    ruid[16] = 0;
 
     if (osStrlen(ruid) != 16)
     {
@@ -394,6 +424,12 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
+
+    if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
+    {
+        tonieInfo.nocloud = true;
+        markCustomTonie(&tonieInfo);
+    }
 
     if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Claim") || tonieInfo.nocloud)
     {
@@ -434,6 +470,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         tonie_info_t tonieInfo;
         getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
         tonieInfo = getTonieInfo(tonieInfo.contentPath);
+
+        if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
+        {
+            tonieInfo.nocloud = true;
+            markCustomTonie(&tonieInfo);
+        }
 
         if (tonieInfo.exists)
         {

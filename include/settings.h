@@ -5,7 +5,7 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
-#define CONFIG_VERSION 1
+#define CONFIG_VERSION 2
 
 typedef struct
 {
@@ -19,6 +19,8 @@ typedef struct
     bool enableV1Ota;
     bool enableV2Content;
     bool cacheContent;
+    bool markCustomTagByPass;
+    bool markCustomTagByUid;
 } settings_cloud_t;
 
 typedef struct
