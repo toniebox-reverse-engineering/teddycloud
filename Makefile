@@ -200,3 +200,21 @@ zip: preinstall
 time_test: $(BINARY)
 	$(BINARY) /v1/time
 
+.PHONY: auto
+auto:
+	@echo "Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit."
+	@last_build_time=$$(date +%s); \
+	screen -S teddycloud -dm; \
+	while true; do \
+		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) Makefile | sort -r | head -n 1); \
+		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
+			echo "[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
+			screen -S teddycloud -X stuff "^C"; \
+			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
+			make --no-print-directory -j; \
+			last_build_time=$$(date +%s); \
+			screen -S teddycloud -X screen bash -c '$(BINARY); exec sh'; \
+			echo "[ ${CYAN}AUTO${NC} ] Done"; \
+		fi; \
+		sleep 1; \
+	done
