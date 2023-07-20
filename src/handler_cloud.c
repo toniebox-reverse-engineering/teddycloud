@@ -177,7 +177,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             // TODO: Check if size is stable and this is obsolete
             if (ctx->bufferLen < packSize)
             {
-                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %lu / %lu\r\n", ctx->bufferLen, packSize);
+                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
                 osFreeMem(ctx->buffer);
                 ctx->bufferLen = packSize;
                 ctx->buffer = osAllocMem(ctx->bufferLen);
@@ -324,7 +324,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
         }
         else
         {
-            sprintf(response, "%ld", time(NULL));
+            sprintf(response, "%lu", time(NULL));
         }
     }
 
@@ -523,7 +523,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size %li bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size %zu bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
@@ -533,7 +533,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             TRACE_ERROR("httpReceive failed!");
             return error;
         }
-        TRACE_INFO("Content (%li of %li)\n", size, connection->request.byteCount);
+        TRACE_INFO("Content (%zu of %zu)\n", size, connection->request.byteCount);
         TonieFreshnessCheckRequest *freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t *)data);
         if (freshReq == NULL)
         {
@@ -541,7 +541,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
         }
         else
         {
-            TRACE_INFO("Found %li tonies:\n", freshReq->n_tonie_infos);
+            TRACE_INFO("Found %zu tonies:\n", freshReq->n_tonie_infos);
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
             freshResp.n_tonie_marked = 0;
             freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshReq->n_tonie_infos);
@@ -627,7 +627,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
             osFreeMem(freshReqCloud.tonie_infos);
             osFreeMem(freshResp.tonie_marked);
-            TRACE_INFO("Freshness check response: size=%li, content=%s\n", dataLen, data);
+            TRACE_INFO("Freshness check response: size=%zu, content=%s\n", dataLen, data);
 
             httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
             return httpWriteResponse(connection, data, false);
