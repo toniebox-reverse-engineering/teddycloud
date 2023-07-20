@@ -19,7 +19,7 @@ DATE_END="20400624000000Z"
 #faketime '2015-11-03 00:00:00' 
 
 current_date=$(date +"%Y%m%d")
-wanted_date="2015-11-03"
+wanted_date="20151103"
 
 if [ "$wanted_date" != "$current_date" ]; then
   echo "Datetime must be set to 2015-11-03 via faketime '2015-11-03 00:00:00' ./gencerts.sh"
