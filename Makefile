@@ -204,7 +204,8 @@ time_test: $(BINARY)
 auto:
 	@echo "Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit."
 	@last_build_time=$$(date +%s); \
-	screen -ls | grep teddycloud_auto | cut -d. -f1 | awk '{print $$1}' | xargs -I % screen -S % -X quit \
+	echo "[ ${CYAN}AUTO${NC} ] Clean up"; \
+	screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit; \
 	echo "[ ${CYAN}AUTO${NC} ] Build"; \
 	make --no-print-directory -j; \
 	screen -S teddycloud_auto -dm; \
