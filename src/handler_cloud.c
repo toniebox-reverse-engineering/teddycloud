@@ -238,7 +238,7 @@ void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
 void getContentPathFromUID(uint64_t uid, char contentPath[30])
 {
     uint16_t cuid[9];
-    osSprintf((char *)cuid, "%016lX", uid);
+    osSprintf((char *)cuid, "%016" PRIX64 "", uid);
     uint16_t cruid[9];
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -588,7 +588,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
-                TRACE_INFO("  uid: %016lX, nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
