@@ -123,9 +123,21 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
     httpClientInit(&httpClientContext);
     error_t error = httpClientRegisterTlsInitCallback(&httpClientContext,
                                                       httpClientTlsInitCallback);
+    if (error)
+    {
+        return error;
+    }
 
     error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_0);
+    if (error)
+    {
+        return error;
+    }
     error = httpClientSetTimeout(&httpClientContext, 1000);
+    if (error)
+    {
+        return error;
+    }
 
     struct in_addr **addr_list = (struct in_addr **)host->h_addr_list;
 

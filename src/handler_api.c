@@ -79,6 +79,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
+        free(json);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
@@ -366,6 +367,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
+        free(json);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }

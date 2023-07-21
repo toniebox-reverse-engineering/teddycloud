@@ -544,7 +544,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             TRACE_INFO("Found %zu tonies:\n", freshReq->n_tonie_infos);
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
             freshResp.n_tonie_marked = 0;
-            freshResp.tonie_marked = malloc(sizeof(uint64_t *) * freshReq->n_tonie_infos);
+            freshResp.tonie_marked = malloc(sizeof(uint64_t) * freshReq->n_tonie_infos);
 
             TonieFreshnessCheckRequest freshReqCloud = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
             freshReqCloud.n_tonie_infos = 0;
@@ -555,7 +555,6 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 struct tm tm_info;
                 char date_buffer[32];
                 bool_t custom = false;
-                (void)custom;
                 time_t unix_time = freshReq->tonie_infos[i]->audio_id;
 
                 if (unix_time < 0x0e000000)
@@ -588,6 +587,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
+                (void)custom;
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
