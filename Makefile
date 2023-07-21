@@ -141,16 +141,20 @@ PROTO_H_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/
 
 # Rule to build .c files from .proto files
 $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $(PROTO_DIR)/%.proto
-	protoc-c --c_out=$(PROTO_GEN_DIR) $<
+	@echo "[${GREEN}PROTO${NC} ] ${CYAN}$<${NC}"
+	$(QUIET)protoc-c --c_out=$(PROTO_GEN_DIR) $< || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}protoc-c --c_out=$(PROTO_GEN_DIR) $<${NC}"; false)
 
 SOURCES += $(PROTO_C_FILES)
 HEADERS += $(PROTO_H_FILES)
+CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
+
 
 all: build
 
 build: $(BINARY)
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
+CLEAN_FILES += $(OBJECTS)
 
 CYAN=\033[0;36m
 RED=\033[0;31m
@@ -165,7 +169,7 @@ else
 endif
 
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
-	@echo "[ ${YELLOW}LD${NC} ] ${CYAN}$@${NC}"
+	@echo "[ ${YELLOW}LD${NC}   ] ${CYAN}$@${NC}"
 	$(QUIET)mkdir -p $(@D)
 	$(QUIET)$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@ || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@${NC}"; false)
 	$(QUIET)cp -r $(CONTRIB_DIR)/www .
@@ -174,14 +178,14 @@ $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	$(QUIET)mkdir -p config
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
-	@echo "[ ${GREEN}CC${NC} ] ${CYAN}$<${NC}"
+	@echo "[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}"
 	$(QUIET)mkdir -p $(@D)
 	$(QUIET)$(CC) $(CFLAGS) -c $< -o $@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) -c $< -o $@${NC}"; false)
 
 clean:
 	@echo "[ ${GREEN}CLEAN${NC} ] Deleting output files..."
 	$(QUIET)rm -f $(BINARY)
-	$(QUIET)$(foreach O,$(OBJECTS),rm -f $(O);)
+	$(QUIET)$(foreach O,$(CLEAN_FILES),rm -f $(O);)
 	$(QUIET)rm -rf $(INSTALL_DIR)/
 
 preinstall: clean all
@@ -211,7 +215,7 @@ auto:
 	screen -S teddycloud_auto -dm; \
 	screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
 	while true; do \
-		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) Makefile | sort -r | head -n 1); \
+		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
 			echo "[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
 			screen -S teddycloud_auto -X stuff "^C"; \
