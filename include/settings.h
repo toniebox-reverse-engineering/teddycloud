@@ -65,6 +65,8 @@ typedef struct
 
 typedef struct
 {
+    uint32_t http_port;
+    uint32_t https_port;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
 } settings_core_t;

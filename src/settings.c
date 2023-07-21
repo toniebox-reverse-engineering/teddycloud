@@ -14,7 +14,11 @@ settings_t Settings;
 OPTION_START()
 
 OPTION_INTERNAL_UNSIGNED("configVersion", &Settings.configVersion, 0, 0, 255, "Config version")
+
 /* settings for HTTPS server */
+OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
+OPTION_UNSIGNED("core.server.http_port", &Settings.core.https_port, 80, 1, 65535, "HTTP port")
+
 OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
 OPTION_STRING("core.server_cert.file.crt", &Settings.core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")
 OPTION_STRING("core.server_cert.file.key", &Settings.core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key")
