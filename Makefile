@@ -188,7 +188,7 @@ check_dependencies:
 	echo "  ${CYAN}Alpine:${NC} apk add faketime")
 
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
-	@echo "[ ${YELLOW}LD${NC}   ] ${CYAN}$@${NC}"
+	@echo "[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}"
 	$(QUIET)mkdir -p $(@D)
 	$(QUIET)$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@ || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@${NC}"; false)
 	$(QUIET)cp -r $(CONTRIB_DIR)/www .
@@ -202,13 +202,13 @@ $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
 	$(QUIET)$(CC) $(CFLAGS) -c $< -o $@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) -c $< -o $@${NC}"; false)
 
 clean:
-	@echo "[ ${GREEN}CLEAN${NC} ] Deleting output files..."
+	@echo "[${GREEN}CLEAN${NC} ] Deleting output files..."
 	$(QUIET)rm -f $(BINARY)
 	$(QUIET)$(foreach O,$(CLEAN_FILES),rm -f $(O);)
 	$(QUIET)rm -rf $(INSTALL_DIR)/
 
 preinstall: clean build
-	@echo "[ ${GREEN}PRE${NC} ] Preinstall"
+	@echo "[ ${GREEN}PRE${NC}  ] Preinstall"
 	$(QUIET)mkdir $(INSTALL_DIR)/
 	$(QUIET)mkdir $(PREINSTALL_DIR)/
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/

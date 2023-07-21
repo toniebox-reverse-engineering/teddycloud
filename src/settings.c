@@ -70,7 +70,6 @@ OPTION_END()
 
 void settings_deinit()
 {
-    TRACE_INFO("Deinit Settings\r\n");
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
@@ -93,7 +92,6 @@ void settings_deinit()
 
 void settings_init()
 {
-    TRACE_INFO("Init Settings\r\n");
     int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
