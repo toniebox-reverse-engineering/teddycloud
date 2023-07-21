@@ -44,7 +44,7 @@
 
 // Default trace level
 #ifndef TRACE_LEVEL
-#define TRACE_LEVEL TRACE_LEVEL_WARNING
+#define TRACE_LEVEL TRACE_LEVEL_DEBUG
 #endif
 
 #ifdef TRACE_NOPATH_FILE
@@ -64,9 +64,9 @@
 #endif
 #ifndef TRACE_PRINTF_PREFIX
 #ifdef TRACE_COLORED
-#define TRACE_PRINTF_PREFIX(color, level) osSuspendAllTasks(), TRACE_PRINTF_NOSYNC("%s%-5s\x1b[0m|\x1b[90m%s:%d:%s()\x1b[0m|", color, level, __FILENAME__, __LINE__, __func__)
+#define TRACE_PRINTF_PREFIX(color, level) osSuspendAllTasks(), TRACE_PRINTF_NOSYNC("%s%-5s\x1b[0m|\x1b[90m%s:%04d:%s()\x1b[0m| ", color, level, __FILENAME__, __LINE__, __func__)
 #else
-#define TRACE_PRINTF_PREFIX(color, level) osSuspendAllTasks(), TRACE_PRINTF_NOSYNC("%-5s|%s:%i:%s|", level, __FILENAME__, __LINE__, __func__)
+#define TRACE_PRINTF_PREFIX(color, level) osSuspendAllTasks(), TRACE_PRINTF_NOSYNC("%-5s|%s:%04d:%s| ", level, __FILENAME__, __LINE__, __func__)
 #endif
 #endif
 
