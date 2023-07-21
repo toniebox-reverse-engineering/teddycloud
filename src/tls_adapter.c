@@ -160,18 +160,25 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
     /* check if the source setting contains a cert */
     const char *src_var_val = settings_get_string(src_var);
 
-    if (strlen(src_var_val))
+    if (src_var_val && strlen(src_var_val))
     {
         settings_set_string(dest_var, src_var_val);
     }
     else
     {
+        const char *src_filename = settings_get_string(src_file);
+        if (!src_filename)
+        {
+            TRACE_ERROR("Failed to look up '%s'\r\n", src_file);
+            return ERROR_FAILURE;
+        }
         char_t *serverCert = NULL;
         size_t serverCertLen = 0;
-        error_t error = readPemFile(settings_get_string(src_file), &serverCert, &serverCertLen, NULL);
+        error_t error = readPemFile(src_filename, &serverCert, &serverCertLen, NULL);
+
         if (error)
         {
-            TRACE_ERROR("Loading cert '%s' failed\r\n", settings_get_string(src_file));
+            TRACE_ERROR("Loading cert '%s' failed\r\n", src_filename);
             return error;
         }
         settings_set_string(dest_var, serverCert);
