@@ -128,6 +128,7 @@ INSTALL_DIR := install
 PREINSTALL_DIR := install/pre
 ZIP_DIR := install/zip
 
+
 # Location of your .proto files
 PROTO_DIR := proto
 PROTO_GEN_DIR := src/proto
@@ -149,10 +150,6 @@ HEADERS += $(PROTO_H_FILES)
 CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
 
 
-all: build
-
-build: $(BINARY)
-
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
 CLEAN_FILES += $(OBJECTS)
 
@@ -167,6 +164,28 @@ ifeq ($(VERBOSE),1)
 else
   QUIET=@
 endif
+
+
+all: check_dependencies build
+
+build: $(BINARY)
+
+.PHONY: check_dependencies
+check_dependencies:
+	@which protoc-c >/dev/null || (echo "${RED}Error:${NC} protoc-c not found. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install protobuf-c-compiler" && \
+	echo "  ${CYAN}Alpine:${NC} apk add protobuf" && \
+	exit 1)
+	@which gcc >/dev/null || (echo "${RED}Error:${NC} gcc not found. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install gcc" && \
+	echo "  ${CYAN}Alpine:${NC} apk add gcc" && \
+	exit 1)
+	@which openssl >/dev/null || (echo "${YELLOW}Warning:${NC} openssl not found, required for generating certificates. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install openssl" && \
+	echo "  ${CYAN}Alpine:${NC} apk add openssl")
+	@which faketime >/dev/null || (echo "${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime" && \
+	echo "  ${CYAN}Alpine:${NC} apk add faketime")
 
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
 	@echo "[ ${YELLOW}LD${NC}   ] ${CYAN}$@${NC}"
@@ -188,7 +207,7 @@ clean:
 	$(QUIET)$(foreach O,$(CLEAN_FILES),rm -f $(O);)
 	$(QUIET)rm -rf $(INSTALL_DIR)/
 
-preinstall: clean all
+preinstall: clean build
 	@echo "[ ${GREEN}PRE${NC} ] Preinstall"
 	$(QUIET)mkdir $(INSTALL_DIR)/
 	$(QUIET)mkdir $(PREINSTALL_DIR)/
@@ -200,9 +219,6 @@ zip: preinstall
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -
-
-time_test: $(BINARY)
-	$(BINARY) /v1/time
 
 .PHONY: auto
 auto:
