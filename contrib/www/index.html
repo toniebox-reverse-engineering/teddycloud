@@ -275,9 +275,16 @@
                     <div key={option.ID}>
                         {parts.slice(0, -1).map((part, index) => {
                             if (lastParts[index] !== part) {
-                                return (
-                                    <h4 style={{ marginLeft: `${index * 40}px` }} key={index}>Category {part}</h4>
-                                )
+                                if (index == 0) {
+                                    return (
+                                        <h3 style={{ marginLeft: `${index * 20}px`, marginBottom: "10px" }} key={index}>Category {part}</h3>
+                                    )
+                                } else {
+                                    return (
+                                        <h4 style={{ marginLeft: `${index * 10}px`, marginTop: "10px", marginBottom: "10px" }} key={index}>.{part}</h4>
+                                    )
+
+                                }
                             }
                             return null;
                         })}
@@ -287,19 +294,39 @@
             }
 
             renderOptionItem = (option) => {
+                const parts = option.ID.split('.');
+                const indent = (parts.length - 1) * 10; // Adjust multiplier as needed
+
                 switch (option.type) {
                     case 'bool':
-                        return <Checkbox id={option.ID} label={option.description} />
+                        return (
+                            <div style={{ marginLeft: `${indent}px` }}>
+                                <Checkbox id={option.ID} label={option.description} />
+                            </div>
+                        );
                     case 'int':
-                        return <IntegerInput id={option.ID} label={option.description} />
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <IntegerInput id={option.ID} label={option.description} />
+                            </div>
+                        );
                     case 'uint':
-                        return <IntegerInput id={option.ID} label={option.description} />
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <IntegerInput id={option.ID} label={option.description} />
+                            </div>
+                        );
                     case 'string':
-                        return <StringInput id={option.ID} label={option.description} />
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <StringInput id={option.ID} label={option.description} />
+                            </div>
+                        );
                     default:
                         return null;
                 }
             }
+
 
             render() {
                 return (
@@ -523,8 +550,6 @@
                 );
             }
         }
-
-
 
         ReactDOM.render(<App />, document.getElementById('root'));
 
