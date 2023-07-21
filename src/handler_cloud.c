@@ -337,8 +337,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
     error_t ret = NO_ERROR;
     char *query = strdup(connection->request.queryString);
     char *localUri = strdup(uri);
-
-    char *filename = strtok_r(&localUri[8], "?", &localUri);
+    char *savelocalUri = localUri;
+    char *filename = strtok_r(&localUri[8], "?", &savelocalUri);
     char *cv = strpbrk(query, "cv=");
     char *timestampTxt = cv ? strtok_r(&cv[3], "&", &cv) : NULL;
 
