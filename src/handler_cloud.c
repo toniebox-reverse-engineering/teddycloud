@@ -500,6 +500,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         {
             if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
             {
+                if (tonieInfo.nocloud)
+                {
+                    TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
+                }
+                else
+                {
+                    TRACE_INFO("No local content available and cloud access disabled\r\n");
+                }
                 httpPrepareHeader(connection, NULL, 0);
                 connection->response.statusCode = 404;
                 return httpWriteResponse(connection, NULL, false);
