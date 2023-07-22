@@ -376,11 +376,22 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 
 bool checkCustomTonie(char *ruid, uint8_t *token)
 {
-    if (Settings.cloud.markCustomTagByPass &&
-        (token[0] == 0 && token[1] == 0 && token[2] == 0 && token[3] == 0))
+    if (Settings.cloud.markCustomTagByPass)
     {
-        TRACE_INFO("Found possible custom tonie by password\r\n");
-        return true;
+        bool tokenIsZero = TRUE;
+        for (uint8_t i; i < 32; i++)
+        {
+            if (token[i] != 0)
+            {
+                tokenIsZero = FALSE;
+                break;
+            }
+        }
+        if (tokenIsZero)
+        {
+            TRACE_INFO("Found possible custom tonie by password\r\n");
+            return true;
+        }
     }
     if (Settings.cloud.markCustomTagByUid &&
         (ruid[15] != '0' || ruid[14] != 'E' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
