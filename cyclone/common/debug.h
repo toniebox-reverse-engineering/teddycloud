@@ -32,6 +32,7 @@
 // Dependencies
 #include <stdio.h>
 #include "os_port.h"
+#include "settings.h"
 
 // Trace level definitions
 #define TRACE_LEVEL_OFF 0
@@ -60,7 +61,7 @@
 #define TRACE_PRINTF_NOSYNC(...) fprintf(stderr, __VA_ARGS__)
 #endif
 #ifndef TRACE_PRINTF_RESUME
-#define TRACE_PRINTF_RESUME(...) fprintf(stderr, __VA_ARGS__), osResumeAllTasks()
+#define TRACE_PRINTF_RESUME(...) fprintf(stderr, __VA_ARGS__), osResumeAllTasks();
 #endif
 #ifndef TRACE_PRINTF_PREFIX
 #ifdef TRACE_COLORED
@@ -80,7 +81,11 @@
 
 // Debugging macros
 #if (TRACE_LEVEL >= TRACE_LEVEL_FATAL)
-#define TRACE_FATAL(...) TRACE_PRINTF_PREFIX("\x1b[35m", "FATAL"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_FATAL(...)                                                         \
+   if (Settings.log.level >= TRACE_LEVEL_FATAL)                                  \
+   {                                                                             \
+      TRACE_PRINTF_PREFIX("\x1b[35m", "FATAL"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_FATAL_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_FATAL_MPI(p, a) TRACE_MPI(p, a)
 #else
@@ -90,7 +95,11 @@
 #endif
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_ERROR)
-#define TRACE_ERROR(...) TRACE_PRINTF_PREFIX("\x1b[31m", "ERROR"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_ERROR(...)                                                         \
+   if (Settings.log.level >= TRACE_LEVEL_ERROR)                                  \
+   {                                                                             \
+      TRACE_PRINTF_PREFIX("\x1b[31m", "ERROR"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_ERROR_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_ERROR_MPI(p, a) TRACE_MPI(p, a)
 #else
@@ -100,7 +109,11 @@
 #endif
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_WARNING)
-#define TRACE_WARNING(...) TRACE_PRINTF_PREFIX("\x1b[33m", "WARN"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_WARNING(...)                                                      \
+   if (Settings.log.level >= TRACE_LEVEL_WARNING)                               \
+   {                                                                            \
+      TRACE_PRINTF_PREFIX("\x1b[33m", "WARN"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_WARNING_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_WARNING_MPI(p, a) TRACE_MPI(p, a)
 #else
@@ -110,7 +123,11 @@
 #endif
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_INFO)
-#define TRACE_INFO(...) TRACE_PRINTF_PREFIX("\x1b[32m", "INFO"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_INFO(...)                                                         \
+   if (Settings.log.level >= TRACE_LEVEL_INFO)                                  \
+   {                                                                            \
+      TRACE_PRINTF_PREFIX("\x1b[32m", "INFO"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_INFO_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_INFO_NET_BUFFER(p, b, o, n)
 #define TRACE_INFO_MPI(p, a) TRACE_MPI(p, a)
@@ -122,7 +139,11 @@
 #endif
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_DEBUG)
-#define TRACE_DEBUG(...) TRACE_PRINTF_PREFIX("\x1b[36m", "DEBUG"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_DEBUG(...)                                                         \
+   if (Settings.log.level >= TRACE_LEVEL_DEBUG)                                  \
+   {                                                                             \
+      TRACE_PRINTF_PREFIX("\x1b[36m", "DEBUG"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_DEBUG_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_DEBUG_NET_BUFFER(p, b, o, n)
 #define TRACE_DEBUG_MPI(p, a) TRACE_MPI(p, a)
@@ -134,7 +155,11 @@
 #endif
 
 #if (TRACE_LEVEL >= TRACE_LEVEL_VERBOSE)
-#define TRACE_VERBOSE(...) TRACE_PRINTF_PREFIX("\x1b[94m", "TRACE"), TRACE_PRINTF_RESUME(__VA_ARGS__)
+#define TRACE_VERBOSE(...)                                                       \
+   if (Settings.log.level >= TRACE_LEVEL_VERBOSE)                                \
+   {                                                                             \
+      TRACE_PRINTF_PREFIX("\x1b[94m", "TRACE"), TRACE_PRINTF_RESUME(__VA_ARGS__) \
+   }
 #define TRACE_VERBOSE_ARRAY(p, a, n) TRACE_ARRAY(p, a, n)
 #define TRACE_VERBOSE_NET_BUFFER(p, b, o, n)
 #define TRACE_VERBOSE_MPI(p, a) TRACE_MPI(p, a)
