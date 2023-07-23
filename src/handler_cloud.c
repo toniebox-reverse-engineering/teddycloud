@@ -471,15 +471,13 @@ static void strupr(char input[])
     }
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword)
 {
-    char ruid[18];
+    char ruid[17];
     uint8_t *token = connection->private.authentication_token;
 
-    if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
-    {
         osStrncpy(ruid, &uri[12], sizeof(ruid));
-        ruid[17] = 0;
+    ruid[16] = 0;
 
         if (connection->request.Range.start != 0)
         {
