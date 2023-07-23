@@ -10,7 +10,6 @@
             "cwd": "${workspaceFolder}/",
             "environment": [],
             "externalConsole": false,
-            "miDebuggerPath": "${workspaceFolder}/sudo_gdb.sh",
             "preLaunchTask": "build",
             "linux": {
                 "MIMode": "gdb",

@@ -1,2 +1,0 @@
-pkexec /usr/bin/gdb "$@"
-
