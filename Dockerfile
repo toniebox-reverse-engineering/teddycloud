@@ -1,7 +1,7 @@
 FROM ubuntu:latest as buildenv
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential faketime openssl \
+    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /buildenv
@@ -10,6 +10,10 @@ RUN make preinstall
 
 FROM ubuntu:latest
 EXPOSE 80 443
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends faketime openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /teddycloud/certs/server \
     && mkdir -p /teddycloud/www/CONTENT \
