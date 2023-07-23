@@ -85,12 +85,12 @@ static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char
 
     if (header)
     {
-        TRACE_DEBUG(" >> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+        TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
         osSprintf(line, "%s: %s\r\n", header, value);
     }
     else
     {
-        TRACE_DEBUG(" >> cbrCloudHeaderPassthrough: NULL\r\n");
+        TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
         osStrcpy(line, "\r\n");
     }
 
@@ -151,7 +151,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             {
                 error_t error = fsWriteFile(ctx->file, (void *)payload, length);
                 if (error)
-                    TRACE_ERROR(" >> fsWriteFile Error: %u\r\n", error);
+                    TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
             }
             if (error == ERROR_END_OF_STREAM)
             {
@@ -162,7 +162,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 osStrcat(tmpPath, ".tmp");
                 fsDeleteFile(ctx->tonieInfo.contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
-                TRACE_INFO(" >> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
@@ -202,7 +202,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_DEBUG(" >> cbrCloudServerDiscoPassthrough\r\n");
+    TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
     ctx->status = PROX_STATUS_DONE;
 }
 
@@ -272,7 +272,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
     {
         if (freeMemory)
             osFreeMem(data);
-        TRACE_ERROR("#%d Failed to send header\r\n", connection->socket->descriptor);
+        TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
@@ -282,14 +282,14 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
             osFreeMem(data);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("#%d Failed to send payload: %d\r\n", connection->socket->descriptor, error);
+        TRACE_ERROR("Failed to send payload: %d\r\n", error);
         return error;
     }
 
     error = httpCloseStream(connection);
-    if (error != NO_ERROR && error != ERROR_TIMEOUT)
+    if (error != NO_ERROR)
     {
-        TRACE_ERROR("#%d Failed to close: %d\r\n", connection->socket->descriptor, error);
+        TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
 
@@ -306,7 +306,7 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
 {
-    TRACE_INFO("#%d >> respond with current time\r\n", connection->socket->descriptor);
+    TRACE_INFO(" >> respond with current time\r\n");
 
     char response[32];
 
@@ -436,10 +436,10 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
 
     if (osStrlen(ruid) != 16)
     {
-        TRACE_WARNING("#%d >>  invalid URI\r\n", connection->socket->descriptor);
+        TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO("#%d >> client requested UID %s\r\n", connection->socket->descriptor, ruid);
-    TRACE_INFO("#%d >> client authenticated with %02X%02X%02X%02X...\r\n", connection->socket->descriptor, token[0], token[1], token[2], token[3]);
+    TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
@@ -480,18 +480,17 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         osStrncpy(ruid, &uri[12], sizeof(ruid));
         ruid[17] = 0;
 
-        // TODO check partial downloads here
         if (connection->request.Range.start != 0)
         {
-            TRACE_INFO("#%d >> client requested partial download\r\n", connection->socket->descriptor);
+            TRACE_INFO(" >> client requested partial download\r\n");
         }
 
         if (osStrlen(ruid) != 16)
         {
             TRACE_WARNING(" >>  invalid URI\r\n");
         }
-        TRACE_INFO("#%d >> client requested UID %s\r\n", connection->socket->descriptor, ruid);
-        TRACE_INFO("#%d >> client authenticated with %02X%02X%02X%02X...\r\n", connection->socket->descriptor, token[0], token[1], token[2], token[3]);
+        TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+        TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
         tonie_info_t tonieInfo;
         getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
@@ -509,18 +508,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
             error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
             if (error)
             {
-                switch (error)
-                {
-                    case ERROR_TIMEOUT:         TRACE_ERROR("#%d >> file %s not send, timeout!\r\n", connection->socket->descriptor, tonieInfo.contentPath); 
-                                                break;
-                    case ERROR_WRITE_FAILED:    TRACE_ERROR("#%d >> file %s not send, write failed!\r\n", connection->socket->descriptor, tonieInfo.contentPath); 
-                                                break;
-                    case ERROR_END_OF_FILE:     TRACE_ERROR("#%d >> file %s send, end of file reached!\r\n", connection->socket->descriptor, tonieInfo.contentPath); 
-                                                break;
-                    default:                    TRACE_ERROR("#%d >> file %s not available or not send, error=%u...\r\n", connection->socket->descriptor, tonieInfo.contentPath, error); 
-                                                break;
-                }
-                
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
                 return error;
             }
         }
@@ -566,14 +554,14 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
         error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("#%d httpReceive failed!", connection->socket->descriptor);
+            TRACE_ERROR("httpReceive failed!");
             return error;
         }
         TRACE_INFO("Content (%zu of %zu)\n", size, connection->request.byteCount);
         TonieFreshnessCheckRequest *freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t *)data);
         if (freshReq == NULL)
         {
-            TRACE_ERROR("#%d Unpacking freshness request failed!\r\n", connection->socket->descriptor);
+            TRACE_ERROR("Unpacking freshness request failed!\r\n");
         }
         else
         {

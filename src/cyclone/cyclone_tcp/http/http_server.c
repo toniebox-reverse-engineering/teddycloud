@@ -384,7 +384,7 @@ void httpConnectionTask(void *param)
       if(connection->settings->tlsInitCallback != NULL)
       {
          //Debug message
-         TRACE_INFO("#%d Initializing TLS session...\r\n", connection->socket->descriptor);
+         TRACE_INFO("Initializing TLS session...\r\n");
 
          //Start of exception handling block
          do
@@ -461,7 +461,7 @@ void httpConnectionTask(void *param)
          for(counter = 0; counter < HTTP_SERVER_MAX_REQUESTS; counter++)
          {
             //Debug message
-            TRACE_INFO("#%d Waiting for request...\r\n", connection->socket->descriptor);
+            TRACE_INFO("Waiting for request...\r\n");
 
             //Clear request header
             osMemset(&connection->request, 0, sizeof(HttpRequest));
@@ -474,7 +474,7 @@ void httpConnectionTask(void *param)
             if(error)
             {
                //Debug message
-               TRACE_INFO("#%d No HTTP request received or parsing error...\r\n", connection->socket->descriptor);
+               TRACE_INFO("No HTTP request received or parsing error...\r\n");
                break;
             }
 
@@ -523,7 +523,7 @@ void httpConnectionTask(void *param)
             }
 #endif
             //Debug message
-            TRACE_INFO("#%d Sending HTTP response to the client...\r\n", connection->socket->descriptor);
+            TRACE_INFO("Sending HTTP response to the client...\r\n");
 
             //Check status code
             if(!error)
@@ -631,7 +631,7 @@ void httpConnectionTask(void *param)
       if(connection->tlsContext != NULL)
       {
          //Debug message
-         TRACE_INFO("#%d Closing TLS session...\r\n", connection->socket->descriptor);
+         TRACE_INFO("Closing TLS session...\r\n");
 
          //Gracefully close TLS session
          tlsShutdown(connection->tlsContext);
@@ -644,12 +644,12 @@ void httpConnectionTask(void *param)
       if(connection->socket != NULL)
       {
          //Debug message
-         TRACE_INFO("#%d Graceful shutdown...\r\n", connection->socket->descriptor);
+         TRACE_INFO("Graceful shutdown...\r\n");
          //Graceful shutdown
          socketShutdown(connection->socket, SOCKET_SD_BOTH);
 
          //Debug message
-         TRACE_INFO("#%d Closing socket...\r\n", connection->socket->descriptor);
+         TRACE_INFO("Closing socket...\r\n");
          //Close socket
          socketClose(connection->socket);
       }
