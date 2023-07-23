@@ -31,61 +31,62 @@
 #ifndef _HTTP_SERVER_MISC_H
 #define _HTTP_SERVER_MISC_H
 
-//Dependencies
+// Dependencies
 #include "http/http_server.h"
 
-//C++ guard
+// C++ guard
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-//HTTP server related functions
-error_t httpReadRequestHeader(HttpConnection *connection);
-error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine);
+   // HTTP server related functions
+   error_t httpReadRequestHeader(HttpConnection *connection);
+   error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine);
 
-error_t httpReadHeaderField(HttpConnection *connection,
-   char_t *buffer, size_t size, char_t *firstChar);
+   error_t httpReadHeaderField(HttpConnection *connection,
+                               char_t *buffer, size_t size, char_t *firstChar);
 
-void httpParseHeaderField(HttpConnection *connection,
-   const char_t *name, char_t *value);
+   void httpParseHeaderField(HttpConnection *connection,
+                             const char_t *name, char_t *value);
 
-void httpParseConnectionField(HttpConnection *connection,
-   char_t *value);
+   void httpParseConnectionField(HttpConnection *connection,
+                                 char_t *value);
 
-void httpParseContentTypeField(HttpConnection *connection,
-   char_t *value);
+   void httpParseContentTypeField(HttpConnection *connection,
+                                  char_t *value);
 
-void httpParseAcceptEncodingField(HttpConnection *connection,
-   char_t *value);
+   void httpParseAcceptEncodingField(HttpConnection *connection,
+                                     char_t *value);
 
-void httpParseRangeField(HttpConnection *connection,
-   char_t *value);
+   void httpParseRangeField(HttpConnection *connection,
+                            char_t *value);
 
-void httpParseCookieField(HttpConnection *connection, char_t *value);
+   void httpParseCookieField(HttpConnection *connection, char_t *value);
 
-error_t httpReadChunkSize(HttpConnection *connection);
+   error_t httpReadChunkSize(HttpConnection *connection);
 
-void httpInitResponseHeader(HttpConnection *connection);
-error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer);
+   void httpInitResponseHeader(HttpConnection *connection);
+   error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer);
 
-error_t httpSend(HttpConnection *connection,
-   const void *data, size_t length, uint_t flags);
+   error_t httpSend(HttpConnection *connection,
+                    const void *data, size_t length, uint_t flags);
 
-error_t httpReceive(HttpConnection *connection,
-   void *data, size_t size, size_t *received, uint_t flags);
+   error_t httpReceive(HttpConnection *connection,
+                       void *data, size_t size, size_t *received, uint_t flags);
 
-void httpGetAbsolutePath(HttpConnection *connection,
-   const char_t *relative, char_t *absolute, size_t maxLen);
+   void httpGetAbsolutePath(HttpConnection *connection,
+                            const char_t *relative, char_t *absolute, size_t maxLen);
 
-bool_t httpCompExtension(const char_t *filename, const char_t *extension);
+   bool_t httpCompExtension(const char_t *filename, const char_t *extension);
 
-error_t httpDecodePercentEncodedString(const char_t *input,
-   char_t *output, size_t outputSize);
+   error_t httpDecodePercentEncodedString(const char_t *input,
+                                          char_t *output, size_t outputSize);
 
-void httpConvertArrayToHexString(const uint8_t *input,
-   size_t inputLen, char_t *output);
+   void httpConvertArrayToHexString(const uint8_t *input,
+                                    size_t inputLen, char_t *output);
 
-//C++ guard
+// C++ guard
 #ifdef __cplusplus
 }
 #endif

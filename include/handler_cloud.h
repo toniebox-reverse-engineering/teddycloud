@@ -28,5 +28,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri);
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri);
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri);
 error_t handleCloudClaim(HttpConnection *connection, const char_t *uri);
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri);
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword);
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri);
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri);
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri);

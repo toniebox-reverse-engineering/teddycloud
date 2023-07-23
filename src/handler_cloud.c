@@ -175,6 +175,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
 
             // TODO: Check if size is stable and this is obsolete
+            // TODO Add live tonies here, too : freshResp.tonie_marked
             if (ctx->bufferLen < packSize)
             {
                 TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
@@ -438,7 +439,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+    TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
@@ -470,73 +471,85 @@ static void strupr(char input[])
     }
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword)
 {
-    char ruid[18];
+    char ruid[17];
     uint8_t *token = connection->private.authentication_token;
 
-    if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+    osStrncpy(ruid, &uri[12], sizeof(ruid));
+    ruid[16] = 0;
+
+    if (connection->request.Range.start != 0)
     {
-        osStrncpy(ruid, &uri[12], sizeof(ruid));
-        ruid[17] = 0;
+        TRACE_INFO(" >> client requested partial download\r\n");
+    }
 
-        if (connection->request.Range.start != 0)
+    if (osStrlen(ruid) != 16)
+    {
+        TRACE_WARNING(" >>  invalid URI\r\n");
+    }
+    TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
+    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
+
+    tonie_info_t tonieInfo;
+    getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
+    tonieInfo = getTonieInfo(tonieInfo.contentPath);
+
+    if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token))
+    {
+        tonieInfo.nocloud = true;
+        markCustomTonie(&tonieInfo);
+    }
+
+    if (tonieInfo.exists)
+    {
+        connection->response.keepAlive = true;
+        error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
+        if (error)
         {
-            TRACE_INFO(" >> client requested partial download\r\n");
+            TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
+            return error;
         }
-
-        if (osStrlen(ruid) != 16)
+    }
+    else
+    {
+        if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
         {
-            TRACE_WARNING(" >>  invalid URI\r\n");
-        }
-        TRACE_INFO(" >> client requested UID %s\r\n", ruid);
-        TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
-
-        tonie_info_t tonieInfo;
-        getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
-        tonieInfo = getTonieInfo(tonieInfo.contentPath);
-
-        if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
-        {
-            tonieInfo.nocloud = true;
-            markCustomTonie(&tonieInfo);
-        }
-
-        if (tonieInfo.exists)
-        {
-            connection->response.keepAlive = true;
-            error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
-            if (error)
+            if (tonieInfo.nocloud)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
-                return error;
-            }
-        }
-        else
-        {
-            if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
-            {
-                if (tonieInfo.nocloud)
-                {
-                    TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
-                }
-                else
-                {
-                    TRACE_INFO("No local content available and cloud access disabled\r\n");
-                }
-                httpPrepareHeader(connection, NULL, 0);
-                connection->response.statusCode = 404;
-                return httpWriteResponse(connection, NULL, false);
+                TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
             }
             else
             {
-                connection->response.keepAlive = true;
-                cbr_ctx_t ctx;
-                req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
-                cloud_request_get(NULL, 0, uri, token, &cbr);
-                return NO_ERROR;
+                TRACE_INFO("No local content available and cloud access disabled\r\n");
             }
+            httpPrepareHeader(connection, NULL, 0);
+            connection->response.statusCode = 404;
+            return httpWriteResponse(connection, NULL, false);
         }
+        else
+        {
+            connection->response.keepAlive = true;
+            cbr_ctx_t ctx;
+            req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
+            cloud_request_get(NULL, 0, uri, token, &cbr);
+        }
+    }
+    return NO_ERROR;
+}
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri)
+{
+    return handleCloudContent(connection, uri, TRUE);
+}
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri)
+{
+    if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
+    {
+        return handleCloudContent(connection, uri, FALSE);
+    }
+    else
+    {
+        TRACE_WARNING("Missing auth for content v2: %s", uri);
     }
     return NO_ERROR;
 }
