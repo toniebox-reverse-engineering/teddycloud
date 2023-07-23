@@ -249,7 +249,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
             if (status)
             {
-                TRACE_DEBUG("HTTP code: %u\r\n", status);
+                TRACE_INFO("HTTP code: %u\r\n", status);
             }
             char content_type[64];
 
@@ -295,7 +295,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             }
             else
             {
-                TRACE_DEBUG("Binary data, not dumping body\r\n");
+                TRACE_INFO("Binary data, not dumping body\r\n");
             }
 
             size_t maxSize = 4096;
@@ -338,7 +338,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to read HTTP response trailer!\r\n");
+                TRACE_INFO("Failed to read HTTP response trailer!\r\n");
                 stats_update("cloud_failed", 1);
                 break;
             }
@@ -351,7 +351,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             }
 
             // Debug message
-            TRACE_DEBUG("Connection closed\r\n");
+            TRACE_INFO("Connection closed\r\n");
         } while (0);
 
         if (success)
