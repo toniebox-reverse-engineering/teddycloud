@@ -47,7 +47,7 @@ typedef enum
  * @param[in] fp The file to read from
  * @return The length read from the file
  */
-uint32_t readDerLength(FILE *fp)
+uint32_t der_get_length(FILE *fp)
 {
     uint8_t len;
     fread(&len, 1, 1, fp);
@@ -78,7 +78,7 @@ uint32_t readDerLength(FILE *fp)
  * @param[in] filename The name of the file to check
  * @return The type of the DER data in the file, or eDerTypeUnknown if the type could not be determined
  */
-eDerType checkDerFile(const char *filename)
+eDerType der_detect(const char *filename)
 {
     eDerType ret = eDerTypeUnknown;
 
@@ -97,7 +97,7 @@ eDerType checkDerFile(const char *filename)
         return eDerTypeUnknown;
     }
 
-    readDerLength(fp); // Read the length of the SEQUENCE
+    der_get_length(fp); // Read the length of the SEQUENCE
 
     fread(&tag, 1, 1, fp); // Read the next tag
 
@@ -121,7 +121,7 @@ eDerType checkDerFile(const char *filename)
  * @param[out] buffer Memory buffer that holds the contents of the file
  * @param[out] length Length of the file in bytes
  **/
-error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length)
+error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length)
 {
     int_t ret;
     error_t error;
@@ -133,12 +133,12 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length)
 
     if (!filename)
     {
-        TRACE_ERROR("readPemFile() Filename NULL\r\n");
+        TRACE_ERROR("Filename NULL\r\n");
         return ERROR_READ_FAILED;
     }
 
     const char_t *type = NULL;
-    eDerType derType = checkDerFile(filename);
+    eDerType derType = der_detect(filename);
 
     switch (derType)
     {
@@ -280,7 +280,7 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
         }
         char_t *serverCert = NULL;
         size_t serverCertLen = 0;
-        error_t error = readPemFile(src_filename, &serverCert, &serverCertLen);
+        error_t error = read_certificate(src_filename, &serverCert, &serverCertLen);
 
         if (error)
         {
