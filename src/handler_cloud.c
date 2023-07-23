@@ -438,7 +438,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+    TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
@@ -489,7 +489,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         {
             TRACE_WARNING(" >>  invalid URI\r\n");
         }
-        TRACE_INFO(" >> client requested UID %s\r\n", ruid);
+        TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
         TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
         tonie_info_t tonieInfo;
