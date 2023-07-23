@@ -6,6 +6,7 @@ INCLUDES = \
 	-Iinclude \
 	-Iinclude/protobuf-c \
 	-Isrc/proto \
+	-Isrc/cyclone/common \
 	-Isrc/cyclone/cyclone_tcp \
 	-Icyclone/common \
 	-Icyclone/cyclone_ssl \
@@ -102,12 +103,14 @@ CYCLONE_SOURCES = \
 
 # remove cyclone sources for which modifications exist
 CYCLONE_SOURCES := $(filter-out \
+	cyclone/common/debug.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
+	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
