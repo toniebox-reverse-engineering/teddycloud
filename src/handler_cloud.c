@@ -480,6 +480,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         osStrncpy(ruid, &uri[12], sizeof(ruid));
         ruid[17] = 0;
 
+        if (connection->request.Range.start != 0)
+        {
+            TRACE_INFO(" >> client requested partial download\r\n");
+        }
+
         if (osStrlen(ruid) != 16)
         {
             TRACE_WARNING(" >>  invalid URI\r\n");
