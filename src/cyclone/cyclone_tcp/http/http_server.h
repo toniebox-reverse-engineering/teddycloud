@@ -467,9 +467,9 @@ extern "C"
     */
    typedef struct
    {
-      long start;
-      long end;
-      long size;
+      uint64_t start;
+      uint64_t end;
+      uint64_t size;
    } HttpRangeHeader;
 
    /**
