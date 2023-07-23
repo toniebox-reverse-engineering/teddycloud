@@ -211,6 +211,7 @@
    #error HTTP_SERVER_HOST_MAX_LEN parameter is not valid
 #endif
 
+// HTTP 206 ifRange
 #ifndef HTTP_SERVER_IFRANGE_MAX_LEN
    #define HTTP_SERVER_IFRANGE_MAX_LEN 31
 #elif (HTTP_SERVER_IFRANGE_MAX_LEN < 7)

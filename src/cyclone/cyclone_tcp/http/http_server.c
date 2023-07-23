@@ -1035,6 +1035,7 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
    }
 #endif
 
+   //Format HTTP response header
    //TODO add status 416 on invalid ranges
    if (connection->request.Range.start > 0)
    {
