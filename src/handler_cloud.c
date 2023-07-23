@@ -175,6 +175,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
             size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
 
             // TODO: Check if size is stable and this is obsolete
+            // TODO Add live tonies here, too : freshResp.tonie_marked
             if (ctx->bufferLen < packSize)
             {
                 TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
