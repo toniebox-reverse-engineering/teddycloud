@@ -27,12 +27,101 @@ TlsCache *tlsCache;
 YarrowContext yarrowContext;
 
 /**
+ * @enum eDerType
+ * @brief Enumeration for the types of DER data
+ */
+typedef enum
+{
+    eDerTypeUnknown,
+    eDerTypeKey,
+    eDerTypeCertificate
+} eDerType;
+
+/**
+ * @brief Reads a length field from ASN.1 DER data
+ *
+ * This function reads a length field from ASN.1 DER data from the given file.
+ * The length is encoded either in short form (single byte) or long form
+ * (multiple bytes with the high bit set in the first byte).
+ *
+ * @param[in] fp The file to read from
+ * @return The length read from the file
+ */
+uint32_t readDerLength(FILE *fp)
+{
+    uint8_t len;
+    fread(&len, 1, 1, fp);
+    if ((len & 0x80) == 0)
+    {
+        return len; // Short form
+    }
+    else
+    {
+        uint8_t num_bytes = len & 0x7f; // Long form
+        uint32_t length = 0;
+        for (uint8_t i = 0; i < num_bytes; i++)
+        {
+            fread(&len, 1, 1, fp);
+            length = (length << 8) | len;
+        }
+        return length;
+    }
+}
+
+/**
+ * @brief Determines the type of DER data in a file
+ *
+ * This function attempts to determine whether the given file contains
+ * an X.509 certificate or an RSA private key encoded in ASN.1 DER format.
+ * The type is determined based on the first few bytes of the data.
+ *
+ * @param[in] filename The name of the file to check
+ * @return The type of the DER data in the file, or eDerTypeUnknown if the type could not be determined
+ */
+eDerType checkDerFile(const char *filename)
+{
+    eDerType ret = eDerTypeUnknown;
+
+    FILE *fp = fopen(filename, "rb");
+    if (!fp)
+    {
+        return eDerTypeUnknown;
+    }
+
+    uint8_t tag;
+    fread(&tag, 1, 1, fp); // Read the first tag
+
+    if (tag != 0x30)
+    {
+        fclose(fp);
+        return eDerTypeUnknown;
+    }
+
+    readDerLength(fp); // Read the length of the SEQUENCE
+
+    fread(&tag, 1, 1, fp); // Read the next tag
+
+    if (tag == 0x30)
+    {
+        ret = eDerTypeCertificate;
+    }
+    else if (tag == 0x02)
+    {
+        ret = eDerTypeKey;
+    }
+
+    fclose(fp);
+
+    return ret;
+}
+
+/**
  * @brief Load the specified PEM file
  * @param[in] filename Name of the PEM file to load
  * @param[out] buffer Memory buffer that holds the contents of the file
  * @param[out] length Length of the file in bytes
  **/
-error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, const char_t *type)
+error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length)
 {
     int_t ret;
     error_t error;
@@ -48,7 +137,25 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
         return ERROR_READ_FAILED;
     }
 
-    // Start of exception handling block
+    const char_t *type = NULL;
+    eDerType derType = checkDerFile(filename);
+
+    switch (derType)
+    {
+    case eDerTypeCertificate:
+        type = "CERTIFICATE";
+        TRACE_INFO("File '%s' detected as DER style %s\r\n", filename, type);
+        break;
+    case eDerTypeKey:
+        type = "RSA PRIVATE KEY";
+        TRACE_INFO("File '%s' detected as DER style %s\r\n", filename, type);
+        break;
+    default:
+        TRACE_INFO("File '%s' assumed PEM style\r\n", filename);
+        type = NULL;
+        break;
+    }
+
     do
     {
         // Open the specified file
@@ -98,8 +205,6 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
 
         // Successful processing
         error = NO_ERROR;
-
-        // End of exception handling block
     } while (0);
 
     // Close file
@@ -139,6 +244,7 @@ error_t readPemFile(const char_t *filename, char_t **buffer, size_t *length, con
 
         free(inBuf);
 
+        /* replace output data with generated ascii string */
         *buffer = outBuf;
         *length = outBufLen;
     }
@@ -174,7 +280,7 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
         }
         char_t *serverCert = NULL;
         size_t serverCertLen = 0;
-        error_t error = readPemFile(src_filename, &serverCert, &serverCertLen, NULL);
+        error_t error = readPemFile(src_filename, &serverCert, &serverCertLen);
 
         if (error)
         {
