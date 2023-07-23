@@ -1,4 +1,6 @@
 
+#define TRACE_LEVEL TRACE_LEVEL_WARNING
+
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -18,11 +20,13 @@
 #include "http/http_server_misc.h"
 #include "rng/yarrow.h"
 #include "tls_adapter.h"
-
+#include "settings.h"
 #include "debug.h"
 
 #include "cloud_request.h"
 #include "handler_cloud.h"
+#include "handler_reverse.h"
+#include "handler_api.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -50,12 +54,22 @@ error_t handleWww(HttpConnection *connection, const char_t *uri)
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
-    //    {REQ_ANY, "/reverse", &handle_reverse},
+    /* reverse proxy handler */
+    {REQ_ANY, "/reverse", &handleReverse},
+    /* web interface directory */
     {REQ_GET, "/www", &handleWww},
+    /* custom API */
+    {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/trigger", &handleApiTrigger},
+    {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_GET, "/api/get/", &handleApiGet},
+    {REQ_POST, "/api/set/", &handleApiSet},
+    /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
-    {REQ_GET, "/v2/content", &handleCloudContent},
+    {REQ_GET, "/v1/content", &handleCloudContentV1},
+    {REQ_GET, "/v2/content", &handleCloudContentV2},
     {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
     {REQ_POST, "/v1/log", &handleCloudLog}};
 
@@ -187,88 +201,18 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
     return NO_ERROR;
 }
 
-#define PROX_STATUS_IDLE 0
-#define PROX_STATUS_CONN 1
-#define PROX_STATUS_HEAD 2
-#define PROX_STATUS_BODY 3
-#define PROX_STATUS_DONE 4
-
-typedef struct
-{
-    uint32_t status;
-    HttpConnection *connection;
-} cbr_ctx_t;
-
-void httpServerResponseCbr(void *ctx_in)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-    char line[128];
-
-    osSprintf(line, "HTTP/%u.%u %u This is fine", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
-
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-
-    ctx->status = PROX_STATUS_CONN;
-}
-
-void httpServerHeaderCbr(void *ctx_in, const char *header, const char *value)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-    char line[128];
-
-    if (header)
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
-
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-
-    ctx->status = PROX_STATUS_HEAD;
-}
-
-void httpServerBodyCbr(void *ctx_in, const char *payload, size_t length)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-
-    TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
-    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-
-    ctx->status = PROX_STATUS_BODY;
-}
-
-void httpServerDiscCbr(void *ctx_in)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)ctx_in;
-
-    TRACE_INFO(">> httpServerDiscCbr\r\n");
-    ctx->status = PROX_STATUS_DONE;
-}
-
 error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
-    if (connection->tlsContext != NULL && connection->tlsContext->cert != NULL)
+    stats_update("connections", 1);
+
+    if (strlen(connection->tlsContext->client_cert_issuer))
     {
-        if (connection->tlsContext->clientCertRequested)
-        {
-            TRACE_INFO(" Client cert requested\n");
-        }
-        TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
-        for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
-        {
-            TRACE_INFO(" ID: %li CertType=%i \n", i, connection->tlsContext->certs[i].type);
-        }
-    }
-    else
-    {
-        TRACE_INFO(" No Cert or TLS \n");
+        TRACE_INFO("Certificate authentication:\r\n");
+        TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
+        TRACE_INFO("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
+        TRACE_INFO("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
@@ -281,102 +225,20 @@ httpServerRequestCallback(HttpConnection *connection,
         }
     }
 
-    if (!osStrncmp("/reverse", uri, 8))
+    if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
     {
-        cbr_ctx_t ctx = {
-            .status = PROX_STATUS_IDLE,
-            .connection = connection};
-
-        req_cbr_t cbr = {
-            .ctx = &ctx,
-            .response = &httpServerResponseCbr,
-            .header = &httpServerHeaderCbr,
-            .body = &httpServerBodyCbr,
-            .disconnect = &httpServerDiscCbr};
-
-        /* here call cloud request, which has to get extended for cbr for header fields and content packets */
-        uint8_t *token = connection->private.authentication_token;
-        error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
-        if (error != NO_ERROR)
-        {
-            TRACE_ERROR("cloud_request_get() failed");
-            return error;
-        }
-
-        TRACE_INFO("httpServerRequestCallback: (waiting)\n");
-        while (ctx.status != PROX_STATUS_DONE)
-        {
-            sleep(100);
-        }
-        error = httpCloseStream(connection);
-
-        TRACE_INFO("httpServerRequestCallback: (done)\n");
-        return NO_ERROR;
-    }
-    else
-    {
-        if (1 == 0)
-        {
-            const char *response = "<html><head></head><body>No content for you</body></html>";
-
-            httpInitResponseHeader(connection);
-            connection->response.contentType = "text/html";
-            connection->response.contentLength = osStrlen(response);
-
-            error_t error = httpWriteHeader(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send header");
-                return error;
-            }
-
-            error = httpWriteStream(connection, response, connection->response.contentLength);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to send payload");
-                return error;
-            }
-
-            error = httpCloseStream(connection);
-            if (error != NO_ERROR)
-            {
-                TRACE_ERROR("Failed to close");
-                return error;
-            }
-
-            TRACE_INFO("httpServerRequestCallback: (done)\n");
-            return NO_ERROR;
-        }
+        return httpSendResponse(connection, "index.html");
     }
 
-    const char *response = "<html><head><title>Nothing found here</title></head><body>There is nothing to see</body></html>";
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/html";
-    connection->response.contentLength = osStrlen(response);
-
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header");
-        return error;
-    }
-
-    TRACE_INFO(" >> ERROR_NOT_FOUND\n");
-    return NO_ERROR;
+    char dest[128];
+    snprintf(dest, sizeof(dest), "www/%s", uri);
+    return httpSendResponse(connection, dest);
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
                                       const char_t *uri)
 {
-    TRACE_INFO("httpServerUriNotFoundCallback: %s (ignoring)\n", uri);
-    return ERROR_NOT_FOUND;
+    return httpSendResponse(connection, "404.html");
 }
 
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
@@ -385,7 +247,7 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     {
         if (strlen(value) != 3 + 2 * AUTH_TOKEN_LENGTH)
         {
-            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
+            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
             return;
         }
         for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
@@ -420,7 +282,7 @@ HttpAccessStatus httpServerAuthCallback(HttpConnection *connection, const char_t
 
 size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 {
-    TRACE_INFO("httpAddAuthenticateField\n");
+    TRACE_INFO("httpAddAuthenticateField\r\n");
     return 0;
 }
 
@@ -428,7 +290,7 @@ error_t httpServerCgiCallback(HttpConnection *connection,
                               const char_t *param)
 {
     // Not implemented
-    TRACE_INFO("httpServerCgiCallback: %s\n", param);
+    TRACE_INFO("httpServerCgiCallback: %s\r\n", param);
     return NO_ERROR;
 }
 
@@ -461,19 +323,20 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Import server's certificate
+    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *server_key = settings_get_string("internal.server.key");
 
-    error = tlsAddCertificate(tlsContext, serverCert, serverCertLen, serverKey, serverKeyLen);
-    // Any error to report?
+    if (!server_crt || !server_key)
+    {
+        TRACE_ERROR("Failed to get certificates\r\n");
+        return ERROR_FAILURE;
+    }
+
+    error = tlsAddCertificate(tlsContext, server_crt, strlen(server_crt), server_key, strlen(server_key));
+
     if (error)
     {
-        if (error == ERROR_BAD_CERTIFICATE)
-        {
-            TRACE_INFO("Adding certificate failed: ERROR_BAD_CERTIFICATE\n");
-        }
-        else
-        {
-            TRACE_INFO("Adding certificate failed: %d\n", error);
-        }
+        TRACE_ERROR("  Failed to add cert: %d\r\n", error);
         return error;
     }
 
@@ -483,6 +346,8 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 
 void server_init()
 {
+    settings_set_bool("internal.exit", FALSE);
+
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;
     HttpServerContext http_context;
@@ -500,37 +365,43 @@ void server_init()
     http_settings.requestCallback = httpServerRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
-    http_settings.port = 80;
+    http_settings.port = settings_get_unsigned("core.server.http_port");
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
-    https_settings.port = 443;
+    https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTP failed\n");
+        TRACE_ERROR("httpServerInit() for HTTP failed\r\n");
         return;
     }
     if (httpServerInit(&https_context, &https_settings) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS failed\n");
+        TRACE_ERROR("httpServerInit() for HTTPS failed\r\n");
         return;
     }
     if (httpServerStart(&http_context) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTP failed\n");
+        TRACE_ERROR("httpServerStart() for HTTP failed\r\n");
         return;
     }
     if (httpServerStart(&https_context) != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTPS failed\n");
+        TRACE_ERROR("httpServerStart() for HTTPS failed\r\n");
         return;
     }
 
-    while (1)
+    while (!settings_get_bool("internal.exit"))
     {
-        sleep(100);
+        usleep(100000);
     }
+
+    int ret = settings_get_signed("internal.returncode");
+    TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
+    usleep(100000);
+
+    exit(ret);
 }

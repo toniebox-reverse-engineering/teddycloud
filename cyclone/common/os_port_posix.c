@@ -26,21 +26,25 @@
  * @version 2.2.0
  **/
 
-//Switch to the appropriate trace level
+// Switch to the appropriate trace level
 #define TRACE_LEVEL TRACE_LEVEL_OFF
 
-//Dependencies
+// Dependencies
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "os_port.h"
 #include "os_port_posix.h"
 #include "debug.h"
 
-//Pthread start routine
-typedef void *(*PthreadTaskCode) (void *param);
-
+// Pthread start routine
+typedef void *(*PthreadTaskCode)(void *param);
 
 /**
  * @brief Kernel initialization
@@ -48,9 +52,8 @@ typedef void *(*PthreadTaskCode) (void *param);
 
 void osInitKernel(void)
 {
-   //Not implemented
+   // Not implemented
 }
-
 
 /**
  * @brief Start kernel
@@ -58,9 +61,8 @@ void osInitKernel(void)
 
 void osStartKernel(void)
 {
-   //Not implemented
+   // Not implemented
 }
-
 
 /**
  * @brief Create a task
@@ -73,25 +75,24 @@ void osStartKernel(void)
  **/
 
 OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode,
-   void *param, size_t stackSize, int_t priority)
+                      void *param, size_t stackSize, int_t priority)
 {
    int_t ret;
    pthread_t thread;
 
-   //Create a new thread
-   ret = pthread_create(&thread, NULL, (PthreadTaskCode) taskCode, param);
+   // Create a new thread
+   ret = pthread_create(&thread, NULL, (PthreadTaskCode)taskCode, param);
 
-   //Return a pointer to the newly created thread
-   if(ret == 0)
+   // Return a pointer to the newly created thread
+   if (ret == 0)
    {
-      return (OsTaskId) thread;
+      return (OsTaskId)thread;
    }
    else
    {
       return OS_INVALID_TASK_ID;
    }
 }
-
 
 /**
  * @brief Delete a task
@@ -100,10 +101,10 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode,
 
 void osDeleteTask(OsTaskId taskId)
 {
-   //Delete the calling thread?
-   if(taskId == OS_SELF_TASK_ID)
+   // Delete the calling thread?
+   if (taskId == OS_SELF_TASK_ID)
    {
-      //Kill ourselves
+      // Kill ourselves
       pthread_exit(NULL);
    }
    else
@@ -121,10 +122,9 @@ void osDeleteTask(OsTaskId taskId)
 
 void osDelayTask(systime_t delay)
 {
-   //Delay the task for the specified duration
+   // Delay the task for the specified duration
    usleep(delay * 1000);
 }
-
 
 /**
  * @brief Yield control to the next task
@@ -132,9 +132,11 @@ void osDelayTask(systime_t delay)
 
 void osSwitchTask(void)
 {
-   //Not implemented
+   // Not implemented
 }
 
+static pthread_mutex_t mutex;
+static bool isMutexInitialized = false;
 
 /**
  * @brief Suspend scheduler activity
@@ -142,9 +144,14 @@ void osSwitchTask(void)
 
 void osSuspendAllTasks(void)
 {
-   //Not implemented
-}
+   if (!isMutexInitialized)
+   {
+      pthread_mutex_init(&mutex, NULL);
+      isMutexInitialized = true;
+   }
 
+   pthread_mutex_lock(&mutex);
+}
 
 /**
  * @brief Resume scheduler activity
@@ -152,9 +159,15 @@ void osSuspendAllTasks(void)
 
 void osResumeAllTasks(void)
 {
-   //Not implemented
-}
+   if (!isMutexInitialized)
+   {
+      pthread_mutex_init(&mutex, NULL);
+      isMutexInitialized = true;
+      return;
+   }
 
+   pthread_mutex_unlock(&mutex);
+}
 
 /**
  * @brief Create an event object
@@ -167,11 +180,11 @@ bool_t osCreateEvent(OsEvent *event)
 {
    int_t ret;
 
-   //Create a semaphore object
+   // Create a semaphore object
    ret = sem_init(event, 0, 0);
 
-   //Check whether the semaphore was successfully created
-   if(ret == 0)
+   // Check whether the semaphore was successfully created
+   if (ret == 0)
    {
       return TRUE;
    }
@@ -181,7 +194,6 @@ bool_t osCreateEvent(OsEvent *event)
    }
 }
 
-
 /**
  * @brief Delete an event object
  * @param[in] event Pointer to the event object
@@ -189,10 +201,9 @@ bool_t osCreateEvent(OsEvent *event)
 
 void osDeleteEvent(OsEvent *event)
 {
-   //Properly dispose the event object
+   // Properly dispose the event object
    sem_destroy(event);
 }
-
 
 /**
  * @brief Set the specified event object to the signaled state
@@ -204,17 +215,16 @@ void osSetEvent(OsEvent *event)
    int_t ret;
    int_t value;
 
-   //Get the current value of the semaphore
+   // Get the current value of the semaphore
    ret = sem_getvalue(event, &value);
 
-   //Nonsignaled state?
-   if(ret == 0 && value == 0)
+   // Nonsignaled state?
+   if (ret == 0 && value == 0)
    {
-      //Set the specified event to the signaled state
+      // Set the specified event to the signaled state
       sem_post(event);
    }
 }
-
 
 /**
  * @brief Set the specified event object to the nonsignaled state
@@ -225,16 +235,15 @@ void osResetEvent(OsEvent *event)
 {
    int_t ret;
 
-   //Force the specified event to the nonsignaled state
+   // Force the specified event to the nonsignaled state
    do
    {
-      //Decrement the semaphore's count by one
+      // Decrement the semaphore's count by one
       ret = sem_trywait(event);
 
-      //Check status
-   } while(ret == 0);
+      // Check status
+   } while (ret == 0);
 }
-
 
 /**
  * @brief Wait until the specified event is in the signaled state
@@ -249,60 +258,59 @@ bool_t osWaitForEvent(OsEvent *event, systime_t timeout)
    int_t ret;
    struct timespec ts;
 
-   //Wait until the specified event is in the signaled state or the timeout
-   //interval elapses
-   if(timeout == 0)
+   // Wait until the specified event is in the signaled state or the timeout
+   // interval elapses
+   if (timeout == 0)
    {
-      //Non-blocking call
+      // Non-blocking call
       ret = sem_trywait(event);
    }
-   else if(timeout == INFINITE_DELAY)
+   else if (timeout == INFINITE_DELAY)
    {
-      //Infinite timeout period
+      // Infinite timeout period
       ret = sem_wait(event);
    }
    else
    {
-      //Get current time
+      // Get current time
       clock_gettime(CLOCK_REALTIME, &ts);
 
-      //Set absolute timeout
+      // Set absolute timeout
       ts.tv_sec += timeout / 1000;
       ts.tv_nsec += (timeout % 1000) * 1000000;
 
-      //Normalize time stamp value
-      if(ts.tv_nsec >= 1000000000)
+      // Normalize time stamp value
+      if (ts.tv_nsec >= 1000000000)
       {
          ts.tv_sec += 1;
          ts.tv_nsec -= 1000000000;
       }
 
-      //Wait until the specified event becomes set
+      // Wait until the specified event becomes set
       ret = sem_timedwait(event, &ts);
    }
 
-   //Check whether the specified event is set
-   if(ret == 0)
+   // Check whether the specified event is set
+   if (ret == 0)
    {
-      //Force the event back to the nonsignaled state
+      // Force the event back to the nonsignaled state
       do
       {
-         //Decrement the semaphore's count by one
+         // Decrement the semaphore's count by one
          ret = sem_trywait(event);
 
-         //Check status
-      } while(ret == 0);
+         // Check status
+      } while (ret == 0);
 
-      //The specified event is in the signaled state
+      // The specified event is in the signaled state
       return TRUE;
    }
    else
    {
-      //The timeout interval elapsed
+      // The timeout interval elapsed
       return FALSE;
    }
 }
-
 
 /**
  * @brief Set an event object to the signaled state from an interrupt service routine
@@ -313,10 +321,9 @@ bool_t osWaitForEvent(OsEvent *event, systime_t timeout)
 
 bool_t osSetEventFromIsr(OsEvent *event)
 {
-   //Not implemented
+   // Not implemented
    return FALSE;
 }
-
 
 /**
  * @brief Create a semaphore object
@@ -331,11 +338,11 @@ bool_t osCreateSemaphore(OsSemaphore *semaphore, uint_t count)
 {
    int_t ret;
 
-   //Create a semaphore object
+   // Create a semaphore object
    ret = sem_init(semaphore, 0, count);
 
-   //Check whether the semaphore was successfully created
-   if(ret == 0)
+   // Check whether the semaphore was successfully created
+   if (ret == 0)
    {
       return TRUE;
    }
@@ -345,7 +352,6 @@ bool_t osCreateSemaphore(OsSemaphore *semaphore, uint_t count)
    }
 }
 
-
 /**
  * @brief Delete a semaphore object
  * @param[in] semaphore Pointer to the semaphore object
@@ -353,10 +359,9 @@ bool_t osCreateSemaphore(OsSemaphore *semaphore, uint_t count)
 
 void osDeleteSemaphore(OsSemaphore *semaphore)
 {
-   //Properly dispose the semaphore object
+   // Properly dispose the semaphore object
    sem_destroy(semaphore);
 }
-
 
 /**
  * @brief Wait for the specified semaphore to be available
@@ -371,39 +376,39 @@ bool_t osWaitForSemaphore(OsSemaphore *semaphore, systime_t timeout)
    int_t ret;
    struct timespec ts;
 
-   //Wait until the semaphore is available or the timeout interval elapses
-   if(timeout == 0)
+   // Wait until the semaphore is available or the timeout interval elapses
+   if (timeout == 0)
    {
-      //Non-blocking call
+      // Non-blocking call
       ret = sem_trywait(semaphore);
    }
-   else if(timeout == INFINITE_DELAY)
+   else if (timeout == INFINITE_DELAY)
    {
-      //Infinite timeout period
+      // Infinite timeout period
       ret = sem_wait(semaphore);
    }
    else
    {
-      //Get current time
+      // Get current time
       clock_gettime(CLOCK_REALTIME, &ts);
 
-      //Set absolute timeout
+      // Set absolute timeout
       ts.tv_sec += timeout / 1000;
       ts.tv_nsec += (timeout % 1000) * 1000000;
 
-      //Normalize time stamp value
-      if(ts.tv_nsec >= 1000000000)
+      // Normalize time stamp value
+      if (ts.tv_nsec >= 1000000000)
       {
          ts.tv_sec += 1;
          ts.tv_nsec -= 1000000000;
       }
 
-      //Wait until the specified semaphore becomes available
+      // Wait until the specified semaphore becomes available
       ret = sem_timedwait(semaphore, &ts);
    }
 
-   //Check whether the specified semaphore is available
-   if(ret == 0)
+   // Check whether the specified semaphore is available
+   if (ret == 0)
    {
       return TRUE;
    }
@@ -413,7 +418,6 @@ bool_t osWaitForSemaphore(OsSemaphore *semaphore, systime_t timeout)
    }
 }
 
-
 /**
  * @brief Release the specified semaphore object
  * @param[in] semaphore Pointer to the semaphore object
@@ -421,15 +425,14 @@ bool_t osWaitForSemaphore(OsSemaphore *semaphore, systime_t timeout)
 
 void osReleaseSemaphore(OsSemaphore *semaphore)
 {
-   if(semaphore == NULL)
+   if (semaphore == NULL)
    {
-      TRACE_ERROR("osReleaseSemaphore() failed because semaphore is NULL");
+      TRACE_ERROR("osReleaseSemaphore() failed because semaphore is NULL\r\n");
       return;
    }
-   //Release the semaphore
+   // Release the semaphore
    sem_post(semaphore);
 }
-
 
 /**
  * @brief Create a mutex object
@@ -442,11 +445,11 @@ bool_t osCreateMutex(OsMutex *mutex)
 {
    int_t ret;
 
-   //Create a mutex object
+   // Create a mutex object
    ret = pthread_mutex_init(mutex, NULL);
 
-   //Check whether the mutex was successfully created
-   if(ret == 0)
+   // Check whether the mutex was successfully created
+   if (ret == 0)
    {
       return TRUE;
    }
@@ -456,7 +459,6 @@ bool_t osCreateMutex(OsMutex *mutex)
    }
 }
 
-
 /**
  * @brief Delete a mutex object
  * @param[in] mutex Pointer to the mutex object
@@ -464,10 +466,9 @@ bool_t osCreateMutex(OsMutex *mutex)
 
 void osDeleteMutex(OsMutex *mutex)
 {
-   //Properly dispose the mutex object
+   // Properly dispose the mutex object
    pthread_mutex_destroy(mutex);
 }
-
 
 /**
  * @brief Acquire ownership of the specified mutex object
@@ -476,10 +477,9 @@ void osDeleteMutex(OsMutex *mutex)
 
 void osAcquireMutex(OsMutex *mutex)
 {
-   //Obtain ownership of the mutex object
+   // Obtain ownership of the mutex object
    pthread_mutex_lock(mutex);
 }
-
 
 /**
  * @brief Release ownership of the specified mutex object
@@ -488,10 +488,9 @@ void osAcquireMutex(OsMutex *mutex)
 
 void osReleaseMutex(OsMutex *mutex)
 {
-   //Release ownership of the mutex object
+   // Release ownership of the mutex object
    pthread_mutex_unlock(mutex);
 }
-
 
 /**
  * @brief Retrieve system time
@@ -502,13 +501,12 @@ systime_t osGetSystemTime(void)
 {
    struct timeval tv;
 
-   //Get current time
+   // Get current time
    gettimeofday(&tv, NULL);
 
-   //Convert resulting value to milliseconds
+   // Convert resulting value to milliseconds
    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
-
 
 /**
  * @brief Allocate a memory block
@@ -519,10 +517,9 @@ systime_t osGetSystemTime(void)
 
 __weak_func void *osAllocMem(size_t size)
 {
-   //Allocate a memory block
+   // Allocate a memory block
    return malloc(size);
 }
-
 
 /**
  * @brief Release a previously allocated memory block
@@ -531,6 +528,6 @@ __weak_func void *osAllocMem(size_t size)
 
 __weak_func void osFreeMem(void *p)
 {
-   //Free memory block
+   // Free memory block
    free(p);
 }

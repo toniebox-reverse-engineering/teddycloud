@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>TeddyCloud administration interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.75">
+
+    <script src="https://unpkg.com/react@16/umd/react.development.js"
+        integrity="sha512-LVEAOXGRRqHiT+4awmHwL5emvXg+BTr8cC/eDF0pLuwEySgG55Pt2gfN2X6BenCsocmb2kKJ7QJVppWftFpcoA=="
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
+        integrity="sha512-MizB1VlWh4kvP5l+aBc2umqPc3V2bApU+SSqi70PZbhkLTXtJuIHXEY2LDkwqyX5yh+IzqTCP0Y0yI698i8oTA=="
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"
+        integrity="sha512-pBSlhNUvB+td6sjW1zmR6L7c7kVWR4octUPl4tfHmzO63424nxta8aLmficEcAAswQmRqTiToi63AazDurj/Sg=="
+        crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .app {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .button {
+            font-size: 1em;
+            padding: 10px;
+            margin: 5px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .app {
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            width: 90%;
+        }
+
+        .tiles {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .tile {
+            border: 1px solid #000;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
+        .tile:last-child {
+            margin-bottom: 0;
+        }
+
+        .time-tile {
+            background-color: #f9f9f9;
+        }
+
+        .stats-tile {
+            background-color: #f0f0f0;
+        }
+
+        .actions-tile {
+            background-color: #e7e7e7;
+        }
+
+        .config-tile {
+            background-color: #e7e7e7;
+        }
+
+        .button {
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .status-not-uploaded {
+            color: #992170;
+            font-family: monospace;
+        }
+
+        .status-uploaded {
+            color: green;
+            font-family: monospace;
+        }
+
+        .status-failed {
+            color: red;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+        class Checkbox extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { isChecked: false };
+            }
+
+            componentDidMount() {
+                fetch(`/api/get/${this.props.id}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        this.setState({ isChecked: data === 'true' });
+                    });
+            }
+
+            handleCheckboxChange = () => {
+                const newState = !this.state.isChecked;
+                this.setState({ isChecked: newState });
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newState.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={this.state.isChecked}
+                                onChange={this.handleCheckboxChange}
+                            />
+                            {this.props.label}
+                        </label>
+                    </div>
+                );
+            }
+        }
+
+        class IntegerInput extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { value: 0 };
+            }
+
+            componentDidMount() {
+                fetch(`/api/get/${this.props.id}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        this.setState({ value: parseInt(data, 10) });
+                    });
+            }
+
+            handleInputChange = (event) => {
+                const newValue = parseInt(event.target.value, 10);
+                this.setState({ value: newValue });
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newValue.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="number"
+                                value={this.state.value}
+                                onChange={this.handleInputChange}
+                            />
+                            {this.props.label}
+                        </label>
+                    </div>
+                );
+            }
+        }
+        class StringInput extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { value: "" };
+            }
+
+            componentDidMount() {
+                fetch(`/api/get/${this.props.id}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        this.setState({ value: data });
+                    });
+            }
+
+            handleInputChange = (event) => {
+                this.setState({ value: event.target.value });
+            }
+
+            handleInputBlur = () => {
+                this.pushDataToServer();
+            }
+
+            handleKeyPress = (event) => {
+                if (event.key === 'Enter') {
+                    this.pushDataToServer();
+                    event.preventDefault(); // Prevent form submission if this input is part of a form
+                }
+            }
+
+            pushDataToServer = () => {
+                const newValue = this.state.value;
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newValue.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="text"
+                                value={this.state.value}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleInputBlur}
+                                onKeyPress={this.handleKeyPress}
+                            />
+                            {this.props.label}
+                        </label>
+                    </div>
+                );
+            }
+        }
+
+
+        class OptionList extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { options: [] };
+            }
+
+            componentDidMount() {
+                fetch('/api/getIndex')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.setState({ options: data.options.sort((a, b) => a.ID.localeCompare(b.ID)) });
+                    });
+            }
+
+            renderOption = (option, index, array) => {
+                const parts = option.ID.split('.');
+                const lastParts = array[index - 1] ? array[index - 1].ID.split('.') : [];
+                return (
+                    <div key={option.ID}>
+                        {parts.slice(0, -1).map((part, index) => {
+                            if (lastParts[index] !== part) {
+                                if (index == 0) {
+                                    return (
+                                        <h3 style={{ marginLeft: `${index * 20}px`, marginBottom: "10px" }} key={index}>Category {part}</h3>
+                                    )
+                                } else {
+                                    return (
+                                        <h4 style={{ marginLeft: `${index * 10}px`, marginTop: "10px", marginBottom: "10px" }} key={index}>.{part}</h4>
+                                    )
+
+                                }
+                            }
+                            return null;
+                        })}
+                        {this.renderOptionItem(option)}
+                    </div>
+                )
+            }
+
+            renderOptionItem = (option) => {
+                const parts = option.ID.split('.');
+                const indent = (parts.length - 1) * 10; // Adjust multiplier as needed
+
+                switch (option.type) {
+                    case 'bool':
+                        return (
+                            <div style={{ marginLeft: `${indent}px` }}>
+                                <Checkbox id={option.ID} label={option.description} />
+                            </div>
+                        );
+                    case 'int':
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <IntegerInput id={option.ID} label={option.description} />
+                            </div>
+                        );
+                    case 'uint':
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <IntegerInput id={option.ID} label={option.description} />
+                            </div>
+                        );
+                    case 'string':
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <StringInput id={option.ID} label={option.description} />
+                            </div>
+                        );
+                    default:
+                        return null;
+                }
+            }
+
+            render() {
+                return (
+                    <div>
+                        {this.state.options.map(this.renderOption)}
+                    </div>
+                );
+            }
+        }
+
+        class StatsList extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { stats: [] };
+                this.fetchFromServer = this.fetchFromServer.bind(this);
+                this.fetchFromServer();
+            }
+
+            componentDidMount() {
+                this.interval = setInterval(this.fetchFromServer, 5000);
+            }
+
+            componentWillUnmount() {
+                clearInterval(this.interval);
+            }
+
+            fetchFromServer() {
+                fetch('/api/stats')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.setState({ stats: data.stats });
+                    });
+            }
+
+            renderStats = (stats) => {
+                return (
+                    <div key={stats.ID}>
+                        {this.renderStatsItem(stats)}
+                    </div>
+                )
+            }
+
+            renderStatsItem(stats) {
+                return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>{stats.description}</div>
+                        <div>{stats.value}</div>
+                    </div>
+                );
+            }
+
+            render() {
+                return (
+                    <div>
+                        {this.state.stats.map(this.renderStats)}
+                    </div>
+                );
+            }
+        }
+
+
+        class TimeTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile time-tile">
+                        <h3>{this.props.name} Time: {this.props.time}</h3>
+                    </div>
+                );
+            }
+        }
+
+        class StatsTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile stats-tile">
+                        <h2>Server Statistics</h2>
+                        <StatsList />
+                    </div>
+                );
+            }
+        }
+
+        class ActionsTile extends React.Component {
+            constructor(props) {
+                super(props);
+            }
+
+            reloadConfig() {
+                fetch('/api/triggerReloadConfig');
+            }
+
+            writeConfig() {
+                fetch('/api/triggerWriteConfig');
+            }
+
+            exitServer() {
+                fetch('/api/triggerExit');
+            }
+
+            restartServer() {
+                fetch('/api/triggerRestart');
+            }
+
+            render() {
+                return (
+                    <div className="tile actions-tile">
+                        <h2>Actions</h2>
+                        <button className="button" onClick={this.reloadConfig}>Reload Config</button>
+                        <button className="button" onClick={this.writeConfig}>Write Config</button>
+                        <br />
+                        <button className="button" onClick={this.exitServer}>Exit Server</button>
+                        <button className="button" onClick={this.restartServer}>Restart Server</button>
+                    </div>
+                );
+            }
+        }
+
+        class SettingsTile extends React.Component {
+            render() {
+                return (
+                    <div className="tile settings-tile">
+                        <h2>Settings</h2>
+                        <OptionList />
+                    </div>
+                );
+            }
+        }
+
+        class CertificateUploadTile extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    files: []
+                };
+                this.onDrop = this.onDrop.bind(this);
+                this.uploadFiles = this.uploadFiles.bind(this);
+                this.askPermission = this.askPermission.bind(this);
+            }
+
+            askPermission(files) {
+                if (window.confirm("Do you want to set these files as client certificates?")) {
+                    this.setState({ files });
+                }
+            }
+
+            getStatusClass(status) {
+                switch (status) {
+                    case 'Not uploaded yet':
+                        return 'status-not-uploaded';
+                    case 'Uploaded':
+                        return 'status-uploaded';
+                    case 'Failed':
+                        return 'status-failed';
+                    default:
+                        return '';
+                }
+            }
+            onDrop(event) {
+                event.preventDefault();
+                const files = [...event.dataTransfer.files].map(file => ({
+                    name: file.name,
+                    file: file,
+                    status: 'Not uploaded yet'
+                }));
+                this.askPermission(files);
+            }
+
+            async uploadFiles() {
+                const formData = new FormData();
+                this.state.files.forEach(({ name, file }) => {
+                    formData.append(name, file);
+                });
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        this.setState(prevState => ({
+                            files: prevState.files.map(file => ({ ...file, status: 'Uploaded' }))
+                        }));
+                    } else {
+                        this.setState(prevState => ({
+                            files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
+                        }));
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                    this.setState(prevState => ({
+                        files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
+                    }));
+                }
+            }
+
+            render() {
+                return (
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
+                        <h2>Client certificate upload</h2>
+
+                        {this.state.files.length === 0 && <p>Drag and drop client certificates from your box here</p>}
+
+                        {this.state.files.map(({ name, status }, index) => (
+                            <p key={index}><code>{name}</code> - <span className={this.getStatusClass(status)}>{status}</span></p>
+                        ))}
+
+                        {this.state.files.length > 0 &&
+                            <button className="button" onClick={this.uploadFiles}>
+                                Upload
+                            </button>
+                        }
+                    </div>
+                );
+            }
+        }
+
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    time: 0,
+                    cloud_time: 0,
+                    display_time: 0,
+                    display_cloud_time: 0
+                };
+                this.fetchFromServer = this.fetchFromServer.bind(this);
+                this.updateDisplayTime = this.updateDisplayTime.bind(this);
+                this.fetchFromServer();
+            }
+
+            componentDidMount() {
+                this.interval = setInterval(this.fetchFromServer, 60000);
+                this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
+            }
+
+            componentWillUnmount() {
+                clearInterval(this.interval);
+                clearInterval(this.intervalDisplay);
+            }
+
+            updateDisplayTime() {
+                if (this.state.time !== 0 && this.state.time !== 'Error') {
+                    this.setState((prevState) => {
+                        const date = new Date(prevState.time * 1000 + 1000);
+                        const formattedTime = this.formatTime(date);
+                        return { time: prevState.time + 1, display_time: formattedTime };
+                    });
+                }
+                if (this.state.cloud_time !== 0 && this.state.cloud_time !== 'Error') {
+                    this.setState((prevState) => {
+                        const date = new Date(prevState.cloud_time * 1000 + 1000);
+                        const formattedTime = this.formatTime(date);
+                        return { cloud_time: prevState.cloud_time + 1, display_cloud_time: formattedTime };
+                    });
+                }
+            }
+
+            fetchFromServer() {
+                fetch('/v1/time')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(unixTime => {
+                        this.setState({ time: parseInt(unixTime, 10) });
+                    })
+                    .catch(error => {
+                        console.error('There was an error!', error);
+                        this.setState({ time: 'Error', display_time: 'Error' });
+                    });
+
+                fetch('/reverse/v1/time')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(unixTime => {
+                        this.setState({ cloud_time: parseInt(unixTime, 10) });
+                    })
+                    .catch(error => {
+                        console.error('There was an error!', error);
+                        this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
+                    });
+            }
+
+            formatTime(date) {
+                let hours = date.getHours();
+                let minutes = "0" + date.getMinutes();
+                let seconds = "0" + date.getSeconds();
+                return hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+            }
+
+            render() {
+                return (
+                    <div className="app">
+                        <h1>TeddyCloud administration interface</h1>
+                        <div className="tiles">
+                            <TimeTile name="TeddyCloud" time={this.state.display_time} />
+                            <TimeTile name="Boxine" time={this.state.display_cloud_time} />
+                            <StatsTile />
+                            <CertificateUploadTile />
+                            <SettingsTile />
+                            <ActionsTile />
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+    </script>
+</body>
+
+</html>

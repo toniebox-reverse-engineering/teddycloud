@@ -21,12 +21,14 @@ void getContentPathFromCharRUID(char ruid[17], char contentPath[30]);
 void getContentPathFromUID(uint64_t uid, char contentPath[30]);
 tonie_info_t getTonieInfo(char contentPath[30]);
 
-error_t httpWriteResponse(HttpConnection *connection, const void *data, bool_t freeMemory);
+error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory);
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri);
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri);
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri);
 error_t handleCloudClaim(HttpConnection *connection, const char_t *uri);
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri);
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword);
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri);
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri);
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri);

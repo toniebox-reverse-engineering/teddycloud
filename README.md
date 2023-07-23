@@ -5,18 +5,20 @@ TeddyCloud is an alternative server for your Toniebox, allowing you to host the 
 This gives you the control about which data is sent to the original manufacturer's cloud and allows you
 to host your own figurine audio files on e.g. your NAS or any other server.
 
-Currently implemented is:
+Currently implemented are:
 * Provide audio content over the air
-* Simulate live content
-* no communication with Boxine's cloud, see planned
-
-## Planned
-* Passthrough and cache original tonie audio content
-* Update live content only when changed (based on file date)
+* Cache original tonie audio content
+* Simulate live content (.live)
+* Passthrough original tonie audio content
+* Basic Web fronted
+* Filter custom tags to prevent deletion (.nocloud)
 * Configure maximum volume for speaker and headphones
 * Configure LED
 * Configure slapping
-* Filter custom tags to prevent deletion (.nocloud)
+* Customize original box sounds (ex. jingle) over the air
+
+## Planned
+* Update live content only when changed (based on file date)
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (ideas welcome)
@@ -25,13 +27,14 @@ Currently implemented is:
 
 ## Preparation
 ### Generate certificates
-First of all you'll need to generate the CA and certificates with the starting date 2015-11-04: ```faketime '2015-11-04 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
+First of all you'll need to generate the CA and certificates with the starting date 2015-11-03: ```faketime '2015-11-03 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
 This also generates the replacement CA for the toniebox ```certs/server/ca.der```.
+If you are using docker, this will happen automatically.
 
 ### Dump certificates of your toniebox
 You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/*```
 #### CC3200
-You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box.
+You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
 python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
 ```
@@ -43,10 +46,11 @@ You can extract the flash memory either with a SOP8 clamp or via the debug port 
 
 ### Flash the replacement CA
 #### CC3200
-It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate.
+It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate. If you have installed the HackieboxNG Bootloader and the Hackiebox CFW you may upload the certificate via the webinterface of the CFW.
 ```
-python cc.py -p COM3 write_file certs/ca.der /cert/c2.der
+python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
+**Beware** The ```blockCheckRemove.310``` patch is breaks the content passthrough to Boxine. Please disable it, if your are using it.
 
 #### CC3235 / ESP32
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box.

@@ -2,7 +2,8 @@
 /obj
 /certs
 /install
-/www/CONTENT
+/config
+/www
 contrib/certs/server/ca-key.pem
 contrib/certs/server/ca-root.pem
 contrib/certs/server/ca-root.srl
@@ -10,3 +11,6 @@ contrib/certs/server/ca.der
 contrib/certs/server/teddy-cert.pem
 contrib/certs/server/teddy-key.csr
 contrib/certs/server/teddy-key.pem
+contrib/certs/client/teddy-cert.pem
+contrib/certs/client/teddy-key.csr
+contrib/certs/client/teddy-key.pem

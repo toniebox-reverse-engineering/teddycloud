@@ -31,6 +31,11 @@
 #ifndef _TLS_CONFIG_H
 #define _TLS_CONFIG_H
 
+#define TLS_PRIVATE_CONTEXT       \
+    char client_cert_issuer[128]; \
+    char client_cert_subject[32]; \
+    char client_cert_serial[64];
+
 // Desired trace level (for debugging purposes)
 #define TLS_TRACE_LEVEL TRACE_LEVEL_WARNING
 
