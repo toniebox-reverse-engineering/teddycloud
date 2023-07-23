@@ -13,6 +13,8 @@ jobs:
       upload_url: ${{ steps.set_data1.outputs.upload_url }}
       appendix: ${{ steps.set_data2.outputs.appendix }}
     steps:
+    - name: Install build dependencies
+      run: sudo apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential
     - name: Get current datetime
       id: get-datetime
       run: echo "CURRENT_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
