@@ -376,14 +376,25 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
 
 bool checkCustomTonie(char *ruid, uint8_t *token)
 {
-    if (Settings.cloud.markCustomTagByPass &&
-        (token[0] == 0 && token[1] == 0 && token[2] == 0 && token[3] == 0))
+    if (Settings.cloud.markCustomTagByPass)
     {
-        TRACE_INFO("Found possible custom tonie by password\r\n");
-        return true;
+        bool tokenIsZero = TRUE;
+        for (uint8_t i; i < 32; i++)
+        {
+            if (token[i] != 0)
+            {
+                tokenIsZero = FALSE;
+                break;
+            }
+        }
+        if (tokenIsZero)
+        {
+            TRACE_INFO("Found possible custom tonie by password\r\n");
+            return true;
+        }
     }
     if (Settings.cloud.markCustomTagByUid &&
-        (ruid[15] != '0' || ruid[14] != 'E' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
+        (ruid[15] != '0' || ruid[14] != 'e' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
     {
         TRACE_INFO("Found possible custom tonie by uid\r\n");
         return true;
@@ -469,6 +480,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         osStrncpy(ruid, &uri[12], sizeof(ruid));
         ruid[17] = 0;
 
+        if (connection->request.Range.start != 0)
+        {
+            TRACE_INFO(" >> client requested partial download\r\n");
+        }
+
         if (osStrlen(ruid) != 16)
         {
             TRACE_WARNING(" >>  invalid URI\r\n");
@@ -500,6 +516,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri)
         {
             if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
             {
+                if (tonieInfo.nocloud)
+                {
+                    TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
+                }
+                else
+                {
+                    TRACE_INFO("No local content available and cloud access disabled\r\n");
+                }
                 httpPrepareHeader(connection, NULL, 0);
                 connection->response.statusCode = 404;
                 return httpWriteResponse(connection, NULL, false);

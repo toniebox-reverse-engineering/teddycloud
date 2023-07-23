@@ -5,7 +5,18 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
-#define CONFIG_VERSION 2
+#define CONFIG_VERSION 3
+
+typedef enum
+{
+    LOGLEVEL_OFF = 0,
+    LOGLEVEL_FATAL = 1,
+    LOGLEVEL_ERROR = 2,
+    LOGLEVEL_WARNING = 3,
+    LOGLEVEL_INFO = 4,
+    LOGLEVEL_DEBUG = 5,
+    LOGLEVEL_VERBOSE = 6
+} settings_loglevel;
 
 typedef struct
 {
@@ -55,6 +66,7 @@ typedef struct
     int32_t returncode;
     settings_cert_t server;
     settings_cert_t client;
+    bool config_init;
 } settings_internal_t;
 
 typedef struct
@@ -73,12 +85,18 @@ typedef struct
 
 typedef struct
 {
+    settings_loglevel level;
+} settings_log_t;
+
+typedef struct
+{
     uint32_t configVersion;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
+    settings_log_t log;
 } settings_t;
 
 typedef enum

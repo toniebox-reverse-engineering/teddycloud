@@ -14,6 +14,7 @@ settings_t Settings;
 OPTION_START()
 
 OPTION_INTERNAL_UNSIGNED("configVersion", &Settings.configVersion, 0, 0, 255, "Config version")
+OPTION_UNSIGNED("log.level", &Settings.log.level, 4, 0, 6, "0=off - 6=verbose")
 
 /* settings for HTTPS server */
 OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
@@ -43,6 +44,7 @@ OPTION_INTERNAL_STRING("internal.client.key", &Settings.internal.client.key, "",
 
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
+OPTION_INTERNAL_BOOL("internal.config_init", &Settings.internal.config_init, TRUE, "Config initialized?")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")

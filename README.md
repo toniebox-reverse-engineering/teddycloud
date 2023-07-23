@@ -26,7 +26,7 @@ Currently implemented are:
 
 ## Preparation
 ### Generate certificates
-First of all you'll need to generate the CA and certificates with the starting date 2015-11-04: ```faketime '2015-11-04 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
+First of all you'll need to generate the CA and certificates with the starting date 2015-11-03: ```faketime '2015-11-03 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
 This also generates the replacement CA for the toniebox ```certs/server/ca.der```.
 If you are using docker, this will happen automatically.
 
