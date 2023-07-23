@@ -101,6 +101,21 @@
         .button:hover {
             background-color: #0056b3;
         }
+
+        .status-not-uploaded {
+            color: #992170;
+            font-family: monospace;
+        }
+
+        .status-uploaded {
+            color: green;
+            font-family: monospace;
+        }
+
+        .status-failed {
+            color: red;
+            font-family: monospace;
+        }
     </style>
 </head>
 
@@ -327,7 +342,6 @@
                 }
             }
 
-
             render() {
                 return (
                     <div>
@@ -402,7 +416,7 @@
             render() {
                 return (
                     <div className="tile stats-tile">
-                        <h3>Server Statistics</h3>
+                        <h2>Server Statistics</h2>
                         <StatsList />
                     </div>
                 );
@@ -433,7 +447,7 @@
             render() {
                 return (
                     <div className="tile actions-tile">
-                        <h3>Actions</h3>
+                        <h2>Actions</h2>
                         <button className="button" onClick={this.reloadConfig}>Reload Config</button>
                         <button className="button" onClick={this.writeConfig}>Write Config</button>
                         <br />
@@ -448,8 +462,97 @@
             render() {
                 return (
                     <div className="tile settings-tile">
-                        <h3>Settings</h3>
+                        <h2>Settings</h2>
                         <OptionList />
+                    </div>
+                );
+            }
+        }
+
+        class CertificateUploadTile extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    files: []
+                };
+                this.onDrop = this.onDrop.bind(this);
+                this.uploadFiles = this.uploadFiles.bind(this);
+                this.askPermission = this.askPermission.bind(this);
+            }
+
+            askPermission(files) {
+                if (window.confirm("Do you want to set these files as client certificates?")) {
+                    this.setState({ files });
+                }
+            }
+
+            getStatusClass(status) {
+                switch (status) {
+                    case 'Not uploaded yet':
+                        return 'status-not-uploaded';
+                    case 'Uploaded':
+                        return 'status-uploaded';
+                    case 'Failed':
+                        return 'status-failed';
+                    default:
+                        return '';
+                }
+            }
+            onDrop(event) {
+                event.preventDefault();
+                const files = [...event.dataTransfer.files].map(file => ({
+                    name: file.name,
+                    file: file,
+                    status: 'Not uploaded yet'
+                }));
+                this.askPermission(files);
+            }
+
+            async uploadFiles() {
+                const formData = new FormData();
+                this.state.files.forEach(({ name, file }) => {
+                    formData.append(name, file);
+                });
+
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        this.setState(prevState => ({
+                            files: prevState.files.map(file => ({ ...file, status: 'Uploaded' }))
+                        }));
+                    } else {
+                        this.setState(prevState => ({
+                            files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
+                        }));
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                    this.setState(prevState => ({
+                        files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
+                    }));
+                }
+            }
+
+            render() {
+                return (
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
+                        <h2>Client certificate upload</h2>
+
+                        {this.state.files.length === 0 && <p>Drag and drop client certificates from your box here</p>}
+
+                        {this.state.files.map(({ name, status }, index) => (
+                            <p key={index}><code>{name}</code> - <span className={this.getStatusClass(status)}>{status}</span></p>
+                        ))}
+
+                        {this.state.files.length > 0 &&
+                            <button className="button" onClick={this.uploadFiles}>
+                                Upload
+                            </button>
+                        }
                     </div>
                 );
             }
@@ -543,6 +646,7 @@
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
                             <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
+                            <CertificateUploadTile />
                             <SettingsTile />
                             <ActionsTile />
                         </div>
