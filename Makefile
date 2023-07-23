@@ -118,11 +118,12 @@ OBJ_DIR = obj
 SRC_DIR = src
 
 
-CFLAGS += -Wall
+CFLAGS += -Wall -Werror
 CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
-#CFLAGS += -D TRACE_LEVEL=TRACE_LEVEL_WARNING
+CFLAGS += -D TRACE_COLORED
+CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 
 CC = gcc
@@ -139,6 +140,7 @@ INSTALL_DIR := install
 PREINSTALL_DIR := install/pre
 ZIP_DIR := install/zip
 
+
 # Location of your .proto files
 PROTO_DIR := proto
 PROTO_GEN_DIR := src/proto
@@ -152,38 +154,77 @@ PROTO_H_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/
 
 # Rule to build .c files from .proto files
 $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $(PROTO_DIR)/%.proto
-	protoc-c --c_out=$(PROTO_GEN_DIR) $<
+	@echo "[${GREEN}PROTO${NC} ] ${CYAN}$<${NC}"
+	$(QUIET)protoc-c --c_out=$(PROTO_GEN_DIR) $< || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}protoc-c --c_out=$(PROTO_GEN_DIR) $<${NC}"; false)
 
 SOURCES += $(PROTO_C_FILES)
 HEADERS += $(PROTO_H_FILES)
+CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
 
-all: build
+
+OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
+CLEAN_FILES += $(OBJECTS)
+
+CYAN=\033[0;36m
+RED=\033[0;31m
+YELLOW=\033[0;33m
+GREEN=\033[0;32m
+NC=\033[0m
+
+ifeq ($(VERBOSE),1)
+  QUIET=
+else
+  QUIET=@
+endif
+
+
+all: check_dependencies build
 
 build: $(BINARY)
 
-OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
+.PHONY: check_dependencies
+check_dependencies:
+	@which protoc-c >/dev/null || (echo "${RED}Error:${NC} protoc-c not found. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install protobuf-c-compiler" && \
+	echo "  ${CYAN}Alpine:${NC} apk add protobuf" && \
+	exit 1)
+	@which gcc >/dev/null || (echo "${RED}Error:${NC} gcc not found. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install gcc" && \
+	echo "  ${CYAN}Alpine:${NC} apk add gcc" && \
+	exit 1)
+	@which openssl >/dev/null || (echo "${YELLOW}Warning:${NC} openssl not found, required for generating certificates. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install openssl" && \
+	echo "  ${CYAN}Alpine:${NC} apk add openssl")
+	@which faketime >/dev/null || (echo "${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:" && \
+	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime" && \
+	echo "  ${CYAN}Alpine:${NC} apk add faketime")
 
 $(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
-	cp -r $(CONTRIB_DIR)/www .
-	mkdir -p certs/server
-	mkdir -p config
+	@echo "[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}"
+	$(QUIET)mkdir -p $(@D)
+	$(QUIET)$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@ || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@${NC}"; false)
+	$(QUIET)cp -r $(CONTRIB_DIR)/www .
+	$(QUIET)mkdir -p certs/server
+	$(QUIET)mkdir -p certs/client
+	$(QUIET)mkdir -p config
 
 $(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}"
+	$(QUIET)mkdir -p $(@D)
+	$(QUIET)$(CC) $(CFLAGS) -c $< -o $@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) -c $< -o $@${NC}"; false)
 
 clean:
-	rm -f $(BINARY)
-	$(foreach O,$(OBJECTS),rm -f $(O);)
-	rm -rf $(INSTALL_DIR)/
+	@echo "[${GREEN}CLEAN${NC} ] Deleting output files..."
+	$(QUIET)rm -f $(BINARY)
+	$(QUIET)$(foreach O,$(CLEAN_FILES),rm -f $(O);)
+	$(QUIET)rm -rf $(INSTALL_DIR)/
 
 preinstall: clean build
-	mkdir $(INSTALL_DIR)/
-	mkdir $(PREINSTALL_DIR)/
-	cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
-	cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	@echo "[ ${GREEN}PRE${NC}  ] Preinstall"
+	$(QUIET)mkdir $(INSTALL_DIR)/
+	$(QUIET)mkdir $(PREINSTALL_DIR)/
+	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
 
 zip: preinstall
 	mkdir $(ZIP_DIR)/
@@ -191,6 +232,26 @@ zip: preinstall
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -
 
-time_test: $(BINARY)
-	$(BINARY) /v1/time
-
+.PHONY: auto
+auto:
+	@echo "Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit."
+	@last_build_time=$$(date +%s); \
+	echo "[ ${CYAN}AUTO${NC} ] Clean up"; \
+	screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit; \
+	echo "[ ${CYAN}AUTO${NC} ] Build"; \
+	make --no-print-directory -j; \
+	screen -S teddycloud_auto -dm; \
+	screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+	while true; do \
+		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
+		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
+			echo "[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
+			screen -S teddycloud_auto -X stuff "^C"; \
+			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
+			make --no-print-directory -j; \
+			last_build_time=$$(date +%s); \
+			screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+			echo "[ ${CYAN}AUTO${NC} ] Done"; \
+		fi; \
+		sleep 1; \
+	done

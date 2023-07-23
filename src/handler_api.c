@@ -79,6 +79,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
+        free(json);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
@@ -230,13 +231,11 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
     sprintf(response, "ERROR");
     const char *item = &uri[9];
 
-    TRACE_INFO("Setting: '%s' to ", item);
-
     char_t data[BODY_BUFFER_SIZE];
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size %li bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size for setting '%s' %zu bigger than buffer size %i bytes\r\n", item, connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
@@ -247,7 +246,8 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
             return error;
         }
         data[size] = 0;
-        TRACE_INFO("'%s'\r\n", data);
+
+        TRACE_INFO("Setting: '%s' to '%s'\r\n", item, data);
 
         setting_item_t *opt = settings_get_by_name(item);
         if (opt)
@@ -366,6 +366,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
+        free(json);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }

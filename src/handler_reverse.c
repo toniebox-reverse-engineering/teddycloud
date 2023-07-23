@@ -97,6 +97,6 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
     }
     error = httpCloseStream(connection);
 
-    TRACE_DEBUG("httpServerRequestCallback: (done)\r\n");
-    return NO_ERROR;
+    TRACE_INFO("httpServerRequestCallback: (done)\r\n");
+    return error;
 }

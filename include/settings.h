@@ -5,11 +5,24 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
-#define CONFIG_VERSION 1
+#define CONFIG_VERSION 3
+
+typedef enum
+{
+    LOGLEVEL_OFF = 0,
+    LOGLEVEL_FATAL = 1,
+    LOGLEVEL_ERROR = 2,
+    LOGLEVEL_WARNING = 3,
+    LOGLEVEL_INFO = 4,
+    LOGLEVEL_DEBUG = 5,
+    LOGLEVEL_VERBOSE = 6
+} settings_loglevel;
 
 typedef struct
 {
     bool enabled;
+    char *remote_hostname;
+    uint32_t remote_port;
     bool enableV1Claim;
     bool enableV1FreshnessCheck;
     bool enableV1Log;
@@ -17,6 +30,8 @@ typedef struct
     bool enableV1Ota;
     bool enableV2Content;
     bool cacheContent;
+    bool markCustomTagByPass;
+    bool markCustomTagByUid;
 } settings_cloud_t;
 
 typedef struct
@@ -40,28 +55,48 @@ typedef struct
 
 typedef struct
 {
-    uint32_t configVersion;
+    char *ca;
+    char *crt;
+    char *key;
+} settings_cert_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
-    char *server_crt_data;
-    char *server_key_data;
+    settings_cert_t server;
+    settings_cert_t client;
+    bool config_init;
 } settings_internal_t;
 
 typedef struct
 {
-    char *server_crt;
-    char *server_key;
-    char *server_crt_data;
-    char *server_key_data;
+    settings_cert_t file;
+    settings_cert_t data;
+} settings_cert_opt_t;
+
+typedef struct
+{
+    uint32_t http_port;
+    uint32_t https_port;
+    settings_cert_opt_t server_cert;
+    settings_cert_opt_t client_cert;
 } settings_core_t;
 
 typedef struct
 {
+    settings_loglevel level;
+} settings_log_t;
+
+typedef struct
+{
+    uint32_t configVersion;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
+    settings_log_t log;
 } settings_t;
 
 typedef enum

@@ -206,21 +206,12 @@ httpServerRequestCallback(HttpConnection *connection,
 {
     stats_update("connections", 1);
 
-    if (connection->tlsContext != NULL && connection->tlsContext->cert != NULL)
+    if (strlen(connection->tlsContext->client_cert_issuer))
     {
-        if (connection->tlsContext->clientCertRequested)
-        {
-            TRACE_INFO(" Client cert requested\r\n");
-        }
-        TRACE_INFO(" ID: -1 CertType=%i AuthMode=%i \n", connection->tlsContext->peerCertType, connection->tlsContext->clientAuthMode);
-        for (size_t i = 0; i < connection->tlsContext->numCerts; i++)
-        {
-            TRACE_INFO(" ID: %li CertType=%i \n", i, connection->tlsContext->certs[i].type);
-        }
-    }
-    else
-    {
-        TRACE_INFO(" No Cert or TLS\r\n");
+        TRACE_INFO("Certificate authentication:\r\n");
+        TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
+        TRACE_INFO("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
+        TRACE_INFO("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
@@ -331,8 +322,14 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Import server's certificate
-    const char *server_crt = settings_get_string("internal.server_crt_data");
-    const char *server_key = settings_get_string("internal.server_key_data");
+    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *server_key = settings_get_string("internal.server.key");
+
+    if (!server_crt || !server_key)
+    {
+        TRACE_ERROR("Failed to get certificates\r\n");
+        return ERROR_FAILURE;
+    }
 
     error = tlsAddCertificate(tlsContext, server_crt, strlen(server_crt), server_key, strlen(server_key));
 
@@ -367,12 +364,12 @@ void server_init()
     http_settings.requestCallback = httpServerRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
-    http_settings.port = 80;
+    http_settings.port = settings_get_unsigned("core.server.http_port");
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
-    https_settings.port = 443;
+    https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
@@ -401,8 +398,9 @@ void server_init()
         usleep(100000);
     }
 
-    TRACE_INFO("Exiting TeddyClout with returncode %d\r\n", settings_get_signed("internal.returncode"));
+    int ret = settings_get_signed("internal.returncode");
+    TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
     usleep(100000);
 
-    exit(settings_get_signed("internal.returncode"));
+    exit(ret);
 }

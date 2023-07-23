@@ -6,7 +6,6 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdbool.h>
 
 // Dependencies
 #include <stdlib.h>
@@ -45,15 +44,25 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    const char *client_ca = settings_get_string("internal.client.ca");
+    const char *client_crt = settings_get_string("internal.client.crt");
+    const char *client_key = settings_get_string("internal.client.key");
+
+    if (!client_ca || !client_crt || !client_key)
+    {
+        TRACE_ERROR("Failed to get certificates\r\n");
+        return ERROR_FAILURE;
+    }
+
     // Import the list of trusted CA certificates
-    error = tlsSetTrustedCaList(tlsContext, trustedCaList, trustedCaListLen);
+    error = tlsSetTrustedCaList(tlsContext, client_ca, strlen(client_ca));
     // Any error to report?
     if (error)
         return error;
 
     // Import the client's certificate
-    error = tlsAddCertificate(tlsContext, clientCert, clientCertLen,
-                              clientPrivateKey, clientPrivateKeyLen);
+    error = tlsAddCertificate(tlsContext, client_crt, strlen(client_crt), client_key, strlen(client_key));
+
     // Any error to report?
     if (error)
         return error;
@@ -66,15 +75,15 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
 
 int_t cloud_request_get(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, uri, "GET", NULL, 0, hash, cbr);
+    return cloud_request(server, port, true, uri, "GET", NULL, 0, hash, cbr);
 }
 
 int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, uri, "POST", body, bodyLen, hash, cbr);
+    return cloud_request(server, port, true, uri, "POST", body, bodyLen, hash, cbr);
 }
 
-int_t cloud_request(const char *server, int port, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
     if (!settings_get_bool("cloud.enabled"))
     {
@@ -88,16 +97,16 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
 
     if (!server)
     {
-        server = "prod.de.tbs.toys";
+        server = settings_get_string("cloud.hostname");
     }
     if (port <= 0)
     {
-        port = 443;
+        port = settings_get_unsigned("cloud.port");
     }
 
     stats_update("cloud_requests", 1);
 
-    TRACE_DEBUG("# Connecting to HTTP server %s:%d...\r\n",
+    TRACE_INFO("Connecting to HTTP server %s:%d...\r\n",
                server, port);
 
     struct hostent *host = gethostbyname(server);
@@ -108,14 +117,30 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
         stats_update("cloud_failed", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
-    TRACE_DEBUG("#   resolved as: %s\n", host->h_name);
+    TRACE_INFO("  resolved as: %s\n", host->h_name);
 
     httpClientInit(&httpClientContext);
-    error_t error = httpClientRegisterTlsInitCallback(&httpClientContext,
-                                                      httpClientTlsInitCallback);
+    error_t error;
+    if (https)
+    {
+        error = httpClientRegisterTlsInitCallback(&httpClientContext,
+                                                  httpClientTlsInitCallback);
+        if (error)
+        {
+            return error;
+        }
+    }
 
     error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_0);
+    if (error)
+    {
+        return error;
+    }
     error = httpClientSetTimeout(&httpClientContext, 1000);
+    if (error)
+    {
+        return error;
+    }
 
     struct in_addr **addr_list = (struct in_addr **)host->h_addr_list;
 
@@ -123,7 +148,7 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
     {
         bool success = FALSE;
 
-        TRACE_DEBUG("#   trying IP: %s\n", inet_ntoa(*addr_list[i]));
+        TRACE_INFO("  trying IP: %s\n", inet_ntoa(*addr_list[i]));
         memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
 
         ipAddr.length = host->h_length;
@@ -147,6 +172,13 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
             if (body && bodyLen > 0)
             {
                 error = httpClientSetContentLength(&httpClientContext, bodyLen);
+                if (error)
+                {
+                    // Debug message
+                    TRACE_ERROR("Failed to set content length! Error=%u\r\n", error);
+                    stats_update("cloud_failed", 1);
+                    break;
+                }
             }
 
             // Add HTTP header fields
@@ -242,14 +274,14 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                 if (!osStrcmp(header_name, "Content-Type"))
                 {
                     osStrncpy(content_type, header_value, sizeof(content_type) - 1);
-                    TRACE_DEBUG("# Content-Type is %s\r\n", content_type);
+                    TRACE_INFO("Content-Type is %s\r\n", content_type);
                 }
             } while (1);
 
             // Header field found?
             if (strlen(content_type) == 0)
             {
-                TRACE_DEBUG("# Content-Type header field not found!\r\n");
+                TRACE_INFO("Content-Type header field not found!\r\n");
             }
 
             bool binary = true;
@@ -289,15 +321,12 @@ int_t cloud_request(const char *server, int port, const char *uri, const char *m
                         // Properly terminate the string with a NULL character
                         buffer[maxSize] = '\0';
                         // Dump HTTP response body
-                        TRACE_DEBUG("Dump Body:\r\n%s", buffer);
+                        TRACE_INFO("Response: '%s'\r\n", buffer);
                     }
                 }
             }
 
             osFreeMem(buffer);
-
-            // Terminate the HTTP response body with a CRLF
-            TRACE_DEBUG("\r\n");
 
             // Any error to report?
             if (error != ERROR_END_OF_STREAM)

@@ -827,7 +827,7 @@ error_t httpWriteStream(HttpConnection *connection,
       //Any data to send?
       if(length > 0)
       {
-         char_t s[8];
+         char_t s[20];
 
          //The chunk-size field is a string of hex digits indicating the size
          //of the chunk

@@ -34,6 +34,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "os_port.h"
 #include "os_port_posix.h"
 #include "debug.h"
@@ -130,13 +135,22 @@ void osSwitchTask(void)
    // Not implemented
 }
 
+static pthread_mutex_t mutex;
+static bool isMutexInitialized = false;
+
 /**
  * @brief Suspend scheduler activity
  **/
 
 void osSuspendAllTasks(void)
 {
-   // Not implemented
+   if (!isMutexInitialized)
+   {
+      pthread_mutex_init(&mutex, NULL);
+      isMutexInitialized = true;
+   }
+
+   pthread_mutex_lock(&mutex);
 }
 
 /**
@@ -145,7 +159,14 @@ void osSuspendAllTasks(void)
 
 void osResumeAllTasks(void)
 {
-   // Not implemented
+   if (!isMutexInitialized)
+   {
+      pthread_mutex_init(&mutex, NULL);
+      isMutexInitialized = true;
+      return;
+   }
+
+   pthread_mutex_unlock(&mutex);
 }
 
 /**

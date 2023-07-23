@@ -1,4 +1,3 @@
-/tmp
 /bin
 /obj
 /certs
@@ -12,3 +11,6 @@ contrib/certs/server/ca.der
 contrib/certs/server/teddy-cert.pem
 contrib/certs/server/teddy-key.csr
 contrib/certs/server/teddy-key.pem
+contrib/certs/client/teddy-cert.pem
+contrib/certs/client/teddy-key.csr
+contrib/certs/client/teddy-key.pem
