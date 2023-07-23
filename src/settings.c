@@ -19,6 +19,7 @@ OPTION_UNSIGNED("log.level", &Settings.log.level, 4, 0, 6, "0=off - 6=verbose")
 /* settings for HTTPS server */
 OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
 OPTION_UNSIGNED("core.server.http_port", &Settings.core.https_port, 80, 1, 65535, "HTTP port")
+OPTION_STRING("core.certdir", &Settings.core.certdir, "certs/client", "Directory where to upload genuine client certs to")
 
 OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
 OPTION_STRING("core.server_cert.file.crt", &Settings.core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")

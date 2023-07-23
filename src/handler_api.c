@@ -3,12 +3,26 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdio.h>
 
+#include "fs_port.h"
 #include "handler_api.h"
 #include "handler_cloud.h"
 #include "settings.h"
 #include "stats.h"
 #include "returncodes.h"
+
+typedef enum
+{
+    PARSE_FILENAME,
+    PARSE_BODY
+} eMultipartState;
+
+/* multipart receive buffer */
+#define DATA_SIZE 1024
+#define SAVE_SIZE 80
+#define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
 {
@@ -387,4 +401,265 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri)
     }
 
     return NO_ERROR;
+}
+
+FsFile *multipartStart(const char *rootPath, const char *filename, char *message, size_t message_max)
+{
+    // Ensure filename does not contain any directory separators
+    if (strchr(filename, '\\') || strchr(filename, '/'))
+    {
+        snprintf(message, message_max, "Filename '%s' contains directory separators!", filename);
+        TRACE_ERROR("Filename '%s' contains directory separators!\r\n", filename);
+        return NULL;
+    }
+
+    char fullPath[1024]; // or a sufficiently large size for your paths
+    snprintf(fullPath, sizeof(fullPath), "%s/%s", rootPath, filename);
+
+    if (fsFileExists(fullPath))
+    {
+        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", filename);
+    }
+    FsFile *file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+
+    return file;
+}
+
+error_t multipartAdd(FsFile *file, uint8_t *data, size_t length)
+{
+    if (fsWriteFile(file, data, length) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    return NO_ERROR;
+}
+
+void multipartEnd(FsFile *file)
+{
+    if (!file)
+    {
+        return;
+    }
+    fsCloseFile(file);
+}
+
+int find_string(const void *haystack, size_t haystack_len, size_t haystack_start, const char *str)
+{
+    size_t str_len = strlen(str);
+
+    if (str_len > haystack_len)
+    {
+        return -1;
+    }
+
+    for (size_t i = haystack_start; i <= haystack_len - str_len; i++)
+    {
+        if (memcmp((uint8_t *)haystack + i, str, str_len) == 0)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileUploaded)(const char *))
+{
+    char buffer[BUFFER_SIZE];
+    char filename[64];
+    FsFile *file = NULL;
+    size_t packet_size;
+    eMultipartState state = PARSE_FILENAME;
+    char *boundary = connection->request.boundary;
+
+    size_t leftover = 0;
+    do
+    {
+        error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, 0x00);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("httpReceive failed\r\n");
+            return error;
+        }
+
+        int save_start = 0;
+        int save_end = packet_size;
+        int payload_size = leftover + packet_size;
+
+        switch (state)
+        {
+        case PARSE_FILENAME:
+        {
+            int fn_start = find_string(buffer, payload_size - SAVE_SIZE, 0, "filename=\"");
+            if (fn_start < 0)
+            {
+                TRACE_ERROR("No filename found\r\n");
+                break;
+            }
+
+            fn_start += strlen("filename=\"");
+            int fn_end = find_string(buffer, payload_size - SAVE_SIZE, fn_start, "\"\r\n");
+            if (fn_end < 0)
+            {
+                TRACE_ERROR("No filename end found\r\n");
+                break;
+            }
+
+            int len = fn_end - fn_start;
+            strncpy(filename, &buffer[fn_start], len);
+            filename[len] = '\0';
+
+            file = multipartStart(rootPath, filename, message, message_max);
+            if (file == NULL)
+            {
+                TRACE_ERROR("Failed to open file\r\n");
+                return ERROR_INVALID_PATH;
+            }
+
+            state = PARSE_BODY;
+            save_start = find_string(buffer, payload_size - SAVE_SIZE, fn_end, "\r\n\r\n");
+            if (save_start < 0)
+            {
+                TRACE_ERROR("Failed parse multipart content\r\n");
+                return ERROR_FAILURE;
+            }
+
+            save_start += 4;
+            save_end = payload_size;
+            break;
+        }
+
+        case PARSE_BODY:
+        {
+            int data_end = find_string(buffer, payload_size - SAVE_SIZE, 0, boundary);
+            if (data_end >= 0)
+            {
+                // We've found a boundary, let's finish up the current file
+                if (multipartAdd(file, (uint8_t *)buffer, data_end - 4) != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to open file\r\n");
+                    return ERROR_FAILURE;
+                }
+                multipartEnd(file);
+                file = NULL;
+
+                TRACE_INFO("Received file '%s'\r\n", filename);
+                if (fileUploaded)
+                {
+                    fileUploaded(filename);
+                }
+
+                if (strncmp(&buffer[data_end + strlen(boundary)], "--", 2) == 0)
+                {
+                    return NO_ERROR; // no more data to process, so return
+                }
+                else
+                {
+                    // Prepare for next file
+                    state = PARSE_FILENAME;
+                    // Position 'start' at the end of the boundary plus "--\r\n"
+                    save_start = data_end + strlen(boundary) + 4;
+                    save_end = payload_size;
+                }
+            }
+            else
+            {
+                // No boundary found, this is just more file content
+                if (payload_size < SAVE_SIZE)
+                {
+                    save_start = payload_size;
+                    save_end = payload_size;
+                    multipartAdd(file, (uint8_t *)buffer, payload_size);
+                }
+                else
+                {
+                    save_start = payload_size - SAVE_SIZE;
+                    save_end = payload_size;
+                    multipartAdd(file, (uint8_t *)buffer, payload_size - SAVE_SIZE);
+                }
+            }
+        }
+        break;
+        }
+
+        leftover = save_end - save_start;
+        if (leftover > 0)
+        {
+            memmove(buffer, &buffer[save_start], leftover);
+        }
+    } while (packet_size > 0);
+
+    return NO_ERROR;
+}
+
+void fileUploaded(const char *filename)
+{
+    /* rootpath must be valid, which is ensured by upload handler */
+    const char *rootPath = settings_get_string("core.certdir");
+
+    char *path = malloc(strlen(rootPath) + strlen(filename) + 3);
+    osSprintf(path, "%s/%s", rootPath, filename);
+
+    if (!osStrcasecmp(filename, "ca.der"))
+    {
+        TRACE_INFO("Set ca.der to %s\r\n", path);
+        settings_set_string("core.client_cert.file.ca", path);
+    }
+    else if (!osStrcasecmp(filename, "client.der"))
+    {
+        TRACE_INFO("Set client.der to %s\r\n", path);
+        settings_set_string("core.client_cert.file.crt", path);
+    }
+    else if (!osStrcasecmp(filename, "private.der"))
+    {
+        TRACE_INFO("Set private.der to %s\r\n", path);
+        settings_set_string("core.client_cert.file.key", path);
+    }
+    else
+    {
+        TRACE_INFO("Unknown file type %s\r\n", filename);
+    }
+
+    free(path);
+}
+
+error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri)
+{
+    uint8_t data[8192];
+
+    if (sizeof(data) <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size %zu bigger than buffer size %zu bytes", connection->request.byteCount, sizeof(data));
+        return NO_ERROR;
+    }
+
+    uint_t statusCode = 500;
+    char message[128];
+    const char *rootPath = settings_get_string("core.certdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        statusCode = 500;
+        snprintf(message, sizeof(message), "core.certdir not set to a valid path");
+        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+    }
+    else
+    {
+        switch (parse_multipart_content(connection, rootPath, message, sizeof(message), &fileUploaded))
+        {
+        case NO_ERROR:
+            statusCode = 200;
+            snprintf(message, sizeof(message), "OK");
+            break;
+        default:
+            statusCode = 500;
+            break;
+        }
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponse(connection, message, false);
 }

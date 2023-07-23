@@ -59,6 +59,7 @@ request_type_t request_paths[] = {
     /* web interface directory */
     {REQ_GET, "/www", &handleWww},
     /* custom API */
+    {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
     {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},

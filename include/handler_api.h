@@ -8,6 +8,7 @@
 #include "http/http_server_misc.h"
 
 void stats_update(const char *item, int count);
+error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri);
 error_t handleApiStats(HttpConnection *connection, const char_t *uri);
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri);
 error_t handleApiGet(HttpConnection *connection, const char_t *uri);
