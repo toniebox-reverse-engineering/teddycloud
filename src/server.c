@@ -68,7 +68,8 @@ request_type_t request_paths[] = {
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
-    {REQ_GET, "/v2/content", &handleCloudContent},
+    {REQ_GET, "/v1/content", &handleCloudContentV1},
+    {REQ_GET, "/v2/content", &handleCloudContentV2},
     {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
     {REQ_POST, "/v1/log", &handleCloudLog}};
 
