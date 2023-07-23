@@ -15,6 +15,7 @@ Currently implemented are:
 * Configure maximum volume for speaker and headphones
 * Configure LED
 * Configure slapping
+* Customize original box sounds (ex. jingle) over the air
 
 ## Planned
 * Update live content only when changed (based on file date)
