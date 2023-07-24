@@ -1,3 +1,9 @@
+|Folder|Language|
+|-|-|
+|00000000|English (GB)|
+|00000001|German|
+|00000002|English (USA)|
+
 |Folder|Language|File|Animal|Short|Long|   
 |-|-|-|-|-|-|
 |00000001|DE|00000000||Jingle|Startup sound|
