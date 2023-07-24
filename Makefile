@@ -228,6 +228,9 @@ preinstall: clean build
 	$(QUIET)mkdir $(PREINSTALL_DIR)/
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)cd $(PREINSTALL_DIR)/ \
+		&& find . -name ".gitkeep" -type f -delete \
+		&& cd -
 
 zip: preinstall
 	mkdir $(ZIP_DIR)/
