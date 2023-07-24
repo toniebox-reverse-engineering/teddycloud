@@ -25,7 +25,8 @@ typedef enum
     V1_CLAIM,
     V2_CONTENT,
     V1_FRESHNESS_CHECK,
-    V1_LOG
+    V1_LOG,
+    V1_CLOUDRESET
 } cloudapi_t;
 
 typedef enum
@@ -674,6 +675,25 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;
+    }
+    return NO_ERROR;
+}
+
+error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+{
+    // EMPTY POST REQUEST?
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLOUDRESET, &ctx);
+        cloud_request_post(NULL, 0, uri, queryString, NULL, 0, NULL, &cbr);
+    }
+    else
+    {
+        // TODO
+        httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
+        connection->response.keepAlive = false;
+        return httpWriteResponse(connection, "{}", false);
     }
     return NO_ERROR;
 }
