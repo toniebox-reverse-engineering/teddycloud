@@ -244,7 +244,7 @@ auto:
 	echo "[ ${CYAN}AUTO${NC} ] Build"; \
 	make --no-print-directory -j; \
 	screen -S teddycloud_auto -dm; \
-	screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+	screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
 	while true; do \
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
@@ -253,7 +253,7 @@ auto:
 			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
 			make --no-print-directory -j; \
 			last_build_time=$$(date +%s); \
-			screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+			screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
 			echo "[ ${CYAN}AUTO${NC} ] Done"; \
 		fi; \
 		sleep 1; \
