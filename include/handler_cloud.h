@@ -18,6 +18,7 @@ typedef struct
     bool_t exists;
     bool_t nocloud;
     bool_t live;
+    bool_t updated;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 

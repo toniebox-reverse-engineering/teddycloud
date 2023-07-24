@@ -650,20 +650,23 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, tonieInfo.contentPath);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
+                tonieInfo.updated = (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
+
                 if (!tonieInfo.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
                 (void)custom;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
+                           tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer,
                            custom ? ", custom" : "");
-                if (tonieInfo.live)
+                if (tonieInfo.live || tonieInfo.updated)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
