@@ -360,7 +360,7 @@
             }
 
             componentDidMount() {
-                this.interval = setInterval(this.fetchFromServer, 5000);
+                //this.interval = setInterval(this.fetchFromServer, 5000);
             }
 
             componentWillUnmount() {
@@ -498,6 +498,7 @@
                         return '';
                 }
             }
+
             onDrop(event) {
                 event.preventDefault();
                 const files = [...event.dataTransfer.files].map(file => ({
@@ -557,6 +558,7 @@
                 );
             }
         }
+
         class FileViewerTile extends React.Component {
             constructor(props) {
                 super(props);
@@ -565,9 +567,10 @@
                     files: [],
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
-                this.uploadFile = this.uploadFile.bind(this);
+                this.uploadFiles = this.uploadFiles.bind(this);
                 this.createDirectory = this.createDirectory.bind(this);
                 this.fileInputRef = React.createRef();
+                this.onDrop = this.onDrop.bind(this);
             }
 
             componentDidMount() {
@@ -589,30 +592,50 @@
                 }
             }
 
-            async uploadFile() {
-                const file = this.fileInputRef.current.files[0];
-                if (!file) {
+
+            askPermission(files) {
+                if (window.confirm("Do you want to upload these files?")) {
+                    this.uploadFiles(files);
+                }
+            }
+
+            onDrop(event) {
+                event.preventDefault();
+                const files = [...event.dataTransfer.files].map(file => ({
+                    name: file.name,
+                    file: file,
+                    status: 'Not uploaded yet'
+                }));
+                this.askPermission(files);
+            }
+
+            async uploadFiles(files) {
+                // Check for file presence
+                if (!files.length) {
                     return;
                 }
 
-                const formData = new FormData();
-                formData.append(file.name, file);
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const formData = new FormData();
+                    formData.append(file.name, file.file);
 
-                try {
-                    const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
-                        method: 'POST',
-                        body: formData,
-                    });
+                    try {
+                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
+                            method: 'POST',
+                            body: formData,
+                        });
 
-                    if (response.ok) {
-                        alert('File uploaded successfully');
-                        this.fetchFileIndex(this.state.path); // Refresh files
-                    } else {
-                        alert('File upload failed');
+                        if (response.ok) {
+                        } else {
+                            alert('File upload failed');
+                        }
+                    } catch (err) {
+                        console.error('There was an error!', err);
                     }
-                } catch (err) {
-                    console.error('There was an error!', err);
                 }
+
+                this.fetchFileIndex(this.state.path); // Refresh files after all uploads
             }
 
             async createDirectory() {
@@ -649,14 +672,27 @@
 
             render() {
                 return (
-                    <div className="tile config-tile">
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
                         <h2>File Viewer</h2>
 
                         <p>
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
-                            <input type="file" ref={this.fileInputRef} style={{ display: 'none' }} onChange={this.uploadFile} />
+                            <input
+                                type="file"
+                                ref={this.fileInputRef}
+                                style={{ display: 'none' }}
+                                multiple
+                                onChange={(event) => {
+                                    const files = [...event.target.files].map(file => ({
+                                        name: file.name,
+                                        file: file,
+                                        status: 'Not uploaded yet'
+                                    }));
+                                    this.askPermission(files);
+                                }}
+                            />
                         </p>
 
                         <pre key="path" style={{ fontFamily: 'monospace' }}>
@@ -691,7 +727,10 @@
                                     </React.Fragment >
                                 ) : (
                                     <React.Fragment>
-                                        <span>{name.padEnd(32)}</span>
+                                        <a href={`/content${this.state.path}${name}`} target="_blank" rel="noopener noreferrer">
+                                            {name}
+                                        </a >
+                                        <span>{' '.repeat(32 - name.length)}</span>
                                         <span>{date.padEnd(10)}</span>
                                         <span>{size.padStart(10)}</span>
                                     </React.Fragment>
@@ -723,7 +762,7 @@
             }
 
             componentDidMount() {
-                this.interval = setInterval(this.fetchFromServer, 60000);
+                //this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
             }
 

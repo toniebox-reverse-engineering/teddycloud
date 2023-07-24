@@ -976,7 +976,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     sanitizePath(path);
 
     char pathAbsolute[256];
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "/%s/%s", rootPath, path);
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 500;
@@ -988,7 +988,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     {
         statusCode = 500;
         snprintf(message, sizeof(message), "invalid path: '%s'", path);
-        TRACE_ERROR("invalid path: '%s'\r\n", path);
+        TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
     {
