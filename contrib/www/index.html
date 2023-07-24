@@ -622,16 +622,15 @@
                 }
 
                 try {
-                    const response = await fetch('/api/createDirectory', {
+                    const response = await fetch('/api/dirCreate', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ path: `${this.state.path}${name}` }),
+                        body: `${this.state.path}${name}`,
                     });
 
                     if (response.ok) {
-                        alert('Directory created successfully');
                         this.fetchFileIndex(this.state.path); // Refresh files
                     } else {
                         alert('Failed to create directory');
@@ -676,27 +675,28 @@
                             <pre key={index} style={{ fontFamily: 'monospace' }}>
                                 {isDirectory ? (
                                     <React.Fragment>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${name}/`); }}>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${name} /`); }}>
                                             {name}
-                                        </a>
+                                        </a >
                                         <span>{' '.repeat(32 - name.length)}</span>
                                         <span>{date}</span>
                                         <span>{size}</span>
-                                    </React.Fragment>
+                                    </React.Fragment >
                                 ) : (
                                     <React.Fragment>
                                         <span>{name.padEnd(32)}</span>
                                         <span>{date}</span>
                                         <span>{size}</span>
                                     </React.Fragment>
-                                )}
+                                )
+                                }
                             </pre>
                         ))}
 
 
 
 
-                    </div>
+                    </div >
                 );
             }
         }

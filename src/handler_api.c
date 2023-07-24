@@ -15,6 +15,7 @@
 
 typedef enum
 {
+    PARSE_HEADER,
     PARSE_FILENAME,
     PARSE_BODY
 } eMultipartState;
@@ -638,49 +639,131 @@ int find_string(const void *haystack, size_t haystack_len, size_t haystack_start
 
 error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileCertUploaded)(const char *))
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[2 * BUFFER_SIZE];
     char filename[64];
     FsFile *file = NULL;
-    size_t packet_size;
-    eMultipartState state = PARSE_FILENAME;
+    eMultipartState state = PARSE_HEADER;
     char *boundary = connection->request.boundary;
 
     size_t leftover = 0;
+    bool fetch = true;
+    int save_start = 0;
+    int save_end = 0;
+    int payload_size = 0;
+
     do
     {
-        error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
-        bool partial = (DATA_SIZE - leftover) != packet_size;
-        if (error != NO_ERROR)
+        if (!payload_size)
         {
-            TRACE_ERROR("httpReceive failed\r\n");
-            return error;
+            fetch = true;
         }
 
-        int save_start = 0;
-        int save_end = packet_size;
-        int payload_size = leftover + packet_size;
+        payload_size = leftover;
+        if (fetch)
+        {
+            size_t packet_size;
+            error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("httpReceive failed\r\n");
+                return error;
+            }
+
+            save_start = 0;
+            payload_size = leftover + packet_size;
+            save_end = payload_size;
+            leftover = 0;
+
+            fetch = false;
+        }
 
         switch (state)
         {
+        case PARSE_HEADER:
+        {
+            /* when the payload starts with boundary, its a valid payload */
+            int boundary_start = find_string(buffer, payload_size, 0, boundary);
+            if (boundary_start < 0)
+            {
+                /* if not, check for newlines that preceed */
+                int data_end = find_string(buffer, payload_size, 0, "\r\n");
+                if (data_end >= 0)
+                {
+                    /* when found, start from there, after the newline */
+                    save_start = data_end + 2;
+                    save_end = payload_size;
+                }
+                else
+                {
+                    /* if not, drop most of the buffer, keeping the last few bytes */
+                    save_start = (payload_size > SAVE_SIZE) ? payload_size - SAVE_SIZE : 0;
+                    save_end = payload_size;
+                }
+            }
+            else
+            {
+                save_start = boundary_start + strlen(boundary);
+                save_end = payload_size;
+                state = PARSE_FILENAME;
+            }
+            break;
+        }
+
         case PARSE_FILENAME:
         {
-            int fn_start = find_string(buffer, payload_size - SAVE_SIZE, 0, "filename=\"");
+            if (payload_size < 3)
+            {
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+
+            /* when the payload starts with --, then leave */
+            if (!memcmp(buffer, "--", 2))
+            {
+                TRACE_DEBUG("Received multipart end\r\n");
+                return NO_ERROR;
+            }
+            if (memcmp(buffer, "\r\n", 2))
+            {
+                TRACE_DEBUG("No valid multipart\r\n");
+                return NO_ERROR;
+            }
+
+            int fn_start = find_string(buffer, payload_size, 0, "filename=\"");
             if (fn_start < 0)
             {
                 TRACE_ERROR("No filename found\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
                 break;
             }
 
             fn_start += strlen("filename=\"");
-            int fn_end = find_string(buffer, payload_size - SAVE_SIZE, fn_start, "\"\r\n");
+            int fn_end = find_string(buffer, payload_size, fn_start, "\"\r\n");
             if (fn_end < 0)
             {
-                TRACE_ERROR("No filename end found\r\n");
+                TRACE_DEBUG("No filename end found\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+
+            save_start = find_string(buffer, payload_size, fn_end, "\r\n\r\n");
+            if (save_start < 0)
+            {
+                TRACE_DEBUG("no newlines found, reading next block\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
                 break;
             }
 
             int len = fn_end - fn_start;
-            strncpy(filename, &buffer[fn_start], len);
+            strncpy(filename, &buffer[fn_start], (len < sizeof(filename)) ? len : sizeof(filename));
             filename[len] = '\0';
 
             file = multipartStart(rootPath, filename, message, message_max);
@@ -691,13 +774,6 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
             }
 
             state = PARSE_BODY;
-            save_start = find_string(buffer, payload_size - SAVE_SIZE, fn_end, "\r\n\r\n");
-            if (save_start < 0)
-            {
-                TRACE_ERROR("Failed parse multipart content\r\n");
-                return ERROR_FAILURE;
-            }
-
             save_start += 4;
             save_end = payload_size;
             break;
@@ -705,12 +781,17 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
 
         case PARSE_BODY:
         {
-            int searchLen = (partial || payload_size <= SAVE_SIZE) ? payload_size : payload_size - SAVE_SIZE;
+            if (!payload_size)
+            {
+                fetch = true;
+                break;
+            }
 
-            int data_end = find_string(buffer, searchLen, 0, boundary);
+            int data_end = find_string(buffer, payload_size, 0, boundary);
+
             if (data_end >= 0)
             {
-                // We've found a boundary, let's finish up the current file
+                /* We've found a boundary, let's finish up the current file, but skip the "--\r\n" */
                 if (multipartAdd(file, (uint8_t *)buffer, data_end - 4) != NO_ERROR)
                 {
                     TRACE_ERROR("Failed to open file\r\n");
@@ -725,27 +806,20 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
                     fileCertUploaded(filename);
                 }
 
-                if (strncmp(&buffer[data_end + strlen(boundary)], "--", 2) == 0)
-                {
-                    return NO_ERROR; // no more data to process, so return
-                }
-                else
-                {
-                    // Prepare for next file
-                    state = PARSE_FILENAME;
-                    // Position 'start' at the end of the boundary plus "--\r\n"
-                    save_start = data_end + strlen(boundary) + 4;
-                    save_end = payload_size;
-                }
+                /* Prepare for next file */
+                state = PARSE_HEADER;
+                save_start = data_end;
+                save_end = payload_size;
             }
             else
             {
-                // No boundary found, this is just more file content
-                if (payload_size < SAVE_SIZE)
+                /* there is no full bounday end in this block, save the end and fetch next */
+                fetch = true;
+
+                if (payload_size <= SAVE_SIZE)
                 {
-                    save_start = payload_size;
+                    save_start = 0;
                     save_end = payload_size;
-                    multipartAdd(file, (uint8_t *)buffer, payload_size);
                 }
                 else
                 {
@@ -763,7 +837,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
         {
             memmove(buffer, &buffer[save_start], leftover);
         }
-    } while (packet_size > 0);
+    } while (payload_size > 0);
 
     return NO_ERROR;
 }
@@ -835,19 +909,62 @@ void fileUploaded(const char *filename)
 {
     TRACE_INFO("Received new file '%s'\r\n", filename);
 }
+#include <string.h>
+#include <stdbool.h>
+
+void sanitizePath(char *path)
+{
+    size_t i, j;
+    bool slash = false;
+
+    /* Merge all double (or more) slashes // */
+    for (i = 0, j = 0; path[i]; ++i)
+    {
+        if (path[i] == '/')
+        {
+            if (slash)
+                continue;
+            slash = true;
+        }
+        else
+        {
+            slash = false;
+        }
+        path[j++] = path[i];
+    }
+
+    /* Make sure the path doesn't end with a '/' unless it's the root directory. */
+    if (j > 1 && path[j - 1] == '/')
+        j--;
+
+    /* Null terminate the sanitized path */
+    path[j] = '\0';
+
+    /* If path doesn't start with '/', shift right and add '/' */
+    if (path[0] != '/')
+    {
+        memmove(&path[1], &path[0], j + 1); // Shift right
+        path[0] = '/';                      // Add '/' at the beginning
+        j++;
+    }
+
+    /* If path doesn't end with '/', add '/' at the end */
+    if (path[j - 1] != '/')
+    {
+        path[j] = '/';      // Add '/' at the end
+        path[j + 1] = '\0'; // Null terminate
+    }
+}
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri)
 {
-    char *query = connection->request.queryString;
-
     const char *rootPath = settings_get_string("core.contentdir");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
-    TRACE_INFO("Query: '%s'\r\n", query);
 
     char path[128];
 
@@ -855,16 +972,12 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri)
     {
         strcpy(path, "/");
     }
-    if (strstr(path, ".."))
-    {
-        TRACE_INFO("Path does not allow '..': '%s'\r\n", query);
-        strcpy(path, "/");
-    }
-    char pathAbsolute[256];
 
-    strcpy(pathAbsolute, rootPath);
-    strcat(pathAbsolute, "/");
-    strcat(pathAbsolute, path);
+    sanitizePath(path);
+
+    char pathAbsolute[256];
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "/%s/%s", rootPath, path);
+    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 500;
     char message[256];
@@ -893,7 +1006,52 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri)
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    TRACE_INFO("chunked: '%s'\r\n", connection->response.chunkedEncoding ? "true" : "false");
+    return httpWriteResponse(connection, message, false);
+}
+
+error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri)
+{
+    const char *rootPath = settings_get_string("core.contentdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        return ERROR_FAILURE;
+    }
+    char path[256];
+    size_t size = 0;
+
+    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!");
+        return error;
+    }
+    path[size] = 0;
+
+    TRACE_INFO("Creating directory: '%s'\r\n", path);
+
+    sanitizePath(path);
+
+    char pathAbsolute[256 + 2];
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+
+    uint_t statusCode = 200;
+    char message[256 + 64];
+
+    snprintf(message, sizeof(message), "OK");
+
+    error_t err = fsCreateDir(pathAbsolute);
+
+    if (err != NO_ERROR)
+    {
+        statusCode = 500;
+        snprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
+        TRACE_ERROR("Error creating directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+    }
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
 
     return httpWriteResponse(connection, message, false);
 }
