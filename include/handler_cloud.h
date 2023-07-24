@@ -14,8 +14,9 @@
 
 typedef struct
 {
-    char contentPath[30];
+    char *contentPath;
     bool_t exists;
+    bool_t valid;
     bool_t nocloud;
     bool_t live;
     bool_t updated;
@@ -24,7 +25,7 @@ typedef struct
 
 void getContentPathFromCharRUID(char ruid[17], char contentPath[30]);
 void getContentPathFromUID(uint64_t uid, char contentPath[30]);
-tonie_info_t getTonieInfo(char contentPath[30]);
+tonie_info_t getTonieInfo(const char *contentPath);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
 error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory);

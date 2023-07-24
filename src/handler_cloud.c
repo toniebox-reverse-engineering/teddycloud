@@ -253,19 +253,23 @@ void getContentPathFromUID(uint64_t uid, char contentPath[30])
     getContentPathFromCharRUID((char *)cruid, contentPath);
 }
 
-tonie_info_t getTonieInfo(char contentPath[30])
+tonie_info_t getTonieInfo(const char *contentPath)
 {
     tonie_info_t tonieInfo;
-    char contentPathDot[30 + 8]; //".nocloud" / ".live"
-    osMemcpy(contentPathDot, contentPath, 30);
-    osMemcpy(tonieInfo.contentPath, contentPath, 30);
+    int maxLen = strlen(contentPath) + 32;
+    char *checkFile = (char *)osAllocMem(maxLen + 1);
 
-    tonieInfo.exists = fsFileExists(contentPathDot);
-    osStrcat(contentPathDot, ".nocloud");
-    tonieInfo.nocloud = fsFileExists(contentPathDot);
-    contentPathDot[29] = 0;
-    osStrcat(contentPathDot, ".live");
-    tonieInfo.live = fsFileExists(contentPathDot);
+    checkFile[maxLen] = 0;
+    tonieInfo.valid = false;
+    tonieInfo.tafHeader = NULL;
+    tonieInfo.contentPath = strdup(contentPath);
+    snprintf(checkFile, maxLen, "%s", contentPath);
+    tonieInfo.exists = fsFileExists(checkFile);
+    snprintf(checkFile, maxLen, "%s.nocloud", contentPath);
+    tonieInfo.nocloud = fsFileExists(checkFile);
+    snprintf(checkFile, maxLen, "%s.live", contentPath);
+    tonieInfo.live = fsFileExists(checkFile);
+    osFreeMem(checkFile);
 
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
@@ -282,6 +286,7 @@ tonie_info_t getTonieInfo(char contentPath[30])
                 if (read_length == protobufSize)
                 {
                     tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, TAF_HEADER_SIZE - 4, (const uint8_t *)headerBuffer);
+                    tonieInfo.valid = true;
                 }
             }
         }
@@ -293,6 +298,9 @@ tonie_info_t getTonieInfo(char contentPath[30])
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
     toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
+    free(tonieInfo->contentPath);
+    tonieInfo->contentPath = NULL;
+    tonieInfo->tafHeader = NULL;
 }
 
 error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory)

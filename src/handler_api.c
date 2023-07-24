@@ -429,21 +429,15 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
     TRACE_INFO("Query: '%s'\r\n", query);
 
     char path[128];
+    char pathAbsolute[256];
 
     if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
     {
         strcpy(path, "/");
     }
-    if (strstr(path, ".."))
-    {
-        TRACE_INFO("Path does not allow '..': '%s'\r\n", query);
-        strcpy(path, "/");
-    }
-    char pathAbsolute[256];
 
-    strcpy(pathAbsolute, rootPath);
-    strcat(pathAbsolute, "/");
-    strcat(pathAbsolute, path);
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     int pos = 0;
     char *json = strdup("[");
@@ -453,7 +447,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
     while (true)
     {
-        char buf[1024];
+        char buf[384];
         FsDirEntry entry;
 
         if (fsReadDir(dir, &entry) != NO_ERROR)
@@ -477,8 +471,21 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                   entry.modified.year, entry.modified.month, entry.modified.day,
                   entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
 
-        sprintf(buf, "{\"name\": \"%s\", \"date\": \"%s\", \"size\": \"%d\", \"isDirectory\": %s }",
-                entry.name, dateString, entry.size, (entry.attributes & FS_FILE_ATTR_DIRECTORY) ? "true" : "false");
+        char desc[24];
+        osStrcpy(desc, "");
+
+        char filePathAbsolute[384];
+        snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
+
+        tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
+        if (tafInfo.valid)
+        {
+            snprintf(desc, sizeof(desc), "TAF, 0x%08X", tafInfo.tafHeader->audio_id);
+        }
+        freeTonieInfo(&tafInfo);
+
+        snprintf(buf, sizeof(buf), "{\"name\": \"%s\", \"date\": \"%s\", \"size\": \"%d\", \"isDirectory\": %s, \"desc\": \"%s\" }",
+                 entry.name, dateString, entry.size, (entry.attributes & FS_FILE_ATTR_DIRECTORY) ? "true" : "false", desc);
 
         json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
         strcat(json, buf);
@@ -640,7 +647,7 @@ int find_string(const void *haystack, size_t haystack_len, size_t haystack_start
 error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileCertUploaded)(const char *))
 {
     char buffer[2 * BUFFER_SIZE];
-    char filename[64];
+    char filename[256];
     FsFile *file = NULL;
     eMultipartState state = PARSE_HEADER;
     char *boundary = connection->request.boundary;
@@ -762,8 +769,10 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
                 break;
             }
 
-            int len = fn_end - fn_start;
-            strncpy(filename, &buffer[fn_start], (len < sizeof(filename)) ? len : sizeof(filename));
+            int inLen = fn_end - fn_start;
+            int len = (inLen < sizeof(filename)) ? inLen : (sizeof(filename) - 1);
+            TRACE_INFO("FN length %d %d %d %d\r\n", inLen, len, fn_start, fn_end);
+            strncpy(filename, &buffer[fn_start], len);
             filename[len] = '\0';
 
             file = multipartStart(rootPath, filename, message, message_max);

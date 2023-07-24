@@ -763,35 +763,39 @@
                             </pre>
                         )}
 
-                        {this.state.files.map((file, index) => (
-                            <pre key={index} style={{ fontFamily: 'monospace' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={this.state.selectedFiles.includes(file)}
-                                    onChange={() => this.toggleFileSelection(file)}
-                                />
-                                {file.isDirectory ? (
-                                    <React.Fragment>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
-                                            {file.name}
-                                        </a >
-                                        <span>{' '.repeat(32 - file.name.length)}</span>
-                                        <span>{file.date}</span>
-                                        <span>{'-'.padStart(10)}</span>
-                                    </React.Fragment >
-                                ) : (
-                                    <React.Fragment>
-                                        <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
-                                            {file.name}
-                                        </a >
-                                        <span>{' '.repeat(32 - file.name.length)}</span>
-                                        <span>{file.date.padEnd(10)}</span>
-                                        <span>{file.size.padStart(10)}</span>
-                                    </React.Fragment>
-                                )
-                                }
-                            </pre >
-                        ))}
+                        {this.state.files.map((file, index) => {
+                            let filename = file.name.substring(0, 32);
+                            return (
+                                <pre key={index} style={{ fontFamily: 'monospace' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.selectedFiles.includes(file)}
+                                        onChange={() => this.toggleFileSelection(file)}
+                                    />
+                                    {file.isDirectory ? (
+                                        <React.Fragment>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
+                                                {filename}
+                                            </a >
+                                            <span>{' '.repeat(32 - filename.length)}</span>
+                                            <span>{file.date}</span>
+                                            <span>{'-'.padStart(10)}</span>
+                                        </React.Fragment >
+                                    ) : (
+                                        <React.Fragment>
+                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                                {filename}
+                                            </a >
+                                            <span>{' '.repeat(32 - filename.length)}</span>
+                                            <span>{file.date.padEnd(10)}</span>
+                                            <span>{file.size.padStart(10)}</span>
+                                        </React.Fragment>
+                                    )
+                                    }
+                                </pre >
+                            );
+                        })}
+
                     </div >
                 );
             }
