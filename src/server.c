@@ -44,10 +44,10 @@ typedef struct
 {
     enum eRequestMethod method;
     char *path;
-    error_t (*handler)(HttpConnection *connection, const char_t *uri);
+    error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 } request_type_t;
 
-error_t handleWww(HttpConnection *connection, const char_t *uri)
+error_t handleWww(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     return httpSendResponse(connection, &uri[4]);
 }
@@ -63,6 +63,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
     {REQ_GET, "/api/get/", &handleApiGet},
@@ -224,7 +225,7 @@ httpServerRequestCallback(HttpConnection *connection,
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            return (*request_paths[i].handler)(connection, uri);
+            return (*request_paths[i].handler)(connection, uri, connection->request.queryString);
         }
     }
 

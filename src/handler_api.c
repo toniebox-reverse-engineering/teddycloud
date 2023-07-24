@@ -24,7 +24,7 @@ typedef enum
 #define SAVE_SIZE 80
 #define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
 
-error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
+error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char *json = strdup("{\"options\": [");
     int pos = 0;
@@ -116,7 +116,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
+error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     const char *item = &uri[5];
     char response[256];
@@ -178,7 +178,7 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleApiGet(HttpConnection *connection, const char_t *uri)
+error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     const char *item = &uri[5 + 3 + 1];
 
@@ -239,7 +239,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleApiSet(HttpConnection *connection, const char_t *uri)
+error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char response[256];
     sprintf(response, "ERROR");
@@ -414,7 +414,7 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
     return false; // Key not found
 }
 
-error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri)
+error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char *query = connection->request.queryString;
 
@@ -515,7 +515,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleApiStats(HttpConnection *connection, const char_t *uri)
+error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char *json = strdup("{\"stats\": [");
     int pos = 0;
@@ -799,7 +799,7 @@ void fileCertUploaded(const char *filename)
     free(path);
 }
 
-error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri)
+error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     uint_t statusCode = 500;
     char message[128];
@@ -836,7 +836,7 @@ void fileUploaded(const char *filename)
     TRACE_INFO("Received new file '%s'\r\n", filename);
 }
 
-error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri)
+error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char *query = connection->request.queryString;
 
