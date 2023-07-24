@@ -60,6 +60,8 @@ request_type_t request_paths[] = {
     {REQ_GET, "/www", &handleWww},
     /* custom API */
     {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
+    {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
+    {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},

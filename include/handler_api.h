@@ -14,3 +14,5 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri);
 error_t handleApiGet(HttpConnection *connection, const char_t *uri);
 error_t handleApiSet(HttpConnection *connection, const char_t *uri);
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri);
+error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri);
+error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri);

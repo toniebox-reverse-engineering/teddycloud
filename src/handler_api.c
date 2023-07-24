@@ -343,6 +343,178 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri)
     return httpWriteResponse(connection, response, false);
 }
 
+int urldecode(char *dest, const char *src)
+{
+    char a, b;
+    while (*src)
+    {
+        if ((*src == '%') &&
+            ((a = src[1]) && (b = src[2])) &&
+            (isxdigit(a) && isxdigit(b)))
+        {
+            if (a >= 'a')
+                a -= 'a' - 'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a' - 'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
+            *dest++ = 16 * a + b;
+            src += 3;
+        }
+        else if (*src == '+')
+        {
+            *dest++ = ' ';
+            src++;
+        }
+        else
+        {
+            *dest++ = *src++;
+        }
+    }
+    *dest++ = '\0';
+    return dest - src;
+}
+
+bool queryGet(const char *query, const char *key, char *data, size_t data_len)
+{
+    const char *q = query;
+    size_t key_len = strlen(key);
+    while ((q = strstr(q, key)))
+    {
+        if (q[key_len] == '=')
+        {
+            // Found the key, let's start copying the value
+            q += key_len + 1;  // Skip past the key and the '='
+            char buffer[1024]; // Temporary buffer for decoding
+            char *b = buffer;
+            while (*q && *q != '&')
+            {
+                if (b - buffer < sizeof(buffer) - 1)
+                { // Prevent buffer overflow
+                    *b++ = *q++;
+                }
+                else
+                {
+                    // The value is too long, truncate it
+                    break;
+                }
+            }
+            *b = '\0';               // Null-terminate the buffer
+            urldecode(data, buffer); // Decode and copy the value
+            return true;
+        }
+        q += key_len; // Skip past the key
+    }
+    return false; // Key not found
+}
+
+error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri)
+{
+    char *query = connection->request.queryString;
+
+    const char *rootPath = settings_get_string("core.contentdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        return ERROR_FAILURE;
+    }
+    TRACE_INFO("Query: '%s'\r\n", query);
+
+    char path[128];
+
+    if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
+    {
+        strcpy(path, "/");
+    }
+    if (strstr(path, ".."))
+    {
+        TRACE_INFO("Path does not allow '..': '%s'\r\n", query);
+        strcpy(path, "/");
+    }
+    char pathAbsolute[256];
+
+    strcpy(pathAbsolute, rootPath);
+    strcat(pathAbsolute, "/");
+    strcat(pathAbsolute, path);
+
+    int pos = 0;
+    char *json = strdup("[");
+    FsDir *dir = fsOpenDir(pathAbsolute);
+
+    json = realloc(json, osStrlen(json) + 128);
+
+    while (true)
+    {
+        char buf[1024];
+        FsDirEntry entry;
+
+        if (fsReadDir(dir, &entry) != NO_ERROR)
+        {
+            fsCloseDir(dir);
+            break;
+        }
+
+        if (!osStrcmp(entry.name, ".") || !osStrcmp(entry.name, ".."))
+        {
+            continue;
+        }
+
+        if (pos != 0)
+        {
+            strcat(json, ",");
+        }
+        char dateString[64];
+
+        osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
+                  entry.modified.year, entry.modified.month, entry.modified.day,
+                  entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
+
+        sprintf(buf, "{\"name\": \"%s\", \"date\": \"%s\", \"size\": \"%d\", \"isDirectory\": %s }",
+                entry.name, dateString, entry.size, (entry.attributes & FS_FILE_ATTR_DIRECTORY) ? "true" : "false");
+
+        json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
+        strcat(json, buf);
+
+        pos++;
+    }
+    strcat(json, "]");
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(json);
+
+    error_t error = httpWriteHeader(connection);
+    if (error != NO_ERROR)
+    {
+        free(json);
+        TRACE_ERROR("Failed to send header\r\n");
+        return error;
+    }
+
+    error = httpWriteStream(connection, json, connection->response.contentLength);
+    free(json);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to send header\r\n");
+        return error;
+    }
+
+    error = httpCloseStream(connection);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to close: %d\r\n", error);
+        return error;
+    }
+
+    return NO_ERROR;
+}
+
 error_t handleApiStats(HttpConnection *connection, const char_t *uri)
 {
     char *json = strdup("{\"stats\": [");
@@ -464,7 +636,7 @@ int find_string(const void *haystack, size_t haystack_len, size_t haystack_start
     return -1;
 }
 
-error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileUploaded)(const char *))
+error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileCertUploaded)(const char *))
 {
     char buffer[BUFFER_SIZE];
     char filename[64];
@@ -476,7 +648,8 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
     size_t leftover = 0;
     do
     {
-        error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, 0x00);
+        error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
+        bool partial = (DATA_SIZE - leftover) != packet_size;
         if (error != NO_ERROR)
         {
             TRACE_ERROR("httpReceive failed\r\n");
@@ -532,7 +705,9 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
 
         case PARSE_BODY:
         {
-            int data_end = find_string(buffer, payload_size - SAVE_SIZE, 0, boundary);
+            int searchLen = (partial || payload_size <= SAVE_SIZE) ? payload_size : payload_size - SAVE_SIZE;
+
+            int data_end = find_string(buffer, searchLen, 0, boundary);
             if (data_end >= 0)
             {
                 // We've found a boundary, let's finish up the current file
@@ -545,9 +720,9 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
                 file = NULL;
 
                 TRACE_INFO("Received file '%s'\r\n", filename);
-                if (fileUploaded)
+                if (fileCertUploaded)
                 {
-                    fileUploaded(filename);
+                    fileCertUploaded(filename);
                 }
 
                 if (strncmp(&buffer[data_end + strlen(boundary)], "--", 2) == 0)
@@ -593,7 +768,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
     return NO_ERROR;
 }
 
-void fileUploaded(const char *filename)
+void fileCertUploaded(const char *filename)
 {
     /* rootpath must be valid, which is ensured by upload handler */
     const char *rootPath = settings_get_string("core.certdir");
@@ -626,14 +801,6 @@ void fileUploaded(const char *filename)
 
 error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri)
 {
-    uint8_t data[8192];
-
-    if (sizeof(data) <= connection->request.byteCount)
-    {
-        TRACE_ERROR("Body size %zu bigger than buffer size %zu bytes", connection->request.byteCount, sizeof(data));
-        return NO_ERROR;
-    }
-
     uint_t statusCode = 500;
     char message[128];
     const char *rootPath = settings_get_string("core.certdir");
@@ -646,7 +813,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri)
     }
     else
     {
-        switch (parse_multipart_content(connection, rootPath, message, sizeof(message), &fileUploaded))
+        switch (parse_multipart_content(connection, rootPath, message, sizeof(message), &fileCertUploaded))
         {
         case NO_ERROR:
             statusCode = 200;
@@ -660,6 +827,73 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri)
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
+
+    return httpWriteResponse(connection, message, false);
+}
+
+void fileUploaded(const char *filename)
+{
+    TRACE_INFO("Received new file '%s'\r\n", filename);
+}
+
+error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri)
+{
+    char *query = connection->request.queryString;
+
+    const char *rootPath = settings_get_string("core.contentdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        return ERROR_FAILURE;
+    }
+    TRACE_INFO("Query: '%s'\r\n", query);
+
+    char path[128];
+
+    if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
+    {
+        strcpy(path, "/");
+    }
+    if (strstr(path, ".."))
+    {
+        TRACE_INFO("Path does not allow '..': '%s'\r\n", query);
+        strcpy(path, "/");
+    }
+    char pathAbsolute[256];
+
+    strcpy(pathAbsolute, rootPath);
+    strcat(pathAbsolute, "/");
+    strcat(pathAbsolute, path);
+
+    uint_t statusCode = 500;
+    char message[256];
+
+    snprintf(message, sizeof(message), "OK");
+
+    if (!fsDirExists(pathAbsolute))
+    {
+        statusCode = 500;
+        snprintf(message, sizeof(message), "invalid path: '%s'", path);
+        TRACE_ERROR("invalid path: '%s'\r\n", path);
+    }
+    else
+    {
+        switch (parse_multipart_content(connection, pathAbsolute, message, sizeof(message), &fileUploaded))
+        {
+        case NO_ERROR:
+            statusCode = 200;
+            break;
+        default:
+            statusCode = 500;
+            break;
+        }
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    TRACE_INFO("chunked: '%s'\r\n", connection->response.chunkedEncoding ? "true" : "false");
 
     return httpWriteResponse(connection, message, false);
 }

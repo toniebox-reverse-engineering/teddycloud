@@ -557,6 +557,149 @@
                 );
             }
         }
+        class FileViewerTile extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    path: '/',
+                    files: [],
+                };
+                this.fetchFileIndex = this.fetchFileIndex.bind(this);
+                this.uploadFile = this.uploadFile.bind(this);
+                this.createDirectory = this.createDirectory.bind(this);
+                this.fileInputRef = React.createRef();
+            }
+
+            componentDidMount() {
+                this.fetchFileIndex(this.state.path);
+            }
+
+            async fetchFileIndex(path) {
+                try {
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
+
+                    if (response.ok) {
+                        const files = await response.json();
+                        this.setState({ files, path });
+                    } else {
+                        console.error('Failed to fetch file index');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                }
+            }
+
+            async uploadFile() {
+                const file = this.fileInputRef.current.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append(file.name, file);
+
+                try {
+                    const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        alert('File uploaded successfully');
+                        this.fetchFileIndex(this.state.path); // Refresh files
+                    } else {
+                        alert('File upload failed');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                }
+            }
+
+            async createDirectory() {
+                const name = window.prompt('Enter the new directory name');
+                if (!name) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/createDirectory', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ path: `${this.state.path}${name}` }),
+                    });
+
+                    if (response.ok) {
+                        alert('Directory created successfully');
+                        this.fetchFileIndex(this.state.path); // Refresh files
+                    } else {
+                        alert('Failed to create directory');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                }
+            }
+
+            getParentPath(path) {
+                const trimmedPath = path.endsWith('/') ? path.slice(0, -1) : path;
+                const parts = trimmedPath.split('/');
+                parts.pop();
+                return parts.join('/') || '/';
+            }
+
+            render() {
+                return (
+                    <div className="tile config-tile">
+                        <h2>File Viewer</h2>
+
+                        <p>
+                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
+                            <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
+                            <button className="button" onClick={this.createDirectory}>Create Directory</button>
+                            <input type="file" ref={this.fileInputRef} style={{ display: 'none' }} onChange={this.uploadFile} />
+                        </p>
+
+                        {this.state.path !== '/' && (
+                            <p>
+                                <button className="button" onClick={() => this.fetchFileIndex(this.getParentPath(this.state.path))}>
+                                    Go up
+                                </button>
+                            </p>
+                        )}
+
+                        <pre key="path" style={{ fontFamily: 'monospace' }}>
+                            <span>Index of {this.state.path}</span>
+                        </pre>
+
+                        {this.state.files.map(({ name, date, size, isDirectory }, index) => (
+                            <pre key={index} style={{ fontFamily: 'monospace' }}>
+                                {isDirectory ? (
+                                    <React.Fragment>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${name}/`); }}>
+                                            {name}
+                                        </a>
+                                        <span>{' '.repeat(32 - name.length)}</span>
+                                        <span>{date}</span>
+                                        <span>{size}</span>
+                                    </React.Fragment>
+                                ) : (
+                                    <React.Fragment>
+                                        <span>{name.padEnd(32)}</span>
+                                        <span>{date}</span>
+                                        <span>{size}</span>
+                                    </React.Fragment>
+                                )}
+                            </pre>
+                        ))}
+
+
+
+
+                    </div>
+                );
+            }
+        }
 
         class App extends React.Component {
             constructor(props) {
@@ -647,6 +790,7 @@
                             <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
                             <CertificateUploadTile />
+                            <FileViewerTile />
                             <SettingsTile />
                             <ActionsTile />
                         </div>

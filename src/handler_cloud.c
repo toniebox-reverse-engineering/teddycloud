@@ -296,6 +296,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
 
     return NO_ERROR;
 }
+
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)
 {
     httpInitResponseHeader(connection);
