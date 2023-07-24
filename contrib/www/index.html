@@ -659,17 +659,17 @@
                             <input type="file" ref={this.fileInputRef} style={{ display: 'none' }} onChange={this.uploadFile} />
                         </p>
 
-                        {this.state.path !== '/' && (
-                            <p>
-                                <button className="button" onClick={() => this.fetchFileIndex(this.getParentPath(this.state.path))}>
-                                    Go up
-                                </button>
-                            </p>
-                        )}
-
                         <pre key="path" style={{ fontFamily: 'monospace' }}>
                             <span>Index of {this.state.path}</span>
                         </pre>
+
+                        {this.state.path !== '/' && (
+                            <pre key="goup" style={{ fontFamily: 'monospace' }}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path)) }}>
+                                    ..
+                                </a >
+                            </pre>
+                        )}
 
                         {this.state.files.map(({ name, date, size, isDirectory }, index) => (
                             <pre key={index} style={{ fontFamily: 'monospace' }}>
