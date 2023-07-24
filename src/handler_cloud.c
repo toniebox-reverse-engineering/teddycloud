@@ -25,7 +25,8 @@ typedef enum
     V1_CLAIM,
     V2_CONTENT,
     V1_FRESHNESS_CHECK,
-    V1_LOG
+    V1_LOG,
+    V1_CLOUDRESET
 } cloudapi_t;
 
 typedef enum
@@ -40,6 +41,7 @@ typedef enum
 typedef struct
 {
     const char_t *uri;
+    const char_t *queryString;
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;
@@ -207,11 +209,12 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx);
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx);
 
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx)
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx)
 {
     ctx->uri = uri;
+    ctx->queryString = queryString;
     ctx->api = api;
     ctx->buffer = NULL;
     ctx->bufferPos = 0;
@@ -306,7 +309,7 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
     connection->response.contentLength = contentLength;
 }
 
-error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
+error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     TRACE_INFO(" >> respond with current time\r\n");
 
@@ -319,8 +322,8 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     else
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
-        if (!cloud_request_get(NULL, 0, uri, NULL, &cbr))
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_TIME, &ctx);
+        if (!cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr))
         {
             return NO_ERROR;
         }
@@ -334,7 +337,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     return httpWriteResponse(connection, response, false);
 }
 
-error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
+error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     error_t ret = NO_ERROR;
     char *query = strdup(connection->request.queryString);
@@ -360,8 +363,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
-        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_OTA, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
     }
     else
     {
@@ -417,18 +420,18 @@ void markCustomTonie(tonie_info_t *tonieInfo)
     TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
 }
 
-error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
+error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_LOG, &ctx);
-        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_LOG, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
     }
     return NO_ERROR;
 }
 
-error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
+error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
@@ -459,8 +462,8 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     }
 
     cbr_ctx_t ctx;
-    req_cbr_t cbr = getCloudCbr(connection, uri, V1_CLAIM, &ctx);
-    cloud_request_get(NULL, 0, uri, token, &cbr);
+    req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx);
+    cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
     return NO_ERROR;
 }
 
@@ -472,7 +475,7 @@ static void strupr(char input[])
     }
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword)
 {
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
@@ -532,21 +535,21 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t
         {
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
-            req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
-            cloud_request_get(NULL, 0, uri, token, &cbr);
+            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx);
+            cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
         }
     }
     return NO_ERROR;
 }
-error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    return handleCloudContent(connection, uri, TRUE);
+    return handleCloudContent(connection, uri, queryString, TRUE);
 }
-error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
-        return handleCloudContent(connection, uri, FALSE);
+        return handleCloudContent(connection, uri, queryString, FALSE);
     }
     else
     {
@@ -555,7 +558,7 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
+error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
@@ -649,8 +652,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 osFreeMem(freshResp.tonie_marked);
 
                 cbr_ctx_t ctx;
-                req_cbr_t cbr = getCloudCbr(connection, uri, V1_FRESHNESS_CHECK, &ctx);
-                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, &cbr))
+                req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx);
+                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", queryString, data, dataLen, NULL, &cbr))
                 {
                     return NO_ERROR;
                 }
@@ -672,6 +675,24 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;
+    }
+    return NO_ERROR;
+}
+
+error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+{
+    // EMPTY POST REQUEST?
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLOUDRESET, &ctx);
+        cloud_request_post(NULL, 0, uri, queryString, NULL, 0, NULL, &cbr);
+    }
+    else
+    {
+        httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
+        connection->response.keepAlive = false;
+        return httpWriteResponse(connection, "{}", false);
     }
     return NO_ERROR;
 }

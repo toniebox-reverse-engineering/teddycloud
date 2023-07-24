@@ -73,17 +73,17 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     return NO_ERROR;
 }
 
-int_t cloud_request_get(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_get(const char *server, int port, const char *uri, const char *queryString, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, true, uri, "GET", NULL, 0, hash, cbr);
+    return cloud_request(server, port, true, uri, queryString, "GET", NULL, 0, hash, cbr);
 }
 
-int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_post(const char *server, int port, const char *uri, const char *queryString, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, true, uri, "POST", body, bodyLen, hash, cbr);
+    return cloud_request(server, port, true, uri, queryString, "POST", body, bodyLen, hash, cbr);
 }
 
-int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
     if (!settings_get_bool("cloud.enabled"))
     {
@@ -169,6 +169,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             httpClientCreateRequest(&httpClientContext);
             httpClientSetMethod(&httpClientContext, method);
             httpClientSetUri(&httpClientContext, uri);
+            httpClientSetQueryString(&httpClientContext, queryString);
             if (body && bodyLen > 0)
             {
                 error = httpClientSetContentLength(&httpClientContext, bodyLen);

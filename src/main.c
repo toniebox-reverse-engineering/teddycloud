@@ -140,7 +140,7 @@ int_t main(int argc, char *argv[])
 
             settings_set_bool("cloud.enabled", true);
 
-            error = cloud_request(hostname, port, protocol == PROT_HTTPS, uri, "GET", NULL, 0, hash, NULL);
+            error = cloud_request(hostname, port, protocol == PROT_HTTPS, uri, "", "GET", NULL, 0, hash, NULL);
 
             free(hostname);
             free(uri);
@@ -172,7 +172,7 @@ int_t main(int argc, char *argv[])
 
             TRACE_WARNING("\r\n");
 
-            error = cloud_request_get(NULL, 0, request, hash, NULL);
+            error = cloud_request_get(NULL, 0, request, "", hash, NULL);
         }
     }
     else

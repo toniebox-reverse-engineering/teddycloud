@@ -24,6 +24,7 @@ typedef struct
     char *remote_hostname;
     uint32_t remote_port;
     bool enableV1Claim;
+    bool enableV1CloudReset;
     bool enableV1FreshnessCheck;
     bool enableV1Log;
     bool enableV1Time;

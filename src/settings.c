@@ -52,6 +52,7 @@ OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable c
 OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
 OPTION_UNSIGNED("cloud.port", &Settings.cloud.remote_port, 443, 1, 65535, "Port of remote cloud server")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
+OPTION_BOOL("cloud.enableV1CloudReset", &Settings.cloud.enableV1CloudReset, FALSE, "Pass 'cloudReset' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1FreshnessCheck", &Settings.cloud.enableV1FreshnessCheck, TRUE, "Pass 'freshnessCheck' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Log", &Settings.cloud.enableV1Log, FALSE, "Pass 'log' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Time", &Settings.cloud.enableV1Time, FALSE, "Pass 'time' queries to boxine cloud")
