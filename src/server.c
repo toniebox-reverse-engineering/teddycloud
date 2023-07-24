@@ -59,6 +59,8 @@ request_type_t request_paths[] = {
     /* web interface directory */
     {REQ_GET, "/www", &handleWww},
     /* custom API */
+    {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
+    {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
     {REQ_POST, "/api/fileUpload", &handleApiFileUpload},

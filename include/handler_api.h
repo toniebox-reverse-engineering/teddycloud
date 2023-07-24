@@ -17,3 +17,5 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);

@@ -565,12 +565,16 @@
                 this.state = {
                     path: '/',
                     files: [],
+                    selectedFiles: [],
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
                 this.createDirectory = this.createDirectory.bind(this);
                 this.fileInputRef = React.createRef();
                 this.onDrop = this.onDrop.bind(this);
+                this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
+                this.toggleFileSelection = this.toggleFileSelection.bind(this);
+                this.selectAllFiles = this.selectAllFiles.bind(this);
             }
 
             componentDidMount() {
@@ -591,7 +595,6 @@
                     console.error('There was an error!', err);
                 }
             }
-
 
             askPermission(files) {
                 if (window.confirm("Do you want to upload these files?")) {
@@ -650,7 +653,7 @@
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: `${this.state.path}${name}`,
+                        body: this.state.path.trim() + name.trim(),
                     });
 
                     if (response.ok) {
@@ -670,6 +673,50 @@
                 return parts.join('/') || '/';
             }
 
+            async deleteSelectedFiles() {
+                let deletedCount = 0, failedCount = 0;
+
+                for (let file of this.state.selectedFiles) {
+                    const api = file.isDirectory ? '/api/dirDelete' : '/api/fileDelete';
+
+                    try {
+                        const response = await fetch(api, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: this.state.path + file.name,
+                        });
+
+                        if (response.ok && await response.text() === 'OK') {
+                            deletedCount++;
+                        } else {
+                            failedCount++;
+                        }
+                    } catch (err) {
+                        console.error('There was an error!', err);
+                        failedCount++;
+                    }
+                }
+
+                alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                this.setState({ selectedFiles: [] });
+                this.fetchFileIndex(this.state.path); // Refresh files after delete
+            }
+
+
+            toggleFileSelection(file) {
+                this.setState(prevState => {
+                    if (prevState.selectedFiles.includes(file)) {
+                        return { selectedFiles: prevState.selectedFiles.filter(f => f !== file) };
+                    } else {
+                        return { selectedFiles: [...prevState.selectedFiles, file] };
+                    }
+                });
+            }
+
+            selectAllFiles() {
+                this.setState({ selectedFiles: [...this.state.files] });
+            }
+
             render() {
                 return (
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
@@ -679,6 +726,8 @@
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
+                            <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
+                            {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
                                 ref={this.fileInputRef}
@@ -714,38 +763,40 @@
                             </pre>
                         )}
 
-                        {this.state.files.map(({ name, date, size, isDirectory }, index) => (
+                        {this.state.files.map((file, index) => (
                             <pre key={index} style={{ fontFamily: 'monospace' }}>
-                                {isDirectory ? (
+                                <input
+                                    type="checkbox"
+                                    checked={this.state.selectedFiles.includes(file)}
+                                    onChange={() => this.toggleFileSelection(file)}
+                                />
+                                {file.isDirectory ? (
                                     <React.Fragment>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${name} /`); }}>
-                                            {name}
+                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
+                                            {file.name}
                                         </a >
-                                        <span>{' '.repeat(32 - name.length)}</span>
-                                        <span>{date}</span>
+                                        <span>{' '.repeat(32 - file.name.length)}</span>
+                                        <span>{file.date}</span>
                                         <span>{'-'.padStart(10)}</span>
                                     </React.Fragment >
                                 ) : (
                                     <React.Fragment>
-                                        <a href={`/content${this.state.path}${name}`} target="_blank" rel="noopener noreferrer">
-                                            {name}
+                                        <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            {file.name}
                                         </a >
-                                        <span>{' '.repeat(32 - name.length)}</span>
-                                        <span>{date.padEnd(10)}</span>
-                                        <span>{size.padStart(10)}</span>
+                                        <span>{' '.repeat(32 - file.name.length)}</span>
+                                        <span>{file.date.padEnd(10)}</span>
+                                        <span>{file.size.padStart(10)}</span>
                                     </React.Fragment>
                                 )
                                 }
-                            </pre>
+                            </pre >
                         ))}
-
-
-
-
                     </div >
                 );
             }
         }
+
 
         class App extends React.Component {
             constructor(props) {

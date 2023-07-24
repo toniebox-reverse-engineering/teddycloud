@@ -912,7 +912,7 @@ void fileUploaded(const char *filename)
 #include <string.h>
 #include <stdbool.h>
 
-void sanitizePath(char *path)
+void sanitizePath(char *path, bool isDir)
 {
     size_t i, j;
     bool slash = false;
@@ -949,10 +949,13 @@ void sanitizePath(char *path)
     }
 
     /* If path doesn't end with '/', add '/' at the end */
-    if (path[j - 1] != '/')
+    if (isDir)
     {
-        path[j] = '/';      // Add '/' at the end
-        path[j + 1] = '\0'; // Null terminate
+        if (path[j - 1] != '/')
+        {
+            path[j] = '/';      // Add '/' at the end
+            path[j + 1] = '\0'; // Null terminate
+        }
     }
 }
 
@@ -973,7 +976,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
         strcpy(path, "/");
     }
 
-    sanitizePath(path);
+    sanitizePath(path, true);
 
     char pathAbsolute[256];
     snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
@@ -1031,7 +1034,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 
     TRACE_INFO("Creating directory: '%s'\r\n", path);
 
-    sanitizePath(path);
+    sanitizePath(path, true);
 
     char pathAbsolute[256 + 2];
     snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
@@ -1049,6 +1052,100 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
         statusCode = 500;
         snprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
         TRACE_ERROR("Error creating directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+    }
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponse(connection, message, false);
+}
+
+error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+{
+    const char *rootPath = settings_get_string("core.contentdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        return ERROR_FAILURE;
+    }
+    char path[256];
+    size_t size = 0;
+
+    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!");
+        return error;
+    }
+    path[size] = 0;
+
+    TRACE_INFO("Deleting directory: '%s'\r\n", path);
+
+    sanitizePath(path, true);
+
+    char pathAbsolute[256 + 2];
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+
+    uint_t statusCode = 200;
+    char message[256 + 64];
+
+    snprintf(message, sizeof(message), "OK");
+
+    error_t err = fsRemoveDir(pathAbsolute);
+
+    if (err != NO_ERROR)
+    {
+        statusCode = 500;
+        snprintf(message, sizeof(message), "Error deleting directory '%s', error %d", path, err);
+        TRACE_ERROR("Error deleting directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+    }
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponse(connection, message, false);
+}
+
+error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+{
+    const char *rootPath = settings_get_string("core.contentdir");
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        return ERROR_FAILURE;
+    }
+    char path[256];
+    size_t size = 0;
+
+    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!");
+        return error;
+    }
+    path[size] = 0;
+
+    TRACE_INFO("Deleting file: '%s'\r\n", path);
+
+    sanitizePath(path, false);
+
+    char pathAbsolute[256 + 2];
+    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+
+    uint_t statusCode = 200;
+    char message[256 + 64];
+
+    snprintf(message, sizeof(message), "OK");
+
+    error_t err = fsDeleteFile(pathAbsolute);
+
+    if (err != NO_ERROR)
+    {
+        statusCode = 500;
+        snprintf(message, sizeof(message), "Error deleting file '%s', error %d", path, err);
+        TRACE_ERROR("Error deleting file '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
