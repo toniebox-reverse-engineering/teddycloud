@@ -200,6 +200,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
         break;
     }
     ctx->status = PROX_STATUS_BODY;
+    freeTonieInfo(&ctx->tonieInfo);
 }
 
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
@@ -266,7 +267,32 @@ tonie_info_t getTonieInfo(char contentPath[30])
     osStrcat(contentPathDot, ".live");
     tonieInfo.live = fsFileExists(contentPathDot);
 
+    FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
+    if (file)
+    {
+        uint8_t headerBuffer[TAF_HEADER_SIZE - 4];
+        size_t read_length;
+        fsReadFile(file, headerBuffer, 4, &read_length);
+        if (read_length == 4)
+        {
+            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+            if (protobufSize < TAF_HEADER_SIZE)
+            {
+                fsReadFile(file, headerBuffer, protobufSize, &read_length); // TODO: Read size by first 4 bytes
+                if (read_length == protobufSize)
+                {
+                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, TAF_HEADER_SIZE - 4, (const uint8_t *)headerBuffer);
+                }
+            }
+        }
+        fsCloseFile(file);
+    }
     return tonieInfo;
+}
+
+void freeTonieInfo(tonie_info_t *tonieInfo)
+{
+    toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
 }
 
 error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory)
@@ -456,14 +482,14 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
         markCustomTonie(&tonieInfo);
     }
 
-    if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Claim") || tonieInfo.nocloud)
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Claim") && !tonieInfo.nocloud)
     {
-        return NO_ERROR;
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
     }
+    freeTonieInfo(&tonieInfo);
 
-    cbr_ctx_t ctx;
-    req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx);
-    cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
     return NO_ERROR;
 }
 
@@ -478,6 +504,7 @@ static void strupr(char input[])
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword)
 {
     char ruid[17];
+    error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
     osStrncpy(ruid, &uri[12], sizeof(ruid));
@@ -512,7 +539,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
-            return error;
         }
     }
     else
@@ -529,7 +555,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             }
             httpPrepareHeader(connection, NULL, 0);
             connection->response.statusCode = 404;
-            return httpWriteResponse(connection, NULL, false);
+            error = httpWriteResponse(connection, NULL, false);
         }
         else
         {
@@ -539,7 +565,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
         }
     }
-    return NO_ERROR;
+    freeTonieInfo(&tonieInfo);
+    return error;
 }
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
@@ -640,6 +667,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
+                freeTonieInfo(&tonieInfo);
             }
 
             if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1FreshnessCheck"))
