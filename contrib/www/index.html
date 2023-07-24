@@ -662,6 +662,13 @@
                         <pre key="path" style={{ fontFamily: 'monospace' }}>
                             <span>Index of {this.state.path}</span>
                         </pre>
+                        <pre key="heading" style={{ fontFamily: 'monospace' }}>
+                            <React.Fragment>
+                                <span><u>{'Name'.padEnd(33)}</u></span>
+                                <span><u>{'Date'.padEnd(19)}</u></span>
+                                <span><u>{'Size'.padStart(12)}</u></span>
+                            </React.Fragment>
+                        </pre>
 
                         {this.state.path !== '/' && (
                             <pre key="goup" style={{ fontFamily: 'monospace' }}>
@@ -680,13 +687,13 @@
                                         </a >
                                         <span>{' '.repeat(32 - name.length)}</span>
                                         <span>{date}</span>
-                                        <span>{size}</span>
+                                        <span>{'-'.padStart(10)}</span>
                                     </React.Fragment >
                                 ) : (
                                     <React.Fragment>
                                         <span>{name.padEnd(32)}</span>
-                                        <span>{date}</span>
-                                        <span>{size}</span>
+                                        <span>{date.padEnd(10)}</span>
+                                        <span>{size.padStart(10)}</span>
                                     </React.Fragment>
                                 )
                                 }
