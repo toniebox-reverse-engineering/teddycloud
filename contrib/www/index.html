@@ -360,7 +360,7 @@
             }
 
             componentDidMount() {
-                //this.interval = setInterval(this.fetchFromServer, 5000);
+                this.interval = setInterval(this.fetchFromServer, 5000);
             }
 
             componentWillUnmount() {
@@ -762,7 +762,7 @@
             }
 
             componentDidMount() {
-                //this.interval = setInterval(this.fetchFromServer, 60000);
+                this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
             }
 
