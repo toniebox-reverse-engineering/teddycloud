@@ -138,7 +138,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
-                getContentPathFromCharRUID(ruid, ctx->tonieInfo.contentPath);
+                getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath);
                 char tmpPath[34];
                 ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
                 osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
@@ -233,14 +233,17 @@ static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cons
     return cbr;
 }
 
-void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
+void getContentPathFromCharRUID(char ruid[17], char **pcontentPath)
 {
-    osSprintf(contentPath, "www/CONTENT/%.8s/%.8s", ruid, &ruid[8]);
-    strupr(&contentPath[4]);
-    contentPath[30] = '\0';
+    *pcontentPath = osAllocMem(30);
+    char filePath[18];
+    osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
+    strupr(filePath);
+
+    osSprintf(*pcontentPath, "www/CONTENT/%s", filePath);
 }
 
-void getContentPathFromUID(uint64_t uid, char contentPath[30])
+void getContentPathFromUID(uint64_t uid, char **pcontentPath)
 {
     uint16_t cuid[9];
     osSprintf((char *)cuid, "%016" PRIX64 "", uid);
@@ -250,7 +253,7 @@ void getContentPathFromUID(uint64_t uid, char contentPath[30])
         cruid[i] = cuid[7 - i];
     }
     cruid[8] = 0;
-    getContentPathFromCharRUID((char *)cruid, contentPath);
+    getContentPathFromCharRUID((char *)cruid, pcontentPath);
 }
 
 tonie_info_t getTonieInfo(const char *contentPath)
@@ -481,7 +484,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
-    getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
+    getContentPathFromCharRUID(ruid, &tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
     if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
@@ -531,7 +534,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
-    getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
+    getContentPathFromCharRUID(ruid, &tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
     if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token))
@@ -655,7 +658,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     }
                 }
                 tonie_info_t tonieInfo;
-                getContentPathFromUID(freshReq->tonie_infos[i]->uid, tonieInfo.contentPath);
+                getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
                 tonieInfo.updated = (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
