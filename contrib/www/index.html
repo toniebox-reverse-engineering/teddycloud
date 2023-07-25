@@ -3,7 +3,7 @@
 
 <head>
     <title>TeddyCloud administration interface</title>
-    <meta name="viewport" CONTENT="width=device-width, initial-scale=0.75">
+    <meta name="viewport" content="width=device-width, initial-scale=0.75">
 
     <script src="https://unpkg.com/react@16/umd/react.development.js"
         integrity="sha512-LVEAOXGRRqHiT+4awmHwL5emvXg+BTr8cC/eDF0pLuwEySgG55Pt2gfN2X6BenCsocmb2kKJ7QJVppWftFpcoA=="
@@ -19,7 +19,7 @@
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             display: flex;
-            justify-CONTENT: center;
+            justify-content: center;
             align-items: center;
             margin: 0;
         }
@@ -90,7 +90,7 @@
         .tiles {
             display: flex;
             flex-direction: column;
-            justify-CONTENT: space-between;
+            justify-content: space-between;
             margin-top: 10px;
         }
 
@@ -180,7 +180,7 @@
                     method: 'POST',
                     body: newState.toString(),
                     headers: {
-                        'CONTENT-Type': 'text/plain'
+                        'Content-Type': 'text/plain'
                     },
                 });
             }
@@ -223,7 +223,7 @@
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
-                        'CONTENT-Type': 'text/plain'
+                        'Content-Type': 'text/plain'
                     },
                 });
             }
@@ -279,7 +279,7 @@
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
-                        'CONTENT-Type': 'text/plain'
+                        'Content-Type': 'text/plain'
                     },
                 });
             }
@@ -419,7 +419,7 @@
 
             renderStatsItem(stats) {
                 return (
-                    <div style={{ display: 'flex', justifyCONTENT: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <div>{stats.description}</div>
                         <div>{stats.value}</div>
                     </div>
@@ -517,6 +517,7 @@
             askPermission(files) {
                 if (window.confirm("Do you want to set these files as client certificates?")) {
                     this.setState({ files });
+                    this.uploadFiles();
                 }
             }
 
@@ -582,12 +583,6 @@
                         {this.state.files.map(({ name, status }, index) => (
                             <p key={index}><code>{name}</code> - <span className={this.getStatusClass(status)}>{status}</span></p>
                         ))}
-
-                        {this.state.files.length > 0 &&
-                            <button className="button" onClick={this.uploadFiles}>
-                                Upload
-                            </button>
-                        }
                     </div>
                 );
             }
@@ -736,7 +731,7 @@
                     const response = await fetch('/api/dirCreate', {
                         method: 'POST',
                         headers: {
-                            'CONTENT-Type': 'application/json',
+                            'Content-Type': 'application/json',
                         },
                         body: this.state.path.trim() + name.trim(),
                     });
@@ -767,7 +762,7 @@
                     try {
                         const response = await fetch(api, {
                             method: 'POST',
-                            headers: { 'CONTENT-Type': 'text/plain' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: this.state.path + file.name,
                         });
 
