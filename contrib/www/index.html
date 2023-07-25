@@ -749,9 +749,10 @@
                         </pre>
                         <pre key="heading" style={{ fontFamily: 'monospace' }}>
                             <React.Fragment>
-                                <span><u>{'Name'.padEnd(33)}</u></span>
+                                <span><u>{'Name'.padEnd(24 + 4)}</u></span>
                                 <span><u>{'Date'.padEnd(19)}</u></span>
                                 <span><u>{'Size'.padStart(12)}</u></span>
+                                <span><u>{' Description'}</u></span>
                             </React.Fragment>
                         </pre>
 
@@ -764,7 +765,11 @@
                         )}
 
                         {this.state.files.map((file, index) => {
-                            let filename = file.name.substring(0, 32);
+                            let maxLen = 24;
+                            let filename = file.name.substring(0, maxLen);
+                            if (file.name.length > maxLen) {
+                                filename = file.name.substring(0, maxLen - 3) + "...";
+                            }
                             return (
                                 <pre key={index} style={{ fontFamily: 'monospace' }}>
                                     <input
@@ -777,18 +782,20 @@
                                             <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
                                                 {filename}
                                             </a >
-                                            <span>{' '.repeat(32 - filename.length)}</span>
+                                            <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date}</span>
                                             <span>{'-'.padStart(10)}</span>
+                                            <span>{' -'}</span>
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
                                             <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
-                                            <span>{' '.repeat(32 - filename.length)}</span>
+                                            <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
                                             <span>{file.size.padStart(10)}</span>
+                                            <span>{' ' + file.desc}</span>
                                         </React.Fragment>
                                     )
                                     }
