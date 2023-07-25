@@ -69,7 +69,7 @@ error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char
     // Retrieve the size of the specified file
     error = fsGetFileSize(connection->buffer, &length);
     // The specified URI cannot be found?
-    if (error)
+    if (error || length < 4096)
     {
         TRACE_ERROR("File does not exist '%s'\r\n", connection->buffer);
         return ERROR_NOT_FOUND;
@@ -85,7 +85,7 @@ error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char
     // TODO add status 416 on invalid ranges
     if (connection->request.Range.start > 0)
     {
-        connection->request.Range.size = length;
+        connection->request.Range.size = length - 4096;
         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
             connection->request.Range.end = connection->request.Range.size - 1;
 
@@ -120,11 +120,12 @@ error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char
     if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
     {
         TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
+        fsSeekFile(file, connection->request.Range.start + 4096, FS_SEEK_SET);
     }
     else
     {
         TRACE_DEBUG("No seeking, sending from beginning\r\n");
+        fsSeekFile(file, 4096, FS_SEEK_SET);
     }
 
     // Send response body
