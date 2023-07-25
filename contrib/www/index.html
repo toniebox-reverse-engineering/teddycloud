@@ -882,7 +882,7 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={`/CONTENT${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -891,7 +891,7 @@
                                             {file.desc.startsWith('TAF,') &&
                                                 <div className="parent">
                                                     <button
-                                                        onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/content${this.state.path}${file.name}`)} className="small-round-button"
+                                                        onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`)} className="small-round-button"
                                                     >
                                                         &#9654;
                                                     </button>
