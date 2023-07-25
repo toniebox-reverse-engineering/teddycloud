@@ -776,7 +776,7 @@
                         const response = await fetch(api, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
-                            body: this.state.path + file.name,
+                            body: this.state.path + '/' + file.name,
                         });
 
                         if (response.ok && await response.text() === 'OK') {
@@ -790,7 +790,9 @@
                     }
                 }
 
-                alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                if (failedCount > 0) {
+                    alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                }
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path); // Refresh files after delete
             }
