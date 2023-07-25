@@ -71,6 +71,22 @@
             flex-direction: column;
         }
 
+        @keyframes zoomOut {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .imageZoomOut {
+            transition: transform 2s, opacity 2s;
+        }
+
         .app {
             padding: 10px;
             border-radius: 5px;
@@ -600,7 +616,6 @@
                 );
             }
         }
-
         class OggPlayer extends React.Component {
             constructor(props) {
                 super(props);
@@ -610,22 +625,33 @@
                 this.state = {
                     currentTime: 0,
                     duration: 0,
+                    imageUrl: "",
+                    isPlaying: false,  // Track if audio is playing
                 }
             }
 
             setUrl = (url) => {
                 this.audioRef.current.src = url;
                 this.audioRef.current.play();
+                this.setState({ isPlaying: true });  // Update isPlaying state when audio starts
+            }
+
+            setImageUrl = (url) => {
+                this.setState({ imageUrl: url });
             }
 
             componentDidMount() {
                 this.audioRef.current.addEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.addEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.addEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.addEventListener('pause', this.updateIsPlaying);
             }
 
             componentWillUnmount() {
                 this.audioRef.current.removeEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.removeEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.removeEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.removeEventListener('pause', this.updateIsPlaying);
             }
 
             updateCurrentTime = () => {
@@ -636,16 +662,44 @@
                 this.setState({ duration: this.audioRef.current.duration });
             }
 
+            // Update isPlaying state based on audio status
+            updateIsPlaying = () => {
+                this.setState({ isPlaying: !this.audioRef.current.paused });
+            }
+
             seek = (event) => {
                 this.audioRef.current.currentTime = (event.target.value / 100) * this.audioRef.current.duration;
             }
 
             render() {
                 return (
-                    <audio ref={this.audioRef} controls />
+                    <div style={{
+                        display: this.state.isPlaying ? 'flex' : 'hidden',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        height: this.state.isPlaying ? '100%' : '0',
+                        transition: 'all 1s ease'
+                    }}>
+                        <img src={this.state.imageUrl}
+                            style={{
+                                width: this.state.isPlaying ? '400px' : '0',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                        <audio ref={this.audioRef}
+                            controls
+                            style={{
+                                width: this.state.isPlaying ? '100%' : '0',
+                                visibility: this.state.isPlaying ? 'visible' : 'hidden',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                    </div>
                 );
             }
         }
+
+
 
         class FileViewerTile extends React.Component {
             constructor(props) {
@@ -914,7 +968,11 @@
                                             {file.desc.startsWith('TAF:') &&
                                                 <div className="parent">
                                                     <button
-                                                        onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`)} className="small-round-button"
+                                                        onClick={() => {
+                                                            this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`);
+                                                            this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                        }
+                                                        } className="small-round-button"
                                                     >
                                                         &#9654;
                                                     </button>
