@@ -616,6 +616,7 @@
                 );
             }
         }
+
         class OggPlayer extends React.Component {
             constructor(props) {
                 super(props);
@@ -627,6 +628,7 @@
                     duration: 0,
                     imageUrl: "",
                     isPlaying: false,  // Track if audio is playing
+                    pauseTimer: null,  // Keep track of a timer for the pause event
                 }
             }
 
@@ -644,14 +646,14 @@
                 this.audioRef.current.addEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.addEventListener('loadedmetadata', this.updateDuration);
                 this.audioRef.current.addEventListener('play', this.updateIsPlaying);
-                this.audioRef.current.addEventListener('pause', this.updateIsPlaying);
+                this.audioRef.current.addEventListener('pause', this.initiatePause);
             }
 
             componentWillUnmount() {
                 this.audioRef.current.removeEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.removeEventListener('loadedmetadata', this.updateDuration);
                 this.audioRef.current.removeEventListener('play', this.updateIsPlaying);
-                this.audioRef.current.removeEventListener('pause', this.updateIsPlaying);
+                this.audioRef.current.removeEventListener('pause', this.initiatePause);
             }
 
             updateCurrentTime = () => {
@@ -662,9 +664,19 @@
                 this.setState({ duration: this.audioRef.current.duration });
             }
 
-            // Update isPlaying state based on audio status
+            // On play event, set isPlaying to true and clear any pause timers
             updateIsPlaying = () => {
-                this.setState({ isPlaying: !this.audioRef.current.paused });
+                clearTimeout(this.state.pauseTimer);
+                this.setState({ isPlaying: true, pauseTimer: null });
+            }
+
+            // On pause event, start a timer. If the timer ends, set isPlaying to false
+            initiatePause = () => {
+                if (this.state.pauseTimer) clearTimeout(this.state.pauseTimer);
+                const timer = setTimeout(() => {
+                    this.setState({ isPlaying: false });
+                }, 5000);  // Set a timer for 5 seconds
+                this.setState({ pauseTimer: timer });
             }
 
             seek = (event) => {
@@ -698,8 +710,6 @@
                 );
             }
         }
-
-
 
         class FileViewerTile extends React.Component {
             constructor(props) {
