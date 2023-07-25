@@ -218,10 +218,11 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
         TRACE_ERROR("Error: Cannot load file %s\r\n", filename);
         // Clean up side effects
         free(*buffer);
+        *buffer = NULL;
     }
 
     /* convert .der to .pem by encoding it into ascii format */
-    if (type)
+    if (type && *buffer)
     {
         char *inBuf = *buffer;
         size_t inBufLen = *length;

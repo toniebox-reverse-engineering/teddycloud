@@ -421,7 +421,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
     if (Settings.cloud.markCustomTagByPass)
     {
         bool tokenIsZero = TRUE;
-        for (uint8_t i; i < 32; i++)
+        for (uint8_t i = 0; i < 32; i++)
         {
             if (token[i] != 0)
             {
@@ -661,7 +661,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-                tonieInfo.updated = (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
+                tonieInfo.updated = tonieInfo.valid && (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
 
                 if (!tonieInfo.nocloud)
                 {

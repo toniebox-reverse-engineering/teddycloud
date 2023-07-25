@@ -679,7 +679,6 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
             save_start = 0;
             payload_size = leftover + packet_size;
             save_end = payload_size;
-            leftover = 0;
 
             fetch = false;
         }
