@@ -23,8 +23,8 @@ typedef struct
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 
-void getContentPathFromCharRUID(char ruid[17], char contentPath[30]);
-void getContentPathFromUID(uint64_t uid, char contentPath[30]);
+void getContentPathFromCharRUID(char ruid[17], char **pcontentPath);
+void getContentPathFromUID(uint64_t uid, char **pcontentPath);
 tonie_info_t getTonieInfo(const char *contentPath);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
