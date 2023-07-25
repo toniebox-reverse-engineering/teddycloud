@@ -238,6 +238,10 @@ zip: preinstall
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -
 
+scan-build: clean
+	mkdir -p report
+	scan-build -o report make -j
+
 .PHONY: auto
 auto:
 	@echo "Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit."
