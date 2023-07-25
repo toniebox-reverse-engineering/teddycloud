@@ -58,6 +58,19 @@
             align-items: start;
         }
 
+        .audio-time {
+            display: none;
+        }
+
+        .parent:hover .audio-time {
+            display: inline;
+        }
+
+        .text-section {
+            display: flex;
+            flex-direction: column;
+        }
+
         .app {
             padding: 10px;
             border-radius: 5px;
@@ -851,12 +864,25 @@
                             }
 
                             let matchingTonie;
-                            if (file.desc.startsWith('TAF,')) {
-                                let fileDescParts = file.desc.split(' ');
-                                let hexValue = fileDescParts[1];
-                                let audioId = parseInt(hexValue, 16).toString();
+                            let audioId;
+                            let audioIdHex;
+                            let hashHex;
+                            let tonieTitle = "(unknown)";
+                            let toniePic = "img_unknown.png";
+                            let tonieModel = "";
 
-                                matchingTonie = this.state.tonies.find(tonie => tonie.audio_id.includes(audioId));
+                            if (file.desc.startsWith('TAF:')) {
+                                let fileDescParts = file.desc.split(':');
+                                audioIdHex = fileDescParts[1];
+                                hashHex = fileDescParts[2];
+                                audioId = parseInt(audioIdHex, 16).toString();
+
+                                matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
+                                if (matchingTonie) {
+                                    tonieTitle = matchingTonie.title;
+                                    toniePic = matchingTonie.pic;
+                                    tonieModel = matchingTonie.model;
+                                }
                             }
 
                             return (
@@ -883,7 +909,7 @@
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
                                             <span>{file.size.padStart(10)}</span>
-                                            {file.desc.startsWith('TAF,') &&
+                                            {file.desc.startsWith('TAF:') &&
                                                 <div className="parent">
                                                     <button
                                                         onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`)} className="small-round-button"
@@ -892,9 +918,16 @@
                                                     </button>
                                                     <img
                                                         className="image-resize"
-                                                        src={matchingTonie && matchingTonie.pic}
+                                                        src={toniePic}
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
                                                     />
-                                                    <span className="desc">{matchingTonie && matchingTonie.title}</span>
+                                                    <div className="text-section">
+                                                        <span className="desc">{tonieTitle}</span>
+                                                        <span className="audio-time"> </span>
+                                                        <span className="audio-time">Model: {tonieModel}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
+                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                    </div>
                                                 </div>
                                             }
                                         </React.Fragment>
