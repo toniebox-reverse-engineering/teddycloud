@@ -52,12 +52,127 @@ error_t handleWww(HttpConnection *connection, const char_t *uri, const char_t *q
     return httpSendResponse(connection, &uri[4]);
 }
 
+error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char_t *queryString)
+{
+    const char_t *uri = &uri_full[4];
+    TRACE_ERROR("Returning ogg file '%s'\r\n", uri);
+
+    error_t error;
+    size_t n;
+    uint32_t length;
+    FsFile *file;
+
+    // Retrieve the full pathname
+    httpGetAbsolutePath(connection, uri, connection->buffer,
+                        HTTP_SERVER_BUFFER_SIZE);
+
+    // Retrieve the size of the specified file
+    error = fsGetFileSize(connection->buffer, &length);
+    // The specified URI cannot be found?
+    if (error)
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", connection->buffer);
+        return ERROR_NOT_FOUND;
+    }
+
+    // Open the file for reading
+    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
+    // Failed to open the file?
+    if (file == NULL)
+        return ERROR_NOT_FOUND;
+
+    // Format HTTP response header
+    // TODO add status 416 on invalid ranges
+    if (connection->request.Range.start > 0)
+    {
+        connection->request.Range.size = length;
+        if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
+            connection->request.Range.end = connection->request.Range.size - 1;
+
+        if (connection->response.contentRange == NULL)
+            connection->response.contentRange = osAllocMem(255);
+
+        osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        connection->response.statusCode = 206;
+        connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+        TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+    }
+    else
+    {
+        connection->response.statusCode = 200;
+        connection->response.contentLength = length;
+    }
+    connection->response.contentType = "audio/ogg";
+    connection->response.chunkedEncoding = FALSE;
+    length = connection->response.contentLength;
+
+    // Send the header to the client
+    error = httpWriteHeader(connection);
+    // Any error to report?
+    if (error)
+    {
+        // Close the file
+        fsCloseFile(file);
+        // Return status code
+        return error;
+    }
+
+    if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+    {
+        TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+        fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
+    }
+    else
+    {
+        TRACE_DEBUG("No seeking, sending from beginning\r\n");
+    }
+
+    // Send response body
+    while (length > 0)
+    {
+        // Limit the number of bytes to read at a time
+        n = MIN(length, HTTP_SERVER_BUFFER_SIZE);
+
+        // Read data from the specified file
+        error = fsReadFile(file, connection->buffer, n, &n);
+        // End of input stream?
+        if (error)
+            break;
+
+        // Send data to the client
+        error = httpWriteStream(connection, connection->buffer, n);
+        // Any error to report?
+        if (error)
+            break;
+
+        // Decrement the count of remaining bytes to be transferred
+        length -= n;
+    }
+
+    // Close the file
+    fsCloseFile(file);
+
+    // Successful file transfer?
+    if (error == NO_ERROR || error == ERROR_END_OF_FILE)
+    {
+        if (length == 0)
+        {
+            // Properly close the output stream
+            error = httpCloseStream(connection);
+        }
+    }
+
+    // Return status code
+    return error;
+}
+
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
     {REQ_GET, "/www", &handleWww},
+    {REQ_GET, "/ogg", &handleOgg},
     /* custom API */
     {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
     {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},

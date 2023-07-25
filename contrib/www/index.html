@@ -24,6 +24,40 @@
             margin: 0;
         }
 
+        .small-round-button {
+            position: absolute;
+            top: 0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .desc {
+            display: inline-block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            width: 300px;
+            white-space: normal;
+        }
+
+        .image-resize {
+            width: 32px;
+            height: 32px;
+            transition: all 0.3s ease-in-out;
+            margin-left: 40px;
+        }
+
+        .parent:hover .image-resize {
+            width: 128px;
+            height: 128px;
+        }
+
+        .parent {
+            position: relative;
+            display: flex;
+            align-items: start;
+        }
+
         .app {
             padding: 10px;
             border-radius: 5px;
@@ -559,6 +593,52 @@
             }
         }
 
+        class OggPlayer extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.audioRef = React.createRef();
+
+                this.state = {
+                    currentTime: 0,
+                    duration: 0,
+                }
+            }
+
+            setUrl = (url) => {
+                this.audioRef.current.src = url;
+                this.audioRef.current.play();
+            }
+
+            componentDidMount() {
+                this.audioRef.current.addEventListener('timeupdate', this.updateCurrentTime);
+                this.audioRef.current.addEventListener('loadedmetadata', this.updateDuration);
+            }
+
+            componentWillUnmount() {
+                this.audioRef.current.removeEventListener('timeupdate', this.updateCurrentTime);
+                this.audioRef.current.removeEventListener('loadedmetadata', this.updateDuration);
+            }
+
+            updateCurrentTime = () => {
+                this.setState({ currentTime: this.audioRef.current.currentTime });
+            }
+
+            updateDuration = () => {
+                this.setState({ duration: this.audioRef.current.duration });
+            }
+
+            seek = (event) => {
+                this.audioRef.current.currentTime = (event.target.value / 100) * this.audioRef.current.duration;
+            }
+
+            render() {
+                return (
+                    <audio ref={this.audioRef} controls />
+                );
+            }
+        }
+
         class FileViewerTile extends React.Component {
             constructor(props) {
                 super(props);
@@ -566,6 +646,7 @@
                     path: '/',
                     files: [],
                     selectedFiles: [],
+                    tonies: [],
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -575,9 +656,13 @@
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
+                this.oggPlayerRef = React.createRef();
             }
 
             componentDidMount() {
+                fetch("/www/tonies.json")
+                    .then(response => response.json())
+                    .then(data => this.setState({ tonies: data }));
                 this.fetchFileIndex(this.state.path);
             }
 
@@ -721,7 +806,7 @@
                 return (
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
                         <h2>File Viewer</h2>
-
+                        <OggPlayer ref={this.oggPlayerRef} />
                         <p>
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
@@ -752,7 +837,6 @@
                                 <span><u>{'Name'.padEnd(24 + 4)}</u></span>
                                 <span><u>{'Date'.padEnd(19)}</u></span>
                                 <span><u>{'Size'.padStart(12)}</u></span>
-                                <span><u>{' Description'}</u></span>
                             </React.Fragment>
                         </pre>
 
@@ -770,6 +854,16 @@
                             if (file.name.length > maxLen) {
                                 filename = file.name.substring(0, maxLen - 3) + "...";
                             }
+
+                            let matchingTonie;
+                            if (file.desc.startsWith('TAF,')) {
+                                let fileDescParts = file.desc.split(' ');
+                                let hexValue = fileDescParts[1];
+                                let audioId = parseInt(hexValue, 16).toString();
+
+                                matchingTonie = this.state.tonies.find(tonie => tonie.audio_id.includes(audioId));
+                            }
+
                             return (
                                 <pre key={index} style={{ fontFamily: 'monospace' }}>
                                     <input
@@ -785,7 +879,6 @@
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date}</span>
                                             <span>{'-'.padStart(10)}</span>
-                                            <span>{' -'}</span>
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
@@ -795,18 +888,33 @@
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
                                             <span>{file.size.padStart(10)}</span>
-                                            <span>{' ' + file.desc}</span>
+                                            {file.desc.startsWith('TAF,') &&
+                                                <div className="parent">
+                                                    <button
+                                                        onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/content${this.state.path}${file.name}`)} className="small-round-button"
+                                                    >
+                                                        &#9654;
+                                                    </button>
+                                                    <img
+                                                        className="image-resize"
+                                                        src={matchingTonie && matchingTonie.pic}
+                                                    />
+                                                    <span className="desc">{matchingTonie && matchingTonie.title}</span>
+                                                </div>
+                                            }
                                         </React.Fragment>
                                     )
                                     }
                                 </pre >
                             );
-                        })}
+                        })
+                        }
 
                     </div >
                 );
             }
         }
+
 
 
         class App extends React.Component {
