@@ -70,8 +70,14 @@ error_t der_get_length(FsFile *fp, size_t *outLength)
         uint32_t length = 0;
         for (uint8_t i = 0; i < num_bytes; i++)
         {
-            fread(&len, 1, 1, fp);
-            length = (length << 8) | len;
+            error_t err = fsReadFile(fp, &derLen, 1, &len);
+            if (err != NO_ERROR || len != 1)
+            {
+                *outLength = 0;
+                return err;
+            }
+
+            length = (length << 8) | derLen;
         }
         *outLength = length;
     }
@@ -253,7 +259,7 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
 
     // Close file
     if (fp != NULL)
-        fclose(fp);
+        fsCloseFile(fp);
 
     // Any error to report?
     if (error)

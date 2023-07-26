@@ -68,7 +68,7 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
             if (input[i] == replacements[k][0])
             {
                 size_t len = osStrlen(replacements[k]);
-                osStrncpy(&output[j], replacements[k], len);
+                osStrcpy(&output[j], replacements[k]);
                 j += len;
                 replaced = true;
                 break;

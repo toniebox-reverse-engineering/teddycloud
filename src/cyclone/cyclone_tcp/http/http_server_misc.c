@@ -605,7 +605,7 @@ void httpParseContentTypeField(HttpConnection *connection,
          if (n < HTTP_SERVER_BOUNDARY_MAX_LEN)
          {
             // Copy the boundary string
-            osStrncpy(connection->request.boundary, token, n);
+            osStrcpy(connection->request.boundary, token);
             // Properly terminate the string
             connection->request.boundary[n] = '\0';
 
