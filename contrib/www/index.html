@@ -58,6 +58,35 @@
             align-items: start;
         }
 
+        .audio-time {
+            display: none;
+        }
+
+        .parent:hover .audio-time {
+            display: inline;
+        }
+
+        .text-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes zoomOut {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .imageZoomOut {
+            transition: transform 2s, opacity 2s;
+        }
+
         .app {
             padding: 10px;
             border-radius: 5px;
@@ -597,22 +626,34 @@
                 this.state = {
                     currentTime: 0,
                     duration: 0,
+                    imageUrl: "",
+                    isPlaying: false,  // Track if audio is playing
+                    pauseTimer: null,  // Keep track of a timer for the pause event
                 }
             }
 
             setUrl = (url) => {
                 this.audioRef.current.src = url;
                 this.audioRef.current.play();
+                this.setState({ isPlaying: true });  // Update isPlaying state when audio starts
+            }
+
+            setImageUrl = (url) => {
+                this.setState({ imageUrl: url });
             }
 
             componentDidMount() {
                 this.audioRef.current.addEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.addEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.addEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.addEventListener('pause', this.initiatePause);
             }
 
             componentWillUnmount() {
                 this.audioRef.current.removeEventListener('timeupdate', this.updateCurrentTime);
                 this.audioRef.current.removeEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.removeEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.removeEventListener('pause', this.initiatePause);
             }
 
             updateCurrentTime = () => {
@@ -623,13 +664,49 @@
                 this.setState({ duration: this.audioRef.current.duration });
             }
 
+            // On play event, set isPlaying to true and clear any pause timers
+            updateIsPlaying = () => {
+                clearTimeout(this.state.pauseTimer);
+                this.setState({ isPlaying: true, pauseTimer: null });
+            }
+
+            // On pause event, start a timer. If the timer ends, set isPlaying to false
+            initiatePause = () => {
+                if (this.state.pauseTimer) clearTimeout(this.state.pauseTimer);
+                const timer = setTimeout(() => {
+                    this.setState({ isPlaying: false });
+                }, 5000);  // Set a timer for 5 seconds
+                this.setState({ pauseTimer: timer });
+            }
+
             seek = (event) => {
                 this.audioRef.current.currentTime = (event.target.value / 100) * this.audioRef.current.duration;
             }
 
             render() {
                 return (
-                    <audio ref={this.audioRef} controls />
+                    <div style={{
+                        display: this.state.isPlaying ? 'flex' : 'hidden',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        height: this.state.isPlaying ? '100%' : '0',
+                        transition: 'all 1s ease'
+                    }}>
+                        <img src={this.state.imageUrl}
+                            style={{
+                                width: this.state.isPlaying ? '400px' : '0',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                        <audio ref={this.audioRef}
+                            controls
+                            style={{
+                                width: this.state.isPlaying ? '100%' : '0',
+                                visibility: this.state.isPlaying ? 'visible' : 'hidden',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                    </div>
                 );
             }
         }
@@ -763,7 +840,7 @@
                         const response = await fetch(api, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
-                            body: this.state.path + file.name,
+                            body: this.state.path + '/' + file.name,
                         });
 
                         if (response.ok && await response.text() === 'OK') {
@@ -777,7 +854,9 @@
                     }
                 }
 
-                alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                if (failedCount > 0) {
+                    alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                }
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path); // Refresh files after delete
             }
@@ -851,12 +930,25 @@
                             }
 
                             let matchingTonie;
-                            if (file.desc.startsWith('TAF,')) {
-                                let fileDescParts = file.desc.split(' ');
-                                let hexValue = fileDescParts[1];
-                                let audioId = parseInt(hexValue, 16).toString();
+                            let audioId;
+                            let audioIdHex;
+                            let hashHex;
+                            let tonieTitle = "(unknown)";
+                            let toniePic = "img_unknown.png";
+                            let tonieModel = "";
 
-                                matchingTonie = this.state.tonies.find(tonie => tonie.audio_id.includes(audioId));
+                            if (file.desc.startsWith('TAF:')) {
+                                let fileDescParts = file.desc.split(':');
+                                audioIdHex = fileDescParts[1];
+                                hashHex = fileDescParts[2];
+                                audioId = parseInt(audioIdHex, 16).toString();
+
+                                matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
+                                if (matchingTonie) {
+                                    tonieTitle = matchingTonie.title;
+                                    toniePic = matchingTonie.pic;
+                                    tonieModel = matchingTonie.model;
+                                }
                             }
 
                             return (
@@ -883,18 +975,29 @@
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
                                             <span>{file.size.padStart(10)}</span>
-                                            {file.desc.startsWith('TAF,') &&
+                                            {file.desc.startsWith('TAF:') &&
                                                 <div className="parent">
                                                     <button
-                                                        onClick={() => this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`)} className="small-round-button"
+                                                        onClick={() => {
+                                                            this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`);
+                                                            this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                        }
+                                                        } className="small-round-button"
                                                     >
                                                         &#9654;
                                                     </button>
                                                     <img
                                                         className="image-resize"
-                                                        src={matchingTonie && matchingTonie.pic}
+                                                        src={toniePic}
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
                                                     />
-                                                    <span className="desc">{matchingTonie && matchingTonie.title}</span>
+                                                    <div className="text-section">
+                                                        <span className="desc">{tonieTitle}</span>
+                                                        <span className="audio-time"> </span>
+                                                        <span className="audio-time">Model: {tonieModel}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
+                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                    </div>
                                                 </div>
                                             }
                                         </React.Fragment>
