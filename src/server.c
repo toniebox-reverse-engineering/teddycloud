@@ -55,7 +55,7 @@ error_t handleWww(HttpConnection *connection, const char_t *uri, const char_t *q
 error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char_t *queryString)
 {
     const char_t *uri = &uri_full[4];
-    TRACE_ERROR("Returning ogg file '%s'\r\n", uri);
+    TRACE_INFO("Returning ogg file '%s'\r\n", uri);
 
     error_t error;
     size_t n;
