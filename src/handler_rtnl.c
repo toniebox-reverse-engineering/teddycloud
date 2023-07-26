@@ -30,12 +30,13 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         data = &connection->buffer[pos];
         uint32_t protoLength = (uint32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
         char_t *protoData = &data[4];
-        if (protoLength > (size - pos))
+        if (protoLength > (size - 4 - pos))
         {
             break;
         }
-        if (protoLength == 0 || protoLength + 4 > HTTP_SERVER_BUFFER_SIZE - 1) // find apropiate size
+        if (protoLength == 0 || (protoLength + 4 > HTTP_SERVER_BUFFER_SIZE)) // find apropiate size
         {
+            TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
             pos++;
             continue;
         }
@@ -80,7 +81,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
 
-    osMemcpy(connection->buffer, data, size - pos); // 1023-1024 may occur
+    osMemcpy(connection->buffer, data, size - pos);
     connection->response.byteCount = size - pos;
 
     return NO_ERROR;

@@ -477,7 +477,7 @@ void httpConnectionTask(void *param)
                   size_t length = 0;
                   size_t pos = connection->response.byteCount;
                   error = httpReceive(connection, &connection->buffer[pos],
-                                      HTTP_SERVER_BUFFER_SIZE - pos - 1, &length, SOCKET_FLAG_PEEK); // TODO
+                                      HTTP_SERVER_BUFFER_SIZE - pos, &length, SOCKET_FLAG_PEEK); // TODO
                   connection->response.contentLength = length + pos;
                }
             }
