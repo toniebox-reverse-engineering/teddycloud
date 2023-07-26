@@ -166,6 +166,10 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
                 TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
             }
+            if (error != NO_ERROR)
+            {
+                freeTonieInfo(&ctx->tonieInfo);
+            }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         break;
@@ -200,7 +204,6 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
         break;
     }
     ctx->status = PROX_STATUS_BODY;
-    freeTonieInfo(&ctx->tonieInfo);
 }
 
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)

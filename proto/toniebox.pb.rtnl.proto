@@ -1,15 +1,24 @@
 syntax = "proto2";
 
+message TonieRtnlRPC {
+  //required fixed64 length = 1;
+  optional TonieRtnlLog2 log2 = 2;
+  optional TonieRtnlLog3 log3 = 3;
+}
+
 message TonieRtnlLog2 {
-  required fixed64 field1 = 1;
-  required uint32 field2 = 2;
+  required fixed64 uptime = 1;
+  required uint32 sequence = 2;
   required uint32 field3 = 3;
-  required uint32 field4 = 4;
-  required uint32 field5 = 5;
+  required uint32 function_group = 4;
+  required uint32 function = 5;
   required bytes field6 = 6; //or string
+  //optional <> field7 = 7;
+  optional fixed32 field8 = 8;
+  optional bytes field9 = 9; //or string
 }
 
 message TonieRtnlLog3 {
-  required fixed32 field1 = 1;
+  required fixed32 datetime = 1;
   required uint32 field2 = 2;
 }

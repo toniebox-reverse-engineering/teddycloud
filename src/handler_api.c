@@ -471,16 +471,21 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                   entry.modified.year, entry.modified.month, entry.modified.day,
                   entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
 
-        char desc[24];
-        osStrcpy(desc, "");
-
         char filePathAbsolute[384];
         snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
 
+        char desc[64];
+        desc[0] = 0;
         tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
         if (tafInfo.valid)
         {
-            snprintf(desc, sizeof(desc), "TAF, 0x%08X", tafInfo.tafHeader->audio_id);
+            snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
+            for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+            {
+                char tmp[3];
+                sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                osStrcat(desc, tmp);
+            }
         }
         freeTonieInfo(&tafInfo);
 

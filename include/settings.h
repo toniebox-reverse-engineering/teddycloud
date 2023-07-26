@@ -93,6 +93,14 @@ typedef struct
 
 typedef struct
 {
+    bool logRaw;
+    char *logRawFile;
+    bool logHuman;
+    char *logHumanFile;
+} settings_rtnl_t;
+
+typedef struct
+{
     uint32_t configVersion;
     settings_core_t core;
     settings_cloud_t cloud;
@@ -100,6 +108,7 @@ typedef struct
     settings_toniebox_t toniebox;
     settings_internal_t internal;
     settings_log_t log;
+    settings_rtnl_t rtnl;
 } settings_t;
 
 typedef enum
