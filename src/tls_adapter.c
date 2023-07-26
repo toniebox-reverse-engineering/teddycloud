@@ -7,6 +7,7 @@
 #include "error.h"
 #include "debug.h"
 #include "settings.h"
+#include "fs_port.h"
 
 // tsl_certificate.c function Dependencies
 #include <string.h>
@@ -47,25 +48,34 @@ typedef enum
  * @param[in] fp The file to read from
  * @return The length read from the file
  */
-uint32_t der_get_length(FILE *fp)
+error_t der_get_length(FsFile *fp, size_t *outLength)
 {
-    uint8_t len;
-    fread(&len, 1, 1, fp);
-    if ((len & 0x80) == 0)
+    uint8_t derLen;
+    size_t len;
+    error_t err = fsReadFile(fp, &derLen, 1, &len);
+
+    if (err != NO_ERROR || len != 1)
     {
-        return len; // Short form
+        *outLength = 0;
+        return err;
+    }
+
+    if ((derLen & 0x80) == 0)
+    {
+        *outLength = derLen; // Short form
     }
     else
     {
-        uint8_t num_bytes = len & 0x7f; // Long form
+        uint8_t num_bytes = derLen & 0x7f; // Long form
         uint32_t length = 0;
         for (uint8_t i = 0; i < num_bytes; i++)
         {
             fread(&len, 1, 1, fp);
             length = (length << 8) | len;
         }
-        return length;
+        *outLength = length;
     }
+    return NO_ERROR;
 }
 
 /**
@@ -78,39 +88,67 @@ uint32_t der_get_length(FILE *fp)
  * @param[in] filename The name of the file to check
  * @return The type of the DER data in the file, or eDerTypeUnknown if the type could not be determined
  */
-eDerType der_detect(const char *filename)
+error_t der_detect(const char *filename, eDerType *type)
 {
-    eDerType ret = eDerTypeUnknown;
+    error_t ret = NO_ERROR;
+    *type = eDerTypeUnknown;
 
-    FILE *fp = fopen(filename, "rb");
+    FsFile *fp = fsOpenFile(filename, FS_FILE_MODE_READ);
     if (!fp)
     {
-        return eDerTypeUnknown;
+        return ERROR_FAILURE;
     }
 
-    uint8_t tag;
-    fread(&tag, 1, 1, fp); // Read the first tag
-
-    if (tag != 0x30)
+    /* while loop to break out and clean up commonly */
+    do
     {
-        fclose(fp);
-        return eDerTypeUnknown;
-    }
+        uint8_t tag;
+        size_t len;
 
-    der_get_length(fp); // Read the length of the SEQUENCE
+        /* read first byte */
+        error_t err = fsReadFile(fp, &tag, 1, &len);
+        if (err != NO_ERROR || len != 1)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
 
-    fread(&tag, 1, 1, fp); // Read the next tag
+        /* check for DER SEQUENCE format */
+        if (tag != 0x30)
+        {
+            break;
+        }
 
-    if (tag == 0x30)
-    {
-        ret = eDerTypeCertificate;
-    }
-    else if (tag == 0x02)
-    {
-        ret = eDerTypeKey;
-    }
+        /* read length of SEQUENCE */
+        size_t length;
+        err = der_get_length(fp, &length);
+        if (err != NO_ERROR)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
 
-    fclose(fp);
+        /* now get type of content */
+        err = fsReadFile(fp, &tag, 1, &len);
+        if (err != NO_ERROR || len != 1)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
+
+        if (tag == 0x30)
+        {
+            /* when it's an SEQUENCE, its probably a certificate */
+            *type = eDerTypeCertificate;
+        }
+        else if (tag == 0x02)
+        {
+            /* when it's an INTEGER, its probably the RSA key */
+            *type = eDerTypeKey;
+        }
+    } while (0);
+
+    fsCloseFile(fp);
 
     return ret;
 }
@@ -138,7 +176,14 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
     }
 
     const char_t *type = NULL;
-    eDerType derType = der_detect(filename);
+    eDerType derType;
+
+    error = der_detect(filename, &derType);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to open '%s' for cert type detection\r\n", filename);
+        return ERROR_READ_FAILED;
+    }
 
     switch (derType)
     {
