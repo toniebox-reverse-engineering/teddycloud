@@ -27,7 +27,7 @@ typedef enum
     RTNL_FUNC_NETWORK_URL = 1009,
     RTNL_FUNC_AUDIO_1 = 6212, // TODO, content path like audio_play
     RTNL_FUNC_AUDIO_PLAY = 6480,
-    RTNL_FUGR_VOLUME_CHANGE = 8672,
+    RTNL_FUNC_VOLUME_CHANGE = 8672,
 } rtnl_function;
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString);
