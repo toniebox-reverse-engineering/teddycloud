@@ -466,16 +466,18 @@ void httpConnectionTask(void *param)
             error = httpReadRequestHeader(connection);
             if (error == ERROR_INVALID_REQUEST)
             {
-               error = connection->settings->requestCallback(connection, "*binary");
-               /*
-               //TODO Keep alive?
                error = NO_ERROR;
                while (error == NO_ERROR)
                {
-                  error = httpReceive(connection, buffer + length,
-                                      size - 1 - length, &n, SOCKET_FLAG_PEEK);
+                  if (connection->response.contentLength > 0)
+                     error = connection->settings->requestCallback(connection, "*binary");
+                  if (error != NO_ERROR)
+                     break;
+                  size_t length = 0;
+                  error = httpReceive(connection, connection->buffer,
+                                      HTTP_SERVER_BUFFER_SIZE - 1, &length, SOCKET_FLAG_PEEK); // TODO
+                  connection->response.contentLength = length;
                }
-               */
             }
             else
             {

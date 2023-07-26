@@ -113,6 +113,8 @@ error_t httpReadRequestHeader(HttpConnection *connection)
 
    // Parse the Request-Line
    error = httpParseRequestLine(connection, connection->buffer);
+   if (error == ERROR_INVALID_REQUEST)
+      connection->response.contentLength = length;
    // Any error to report?
    if (error)
       return error;
