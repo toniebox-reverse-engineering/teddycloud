@@ -68,7 +68,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
 
-    osMemcpy(connection->buffer, data, size - pos);
+    osMemcpy(connection->buffer, data, size - pos); // 1023-1024 may occur
     connection->response.byteCount = size - pos;
 
     return NO_ERROR;
