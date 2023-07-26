@@ -54,7 +54,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
                 if (rpc->log2->has_field8)
                     TRACE_INFO("  8=%u\r\n", rpc->log2->field8);
                 if (rpc->log2->has_field9)
-                    TRACE_INFO("  9=len(data)=%lu, %s\r\n", rpc->log2->field9.len, rpc->log2->field9.data);
+                    TRACE_INFO("  9=len(data)=%" PRIuSIZE ", %s\r\n", rpc->log2->field9.len, rpc->log2->field9.data);
             }
             if (rpc->log3)
             {
