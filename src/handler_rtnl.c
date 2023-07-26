@@ -44,38 +44,38 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         pos += protoLength + 4;
         if (rpc && (rpc->log2 || rpc->log3))
         {
-            TRACE_INFO("RTNL: \r\n");
+            TRACE_DEBUG("RTNL: \r\n");
             if (rpc->log2)
             {
-                TRACE_INFO(" LOG2:\r\n");
-                TRACE_INFO("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
-                TRACE_INFO("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
-                TRACE_INFO("  3=%" PRIu32 "\r\n", rpc->log2->field3);
-                TRACE_INFO("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
-                TRACE_INFO("  function=%" PRIu32 "\r\n", rpc->log2->function);
-                TRACE_INFO("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
+                TRACE_DEBUG(" LOG2:\r\n");
+                TRACE_DEBUG("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
+                TRACE_DEBUG("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
+                TRACE_DEBUG("  3=%" PRIu32 "\r\n", rpc->log2->field3);
+                TRACE_DEBUG("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
+                TRACE_DEBUG("  function=%" PRIu32 "\r\n", rpc->log2->function);
+                TRACE_DEBUG("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
                 {
-                    TRACE_INFO_RESUME("%02X", rpc->log2->field6.data[i]);
+                    TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
                 }
-                TRACE_INFO_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
+                TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
                 if (rpc->log2->has_field8)
-                    TRACE_INFO("  8=%u\r\n", rpc->log2->field8);
+                    TRACE_DEBUG("  8=%u\r\n", rpc->log2->field8);
                 if (rpc->log2->has_field9)
                 {
-                    TRACE_INFO("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
+                    TRACE_DEBUG("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
                     for (size_t i = 0; i < rpc->log2->field9.len; i++)
                     {
-                        TRACE_INFO_RESUME("%02X", rpc->log2->field9.data[i]);
+                        TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
                     }
-                    TRACE_INFO_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
+                    TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
                 }
             }
             if (rpc->log3)
             {
-                TRACE_INFO(" LOG3:\r\n");
-                TRACE_INFO("  datetime=%" PRIu32 "\r\n", rpc->log3->datetime);
-                TRACE_INFO("  2=%" PRIu32 "\r\n", rpc->log3->field2);
+                TRACE_DEBUG(" LOG3:\r\n");
+                TRACE_DEBUG("  datetime=%" PRIu32 "\r\n", rpc->log3->datetime);
+                TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
             }
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
