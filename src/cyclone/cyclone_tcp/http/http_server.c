@@ -467,6 +467,7 @@ void httpConnectionTask(void *param)
             if (error == ERROR_INVALID_REQUEST)
             {
                error = NO_ERROR;
+               connection->response.byteCount = 0;
                while (error == NO_ERROR)
                {
                   if (connection->response.contentLength > 0)
@@ -474,9 +475,10 @@ void httpConnectionTask(void *param)
                   if (error != NO_ERROR)
                      break;
                   size_t length = 0;
-                  error = httpReceive(connection, connection->buffer,
-                                      HTTP_SERVER_BUFFER_SIZE - 1, &length, SOCKET_FLAG_PEEK); // TODO
-                  connection->response.contentLength = length;
+                  size_t pos = connection->response.byteCount;
+                  error = httpReceive(connection, &connection->buffer[pos],
+                                      HTTP_SERVER_BUFFER_SIZE - pos - 1, &length, SOCKET_FLAG_PEEK); // TODO
+                  connection->response.contentLength = length + pos;
                }
             }
             else

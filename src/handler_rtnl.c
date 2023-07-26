@@ -26,19 +26,22 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     */
 
     size_t pos = 0;
-    // TODO Split messages multiple
     while (size > 4 && pos < (size - 4))
     {
         data = &connection->buffer[pos];
         uint32_t protoLength = (uint32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
         char_t *protoData = &data[4];
-        if (protoLength == 0 || protoLength > 256) // find apropiate size
+        if (protoLength > (size - pos))
+        {
+            break;
+        }
+        if (protoLength == 0 || protoLength + 4 > HTTP_SERVER_BUFFER_SIZE - 1) // find apropiate size
         {
             pos++;
             continue;
         }
         TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)protoData);
-        pos += protoLength;
+        pos += protoLength + 4;
         if (rpc && (rpc->log2 || rpc->log3))
         {
             TRACE_INFO("RTNL: \r\n");
@@ -65,6 +68,9 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
+
+    osMemcpy(connection->buffer, data, size - pos);
+    connection->response.byteCount = size - pos;
 
     return NO_ERROR;
 }
