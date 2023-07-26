@@ -45,12 +45,12 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             if (rpc->log2)
             {
                 TRACE_INFO(" LOG2:\r\n");
-                TRACE_INFO("  1=%lu\r\n", rpc->log2->field1);
-                TRACE_INFO("  2=%u\r\n", rpc->log2->field2);
-                TRACE_INFO("  3=%u\r\n", rpc->log2->field3);
-                TRACE_INFO("  4=%u\r\n", rpc->log2->field4);
-                TRACE_INFO("  5=%u\r\n", rpc->log2->field5);
-                TRACE_INFO("  6=len(data)=%lu, %s\r\n", rpc->log2->field6.len, rpc->log2->field6.data);
+                TRACE_INFO("  1=%" PRIu64 "\r\n", rpc->log2->field1);
+                TRACE_INFO("  2=%" PRIu32 "\r\n", rpc->log2->field2);
+                TRACE_INFO("  3=%" PRIu32 "\r\n", rpc->log2->field3);
+                TRACE_INFO("  4=%" PRIu32 "\r\n", rpc->log2->field4);
+                TRACE_INFO("  5=%" PRIu32 "\r\n", rpc->log2->field5);
+                TRACE_INFO("  6=len(data)=%" PRIuSIZE ", %s\r\n", rpc->log2->field6.len, rpc->log2->field6.data);
                 if (rpc->log2->has_field8)
                     TRACE_INFO("  8=%u\r\n", rpc->log2->field8);
                 if (rpc->log2->has_field9)
@@ -59,8 +59,8 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             if (rpc->log3)
             {
                 TRACE_INFO(" LOG3:\r\n");
-                TRACE_INFO("  1=%u\r\n", rpc->log3->field1);
-                TRACE_INFO("  2=%u\r\n", rpc->log3->field2);
+                TRACE_INFO("  1=%" PRIu32 "\r\n", rpc->log3->field1);
+                TRACE_INFO("  2=%" PRIu32 "\r\n", rpc->log3->field2);
             }
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
