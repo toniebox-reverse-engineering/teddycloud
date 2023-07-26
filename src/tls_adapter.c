@@ -161,9 +161,7 @@ error_t der_detect(const char *filename, eDerType *type)
  **/
 error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length)
 {
-    int_t ret;
     error_t error;
-    FILE *fp;
 
     // Initialize output parameters
     *buffer = NULL;
@@ -201,10 +199,29 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
         break;
     }
 
+    FsFile *fp = NULL;
     do
     {
+        uint32_t fileLength = 0;
+        error = fsGetFileSize(filename, &fileLength);
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+
+        /* allocate file content buffer */
+        *length = fileLength;
+        *buffer = osAllocMem(fileLength + 1);
+
+        if (*buffer == NULL)
+        {
+            error = ERROR_OUT_OF_MEMORY;
+            break;
+        }
+        osMemset(*buffer, 0x00, fileLength + 1);
+
         // Open the specified file
-        fp = fopen(filename, "rb");
+        fp = fsOpenFile(filename, FS_FILE_MODE_READ);
 
         // Failed to open the file?
         if (fp == NULL)
@@ -213,36 +230,18 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
             break;
         }
 
-        // Jump to the end of the file
-        ret = fseek(fp, 0, SEEK_END);
-
-        // Any error to report?
-        if (ret != 0)
-        {
-            error = ERROR_FAILURE;
-            break;
-        }
-
-        // Retrieve the length of the file
-        *length = ftell(fp);
-        // Allocate a buffer to hold the contents of the file
-        *buffer = malloc(*length + 1);
-        memset(*buffer, 0x00, *length + 1);
-
-        // Failed to allocate memory?
-        if (*buffer == NULL)
-        {
-            error = ERROR_OUT_OF_MEMORY;
-            break;
-        }
-
-        // Rewind to the beginning of the file
-        rewind(fp);
         // Read file contents
-        ret = fread(*buffer, 1, *length, fp);
+        size_t read = 0;
+        error = fsReadFile(fp, *buffer, *length, &read);
 
         // Failed to read data?
-        if (ret != *length)
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+
+        // Failed to read data?
+        if (read != *length)
         {
             error = ERROR_READ_FAILED;
             break;
@@ -259,11 +258,11 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
     // Any error to report?
     if (error)
     {
-        // Debug message
         TRACE_ERROR("Error: Cannot load file %s\r\n", filename);
         // Clean up side effects
-        free(*buffer);
+        osFreeMem(*buffer);
         *buffer = NULL;
+        *length = 0;
     }
 
     /* convert .der to .pem by encoding it into ascii format */
@@ -284,11 +283,11 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
             return error;
         }
 
-        outBuf = malloc(outBufLen + 1);
-        memset(outBuf, 0x00, outBufLen + 1);
+        outBuf = osAllocMem(outBufLen + 1);
+        osMemset(outBuf, 0x00, outBufLen + 1);
         error = pemEncodeFile(inBuf, inBufLen, type, outBuf, &outBufLen);
 
-        free(inBuf);
+        osFreeMem(inBuf);
 
         /* replace output data with generated ascii string */
         *buffer = outBuf;
