@@ -42,8 +42,8 @@ struct  _TonieRtnlRPC
 struct  _TonieRtnlLog2
 {
   ProtobufCMessage base;
-  uint64_t field1;
-  uint32_t field2;
+  uint64_t uptime;
+  uint32_t sequence;
   uint32_t field3;
   uint32_t field4;
   uint32_t field5;
@@ -70,7 +70,7 @@ struct  _TonieRtnlLog2
 struct  _TonieRtnlLog3
 {
   ProtobufCMessage base;
-  uint32_t field1;
+  uint32_t datetime;
   uint32_t field2;
 };
 #define TONIE_RTNL_LOG3__INIT \

@@ -196,24 +196,24 @@ const ProtobufCMessageDescriptor tonie_rtnl_rpc__descriptor =
 static const ProtobufCFieldDescriptor tonie_rtnl_log2__field_descriptors[8] =
 {
   {
-    "field1",
+    "uptime",
     1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_FIXED64,
     0,   /* quantifier_offset */
-    offsetof(TonieRtnlLog2, field1),
+    offsetof(TonieRtnlLog2, uptime),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "field2",
+    "sequence",
     2,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TonieRtnlLog2, field2),
+    offsetof(TonieRtnlLog2, sequence),
     NULL,
     NULL,
     0,             /* flags */
@@ -293,14 +293,14 @@ static const ProtobufCFieldDescriptor tonie_rtnl_log2__field_descriptors[8] =
   },
 };
 static const unsigned tonie_rtnl_log2__field_indices_by_name[] = {
-  0,   /* field[0] = field1 */
-  1,   /* field[1] = field2 */
   2,   /* field[2] = field3 */
   3,   /* field[3] = field4 */
   4,   /* field[4] = field5 */
   5,   /* field[5] = field6 */
   6,   /* field[6] = field8 */
   7,   /* field[7] = field9 */
+  1,   /* field[1] = sequence */
+  0,   /* field[0] = uptime */
 };
 static const ProtobufCIntRange tonie_rtnl_log2__number_ranges[2 + 1] =
 {
@@ -326,12 +326,12 @@ const ProtobufCMessageDescriptor tonie_rtnl_log2__descriptor =
 static const ProtobufCFieldDescriptor tonie_rtnl_log3__field_descriptors[2] =
 {
   {
-    "field1",
+    "datetime",
     1,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_FIXED32,
     0,   /* quantifier_offset */
-    offsetof(TonieRtnlLog3, field1),
+    offsetof(TonieRtnlLog3, datetime),
     NULL,
     NULL,
     0,             /* flags */
@@ -351,7 +351,7 @@ static const ProtobufCFieldDescriptor tonie_rtnl_log3__field_descriptors[2] =
   },
 };
 static const unsigned tonie_rtnl_log3__field_indices_by_name[] = {
-  0,   /* field[0] = field1 */
+  0,   /* field[0] = datetime */
   1,   /* field[1] = field2 */
 };
 static const ProtobufCIntRange tonie_rtnl_log3__number_ranges[1 + 1] =

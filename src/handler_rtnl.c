@@ -45,8 +45,8 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             if (rpc->log2)
             {
                 TRACE_INFO(" LOG2:\r\n");
-                TRACE_INFO("  1=%" PRIu64 "\r\n", rpc->log2->field1);
-                TRACE_INFO("  2=%" PRIu32 "\r\n", rpc->log2->field2);
+                TRACE_INFO("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
+                TRACE_INFO("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
                 TRACE_INFO("  3=%" PRIu32 "\r\n", rpc->log2->field3);
                 TRACE_INFO("  4=%" PRIu32 "\r\n", rpc->log2->field4);
                 TRACE_INFO("  5=%" PRIu32 "\r\n", rpc->log2->field5);
@@ -59,7 +59,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             if (rpc->log3)
             {
                 TRACE_INFO(" LOG3:\r\n");
-                TRACE_INFO("  1=%" PRIu32 "\r\n", rpc->log3->field1);
+                TRACE_INFO("  datetime=%" PRIu32 "\r\n", rpc->log3->datetime);
                 TRACE_INFO("  2=%" PRIu32 "\r\n", rpc->log3->field2);
             }
         }
