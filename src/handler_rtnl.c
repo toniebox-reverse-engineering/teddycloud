@@ -21,7 +21,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     {
         FsFile *file = fsOpenFile(Settings.rtnl.logRawFile, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
         fsWriteFile(file, &data[connection->response.byteCount], size);
-    fsCloseFile(file);
+        fsCloseFile(file);
     }
 
     size_t pos = 0;
@@ -50,13 +50,25 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
                 TRACE_INFO("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
                 TRACE_INFO("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
                 TRACE_INFO("  3=%" PRIu32 "\r\n", rpc->log2->field3);
-                TRACE_INFO("  4=%" PRIu32 "\r\n", rpc->log2->field4);
-                TRACE_INFO("  5=%" PRIu32 "\r\n", rpc->log2->field5);
-                TRACE_INFO("  6=len(data)=%" PRIuSIZE ", %s\r\n", rpc->log2->field6.len, rpc->log2->field6.data);
+                TRACE_INFO("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
+                TRACE_INFO("  function=%" PRIu32 "\r\n", rpc->log2->function);
+                TRACE_INFO("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    TRACE_INFO_RESUME("%02X", rpc->log2->field6.data[i]);
+                }
+                TRACE_INFO_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
                 if (rpc->log2->has_field8)
                     TRACE_INFO("  8=%u\r\n", rpc->log2->field8);
                 if (rpc->log2->has_field9)
-                    TRACE_INFO("  9=len(data)=%" PRIuSIZE ", %s\r\n", rpc->log2->field9.len, rpc->log2->field9.data);
+                {
+                    TRACE_INFO("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
+                    for (size_t i = 0; i < rpc->log2->field9.len; i++)
+                    {
+                        TRACE_INFO_RESUME("%02X", rpc->log2->field9.data[i]);
+                    }
+                    TRACE_INFO_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
+                }
             }
             if (rpc->log3)
             {

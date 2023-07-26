@@ -232,24 +232,24 @@ static const ProtobufCFieldDescriptor tonie_rtnl_log2__field_descriptors[8] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "field4",
+    "function_group",
     4,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TonieRtnlLog2, field4),
+    offsetof(TonieRtnlLog2, function_group),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "field5",
+    "function",
     5,
     PROTOBUF_C_LABEL_REQUIRED,
     PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(TonieRtnlLog2, field5),
+    offsetof(TonieRtnlLog2, function),
     NULL,
     NULL,
     0,             /* flags */
@@ -294,11 +294,11 @@ static const ProtobufCFieldDescriptor tonie_rtnl_log2__field_descriptors[8] =
 };
 static const unsigned tonie_rtnl_log2__field_indices_by_name[] = {
   2,   /* field[2] = field3 */
-  3,   /* field[3] = field4 */
-  4,   /* field[4] = field5 */
   5,   /* field[5] = field6 */
   6,   /* field[6] = field8 */
   7,   /* field[7] = field9 */
+  4,   /* field[4] = function */
+  3,   /* field[3] = function_group */
   1,   /* field[1] = sequence */
   0,   /* field[0] = uptime */
 };

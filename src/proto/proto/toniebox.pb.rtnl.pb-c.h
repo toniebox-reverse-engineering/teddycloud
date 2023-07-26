@@ -45,8 +45,8 @@ struct  _TonieRtnlLog2
   uint64_t uptime;
   uint32_t sequence;
   uint32_t field3;
-  uint32_t field4;
-  uint32_t field5;
+  uint32_t function_group;
+  uint32_t function;
   /*
    *or string
    */

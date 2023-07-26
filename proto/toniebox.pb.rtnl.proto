@@ -10,8 +10,8 @@ message TonieRtnlLog2 {
   required fixed64 uptime = 1;
   required uint32 sequence = 2;
   required uint32 field3 = 3;
-  required uint32 field4 = 4;
-  required uint32 field5 = 5;
+  required uint32 function_group = 4;
+  required uint32 function = 5;
   required bytes field6 = 6; //or string
   //optional <> field7 = 7;
   optional fixed32 field8 = 8;
