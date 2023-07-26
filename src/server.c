@@ -26,6 +26,7 @@
 #include "cloud_request.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
+#include "handler_rtnl.h"
 #include "handler_api.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
@@ -169,6 +170,8 @@ error_t handleOgg(HttpConnection *connection, const char_t *uri_full, const char
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
+    /*binary handler (rtnl)*/
+    {REQ_ANY, "*binary", &handleRtnl},
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */

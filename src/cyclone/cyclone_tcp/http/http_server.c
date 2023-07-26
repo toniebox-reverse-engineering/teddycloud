@@ -464,158 +464,174 @@ void httpConnectionTask(void *param)
 
             // Read the HTTP request header and parse its contents
             error = httpReadRequestHeader(connection);
-            // Any error to report?
-            if (error)
+            if (error == ERROR_INVALID_REQUEST)
             {
-               // Debug message
-               TRACE_INFO("No HTTP request received or parsing error...\r\n");
-               break;
-            }
-
-#if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-            // No Authorization header found?
-            if (!connection->request.auth.found)
-            {
-               // Invoke user-defined callback, if any
-               if (connection->settings->authCallback != NULL)
-               {
-                  // Check whether the access to the specified URI is authorized
-                  connection->status = connection->settings->authCallback(connection,
-                                                                          connection->request.auth.user, connection->request.uri);
-               }
-               else
-               {
-                  // Access to the specified URI is allowed
-                  connection->status = HTTP_ACCESS_ALLOWED;
-               }
-            }
-
-            // Check access status
-            if (connection->status == HTTP_ACCESS_ALLOWED)
-            {
-               // Access to the specified URI is allowed
+               error = connection->settings->requestCallback(connection, "*binary");
+               /*
+               //TODO Keep alive?
                error = NO_ERROR;
-            }
-            else if (connection->status == HTTP_ACCESS_BASIC_AUTH_REQUIRED)
-            {
-               // Basic access authentication is required
-               connection->response.auth.mode = HTTP_AUTH_MODE_BASIC;
-               // Report an error
-               error = ERROR_AUTH_REQUIRED;
-            }
-            else if (connection->status == HTTP_ACCESS_DIGEST_AUTH_REQUIRED)
-            {
-               // Digest access authentication is required
-               connection->response.auth.mode = HTTP_AUTH_MODE_DIGEST;
-               // Report an error
-               error = ERROR_AUTH_REQUIRED;
+               while (error == NO_ERROR)
+               {
+                  error = httpReceive(connection, buffer + length,
+                                      size - 1 - length, &n, SOCKET_FLAG_PEEK);
+               }
+               */
             }
             else
             {
-               // Access to the specified URI is denied
-               error = ERROR_NOT_FOUND;
-            }
-#endif
-            // Debug message
-            TRACE_INFO("Sending HTTP response to the client...\r\n");
-
-            // Check status code
-            if (!error)
-            {
-               // Default HTTP header fields
-               httpInitResponseHeader(connection);
-
-               // Invoke user-defined callback, if any
-               if (connection->settings->requestCallback != NULL)
+               // Any error to report?
+               if (error)
                {
-                  error = connection->settings->requestCallback(connection,
-                                                                connection->request.uri);
+                  // Debug message
+                  TRACE_INFO("No HTTP request received or parsing error...\r\n");
+                  break;
+               }
+
+#if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
+               // No Authorization header found?
+               if (!connection->request.auth.found)
+               {
+                  // Invoke user-defined callback, if any
+                  if (connection->settings->authCallback != NULL)
+                  {
+                     // Check whether the access to the specified URI is authorized
+                     connection->status = connection->settings->authCallback(connection,
+                                                                             connection->request.auth.user, connection->request.uri);
+                  }
+                  else
+                  {
+                     // Access to the specified URI is allowed
+                     connection->status = HTTP_ACCESS_ALLOWED;
+                  }
+               }
+
+               // Check access status
+               if (connection->status == HTTP_ACCESS_ALLOWED)
+               {
+                  // Access to the specified URI is allowed
+                  error = NO_ERROR;
+               }
+               else if (connection->status == HTTP_ACCESS_BASIC_AUTH_REQUIRED)
+               {
+                  // Basic access authentication is required
+                  connection->response.auth.mode = HTTP_AUTH_MODE_BASIC;
+                  // Report an error
+                  error = ERROR_AUTH_REQUIRED;
+               }
+               else if (connection->status == HTTP_ACCESS_DIGEST_AUTH_REQUIRED)
+               {
+                  // Digest access authentication is required
+                  connection->response.auth.mode = HTTP_AUTH_MODE_DIGEST;
+                  // Report an error
+                  error = ERROR_AUTH_REQUIRED;
                }
                else
                {
-                  // Keep processing...
+                  // Access to the specified URI is denied
                   error = ERROR_NOT_FOUND;
                }
+#endif
+               // Debug message
+               TRACE_INFO("Sending HTTP response to the client...\r\n");
 
                // Check status code
-               if (error == ERROR_NOT_FOUND)
-               {
-#if (HTTP_SERVER_SSI_SUPPORT == ENABLED)
-                  // Use server-side scripting to dynamically generate HTML code?
-                  if (httpCompExtension(connection->request.uri, ".stm") ||
-                      httpCompExtension(connection->request.uri, ".shtm") ||
-                      httpCompExtension(connection->request.uri, ".shtml"))
-                  {
-                     // SSI processing (Server Side Includes)
-                     error = ssiExecuteScript(connection, connection->request.uri, 0);
-                  }
-                  else
-#endif
-                  {
-                     // Set the maximum age for static resources
-                     connection->response.maxAge = HTTP_SERVER_MAX_AGE;
-
-                     // Send the contents of the requested page
-                     error = httpSendResponse(connection, connection->request.uri);
-                  }
-               }
-
-               // The requested resource is not available?
-               if (error == ERROR_NOT_FOUND)
+               if (!error)
                {
                   // Default HTTP header fields
                   httpInitResponseHeader(connection);
 
                   // Invoke user-defined callback, if any
-                  if (connection->settings->uriNotFoundCallback != NULL)
+                  if (connection->settings->requestCallback != NULL)
                   {
-                     error = connection->settings->uriNotFoundCallback(connection,
-                                                                       connection->request.uri);
+                     error = connection->settings->requestCallback(connection,
+                                                                   connection->request.uri);
+                  }
+                  else
+                  {
+                     // Keep processing...
+                     error = ERROR_NOT_FOUND;
+                  }
+
+                  // Check status code
+                  if (error == ERROR_NOT_FOUND)
+                  {
+#if (HTTP_SERVER_SSI_SUPPORT == ENABLED)
+                     // Use server-side scripting to dynamically generate HTML code?
+                     if (httpCompExtension(connection->request.uri, ".stm") ||
+                         httpCompExtension(connection->request.uri, ".shtm") ||
+                         httpCompExtension(connection->request.uri, ".shtml"))
+                     {
+                        // SSI processing (Server Side Includes)
+                        error = ssiExecuteScript(connection, connection->request.uri, 0);
+                     }
+                     else
+#endif
+                     {
+                        // Set the maximum age for static resources
+                        connection->response.maxAge = HTTP_SERVER_MAX_AGE;
+
+                        // Send the contents of the requested page
+                        error = httpSendResponse(connection, connection->request.uri);
+                     }
+                  }
+
+                  // The requested resource is not available?
+                  if (error == ERROR_NOT_FOUND)
+                  {
+                     // Default HTTP header fields
+                     httpInitResponseHeader(connection);
+
+                     // Invoke user-defined callback, if any
+                     if (connection->settings->uriNotFoundCallback != NULL)
+                     {
+                        error = connection->settings->uriNotFoundCallback(connection,
+                                                                          connection->request.uri);
+                     }
                   }
                }
-            }
 
-            // Check status code
-            if (error)
-            {
-               // Default HTTP header fields
-               httpInitResponseHeader(connection);
-
-               // Bad request?
-               if (error == ERROR_INVALID_REQUEST)
+               // Check status code
+               if (error)
                {
-                  // Send an error 400 and close the connection immediately
-                  httpSendErrorResponse(connection, 400,
-                                        "The request is badly formed");
-               }
-               // Authorization required?
-               else if (error == ERROR_AUTH_REQUIRED)
-               {
-                  // Send an error 401 and keep the connection alive
-                  error = httpSendErrorResponse(connection, 401,
-                                                "Authorization required");
-               }
-               // Page not found?
-               else if (error == ERROR_NOT_FOUND)
-               {
-                  // Send an error 404 and keep the connection alive
-                  error = httpSendErrorResponse(connection, 404,
-                                                "The requested page could not be found");
-               }
-            }
+                  // Default HTTP header fields
+                  httpInitResponseHeader(connection);
 
-            // Internal error?
-            if (error)
-            {
-               // Close the connection immediately
-               break;
-            }
+                  // Bad request?
+                  if (error == ERROR_INVALID_REQUEST)
+                  {
+                     // Send an error 400 and close the connection immediately
+                     httpSendErrorResponse(connection, 400,
+                                           "The request is badly formed");
+                  }
+                  // Authorization required?
+                  else if (error == ERROR_AUTH_REQUIRED)
+                  {
+                     // Send an error 401 and keep the connection alive
+                     error = httpSendErrorResponse(connection, 401,
+                                                   "Authorization required");
+                  }
+                  // Page not found?
+                  else if (error == ERROR_NOT_FOUND)
+                  {
+                     // Send an error 404 and keep the connection alive
+                     error = httpSendErrorResponse(connection, 404,
+                                                   "The requested page could not be found");
+                  }
+               }
 
-            // Check whether the connection is persistent or not
-            if (!connection->request.keepAlive || !connection->response.keepAlive)
-            {
-               // Close the connection immediately
-               break;
+               // Internal error?
+               if (error)
+               {
+                  // Close the connection immediately
+                  break;
+               }
+
+               // Check whether the connection is persistent or not
+               if (!connection->request.keepAlive || !connection->response.keepAlive)
+               {
+                  // Close the connection immediately
+                  break;
+               }
             }
          }
       }
