@@ -72,7 +72,7 @@ OPTION_UNSIGNED("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2
 OPTION_BOOL("rtnl.logRaw", &Settings.rtnl.logRaw, FALSE, "Enable raw rtnl logging")
 OPTION_BOOL("rtnl.logHuman", &Settings.rtnl.logHuman, FALSE, "Enable human readable rtnl logging")
 OPTION_STRING("rtnl.logRawFile", &Settings.rtnl.logRawFile, "config/rtnl.bin", "RTNL raw logfile")
-OPTION_STRING("rtnl.logHumanFile", &Settings.rtnl.logHumanFile, "config/rtnl.txt", "RTNL human readable logfile")
+OPTION_STRING("rtnl.logHumanFile", &Settings.rtnl.logHumanFile, "config/rtnl.csv", "RTNL human readable logfile")
 
 OPTION_BOOL("mqtt.enabled", &Settings.mqtt.enabled, FALSE, "Enable MQTT service")
 OPTION_STRING("mqtt.hostname", &Settings.mqtt.hostname, "", "MQTT hostname")
