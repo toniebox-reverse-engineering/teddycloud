@@ -16,14 +16,13 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 {
     char_t *data = connection->buffer;
     size_t size = connection->response.contentLength;
-    /*
-    char filename[32] = "";
-    sprintf(filename, "tmp/%ld", time(NULL));
 
-    FsFile *file = fsOpenFile(filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
-    fsWriteFile(file, data, size);
+    if (Settings.rtnl.logRaw)
+    {
+        FsFile *file = fsOpenFile(Settings.rtnl.logRawFile, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
+        fsWriteFile(file, &data[connection->response.byteCount], size);
     fsCloseFile(file);
-    */
+    }
 
     size_t pos = 0;
     while (size > 4 && pos < (size - 4))
