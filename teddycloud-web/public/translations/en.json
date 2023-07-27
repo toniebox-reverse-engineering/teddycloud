@@ -1,0 +1,10 @@
+{
+  "welcome": {
+    "title": "Welcome!"
+  },
+  "language": {
+    "change": "Change language",
+    "english": "EN",
+    "german": "DE"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "welcome": {
+    "title": "Willkommen!"
+  },
+  "language": {
+    "change": "Sprache ändern",
+    "english": "EN",
+    "german": "DE"
+  }
+}
