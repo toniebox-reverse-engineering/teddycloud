@@ -12,6 +12,7 @@ import { SettingsPage } from "./pages/settings/SettingsPage";
 import { CertificatesPage } from "./pages/settings/certificates/CertificatesPage";
 import { HomePage } from "./pages/home/HomePage";
 import { StatsPage } from "./pages/home/StatsPage";
+import { changeLanguage } from "i18next";
 
 const StyledLogo = styled.img`
   height: 32px;
@@ -20,6 +21,19 @@ const StyledHeader = styled(Header)`
   color: white;
   display: flex;
   align-items: center;
+`;
+
+const StyledLanguageSwitcher = styled.div`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  > span {
+    margin-left: 8px;
+    cursor: pointer;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 function App() {
@@ -39,6 +53,11 @@ function App() {
           <StyledHeader>
             <StyledLogo src={logoImg} /> TeddyCloud Server
             <Menu theme="dark" mode="horizontal" items={mainNav} />
+            <StyledLanguageSwitcher>
+              <div>{t("language.change")}</div>
+              <span onClick={() => changeLanguage("en")}>EN</span>
+              <span onClick={() => changeLanguage("de")}>DE</span>
+            </StyledLanguageSwitcher>
           </StyledHeader>
           <Layout>
             <Routes>

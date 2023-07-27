@@ -1,6 +1,23 @@
 {
-  "welcome": {
-    "title": "Willkommen!"
+  "home": {
+    "navigationTitle": "Home",
+    "title": "Willkommen!",
+    "stats": {
+      "navigationTitle": "Statistiken",
+      "title": "Statistiken"
+    }
+  },
+  "settings": {
+    "navigationTitle": "Einstellungen",
+    "title": "Einstellungen",
+    "general": {
+      "navigationTitle": "Allgemein",
+      "title": "Allgemeine Einstellungen"
+    },
+    "certificates": {
+      "navigationTitle": "Zertifikate",
+      "title": "Zertifikate"
+    }
   },
   "language": {
     "change": "Sprache ändern",
