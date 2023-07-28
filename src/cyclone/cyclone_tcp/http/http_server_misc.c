@@ -910,6 +910,12 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    }
 #endif
 
+   char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+   if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+   {
+      p += osSprintf(p, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+   }
+
    // Valid content type?
    if (connection->response.contentType != NULL)
    {

@@ -564,6 +564,8 @@ extern "C"
             HttpCgiCallback cgiCallback;                 ///< CGI callback function
             HttpRequestCallback requestCallback;         ///< HTTP request callback function
             HttpUriNotFoundCallback uriNotFoundCallback; ///< URI not found callback function
+
+            char_t *allowOrigin;
       } HttpServerSettings;
 
       /**

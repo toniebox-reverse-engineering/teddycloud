@@ -84,6 +84,7 @@ typedef struct
     char *contentdir;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
+    char *allowOrigin;
 } settings_core_t;
 
 typedef struct
