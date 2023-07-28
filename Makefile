@@ -1,7 +1,89 @@
-BINARY ?= bin/teddycloud
 
-PLATFORM=linux
+## generic paths
+BIN_DIR        = bin
+OBJ_DIR        = obj
+SRC_DIR        = src
+CONTRIB_DIR    = contrib
+INSTALL_DIR    = install
+PREINSTALL_DIR = install/pre
+ZIP_DIR        = install/zip
 
+EXECUTABLE     = $(BIN_DIR)/teddycloud
+LINK_LO_FILE   = $(EXECUTABLE).lo
+PLATFORM      ?= linux
+
+
+ifeq ($(OS),Windows_NT)
+	SHELL       = cmd.exe
+	MKDIR       = mkdir 
+	RM          = del
+	CP          = copy
+	TO_TRASH    = >NUL 2>NUL
+	# special assignment to have only the backslash in the variable
+	SEP         = \$(strip)
+else
+	MKDIR       = mkdir -p
+	RM          = rm -f
+	CP          = cp
+	TO_TRASH    = >/dev/null 2>&1
+	SEP         = /
+endif
+
+
+ifeq ($(PLATFORM),linux)
+	EXEC_EXT       = .so
+	LINK_OUT_OPT   = -o $@
+	CC_OUT_OPT     = -o
+	CC_IN_OPT      = -c
+	OBJ_EXT        = $(OBJ_EXT)
+	LINK_LO_OPT    = @$(LINK_LO_FILE)
+	LD             = $(CC)
+	OBJ_EXT        = .o
+endif
+
+ifeq ($(PLATFORM),windows)
+	EXEC_EXT       = .dll
+	LINK_OUT_OPT   = /OUT:$@
+	CC_OUT_OPT     = /Fo
+	CC_IN_OPT      = /c
+	OBJ_EXT        = .obj
+	LINK_LO_OPT    = -f $(LINK_LO_FILE)
+	OBJ_EXT        = .obj
+	CPU            = x64
+	ifeq ($(VCToolsVersion),)
+		$(info )
+		$(info   You selected windows mode, but MSVCs vcvars.bat was not started yet. )
+		$(info )
+		$(error   Aborting)
+	endif
+    CC = cl.exe
+    LD = link.exe
+	CFLAGS += /nologo
+    LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
+    LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
+    LFLAGS += /LIBPATH:"$(VCToolsInstallDir)\lib\$(VSCMD_ARG_TGT_ARCH)"
+endif
+
+## posix/linux specific headers/sources
+HEADERS_linux = 
+INCLUDES_linux = 
+SOURCES_linux = \
+	src/platform/platform_$(PLATFORM).c \
+	cyclone/common/os_port_posix.c \
+	cyclone/common/fs_port_posix.c 
+LFLAGS_linux = -lpthread -lc
+CFLAGS_linux += -Wall -Werror
+CFLAGS_linux += -ggdb -O3
+
+## win32 specific headers/sources
+HEADERS_win32 = 
+INCLUDES_win32 = 
+SOURCES_win32 = \
+	src/platform/platform_$(PLATFORM).c
+LFLAGS_win32 = 
+
+
+## generic headers/sources
 INCLUDES = \
 	-Iinclude \
 	-Iinclude/protobuf-c \
@@ -17,17 +99,24 @@ INCLUDES = \
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
-	src/platform/platform_$(PLATFORM).c \
-	$(CYCLONE_SOURCES)
+	$(CYCLONE_SOURCES) \
 
 HEADERS = \
 	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h)
 
+
+#
+# merge the platform specifics here
+#
+SOURCES   += $(SOURCES_$(PLATFORM))
+HEADERS   += $(HEADERS_$(PLATFORM))
+INCLUDES  += $(INCLUDES_$(PLATFORM))
+CFLAGS    += $(CFLAGS_$(PLATFORM))
+LFLAGS    += $(LFLAGS_$(PLATFORM))
+
 CYCLONE_SOURCES = \
 	cyclone/common/cpu_endian.c \
-	cyclone/common/os_port_posix.c \
-	cyclone/common/fs_port_posix.c \
 	cyclone/common/date_time.c \
 	cyclone/common/debug.c \
 	cyclone/common/path.c \
@@ -115,33 +204,18 @@ CYCLONE_SOURCES += \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
 
-LIBS = -lpthread
 
-OBJ_DIR = obj
-SRC_DIR = src
-
-
-CFLAGS += -Wall -Werror
-CFLAGS += -ggdb
 #CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_COLORED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 
-CC = gcc
-LD = ld
-OBJDUMP = objdump
-OBJCOPY = objcopy
-SIZE = size
+#CFLAGS += -pg
+#LFLAGS += -pg -lc_p
+
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
-
-BIN_DIR := bin
-CONTRIB_DIR := contrib
-INSTALL_DIR := install
-PREINSTALL_DIR := install/pre
-ZIP_DIR := install/zip
 
 
 # Location of your .proto files
@@ -165,14 +239,22 @@ HEADERS += $(PROTO_H_FILES)
 CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
 
 
-OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=.o)))
+OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=$(OBJ_EXT))))
 CLEAN_FILES += $(OBJECTS)
 
+ifeq ($(OS),Windows_NT)
+CYAN=
+RED=
+YELLOW=
+GREEN=
+NC=
+else
 CYAN=\033[0;36m
 RED=\033[0;31m
 YELLOW=\033[0;33m
 GREEN=\033[0;32m
 NC=\033[0m
+endif
 
 ifeq ($(VERBOSE),1)
   QUIET=
@@ -183,8 +265,12 @@ endif
 
 all: check_dependencies build
 
-build: $(BINARY)
+build: $(EXECUTABLE)
 
+ifeq ($(OS),Windows_NT)
+.PHONY: check_dependencies
+check_dependencies:
+else
 .PHONY: check_dependencies
 check_dependencies:
 	@which protoc-c >/dev/null || (echo "${RED}Error:${NC} protoc-c not found. Install it using:" && \
@@ -201,31 +287,34 @@ check_dependencies:
 	@which faketime >/dev/null || (echo "${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:" && \
 	echo "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime" && \
 	echo "  ${CYAN}Alpine:${NC} apk add faketime")
+endif
 
-$(BINARY): $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE)
+
+.PRECIOUS: %/
+%/:
+	$(info [DIR] creating $@)
+	$(shell $(MKDIR) $(subst /,$(SEP),$@) $(TO_TRASH))
+
+$(LINK_LO_FILE):
+	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
+
+$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/  certs/server/ certs/client/ config/
 	@echo "[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}"
-	$(QUIET)mkdir -p $(@D)
-	$(QUIET)$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@ || (echo "[ ${YELLOW}LD${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@${NC}"; false)
+	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) 
 	$(QUIET)cp -r $(CONTRIB_DIR)/www .
-	$(QUIET)mkdir -p certs/server
-	$(QUIET)mkdir -p certs/client
-	$(QUIET)mkdir -p config
 
-$(OBJ_DIR)/%.o: %.c $(HEADERS) $(THIS_MAKEFILE)
+.SECONDEXPANSION:
+$(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
 	@echo "[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}"
-	$(QUIET)mkdir -p $(@D)
-	$(QUIET)$(CC) $(CFLAGS) -c $< -o $@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) -c $< -o $@${NC}"; false)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@${NC}"; false)
 
 clean:
 	@echo "[${GREEN}CLEAN${NC} ] Deleting output files..."
-	$(QUIET)rm -f $(BINARY)
-	$(QUIET)$(foreach O,$(CLEAN_FILES),rm -f $(O);)
-	$(QUIET)rm -rf $(INSTALL_DIR)/
+	$(QUIET)$(RM) $(EXECUTABLE)
+	$(QUIET)$(foreach O,$(CLEAN_FILES),$(RM) $(O);)
 
-preinstall: clean build
+preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	@echo "[ ${GREEN}PRE${NC}  ] Preinstall"
-	$(QUIET)mkdir $(INSTALL_DIR)/
-	$(QUIET)mkdir $(PREINSTALL_DIR)/
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
@@ -239,7 +328,7 @@ zip: preinstall
 		&& cd -
 
 scan-build: clean
-	mkdir -p report
+	$(MKDIR) report
 	scan-build -o report make -j
 
 .PHONY: auto
@@ -251,7 +340,7 @@ auto:
 	echo "[ ${CYAN}AUTO${NC} ] Build"; \
 	make --no-print-directory -j; \
 	screen -S teddycloud_auto -dm; \
-	screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
+	screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
 	while true; do \
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
@@ -260,7 +349,7 @@ auto:
 			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
 			make --no-print-directory -j; \
 			last_build_time=$$(date +%s); \
-			screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
+			screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
 			echo "[ ${CYAN}AUTO${NC} ] Done"; \
 		fi; \
 		sleep 1; \
