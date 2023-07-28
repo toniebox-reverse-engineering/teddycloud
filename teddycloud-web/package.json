@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.39",
     "@types/react": "^18.2.17",
@@ -24,6 +25,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "api:generate": "rm -rf ./src/api && openapi-generator-cli generate -i ./api/swagger.yaml -g typescript-fetch -o ./src/api --additional-properties=typescriptThreePlus=true",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
