@@ -38,5 +38,9 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword);
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+<<<<<<< HEAD
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+=======
+error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+>>>>>>> e6efbc1 (passthrough queryString)

@@ -1,0 +1,371 @@
+openapi: 3.0.3
+info:
+  title: TeddyCloud API
+  description: OpenAPI specification for TeddyCloud Backend API
+  version: 1.0.1
+
+# -----------------------------------
+servers:
+  - url: http://localhost/api
+    description: Local development server.
+  
+# -----------------------------------
+tags:
+  - name: Generic
+    description: Generic endpoints
+  - name: TeddyCloud
+    description: TeddyCloud endpoints
+
+# -----------------------------------
+paths:
+  #
+  # Lib
+  #
+  /:
+    options:
+      tags:
+        - Generic
+      description: CORS preflight request
+      responses:
+        '200':
+          description: OPTIONS request
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: "application/vnd.api+json"
+            Access-Control-Allow-Origin:
+              schema:
+                type: string
+              description: "*"
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+              description: "POST, GET, OPTIONS, DELETE, PUT"
+            Access-Control-Max-Age:
+              schema:
+                type: string
+              description: "1000"
+            Access-Control-Allow-Headers:
+              schema:
+                type: string
+              description: "x-requested-with, Content-Type, origin, authorization, accept, client-security-token"
+  /ping:
+    get:
+      tags:
+        - Generic
+      description: "Check server status"
+      responses:
+        '200':
+          description: HTML meta tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '406':
+          $ref: '#/components/responses/Unacceptable'
+        '5XX':
+          $ref: '#/components/responses/InternalServerError'
+  #
+  # TeddyCloud
+  #
+  /stats:
+    get:
+      tags:
+        - TeddyCloud
+      description: Load all available stats.
+      responses:
+        '200':
+          description: Stats items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '406':
+          $ref: '#/components/responses/Unacceptable'
+        '5XX':
+          $ref: '#/components/responses/InternalServerError'
+  /stats/{id}:
+    get:
+      tags:
+        - TeddyCloud
+      description: Load a specific stats item.
+      parameters:
+        - name: id
+          in: path
+          description: Unique ID or slug of requested stats item
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          examples:
+            Page ID:
+              value: "5"
+            URL Slug:
+              value: technik
+      responses:
+        '200':
+          description: Stats item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '406':
+          $ref: '#/components/responses/Unacceptable'
+        '5XX':
+          $ref: '#/components/responses/InternalServerError'
+
+
+# -----------------------------------
+components:
+  schemas:
+    #
+    # Lib
+    #
+    Errors:
+      type: object
+      description: Error message container.
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: HTTP error code
+              status:
+                type: string
+                description: HTTP error status
+              title:
+                type: string
+                description: Error string
+
+    Status:
+      type: object
+      description: Server status.
+      properties:
+        data:
+          type: object
+          required:
+            - type
+            - id
+            - attributes
+          properties:
+            type:
+              type: string
+              description: 'Object title: status'
+              default: status
+            id:
+              type: string
+              description: 'Application name'
+            attributes:
+              type: object
+              description: All object attributes
+              required:
+                - version
+                - ping
+              properties:
+                version:
+                  type: string
+                  description: Application version
+                ping:
+                  type: boolean
+                  default: true
+                  description: Server status
+      example:
+        {
+          "data": {
+            "type": "status",
+            "id": "Buero",
+            "attributes": {
+              "version": "9.6.1",
+              "ping": true
+            }
+          }
+        }
+    #
+    # TeddyCloud
+    #
+
+    StatsList:
+      type: object
+      description: List of Stats Items.
+      required:
+        - meta
+        - data
+      properties:
+        stats:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatsItem'
+      example:
+        {
+          "stats": [
+            {
+              "ID": "connections",
+              "description": "Connections made to this server",
+              "value": "2296",
+            }
+          ]
+        }
+
+    StatsItem:
+      type: object
+      description: Stats item.
+      required:
+        - ID
+        - description
+        - value
+      properties:
+        ID:
+          type: string
+          description: 'Object title'
+        description:
+          type: string
+          description: 'Object description'
+        value:
+          type: string
+          description: "Object value"
+
+  responses:
+    BadRequest:
+      description: "HTTP 400 Error: Bad Request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 400
+                status: "HTTP/1.1 400 Bad Request"
+                title: Invalid API request
+    Unauthorized:
+      description: "HTTP 401 Error: Unauthorized"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 401
+                status: "HTTP/1.1 401 Unauthorized"
+                title: Unauthorized
+    Forbidden:
+      description: "HTTP 403 Error: Forbidden"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 403
+                status: "HTTP/1.1 403 Forbidden"
+                title: Forbidden
+    NotFound:
+      description: "HTTP 404 Error: Not Found"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 404
+                status: "HTTP/1.1 403 Not Found"
+                title: Not Found
+    MethodNotAllowed:
+      description: "HTTP 405 Error: Method not allowed"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 405
+                status: "HTTP/1.1 405 Method Not Allowed"
+                title: Method not allowed
+    Unacceptable:
+      description: "HTTP 406 Error: Unacceptable"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 406
+                status: "HTTP/1.1 406 Unacceptable"
+                title: Invalid accept header or content type header
+    Conflict:
+      description: "HTTP 409 Error: Conflict. (e.g. Reservation closed or capacity exceeded, Ticketing closed or capacity exceeded)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 409
+                status: "HTTP/1.1 409 Conflict"
+                title: Conflict
+    UnsupportedMediaType:
+      description: "HTTP 415 Error: Unsupported Media Type."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 415
+                status: "HTTP/1.1 415 Unsupported Media Type"
+                title: Unsupported Media Type
+    UnprocessableEntity:
+      description: "HTTP 422 Error: Unprocessable Entity."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 422
+                status: "HTTP/1.1 422 Unprocessable Entity"
+                title: Unprocessable Entity
+    InternalServerError:
+      description: "HTTP 500 Error: Internal Server Error."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+          example:
+            errors:
+              -
+                id: 500
+                status: "HTTP/1.1 500 Internal Server Error"
+                title: Internal Server Error

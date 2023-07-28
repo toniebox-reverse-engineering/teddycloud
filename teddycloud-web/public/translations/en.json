@@ -1,0 +1,27 @@
+{
+  "home": {
+    "navigationTitle": "Home",
+    "title": "Welcome!",
+    "stats": {
+      "navigationTitle": "Stats",
+      "title": "Stats"
+    }
+  },
+  "settings": {
+    "navigationTitle": "Settings",
+    "title": "Settings",
+    "general": {
+      "navigationTitle": "General",
+      "title": "General settings"
+    },
+    "certificates": {
+      "navigationTitle": "Certificates",
+      "title": "Certificates"
+    }
+  },
+  "language": {
+    "change": "Change language",
+    "english": "EN",
+    "german": "DE"
+  }
+}
