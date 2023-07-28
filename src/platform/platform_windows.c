@@ -9,7 +9,7 @@
 
 #include <time.h>
 
-#include "platform_windows.h"
+#include "platform.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"

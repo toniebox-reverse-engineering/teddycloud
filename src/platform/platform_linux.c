@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "platform_linux.h"
+#include "platform.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -168,7 +168,7 @@ void socketClose(Socket *socket)
 
     if (sock->sockfd)
     {
-        closesocket(sock->sockfd);
+        close(sock->sockfd);
         sock->sockfd = 0;
     }
 

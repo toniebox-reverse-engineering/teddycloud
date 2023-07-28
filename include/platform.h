@@ -1,9 +1,6 @@
-#ifndef __PLATFORM_WINDOWS_H__
-#define __PLATFORM_WINDOWS_H__
+#ifndef __PLATFORM_H__
+#define __PLATFORM_H__
 
-// Platform-specific dependencies
-#define _CRTDBG_MAP_ALLOC
-#define _WINERROR_
 #include <stdbool.h>
 #include "core/net.h"
 
