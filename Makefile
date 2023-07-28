@@ -47,7 +47,7 @@ ifeq ($(PLATFORM),windows)
 	CC_OUT_OPT     = /Fo
 	CC_IN_OPT      = /c
 	OBJ_EXT        = .obj
-	LINK_LO_OPT    = -f $(LINK_LO_FILE)
+	LINK_LO_OPT    = $(OBJ_FILES)
 	OBJ_EXT        = .obj
 	CPU            = x64
 	ifeq ($(VCToolsVersion),)
