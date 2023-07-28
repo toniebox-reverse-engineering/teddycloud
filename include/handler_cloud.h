@@ -1,3 +1,6 @@
+#ifndef _HANDLER_CLOUD_H
+#define _HANDLER_CLOUD_H
+
 #include "debug.h"
 
 #include "core/net.h"
@@ -28,7 +31,6 @@ void getContentPathFromUID(uint64_t uid, char **pcontentPath);
 tonie_info_t getTonieInfo(const char *contentPath);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
-error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory);
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString);
@@ -40,3 +42,5 @@ error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, cons
 error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+
+#endif

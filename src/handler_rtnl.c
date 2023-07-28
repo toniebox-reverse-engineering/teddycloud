@@ -1,5 +1,3 @@
-
-
 #ifdef WIN32
 #else
 #include <unistd.h>
@@ -10,6 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "handler_sse.h"
 #include "handler_rtnl.h"
 #include "settings.h"
 #include "stats.h"
@@ -119,126 +118,13 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             continue;
         }
         TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)protoData);
+
         pos += protoLength + 4;
         if (rpc && (rpc->log2 || rpc->log3))
         {
-            if (Settings.rtnl.logHuman)
-            {
-                bool_t addHeader = !fsFileExists(Settings.rtnl.logHumanFile);
-                FsFile *file = fsOpenFile2(Settings.rtnl.logHumanFile, "ab");
-                if (addHeader)
-                {
-                    char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";
-                    fsWriteFile(file, header, osStrlen(header));
-                }
-                char_t buffer[4096];
-                osSprintf(buffer, "%" PRIuTIME ";", time(NULL));
-                fsWriteFile(file, buffer, osStrlen(buffer));
-
-                if (rpc->log2)
-                {
-                    osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIuSIZE ";",
-                              rpc->log2->uptime,
-                              rpc->log2->sequence,
-                              rpc->log2->field3,
-                              rpc->log2->function_group,
-                              rpc->log2->function,
-                              rpc->log2->field6.len);
-                    fsWriteFile(file, buffer, osStrlen(buffer));
-
-                    if (rpc->log2->field6.len > 0)
-                    {
-                        for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                        {
-                            osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
-                        }
-                        fsWriteFile(file, buffer, osStrlen(buffer));
-                    }
-
-                    osSprintf(buffer, ";\"");
-                    escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
-                    fsWriteFile(file, buffer, osStrlen(buffer));
-
-                    osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
-                              rpc->log2->field8, // TODO hasfield
-                              rpc->log2->field9.len);
-                    fsWriteFile(file, buffer, osStrlen(buffer));
-
-                    if (rpc->log2->has_field9)
-                    {
-                        if (rpc->log2->field9.len > 0)
-                        {
-                            for (size_t i = 0; i < rpc->log2->field9.len; i++)
-                            {
-                                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
-                            }
-                            fsWriteFile(file, buffer, osStrlen(buffer));
-                        }
-                        osSprintf(buffer, ";\"");
-                        escapeString((char_t *)rpc->log2->field9.data, rpc->log2->field9.len, &buffer[2]);
-                        fsWriteFile(file, buffer, osStrlen(buffer));
-                        char_t *output = "\";";
-                        fsWriteFile(file, output, osStrlen(output));
-                    }
-                    else
-                    {
-                        char_t *output = ";;";
-                        fsWriteFile(file, output, osStrlen(output));
-                    }
-                }
-                else
-                {
-                    char_t *output = ";;;;;;;;;;;;;";
-                    fsWriteFile(file, output, osStrlen(output));
-                }
-
-                if (rpc->log3)
-                {
-                    osSprintf(buffer, "x;%" PRIu32 ";%" PRIu32 "\r\n",
-                              rpc->log3->datetime,
-                              rpc->log3->field2);
-                    fsWriteFile(file, buffer, osStrlen(buffer));
-                }
-                else
-                {
-                    char_t *output = ";;\r\n";
-                    fsWriteFile(file, output, osStrlen(output));
-                }
-                fsCloseFile(file);
-            }
-            TRACE_DEBUG("RTNL: \r\n");
-            if (rpc->log2)
-            {
-                TRACE_DEBUG(" LOG2:\r\n");
-                TRACE_DEBUG("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
-                TRACE_DEBUG("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
-                TRACE_DEBUG("  3=%" PRIu32 "\r\n", rpc->log2->field3);
-                TRACE_DEBUG("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
-                TRACE_DEBUG("  function=%" PRIu32 "\r\n", rpc->log2->function);
-                TRACE_DEBUG("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
-                for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                {
-                    TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
-                }
-                TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
-                if (rpc->log2->has_field8)
-                    TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
-                if (rpc->log2->has_field9)
-                {
-                    TRACE_DEBUG("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
-                    for (size_t i = 0; i < rpc->log2->field9.len; i++)
-                    {
-                        TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
-                    }
-                    TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
-                }
-            }
-            if (rpc->log3)
-            {
-                TRACE_DEBUG(" LOG3:\r\n");
-                TRACE_DEBUG("  datetime=%" PRIu32 "\r\n", rpc->log3->datetime);
-                TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
-            }
+            rtnlEvent(rpc);
+            rtnlEventLog(rpc);
+            rtnlEventDump(rpc);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
@@ -247,4 +133,146 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     connection->response.byteCount = size - pos;
 
     return NO_ERROR;
+}
+
+void rtnlEvent(TonieRtnlRPC *rpc)
+{
+    if (rpc->log2)
+    {
+    }
+    if (rpc->log3)
+    {
+        if (rpc->log3->field2 == 1)
+        {
+            sse_sendEvent("rtnl", "ear-big", true);
+        }
+        else if (rpc->log3->field2 == 2)
+        {
+            sse_sendEvent("rtnl", "ear-small", true);
+        }
+    }
+}
+
+void rtnlEventLog(TonieRtnlRPC *rpc)
+{
+    TRACE_DEBUG("RTNL: \r\n");
+    if (rpc->log2)
+    {
+        TRACE_DEBUG(" LOG2:\r\n");
+        TRACE_DEBUG("  uptime=%" PRIu64 "\r\n", rpc->log2->uptime);
+        TRACE_DEBUG("  sequence=%" PRIu32 "\r\n", rpc->log2->sequence);
+        TRACE_DEBUG("  3=%" PRIu32 "\r\n", rpc->log2->field3);
+        TRACE_DEBUG("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
+        TRACE_DEBUG("  function=%" PRIu32 "\r\n", rpc->log2->function);
+        TRACE_DEBUG("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
+        for (size_t i = 0; i < rpc->log2->field6.len; i++)
+        {
+            TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
+        }
+        TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
+        if (rpc->log2->has_field8)
+            TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
+        if (rpc->log2->has_field9)
+        {
+            TRACE_DEBUG("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
+            for (size_t i = 0; i < rpc->log2->field9.len; i++)
+            {
+                TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
+            }
+            TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
+        }
+    }
+    if (rpc->log3)
+    {
+        TRACE_DEBUG(" LOG3:\r\n");
+        TRACE_DEBUG("  datetime=%" PRIu32 "\r\n", rpc->log3->datetime);
+        TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
+    }
+}
+void rtnlEventDump(TonieRtnlRPC *rpc)
+{
+    if (Settings.rtnl.logHuman)
+    {
+        bool_t addHeader = !fsFileExists(Settings.rtnl.logHumanFile);
+        FsFile *file = fsOpenFile2(Settings.rtnl.logHumanFile, "ab");
+        if (addHeader)
+        {
+            char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";
+            fsWriteFile(file, header, osStrlen(header));
+        }
+        char_t buffer[4096];
+        osSprintf(buffer, "%" PRIuTIME ";", time(NULL));
+        fsWriteFile(file, buffer, osStrlen(buffer));
+
+        if (rpc->log2)
+        {
+            osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIuSIZE ";",
+                      rpc->log2->uptime,
+                      rpc->log2->sequence,
+                      rpc->log2->field3,
+                      rpc->log2->function_group,
+                      rpc->log2->function,
+                      rpc->log2->field6.len);
+            fsWriteFile(file, buffer, osStrlen(buffer));
+
+            if (rpc->log2->field6.len > 0)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
+                }
+                fsWriteFile(file, buffer, osStrlen(buffer));
+            }
+
+            osSprintf(buffer, ";\"");
+            escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
+            fsWriteFile(file, buffer, osStrlen(buffer));
+
+            osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
+                      rpc->log2->field8, // TODO hasfield
+                      rpc->log2->field9.len);
+            fsWriteFile(file, buffer, osStrlen(buffer));
+
+            if (rpc->log2->has_field9)
+            {
+                if (rpc->log2->field9.len > 0)
+                {
+                    for (size_t i = 0; i < rpc->log2->field9.len; i++)
+                    {
+                        osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
+                    }
+                    fsWriteFile(file, buffer, osStrlen(buffer));
+                }
+                osSprintf(buffer, ";\"");
+                escapeString((char_t *)rpc->log2->field9.data, rpc->log2->field9.len, &buffer[2]);
+                fsWriteFile(file, buffer, osStrlen(buffer));
+                char_t *output = "\";";
+                fsWriteFile(file, output, osStrlen(output));
+            }
+            else
+            {
+                char_t *output = ";;";
+                fsWriteFile(file, output, osStrlen(output));
+            }
+        }
+        else
+        {
+            char_t *output = ";;;;;;;;;;;;;";
+            fsWriteFile(file, output, osStrlen(output));
+        }
+
+        if (rpc->log3)
+        {
+            osSprintf(buffer, "x;%" PRIu32 ";%" PRIu32 "\r\n",
+                      rpc->log3->datetime,
+                      rpc->log3->field2);
+            fsWriteFile(file, buffer, osStrlen(buffer));
+        }
+        else
+        {
+            char_t *output = ";;\r\n";
+            fsWriteFile(file, output, osStrlen(output));
+        }
+        fsCloseFile(file);
+    }
 }
