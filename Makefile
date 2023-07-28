@@ -275,20 +275,20 @@ check_dependencies:
 else
 .PHONY: check_dependencies
 check_dependencies:
-	@which protoc-c >/dev/null || ($(ECHO) "${RED}Error:${NC} protoc-c not found. Install it using:" && \
-	$(ECHO) "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install protobuf-c-compiler" && \
-	$(ECHO) "  ${CYAN}Alpine:${NC} apk add protobuf" && \
+	@which protoc-c >/dev/null || ($(ECHO) '${RED}Error:${NC} protoc-c not found. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install protobuf-c-compiler' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add protobuf' && \
 	exit 1)
-	@which gcc >/dev/null || ($(ECHO) "${RED}Error:${NC} gcc not found. Install it using:" && \
-	$(ECHO) "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install gcc" && \
-	$(ECHO) "  ${CYAN}Alpine:${NC} apk add gcc" && \
+	@which gcc >/dev/null || ($(ECHO) '${RED}Error:${NC} gcc not found. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install gcc' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add gcc' && \
 	exit 1)
-	@which openssl >/dev/null || ($(ECHO) "${YELLOW}Warning:${NC} openssl not found, required for generating certificates. Install it using:" && \
-	$(ECHO) "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install openssl" && \
-	$(ECHO) "  ${CYAN}Alpine:${NC} apk add openssl")
-	@which faketime >/dev/null || ($(ECHO) "${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:" && \
-	$(ECHO) "  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime" && \
-	$(ECHO) "  ${CYAN}Alpine:${NC} apk add faketime")
+	@which openssl >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} openssl not found, required for generating certificates. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install openssl' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add openssl')
+	@which faketime >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add faketime')
 endif
 
 
