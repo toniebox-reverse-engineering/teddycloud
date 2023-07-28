@@ -67,7 +67,7 @@ static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char
 static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
 
-static void strupr(char input[]);
+static char *strupr(char input[]);
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
 {
@@ -280,21 +280,34 @@ tonie_info_t getTonieInfo(const char *contentPath)
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
     {
-        uint8_t headerBuffer[TAF_HEADER_SIZE - 4];
+        uint8_t headerBuffer[TAF_HEADER_SIZE];
         size_t read_length;
         fsReadFile(file, headerBuffer, 4, &read_length);
         if (read_length == 4)
         {
             uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
-            if (protobufSize < TAF_HEADER_SIZE)
+            if (protobufSize <= TAF_HEADER_SIZE)
             {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length); // TODO: Read size by first 4 bytes
+                fsReadFile(file, headerBuffer, protobufSize, &read_length);
                 if (read_length == protobufSize)
                 {
-                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, TAF_HEADER_SIZE - 4, (const uint8_t *)headerBuffer);
-                    tonieInfo.valid = true;
+                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+                    if (tonieInfo.tafHeader)
+                        tonieInfo.valid = true;
+                }
+                else
+                {
+                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32, read_length, protobufSize);
                 }
             }
+            else
+            {
+                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u", protobufSize, TAF_HEADER_SIZE);
+            }
+        }
+        else
+        {
+            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE, read_length);
         }
         fsCloseFile(file);
     }
@@ -357,7 +370,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 
     if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Time"))
     {
-        sprintf(response, "%ld", time(NULL));
+        sprintf(response, "%" PRIuTIME, time(NULL));
     }
     else
     {
@@ -369,7 +382,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
         }
         else
         {
-            sprintf(response, "%lu", time(NULL));
+            sprintf(response, "%" PRIuTIME, time(NULL));
         }
     }
 
@@ -393,12 +406,12 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
     char date_buffer[32] = "";
     struct tm tm_info;
-    if (localtime_r(&timestamp, &tm_info) != NULL)
+    if (localtime_r(&timestamp, &tm_info) != 0)
     {
         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
     }
 
-    TRACE_INFO(" >> OTA-Request for %u with timestamp %lu (%s)\r\n", fileId, timestamp, date_buffer);
+    TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
@@ -507,12 +520,13 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     return NO_ERROR;
 }
 
-static void strupr(char input[])
+char *strupr(char input[])
 {
     for (uint16_t i = 0; input[i]; i++)
     {
         input[i] = toupper(input[i]);
     }
+    return input;
 }
 
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword)
@@ -651,7 +665,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                         unix_time += 0x50000000;
                         custom = true;
                     }
-                    if (localtime_r(&unix_time, &tm_info) == NULL)
+                    if (localtime_r(&unix_time, &tm_info) == 0)
                     {
                         sprintf(date_buffer, "(localtime failed)");
                     }

@@ -1,14 +1,19 @@
 
+#ifdef WIN32
+#else
+#include <unistd.h>
+#endif
+
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
 
 #include "handler_reverse.h"
 #include "settings.h"
 #include "stats.h"
 #include "cloud_request.h"
+#include "os_port.h"
 
 typedef struct
 {

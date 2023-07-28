@@ -10,7 +10,7 @@
 #include "proto/toniebox.pb.taf-header.pb-c.h"
 
 #define BODY_BUFFER_SIZE 4096
-#define TAF_HEADER_SIZE 4096
+#define TAF_HEADER_SIZE 4092
 
 typedef struct
 {
