@@ -49,6 +49,7 @@ OPTION_INTERNAL_STRING("internal.client.key", &Settings.internal.client.key, "",
 OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the server")
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 OPTION_INTERNAL_BOOL("internal.config_init", &Settings.internal.config_init, TRUE, "Config initialized?")
+OPTION_INTERNAL_BOOL("internal.config_changed", &Settings.internal.config_changed, FALSE, "Config changed and unsaved?")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
@@ -194,6 +195,7 @@ void settings_save()
     }
 
     fsCloseFile(file);
+    Settings.internal.config_changed = false;
 }
 
 void settings_load()
@@ -320,6 +322,7 @@ void settings_load()
     {
         settings_save();
     }
+    Settings.internal.config_changed = false;
 }
 
 setting_item_t *settings_get(int index)
@@ -381,6 +384,8 @@ bool settings_set_bool(const char *item, bool value)
         return false;
     }
 
+    if (!opt->internal)
+        Settings.internal.config_changed = true;
     *((bool *)opt->ptr) = value;
     return true;
 }
@@ -420,6 +425,8 @@ bool settings_set_signed(const char *item, int32_t value)
         return false;
     }
 
+    if (!opt->internal)
+        Settings.internal.config_changed = true;
     *((int32_t *)opt->ptr) = value;
     return true;
 }
@@ -459,6 +466,8 @@ bool settings_set_unsigned(const char *item, uint32_t value)
         return false;
     }
 
+    if (!opt->internal)
+        Settings.internal.config_changed = true;
     *((uint32_t *)opt->ptr) = value;
     return true;
 }
@@ -498,6 +507,8 @@ bool settings_set_float(const char *item, float value)
         return false;
     }
 
+    if (!opt->internal)
+        Settings.internal.config_changed = true;
     *((float *)opt->ptr) = value;
     return true;
 }
@@ -538,6 +549,8 @@ bool settings_set_string(const char *item, const char *value)
         free(*ptr);
     }
 
+    if (!opt->internal)
+        Settings.internal.config_changed = true;
     *ptr = strdup(value);
     return true;
 }
