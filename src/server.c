@@ -1,16 +1,16 @@
 
 #define TRACE_LEVEL TRACE_LEVEL_WARNING
 
+#ifdef WIN32
+#else
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 #include "core/net.h"
 #include "core/ethernet.h"

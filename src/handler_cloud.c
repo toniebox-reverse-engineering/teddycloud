@@ -67,7 +67,7 @@ static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char
 static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
 static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
 
-static void strupr(char input[]);
+static char *strupr(char input[]);
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
 {
@@ -357,7 +357,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 
     if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Time"))
     {
-        sprintf(response, "%ld", time(NULL));
+        sprintf(response, "%" PRIuTIME, time(NULL));
     }
     else
     {
@@ -369,7 +369,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
         }
         else
         {
-            sprintf(response, "%lu", time(NULL));
+            sprintf(response, "%" PRIuTIME, time(NULL));
         }
     }
 
@@ -393,12 +393,12 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
     char date_buffer[32] = "";
     struct tm tm_info;
-    if (localtime_r(&timestamp, &tm_info) != NULL)
+    if (localtime_r(&timestamp, &tm_info) != 0)
     {
         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
     }
 
-    TRACE_INFO(" >> OTA-Request for %u with timestamp %lu (%s)\r\n", fileId, timestamp, date_buffer);
+    TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
@@ -507,12 +507,13 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     return NO_ERROR;
 }
 
-static void strupr(char input[])
+char *strupr(char input[])
 {
     for (uint16_t i = 0; input[i]; i++)
     {
         input[i] = toupper(input[i]);
     }
+    return input;
 }
 
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword)
@@ -651,7 +652,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                         unix_time += 0x50000000;
                         custom = true;
                     }
-                    if (localtime_r(&unix_time, &tm_info) == NULL)
+                    if (localtime_r(&unix_time, &tm_info) == 0)
                     {
                         sprintf(date_buffer, "(localtime failed)");
                     }

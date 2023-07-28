@@ -1,9 +1,14 @@
 
+
+#ifdef WIN32
+#else
+#include <unistd.h>
+#endif
+
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
 
 #include "handler_rtnl.h"
 #include "settings.h"
@@ -127,8 +132,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
                     fsWriteFile(file, header, osStrlen(header));
                 }
                 char_t buffer[4096];
-                osSprintf(buffer, "%" PRIuTIME ";",
-                          time(NULL));
+                osSprintf(buffer, "%" PRIuTIME ";", time(NULL));
                 fsWriteFile(file, buffer, osStrlen(buffer));
 
                 if (rpc->log2)
