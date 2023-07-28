@@ -337,7 +337,7 @@ httpServerRequestCallback(HttpConnection *connection,
 {
     stats_update("connections", 1);
 
-    if (strlen(connection->tlsContext->client_cert_issuer))
+    if (connection->tlsContext && strlen(connection->tlsContext->client_cert_issuer))
     {
         TRACE_INFO("Certificate authentication:\r\n");
         TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
