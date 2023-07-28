@@ -1,0 +1,14 @@
+.openapi-generator-ignore
+apis/GenericApi.ts
+apis/TeddyCloudApi.ts
+apis/index.ts
+index.ts
+models/Errors.ts
+models/ErrorsErrorsInner.ts
+models/StatsItem.ts
+models/StatsList.ts
+models/Status.ts
+models/StatusData.ts
+models/StatusDataAttributes.ts
+models/index.ts
+runtime.ts
