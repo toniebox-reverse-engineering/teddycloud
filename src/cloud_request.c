@@ -25,6 +25,7 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
+#include "platform_windows.h"
 
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)

@@ -530,6 +530,8 @@ FsDir *fsOpenDir(const char_t *path)
    dir = (FsDir *)malloc(sizeof(FsDir));
    strSafeCopy(dir->path, path, FS_MAX_PATH_LEN);
    pathCanonicalize(dir->path);
+   strcat(dir->path, "*");
+   dir->handle = NULL;
 
    // Return a handle to the directory
    return dir;
@@ -561,7 +563,7 @@ error_t fsReadDir(FsDir *dir, FsDirEntry *dirEntry)
 
    if (dir->handle == NULL)
    {
-      if ((dir->handle = FindFirstFile(path, &FindFileData)) == INVALID_HANDLE_VALUE)
+      if ((dir->handle = FindFirstFile(dir->path, &FindFileData)) == INVALID_HANDLE_VALUE)
       {
          return ERROR_END_OF_STREAM;
       }

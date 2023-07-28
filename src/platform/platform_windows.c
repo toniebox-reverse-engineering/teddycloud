@@ -213,7 +213,11 @@ void socketClose(Socket *socket)
         sock->buffer = NULL;
     }
 
-    close(sock->sockfd);
+    if (sock->sockfd)
+    {
+        closesocket(sock->sockfd);
+        sock->sockfd = 0;
+    }
 
     free(sock);
 }
@@ -402,7 +406,8 @@ error_t socketReceive(Socket *socket, void *data_in,
 
 void *resolve_host(const char *hostname)
 {
-    struct addrinfo hints, *res;
+    struct addrinfo hints;
+    struct addrinfo *res;
     int status;
 
     memset(&hints, 0, sizeof hints);
@@ -417,11 +422,12 @@ void *resolve_host(const char *hostname)
     return res;
 }
 
-bool resolve_get_ip(void *res, int pos, IpAddr *ipAddr)
+bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
 {
+    struct addrinfo *res = (struct addrinfo *)ctx;
     struct addrinfo *p;
 
-    for (p = (struct addrinfo *)res; p != NULL; p = p->ai_next)
+    for (p = (struct addrinfo *)res->ai_addr; p != NULL; p = p->ai_next)
     {
         if (!pos)
         {
