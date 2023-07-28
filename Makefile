@@ -15,6 +15,7 @@ PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
 	SHELL       = cmd.exe
+	ECHO        = echo
 	MKDIR       = mkdir 
 	RM          = del
 	CP          = copy
@@ -23,6 +24,7 @@ ifeq ($(OS),Windows_NT)
 	SEP         = \$(strip)
 else
 	MKDIR       = mkdir -p
+	ECHO        = echo -e
 	RM          = rm -f
 	CP          = cp
 	TO_TRASH    = >/dev/null 2>&1
@@ -295,26 +297,28 @@ endif
 	$(info [DIR] creating $@)
 	$(shell $(MKDIR) $(subst /,$(SEP),$@) $(TO_TRASH))
 
-$(LINK_LO_FILE):
+.SECONDEXPANSION:
+$(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
-$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/  certs/server/ certs/client/ config/
-	@echo "[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}"
-	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) 
+.SECONDEXPANSION:
+$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/  certs/server/ certs/client/ config/ | $$(dir $$@)
+	@$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
+	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)${NC}'; false)
 	$(QUIET)cp -r $(CONTRIB_DIR)/www .
 
 .SECONDEXPANSION:
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
-	@echo "[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}"
-	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@ || (echo "[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@${NC}"; false)
+	@$(ECHO) '[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}'
+	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@ || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@${NC}'; false)
 
 clean:
-	@echo "[${GREEN}CLEAN${NC} ] Deleting output files..."
+	@$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
 	$(QUIET)$(RM) $(EXECUTABLE)
 	$(QUIET)$(foreach O,$(CLEAN_FILES),$(RM) $(O);)
 
 preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
-	@echo "[ ${GREEN}PRE${NC}  ] Preinstall"
+	@$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
@@ -333,24 +337,24 @@ scan-build: clean
 
 .PHONY: auto
 auto:
-	@echo "Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit."
+	@$(ECHO) 'Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit.'
 	@last_build_time=$$(date +%s); \
-	echo "[ ${CYAN}AUTO${NC} ] Clean up"; \
+	$(ECHO) '[ ${CYAN}AUTO${NC} ] Clean up'; \
 	screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit; \
-	echo "[ ${CYAN}AUTO${NC} ] Build"; \
+	$(ECHO) '[ ${CYAN}AUTO${NC} ] Build'; \
 	make --no-print-directory -j; \
 	screen -S teddycloud_auto -dm; \
 	screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
 	while true; do \
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
-			echo "[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
-			screen -S teddycloud_auto -X stuff "^C"; \
-			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
+			$(ECHO) '[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
+			screen -S teddycloud_auto -X stuff "^C'; \
+			$(ECHO) '[ ${CYAN}AUTO${NC} ] Rebuild'; \
 			make --no-print-directory -j; \
 			last_build_time=$$(date +%s); \
 			screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
-			echo "[ ${CYAN}AUTO${NC} ] Done"; \
+			$(ECHO) '[ ${CYAN}AUTO${NC} ] Done'; \
 		fi; \
 		sleep 1; \
 	done
