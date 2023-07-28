@@ -240,7 +240,7 @@ CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
 
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=$(OBJ_EXT))))
-CLEAN_FILES += $(OBJECTS)
+CLEAN_FILES += $(OBJECTS) $(LINK_LO_FILE)
 
 ifeq ($(OS),Windows_NT)
 CYAN=
