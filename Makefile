@@ -228,12 +228,19 @@ preinstall: clean build
 	$(QUIET)mkdir $(PREINSTALL_DIR)/
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)cd $(PREINSTALL_DIR)/ \
+		&& find . -name ".gitkeep" -type f -delete \
+		&& cd -
 
 zip: preinstall
 	mkdir $(ZIP_DIR)/
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -
+
+scan-build: clean
+	mkdir -p report
+	scan-build -o report make -j
 
 .PHONY: auto
 auto:
@@ -244,7 +251,7 @@ auto:
 	echo "[ ${CYAN}AUTO${NC} ] Build"; \
 	make --no-print-directory -j; \
 	screen -S teddycloud_auto -dm; \
-	screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+	screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
 	while true; do \
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
@@ -253,7 +260,7 @@ auto:
 			echo "[ ${CYAN}AUTO${NC} ] Rebuild"; \
 			make --no-print-directory -j; \
 			last_build_time=$$(date +%s); \
-			screen -S teddycloud_auto -X screen bash -c '$(BINARY); exec sh'; \
+			screen -S teddycloud_auto -X screen bash -c 'valgrind $(BINARY); exec sh'; \
 			echo "[ ${CYAN}AUTO${NC} ] Done"; \
 		fi; \
 		sleep 1; \

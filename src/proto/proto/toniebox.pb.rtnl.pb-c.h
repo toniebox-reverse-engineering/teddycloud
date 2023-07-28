@@ -15,6 +15,7 @@ PROTOBUF_C__BEGIN_DECLS
 #endif
 
 
+typedef struct _TonieRtnlRPC TonieRtnlRPC;
 typedef struct _TonieRtnlLog2 TonieRtnlLog2;
 typedef struct _TonieRtnlLog3 TonieRtnlLog3;
 
@@ -24,28 +25,52 @@ typedef struct _TonieRtnlLog3 TonieRtnlLog3;
 
 /* --- messages --- */
 
+struct  _TonieRtnlRPC
+{
+  ProtobufCMessage base;
+  /*
+   *required fixed64 length = 1;
+   */
+  TonieRtnlLog2 *log2;
+  TonieRtnlLog3 *log3;
+};
+#define TONIE_RTNL_RPC__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&tonie_rtnl_rpc__descriptor) \
+    , NULL, NULL }
+
+
 struct  _TonieRtnlLog2
 {
   ProtobufCMessage base;
-  uint64_t field1;
-  uint32_t field2;
+  uint64_t uptime;
+  uint32_t sequence;
   uint32_t field3;
-  uint32_t field4;
-  uint32_t field5;
+  uint32_t function_group;
+  uint32_t function;
   /*
    *or string
    */
   ProtobufCBinaryData field6;
+  /*
+   *optional <> field7 = 7;
+   */
+  protobuf_c_boolean has_field8;
+  uint32_t field8;
+  /*
+   *or string
+   */
+  protobuf_c_boolean has_field9;
+  ProtobufCBinaryData field9;
 };
 #define TONIE_RTNL_LOG2__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&tonie_rtnl_log2__descriptor) \
-    , 0, 0, 0, 0, 0, {0,NULL} }
+    , 0, 0, 0, 0, 0, {0,NULL}, 0, 0, 0, {0,NULL} }
 
 
 struct  _TonieRtnlLog3
 {
   ProtobufCMessage base;
-  uint32_t field1;
+  uint32_t datetime;
   uint32_t field2;
 };
 #define TONIE_RTNL_LOG3__INIT \
@@ -53,6 +78,25 @@ struct  _TonieRtnlLog3
     , 0, 0 }
 
 
+/* TonieRtnlRPC methods */
+void   tonie_rtnl_rpc__init
+                     (TonieRtnlRPC         *message);
+size_t tonie_rtnl_rpc__get_packed_size
+                     (const TonieRtnlRPC   *message);
+size_t tonie_rtnl_rpc__pack
+                     (const TonieRtnlRPC   *message,
+                      uint8_t             *out);
+size_t tonie_rtnl_rpc__pack_to_buffer
+                     (const TonieRtnlRPC   *message,
+                      ProtobufCBuffer     *buffer);
+TonieRtnlRPC *
+       tonie_rtnl_rpc__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   tonie_rtnl_rpc__free_unpacked
+                     (TonieRtnlRPC *message,
+                      ProtobufCAllocator *allocator);
 /* TonieRtnlLog2 methods */
 void   tonie_rtnl_log2__init
                      (TonieRtnlLog2         *message);
@@ -93,6 +137,9 @@ void   tonie_rtnl_log3__free_unpacked
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
+typedef void (*TonieRtnlRPC_Closure)
+                 (const TonieRtnlRPC *message,
+                  void *closure_data);
 typedef void (*TonieRtnlLog2_Closure)
                  (const TonieRtnlLog2 *message,
                   void *closure_data);
@@ -105,6 +152,7 @@ typedef void (*TonieRtnlLog3_Closure)
 
 /* --- descriptors --- */
 
+extern const ProtobufCMessageDescriptor tonie_rtnl_rpc__descriptor;
 extern const ProtobufCMessageDescriptor tonie_rtnl_log2__descriptor;
 extern const ProtobufCMessageDescriptor tonie_rtnl_log3__descriptor;
 

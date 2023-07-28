@@ -25,7 +25,8 @@ typedef enum
     V1_CLAIM,
     V2_CONTENT,
     V1_FRESHNESS_CHECK,
-    V1_LOG
+    V1_LOG,
+    V1_CLOUDRESET
 } cloudapi_t;
 
 typedef enum
@@ -40,6 +41,7 @@ typedef enum
 typedef struct
 {
     const char_t *uri;
+    const char_t *queryString;
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;
@@ -136,7 +138,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
-                getContentPathFromCharRUID(ruid, ctx->tonieInfo.contentPath);
+                getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath);
                 char tmpPath[34];
                 ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
                 osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
@@ -163,6 +165,10 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
                 fsDeleteFile(ctx->tonieInfo.contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
                 TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+            }
+            if (error != NO_ERROR)
+            {
+                freeTonieInfo(&ctx->tonieInfo);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
@@ -207,11 +213,12 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx);
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx);
 
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cloudapi_t api, cbr_ctx_t *ctx)
+static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx)
 {
     ctx->uri = uri;
+    ctx->queryString = queryString;
     ctx->api = api;
     ctx->buffer = NULL;
     ctx->bufferPos = 0;
@@ -229,14 +236,17 @@ static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, clou
     return cbr;
 }
 
-void getContentPathFromCharRUID(char ruid[17], char contentPath[30])
+void getContentPathFromCharRUID(char ruid[17], char **pcontentPath)
 {
-    osSprintf(contentPath, "www/CONTENT/%.8s/%.8s", ruid, &ruid[8]);
-    strupr(&contentPath[4]);
-    contentPath[30] = '\0';
+    *pcontentPath = osAllocMem(30);
+    char filePath[18];
+    osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
+    strupr(filePath);
+
+    osSprintf(*pcontentPath, "www/CONTENT/%s", filePath);
 }
 
-void getContentPathFromUID(uint64_t uid, char contentPath[30])
+void getContentPathFromUID(uint64_t uid, char **pcontentPath)
 {
     uint16_t cuid[9];
     osSprintf((char *)cuid, "%016" PRIX64 "", uid);
@@ -246,24 +256,57 @@ void getContentPathFromUID(uint64_t uid, char contentPath[30])
         cruid[i] = cuid[7 - i];
     }
     cruid[8] = 0;
-    getContentPathFromCharRUID((char *)cruid, contentPath);
+    getContentPathFromCharRUID((char *)cruid, pcontentPath);
 }
 
-tonie_info_t getTonieInfo(char contentPath[30])
+tonie_info_t getTonieInfo(const char *contentPath)
 {
     tonie_info_t tonieInfo;
-    char contentPathDot[30 + 8]; //".nocloud" / ".live"
-    osMemcpy(contentPathDot, contentPath, 30);
-    osMemcpy(tonieInfo.contentPath, contentPath, 30);
+    int maxLen = strlen(contentPath) + 32;
+    char *checkFile = (char *)osAllocMem(maxLen + 1);
 
-    tonieInfo.exists = fsFileExists(contentPathDot);
-    osStrcat(contentPathDot, ".nocloud");
-    tonieInfo.nocloud = fsFileExists(contentPathDot);
-    contentPathDot[29] = 0;
-    osStrcat(contentPathDot, ".live");
-    tonieInfo.live = fsFileExists(contentPathDot);
+    checkFile[maxLen] = 0;
+    tonieInfo.valid = false;
+    tonieInfo.tafHeader = NULL;
+    tonieInfo.contentPath = strdup(contentPath);
+    snprintf(checkFile, maxLen, "%s", contentPath);
+    tonieInfo.exists = fsFileExists(checkFile);
+    snprintf(checkFile, maxLen, "%s.nocloud", contentPath);
+    tonieInfo.nocloud = fsFileExists(checkFile);
+    snprintf(checkFile, maxLen, "%s.live", contentPath);
+    tonieInfo.live = fsFileExists(checkFile);
+    osFreeMem(checkFile);
 
+    FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
+    if (file)
+    {
+        uint8_t headerBuffer[TAF_HEADER_SIZE - 4];
+        size_t read_length;
+        fsReadFile(file, headerBuffer, 4, &read_length);
+        if (read_length == 4)
+        {
+            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+            if (protobufSize < TAF_HEADER_SIZE)
+            {
+                fsReadFile(file, headerBuffer, protobufSize, &read_length); // TODO: Read size by first 4 bytes
+                if (read_length == protobufSize)
+                {
+                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, TAF_HEADER_SIZE - 4, (const uint8_t *)headerBuffer);
+                    tonieInfo.valid = true;
+                }
+            }
+        }
+        fsCloseFile(file);
+    }
     return tonieInfo;
+}
+
+void freeTonieInfo(tonie_info_t *tonieInfo)
+{
+    toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
+    free(tonieInfo->contentPath);
+    tonieInfo->contentPath = NULL;
+    tonieInfo->tafHeader = NULL;
 }
 
 error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMemory)
@@ -296,6 +339,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, bool_t freeMem
 
     return NO_ERROR;
 }
+
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)
 {
     httpInitResponseHeader(connection);
@@ -305,7 +349,7 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
     connection->response.contentLength = contentLength;
 }
 
-error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
+error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     TRACE_INFO(" >> respond with current time\r\n");
 
@@ -318,8 +362,8 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     else
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_TIME, &ctx);
-        if (!cloud_request_get(NULL, 0, uri, NULL, &cbr))
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_TIME, &ctx);
+        if (!cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr))
         {
             return NO_ERROR;
         }
@@ -333,7 +377,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri)
     return httpWriteResponse(connection, response, false);
 }
 
-error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
+error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     error_t ret = NO_ERROR;
     char *query = strdup(connection->request.queryString);
@@ -359,8 +403,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri)
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_OTA, &ctx);
-        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_OTA, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
     }
     else
     {
@@ -380,7 +424,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
     if (Settings.cloud.markCustomTagByPass)
     {
         bool tokenIsZero = TRUE;
-        for (uint8_t i; i < 32; i++)
+        for (uint8_t i = 0; i < 32; i++)
         {
             if (token[i] != 0)
             {
@@ -416,18 +460,18 @@ void markCustomTonie(tonie_info_t *tonieInfo)
     TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
 }
 
-error_t handleCloudLog(HttpConnection *connection, const char_t *uri)
+error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
     {
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, V1_LOG, &ctx);
-        cloud_request_get(NULL, 0, uri, NULL, &cbr);
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_LOG, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
     }
     return NO_ERROR;
 }
 
-error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
+error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
@@ -443,7 +487,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
-    getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
+    getContentPathFromCharRUID(ruid, &tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
     if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
@@ -452,14 +496,14 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri)
         markCustomTonie(&tonieInfo);
     }
 
-    if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Claim") || tonieInfo.nocloud)
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Claim") && !tonieInfo.nocloud)
     {
-        return NO_ERROR;
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx);
+        cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
     }
+    freeTonieInfo(&tonieInfo);
 
-    cbr_ctx_t ctx;
-    req_cbr_t cbr = getCloudCbr(connection, uri, V1_CLAIM, &ctx);
-    cloud_request_get(NULL, 0, uri, token, &cbr);
     return NO_ERROR;
 }
 
@@ -471,9 +515,10 @@ static void strupr(char input[])
     }
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t noPassword)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword)
 {
     char ruid[17];
+    error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
     osStrncpy(ruid, &uri[12], sizeof(ruid));
@@ -492,7 +537,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t
     TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
 
     tonie_info_t tonieInfo;
-    getContentPathFromCharRUID(ruid, tonieInfo.contentPath);
+    getContentPathFromCharRUID(ruid, &tonieInfo.contentPath);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
     if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token))
@@ -508,7 +553,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
-            return error;
         }
     }
     else
@@ -525,27 +569,28 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, bool_t
             }
             httpPrepareHeader(connection, NULL, 0);
             connection->response.statusCode = 404;
-            return httpWriteResponse(connection, NULL, false);
+            error = httpWriteResponse(connection, NULL, false);
         }
         else
         {
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
-            req_cbr_t cbr = getCloudCbr(connection, uri, V2_CONTENT, &ctx);
-            cloud_request_get(NULL, 0, uri, token, &cbr);
+            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx);
+            cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
         }
     }
-    return NO_ERROR;
+    freeTonieInfo(&tonieInfo);
+    return error;
 }
-error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    return handleCloudContent(connection, uri, TRUE);
+    return handleCloudContent(connection, uri, queryString, TRUE);
 }
-error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri)
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
-        return handleCloudContent(connection, uri, FALSE);
+        return handleCloudContent(connection, uri, queryString, FALSE);
     }
     else
     {
@@ -554,7 +599,7 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri)
     return NO_ERROR;
 }
 
-error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
+error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
@@ -616,8 +661,10 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                     }
                 }
                 tonie_info_t tonieInfo;
-                getContentPathFromUID(freshReq->tonie_infos[i]->uid, tonieInfo.contentPath);
+                getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
+
+                tonieInfo.updated = tonieInfo.valid && (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
 
                 if (!tonieInfo.nocloud)
                 {
@@ -625,17 +672,19 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 }
 
                 (void)custom;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, audioid: %08X (%s%s)\n",
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
+                           tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer,
                            custom ? ", custom" : "");
-                if (tonieInfo.live)
+                if (tonieInfo.live || tonieInfo.updated)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
+                freeTonieInfo(&tonieInfo);
             }
 
             if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1FreshnessCheck"))
@@ -648,8 +697,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
                 osFreeMem(freshResp.tonie_marked);
 
                 cbr_ctx_t ctx;
-                req_cbr_t cbr = getCloudCbr(connection, uri, V1_FRESHNESS_CHECK, &ctx);
-                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", data, dataLen, NULL, &cbr))
+                req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx);
+                if (!cloud_request_post(NULL, 0, "/v1/freshness-check", queryString, data, dataLen, NULL, &cbr))
                 {
                     return NO_ERROR;
                 }
@@ -671,6 +720,24 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri)
             // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;
+    }
+    return NO_ERROR;
+}
+
+error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+{
+    // EMPTY POST REQUEST?
+    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLOUDRESET, &ctx);
+        cloud_request_post(NULL, 0, uri, queryString, NULL, 0, NULL, &cbr);
+    }
+    else
+    {
+        httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
+        connection->response.keepAlive = false;
+        return httpWriteResponse(connection, "{}", false);
     }
     return NO_ERROR;
 }

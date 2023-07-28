@@ -66,7 +66,7 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-error_t handleReverse(HttpConnection *connection, const char_t *uri)
+error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     cbr_ctx_t ctx = {
         .status = PROX_STATUS_IDLE,
@@ -83,7 +83,9 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
 
     /* here call cloud request, which has to get extended for cbr for header fields and content packets */
     uint8_t *token = connection->private.authentication_token;
-    error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
+
+    // TODO POST
+    error_t error = cloud_request_get(NULL, 0, &uri[8], queryString, token, &cbr);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("cloud_request_get() failed\r\n");

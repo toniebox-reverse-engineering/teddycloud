@@ -19,6 +19,8 @@ OPTION_UNSIGNED("log.level", &Settings.log.level, 4, 0, 6, "0=off - 6=verbose")
 /* settings for HTTPS server */
 OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
 OPTION_UNSIGNED("core.server.http_port", &Settings.core.https_port, 80, 1, 65535, "HTTP port")
+OPTION_STRING("core.certdir", &Settings.core.certdir, "certs/client", "Directory where to upload genuine client certs to")
+OPTION_STRING("core.contentdir", &Settings.core.contentdir, "www/CONTENT", "Directory where cloud content is placed")
 
 OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
 OPTION_STRING("core.server_cert.file.crt", &Settings.core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")
@@ -50,6 +52,7 @@ OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable c
 OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
 OPTION_UNSIGNED("cloud.port", &Settings.cloud.remote_port, 443, 1, 65535, "Port of remote cloud server")
 OPTION_BOOL("cloud.enableV1Claim", &Settings.cloud.enableV1Claim, TRUE, "Pass 'claim' queries to boxine cloud")
+OPTION_BOOL("cloud.enableV1CloudReset", &Settings.cloud.enableV1CloudReset, FALSE, "Pass 'cloudReset' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1FreshnessCheck", &Settings.cloud.enableV1FreshnessCheck, TRUE, "Pass 'freshnessCheck' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Log", &Settings.cloud.enableV1Log, FALSE, "Pass 'log' queries to boxine cloud")
 OPTION_BOOL("cloud.enableV1Time", &Settings.cloud.enableV1Time, FALSE, "Pass 'time' queries to boxine cloud")
@@ -65,6 +68,11 @@ OPTION_UNSIGNED("toniebox.max_vol_hdp", &Settings.toniebox.max_vol_hdp, 3, 0, 3,
 OPTION_BOOL("toniebox.slap_enabled", &Settings.toniebox.slap_enabled, TRUE, "Enable slapping to skip a track")
 OPTION_BOOL("toniebox.slap_back_left", &Settings.toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
 OPTION_UNSIGNED("toniebox.led", &Settings.toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
+
+OPTION_BOOL("rtnl.logRaw", &Settings.rtnl.logRaw, FALSE, "Enable raw rtnl logging")
+OPTION_BOOL("rtnl.logHuman", &Settings.rtnl.logHuman, FALSE, "Enable human readable rtnl logging")
+OPTION_STRING("rtnl.logRawFile", &Settings.rtnl.logRawFile, "config/rtnl.bin", "RTNL raw logfile")
+OPTION_STRING("rtnl.logHumanFile", &Settings.rtnl.logHumanFile, "config/rtnl.csv", "RTNL human readable logfile")
 
 OPTION_BOOL("mqtt.enabled", &Settings.mqtt.enabled, FALSE, "Enable MQTT service")
 OPTION_STRING("mqtt.hostname", &Settings.mqtt.hostname, "", "MQTT hostname")

@@ -24,6 +24,69 @@
             margin: 0;
         }
 
+        .small-round-button {
+            position: absolute;
+            top: 0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .desc {
+            display: inline-block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            width: 300px;
+            white-space: normal;
+        }
+
+        .image-resize {
+            width: 32px;
+            height: 32px;
+            transition: all 0.3s ease-in-out;
+            margin-left: 40px;
+        }
+
+        .parent:hover .image-resize {
+            width: 128px;
+            height: 128px;
+        }
+
+        .parent {
+            position: relative;
+            display: flex;
+            align-items: start;
+        }
+
+        .audio-time {
+            display: none;
+        }
+
+        .parent:hover .audio-time {
+            display: inline;
+        }
+
+        .text-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes zoomOut {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .imageZoomOut {
+            transition: transform 2s, opacity 2s;
+        }
+
         .app {
             padding: 10px;
             border-radius: 5px;
@@ -483,6 +546,7 @@
             askPermission(files) {
                 if (window.confirm("Do you want to set these files as client certificates?")) {
                     this.setState({ files });
+                    this.uploadFiles();
                 }
             }
 
@@ -498,6 +562,7 @@
                         return '';
                 }
             }
+
             onDrop(event) {
                 event.preventDefault();
                 const files = [...event.dataTransfer.files].map(file => ({
@@ -515,7 +580,7 @@
                 });
 
                 try {
-                    const response = await fetch('/api/upload', {
+                    const response = await fetch('/api/uploadCert', {
                         method: 'POST',
                         body: formData,
                     });
@@ -547,16 +612,408 @@
                         {this.state.files.map(({ name, status }, index) => (
                             <p key={index}><code>{name}</code> - <span className={this.getStatusClass(status)}>{status}</span></p>
                         ))}
-
-                        {this.state.files.length > 0 &&
-                            <button className="button" onClick={this.uploadFiles}>
-                                Upload
-                            </button>
-                        }
                     </div>
                 );
             }
         }
+
+        class OggPlayer extends React.Component {
+            constructor(props) {
+                super(props);
+
+                this.audioRef = React.createRef();
+
+                this.state = {
+                    currentTime: 0,
+                    duration: 0,
+                    imageUrl: "",
+                    isPlaying: false,  // Track if audio is playing
+                    pauseTimer: null,  // Keep track of a timer for the pause event
+                }
+            }
+
+            setUrl = (url) => {
+                this.audioRef.current.src = url;
+                this.audioRef.current.play();
+                this.setState({ isPlaying: true });  // Update isPlaying state when audio starts
+            }
+
+            setImageUrl = (url) => {
+                this.setState({ imageUrl: url });
+            }
+
+            componentDidMount() {
+                this.audioRef.current.addEventListener('timeupdate', this.updateCurrentTime);
+                this.audioRef.current.addEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.addEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.addEventListener('pause', this.initiatePause);
+            }
+
+            componentWillUnmount() {
+                this.audioRef.current.removeEventListener('timeupdate', this.updateCurrentTime);
+                this.audioRef.current.removeEventListener('loadedmetadata', this.updateDuration);
+                this.audioRef.current.removeEventListener('play', this.updateIsPlaying);
+                this.audioRef.current.removeEventListener('pause', this.initiatePause);
+            }
+
+            updateCurrentTime = () => {
+                this.setState({ currentTime: this.audioRef.current.currentTime });
+            }
+
+            updateDuration = () => {
+                this.setState({ duration: this.audioRef.current.duration });
+            }
+
+            // On play event, set isPlaying to true and clear any pause timers
+            updateIsPlaying = () => {
+                clearTimeout(this.state.pauseTimer);
+                this.setState({ isPlaying: true, pauseTimer: null });
+            }
+
+            // On pause event, start a timer. If the timer ends, set isPlaying to false
+            initiatePause = () => {
+                if (this.state.pauseTimer) clearTimeout(this.state.pauseTimer);
+                const timer = setTimeout(() => {
+                    this.setState({ isPlaying: false });
+                }, 5000);  // Set a timer for 5 seconds
+                this.setState({ pauseTimer: timer });
+            }
+
+            seek = (event) => {
+                this.audioRef.current.currentTime = (event.target.value / 100) * this.audioRef.current.duration;
+            }
+
+            render() {
+                return (
+                    <div style={{
+                        display: this.state.isPlaying ? 'flex' : 'hidden',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        height: this.state.isPlaying ? '100%' : '0',
+                        transition: 'all 1s ease'
+                    }}>
+                        <img src={this.state.imageUrl}
+                            style={{
+                                width: this.state.isPlaying ? '400px' : '0',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                        <audio ref={this.audioRef}
+                            controls
+                            style={{
+                                width: this.state.isPlaying ? '100%' : '0',
+                                visibility: this.state.isPlaying ? 'visible' : 'hidden',
+                                transition: 'all 1s ease'
+                            }}
+                        />
+                    </div>
+                );
+            }
+        }
+
+        class FileViewerTile extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    path: '/',
+                    files: [],
+                    selectedFiles: [],
+                    tonies: [],
+                };
+                this.fetchFileIndex = this.fetchFileIndex.bind(this);
+                this.uploadFiles = this.uploadFiles.bind(this);
+                this.createDirectory = this.createDirectory.bind(this);
+                this.fileInputRef = React.createRef();
+                this.onDrop = this.onDrop.bind(this);
+                this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
+                this.toggleFileSelection = this.toggleFileSelection.bind(this);
+                this.selectAllFiles = this.selectAllFiles.bind(this);
+                this.oggPlayerRef = React.createRef();
+            }
+
+            componentDidMount() {
+                fetch("/www/tonies.json")
+                    .then(response => response.json())
+                    .then(data => this.setState({ tonies: data }));
+                this.fetchFileIndex(this.state.path);
+            }
+
+            async fetchFileIndex(path) {
+                try {
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
+
+                    if (response.ok) {
+                        const files = await response.json();
+                        this.setState({ files, path });
+                    } else {
+                        console.error('Failed to fetch file index');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                }
+            }
+
+            askPermission(files) {
+                if (window.confirm("Do you want to upload these files?")) {
+                    this.uploadFiles(files);
+                }
+            }
+
+            onDrop(event) {
+                event.preventDefault();
+                const files = [...event.dataTransfer.files].map(file => ({
+                    name: file.name,
+                    file: file,
+                    status: 'Not uploaded yet'
+                }));
+                this.askPermission(files);
+            }
+
+            async uploadFiles(files) {
+                // Check for file presence
+                if (!files.length) {
+                    return;
+                }
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const formData = new FormData();
+                    formData.append(file.name, file.file);
+
+                    try {
+                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (response.ok) {
+                        } else {
+                            alert('File upload failed');
+                        }
+                    } catch (err) {
+                        console.error('There was an error!', err);
+                    }
+                }
+
+                this.fetchFileIndex(this.state.path); // Refresh files after all uploads
+            }
+
+            async createDirectory() {
+                const name = window.prompt('Enter the new directory name');
+                if (!name) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/dirCreate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: this.state.path.trim() + name.trim(),
+                    });
+
+                    if (response.ok) {
+                        this.fetchFileIndex(this.state.path); // Refresh files
+                    } else {
+                        alert('Failed to create directory');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                }
+            }
+
+            getParentPath(path) {
+                const trimmedPath = path.endsWith('/') ? path.slice(0, -1) : path;
+                const parts = trimmedPath.split('/');
+                parts.pop();
+                return parts.join('/') || '/';
+            }
+
+            async deleteSelectedFiles() {
+                let deletedCount = 0, failedCount = 0;
+
+                for (let file of this.state.selectedFiles) {
+                    const api = file.isDirectory ? '/api/dirDelete' : '/api/fileDelete';
+
+                    try {
+                        const response = await fetch(api, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: this.state.path + '/' + file.name,
+                        });
+
+                        if (response.ok && await response.text() === 'OK') {
+                            deletedCount++;
+                        } else {
+                            failedCount++;
+                        }
+                    } catch (err) {
+                        console.error('There was an error!', err);
+                        failedCount++;
+                    }
+                }
+
+                if (failedCount > 0) {
+                    alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                }
+                this.setState({ selectedFiles: [] });
+                this.fetchFileIndex(this.state.path); // Refresh files after delete
+            }
+
+
+            toggleFileSelection(file) {
+                this.setState(prevState => {
+                    if (prevState.selectedFiles.includes(file)) {
+                        return { selectedFiles: prevState.selectedFiles.filter(f => f !== file) };
+                    } else {
+                        return { selectedFiles: [...prevState.selectedFiles, file] };
+                    }
+                });
+            }
+
+            selectAllFiles() {
+                this.setState({ selectedFiles: [...this.state.files] });
+            }
+
+            render() {
+                return (
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
+                        <h2>File Viewer</h2>
+                        <OggPlayer ref={this.oggPlayerRef} />
+                        <p>
+                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
+                            <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
+                            <button className="button" onClick={this.createDirectory}>Create Directory</button>
+                            <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
+                            {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
+                            <input
+                                type="file"
+                                ref={this.fileInputRef}
+                                style={{ display: 'none' }}
+                                multiple
+                                onChange={(event) => {
+                                    const files = [...event.target.files].map(file => ({
+                                        name: file.name,
+                                        file: file,
+                                        status: 'Not uploaded yet'
+                                    }));
+                                    this.askPermission(files);
+                                }}
+                            />
+                        </p>
+
+                        <pre key="path" style={{ fontFamily: 'monospace' }}>
+                            <span>Index of {this.state.path}</span>
+                        </pre>
+                        <pre key="heading" style={{ fontFamily: 'monospace' }}>
+                            <React.Fragment>
+                                <span><u>{'Name'.padEnd(24 + 4)}</u></span>
+                                <span><u>{'Date'.padEnd(19)}</u></span>
+                                <span><u>{'Size'.padStart(12)}</u></span>
+                            </React.Fragment>
+                        </pre>
+
+                        {this.state.path !== '/' && (
+                            <pre key="goup" style={{ fontFamily: 'monospace' }}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path)) }}>
+                                    ..
+                                </a >
+                            </pre>
+                        )}
+
+                        {this.state.files.map((file, index) => {
+                            let maxLen = 24;
+                            let filename = file.name.substring(0, maxLen);
+                            if (file.name.length > maxLen) {
+                                filename = file.name.substring(0, maxLen - 3) + "...";
+                            }
+
+                            let matchingTonie;
+                            let audioId;
+                            let audioIdHex;
+                            let hashHex;
+                            let tonieTitle = "(unknown)";
+                            let toniePic = "img_unknown.png";
+                            let tonieModel = "";
+
+                            if (file.desc.startsWith('TAF:')) {
+                                let fileDescParts = file.desc.split(':');
+                                audioIdHex = fileDescParts[1];
+                                hashHex = fileDescParts[2];
+                                audioId = parseInt(audioIdHex, 16).toString();
+
+                                matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
+                                if (matchingTonie) {
+                                    tonieTitle = matchingTonie.title;
+                                    toniePic = matchingTonie.pic;
+                                    tonieModel = matchingTonie.model;
+                                }
+                            }
+
+                            return (
+                                <pre key={index} style={{ fontFamily: 'monospace' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.selectedFiles.includes(file)}
+                                        onChange={() => this.toggleFileSelection(file)}
+                                    />
+                                    {file.isDirectory ? (
+                                        <React.Fragment>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
+                                                {filename}
+                                            </a >
+                                            <span>{' '.repeat(maxLen - filename.length)}</span>
+                                            <span>{file.date}</span>
+                                            <span>{'-'.padStart(10)}</span>
+                                        </React.Fragment >
+                                    ) : (
+                                        <React.Fragment>
+                                            <a href={`/CONTENT${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                                {filename}
+                                            </a >
+                                            <span>{' '.repeat(maxLen - filename.length)}</span>
+                                            <span>{file.date.padEnd(10)}</span>
+                                            <span>{file.size.padStart(10)}</span>
+                                            {file.desc.startsWith('TAF:') &&
+                                                <div className="parent">
+                                                    <button
+                                                        onClick={() => {
+                                                            this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`);
+                                                            this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                        }
+                                                        } className="small-round-button"
+                                                    >
+                                                        &#9654;
+                                                    </button>
+                                                    <img
+                                                        className="image-resize"
+                                                        src={toniePic}
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
+                                                    />
+                                                    <div className="text-section">
+                                                        <span className="desc">{tonieTitle}</span>
+                                                        <span className="audio-time"> </span>
+                                                        <span className="audio-time">Model: {tonieModel}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
+                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </React.Fragment>
+                                    )
+                                    }
+                                </pre >
+                            );
+                        })
+                        }
+
+                    </div >
+                );
+            }
+        }
+
+
 
         class App extends React.Component {
             constructor(props) {
@@ -647,6 +1104,7 @@
                             <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
                             <CertificateUploadTile />
+                            <FileViewerTile />
                             <SettingsTile />
                             <ActionsTile />
                         </div>
