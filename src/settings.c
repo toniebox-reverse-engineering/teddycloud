@@ -37,6 +37,8 @@ OPTION_STRING("core.client_cert.data.ca", &Settings.core.client_cert.data.ca, ""
 OPTION_STRING("core.client_cert.data.crt", &Settings.core.client_cert.data.crt, "", "Client certificate data")
 OPTION_STRING("core.client_cert.data.key", &Settings.core.client_cert.data.key, "", "Client key data")
 
+OPTION_STRING("core.allowOrigin", &Settings.core.allowOrigin, "", "Set CORS Access-Control-Allow-Origin header")
+
 OPTION_INTERNAL_STRING("internal.server.ca", &Settings.internal.server.ca, "", "Server CA data")
 OPTION_INTERNAL_STRING("internal.server.crt", &Settings.internal.server.crt, "", "Server certificate data")
 OPTION_INTERNAL_STRING("internal.server.key", &Settings.internal.server.key, "", "Server key data")

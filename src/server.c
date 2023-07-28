@@ -493,12 +493,14 @@ void server_init()
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
+    http_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
     https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
+    https_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
