@@ -24,7 +24,7 @@ ifeq ($(OS),Windows_NT)
 	SEP         = \$(strip)
 else
 	MKDIR       = mkdir -p
-	ECHO        = echo -e
+	ECHO        = echo
 	RM          = rm -f
 	CP          = cp
 	TO_TRASH    = >/dev/null 2>&1
@@ -251,11 +251,11 @@ YELLOW=
 GREEN=
 NC=
 else
-CYAN=\033[0;36m
-RED=\033[0;31m
-YELLOW=\033[0;33m
-GREEN=\033[0;32m
-NC=\033[0m
+CYAN=$(shell echo -e "\033[0;36m")
+RED=$(shell echo -e "\033[0;31m")
+YELLOW=$(shell echo -e "\033[0;33m")
+GREEN=$(shell echo -e "\033[0;32m")
+NC=$(shell echo -e "\033[0m")
 endif
 
 ifeq ($(VERBOSE),1)
