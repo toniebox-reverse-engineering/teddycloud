@@ -15,17 +15,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
 error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> bcbad4f (fix web interface, uploading etc)
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-<<<<<<< HEAD
-=======
-error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString);
->>>>>>> e6efbc1 (passthrough queryString)
-=======
->>>>>>> bcbad4f (fix web interface, uploading etc)

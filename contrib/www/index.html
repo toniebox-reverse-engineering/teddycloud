@@ -718,10 +718,7 @@
                     path: '/',
                     files: [],
                     selectedFiles: [],
-<<<<<<< HEAD
                     tonies: [],
-=======
->>>>>>> bcbad4f (fix web interface, uploading etc)
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -731,10 +728,7 @@
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
-<<<<<<< HEAD
                 this.oggPlayerRef = React.createRef();
-=======
->>>>>>> bcbad4f (fix web interface, uploading etc)
             }
 
             componentDidMount() {
@@ -846,11 +840,7 @@
                         const response = await fetch(api, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
-<<<<<<< HEAD
                             body: this.state.path + '/' + file.name,
-=======
-                            body: this.state.path + file.name,
->>>>>>> bcbad4f (fix web interface, uploading etc)
                         });
 
                         if (response.ok && await response.text() === 'OK') {
@@ -864,13 +854,9 @@
                     }
                 }
 
-<<<<<<< HEAD
                 if (failedCount > 0) {
                     alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
                 }
-=======
-                alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
->>>>>>> bcbad4f (fix web interface, uploading etc)
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path); // Refresh files after delete
             }
@@ -936,7 +922,6 @@
                             </pre>
                         )}
 
-<<<<<<< HEAD
                         {this.state.files.map((file, index) => {
                             let maxLen = 24;
                             let filename = file.name.substring(0, maxLen);
@@ -1023,47 +1008,13 @@
                         })
                         }
 
-=======
-                        {this.state.files.map((file, index) => (
-                            <pre key={index} style={{ fontFamily: 'monospace' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={this.state.selectedFiles.includes(file)}
-                                    onChange={() => this.toggleFileSelection(file)}
-                                />
-                                {file.isDirectory ? (
-                                    <React.Fragment>
-                                        <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
-                                            {file.name}
-                                        </a >
-                                        <span>{' '.repeat(32 - file.name.length)}</span>
-                                        <span>{file.date}</span>
-                                        <span>{'-'.padStart(10)}</span>
-                                    </React.Fragment >
-                                ) : (
-                                    <React.Fragment>
-                                        <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
-                                            {file.name}
-                                        </a >
-                                        <span>{' '.repeat(32 - file.name.length)}</span>
-                                        <span>{file.date.padEnd(10)}</span>
-                                        <span>{file.size.padStart(10)}</span>
-                                    </React.Fragment>
-                                )
-                                }
-                            </pre >
-                        ))}
->>>>>>> bcbad4f (fix web interface, uploading etc)
                     </div >
                 );
             }
         }
 
 
-<<<<<<< HEAD
 
-=======
->>>>>>> bcbad4f (fix web interface, uploading etc)
         class App extends React.Component {
             constructor(props) {
                 super(props);

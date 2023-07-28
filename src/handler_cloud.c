@@ -504,12 +504,6 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     }
     freeTonieInfo(&tonieInfo);
 
-<<<<<<< HEAD
-=======
-    cbr_ctx_t ctx;
-    req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx);
-    cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
->>>>>>> e6efbc1 (passthrough queryString)
     return NO_ERROR;
 }
 
