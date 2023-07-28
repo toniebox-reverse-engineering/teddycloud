@@ -144,11 +144,11 @@ void rtnlEvent(TonieRtnlRPC *rpc)
     {
         if (rpc->log3->field2 == 1)
         {
-            sse_sendEvent("rtnl", "ear-small", true);
+            sse_sendEvent("rtnl", "ear-big", true);
         }
         else if (rpc->log3->field2 == 2)
         {
-            sse_sendEvent("rtnl", "ear-big", false);
+            sse_sendEvent("rtnl", "ear-small", true);
         }
     }
 }

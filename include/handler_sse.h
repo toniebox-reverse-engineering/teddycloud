@@ -18,8 +18,6 @@ typedef struct
     HttpConnection *connection;
     time_t lastConnection;
 } SseSubscriptionContext;
-SseSubscriptionContext sseSubs[SSE_MAX_CHANNELS];
-uint8_t sseSubscriptionCount = 0;
 
 error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData);
 error_t sse_keepAlive(void);

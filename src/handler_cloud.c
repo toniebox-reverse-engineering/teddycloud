@@ -358,7 +358,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
-    return httpWriteResponse(connection, response, false);
+    return httpWriteResponseString(connection, response, false);
 }
 
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString)
@@ -394,7 +394,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     {
         httpPrepareHeader(connection, NULL, 0);
         connection->response.statusCode = 304; // No new firmware
-        ret = httpWriteResponse(connection, NULL, false);
+        ret = httpWriteResponse(connection, NULL, 0, false);
     }
 
     free(query);
@@ -554,7 +554,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             }
             httpPrepareHeader(connection, NULL, 0);
             connection->response.statusCode = 404;
-            error = httpWriteResponse(connection, NULL, false);
+            error = httpWriteResponse(connection, NULL, 0, false);
         }
         else
         {
@@ -701,7 +701,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             TRACE_INFO("Freshness check response: size=%zu, content=%s\n", dataLen, data);
 
             httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
-            return httpWriteResponse(connection, data, false);
+            return httpWriteResponse(connection, data, dataLen, false);
             // tonie_freshness_check_response__free_unpacked(&freshResp, NULL);
         }
         return NO_ERROR;
@@ -722,7 +722,7 @@ error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const ch
     {
         httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
         connection->response.keepAlive = false;
-        return httpWriteResponse(connection, "{}", false);
+        return httpWriteResponseString(connection, "{}", false);
     }
     return NO_ERROR;
 }

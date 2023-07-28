@@ -342,7 +342,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
-    return httpWriteResponse(connection, response, false);
+    return httpWriteResponseString(connection, response, false);
 }
 
 int urldecode(char *dest, const char *src)
@@ -916,7 +916,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    return httpWriteResponse(connection, message, false);
+    return httpWriteResponseString(connection, message, false);
 }
 
 void fileUploaded(const char *filename)
@@ -1023,7 +1023,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    return httpWriteResponse(connection, message, false);
+    return httpWriteResponseString(connection, message, false);
 }
 
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString)
@@ -1070,7 +1070,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    return httpWriteResponse(connection, message, false);
+    return httpWriteResponseString(connection, message, false);
 }
 
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
@@ -1117,7 +1117,7 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    return httpWriteResponse(connection, message, false);
+    return httpWriteResponseString(connection, message, false);
 }
 
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
@@ -1164,5 +1164,5 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
-    return httpWriteResponse(connection, message, false);
+    return httpWriteResponseString(connection, message, false);
 }

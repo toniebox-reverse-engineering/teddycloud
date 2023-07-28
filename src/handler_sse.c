@@ -2,6 +2,9 @@
 
 #include "handler_sse.h"
 
+static SseSubscriptionContext sseSubs[SSE_MAX_CHANNELS];
+static uint8_t sseSubscriptionCount = 0;
+
 error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
     uint8_t channel;
@@ -28,10 +31,14 @@ error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const cha
     sseCtx->lastConnection = time(NULL);
     sseSubscriptionCount++;
 
-    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s", channel, uri);
-    char_t *url = SSE_BASE_URL "%" PRIu8;
-    osSprintf(url, url, channel);
-    return httpWriteResponse(connection, url, false);
+    char_t *urlPrintf = SSE_BASE_URL "%" PRIu8;
+    char_t *url = osAllocMem(osStrlen(urlPrintf));
+    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s\r\n", channel, url);
+
+    osSprintf(url, urlPrintf, channel);
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/plain";
+    return httpWriteResponseString(connection, url, true);
 }
 error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
@@ -39,6 +46,7 @@ error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const cha
     SseSubscriptionContext *sseCtx = &sseSubs[channel];
 
     httpInitResponseHeader(connection);
+    connection->response.contentType = "application/json";
     connection->response.contentLength = CONTENT_LENGTH_UNKNOWN;
 
     error_t error = httpWriteHeader(connection);
@@ -50,7 +58,18 @@ error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const cha
     sseCtx->connection = connection;
     sseCtx->lastConnection = time(NULL);
 
-    httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }");
+    httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
+
+    while (sseCtx->connection != NULL)
+    {
+        if (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
+        {
+            httpCloseStream(sseCtx->connection);
+            sseCtx->connection = NULL;
+            sseCtx->lastConnection = 0;
+            sseSubscriptionCount--;
+        }
+    }
 
     return error;
 }
@@ -63,6 +82,8 @@ error_t sse_sendEvent(const char *eventname, const char *content, bool escapeDat
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
         sseCtx->lastConnection = time(NULL);
         HttpConnection *conn = sseCtx->connection;
+        if (sseCtx->connection == NULL)
+            continue;
 
         error = httpWriteString(conn, "data: { \"type\":\"");
         if (error != NO_ERROR)
@@ -88,7 +109,7 @@ error_t sse_sendEvent(const char *eventname, const char *content, bool escapeDat
             if (error != NO_ERROR)
                 return error;
         }
-        error = httpWriteString(conn, " }");
+        error = httpWriteString(conn, " }\r\n");
         if (error != NO_ERROR)
             return error;
     }
