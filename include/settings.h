@@ -68,6 +68,7 @@ typedef struct
     settings_cert_t server;
     settings_cert_t client;
     bool config_init;
+    bool config_changed;
 } settings_internal_t;
 
 typedef struct
