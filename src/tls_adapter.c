@@ -1,5 +1,8 @@
 #include <errno.h>
+#ifdef WIN32
+#else
 #include <sys/random.h>
+#endif
 
 #include "pem_export.h"
 #include "rng/yarrow.h"
@@ -349,7 +352,7 @@ error_t tls_adapter_init()
 {
     uint8_t seed[32];
 
-    int ret = getrandom(seed, sizeof(seed), GRND_RANDOM);
+    int ret = getrandom(seed, sizeof(seed), 0);
     if (ret < 0)
     {
         TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);

@@ -1,14 +1,19 @@
 
+#ifdef WIN32
+#include <winsock2.h>
+#else
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
+#include <arpa/inet.h>
+#endif
 
-// Dependencies
+#include <errno.h>
 #include <stdlib.h>
+
 #include "tls.h"
 #include "pem_export.h"
 #include "tls_cipher_suites.h"
@@ -21,10 +26,6 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)
