@@ -280,21 +280,34 @@ tonie_info_t getTonieInfo(const char *contentPath)
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
     {
-        uint8_t headerBuffer[TAF_HEADER_SIZE - 4];
+        uint8_t headerBuffer[TAF_HEADER_SIZE];
         size_t read_length;
         fsReadFile(file, headerBuffer, 4, &read_length);
         if (read_length == 4)
         {
             uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
-            if (protobufSize < TAF_HEADER_SIZE)
+            if (protobufSize <= TAF_HEADER_SIZE)
             {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length); // TODO: Read size by first 4 bytes
+                fsReadFile(file, headerBuffer, protobufSize, &read_length);
                 if (read_length == protobufSize)
                 {
-                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, TAF_HEADER_SIZE - 4, (const uint8_t *)headerBuffer);
-                    tonieInfo.valid = true;
+                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+                    if (tonieInfo.tafHeader)
+                        tonieInfo.valid = true;
+                }
+                else
+                {
+                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32, read_length, protobufSize);
                 }
             }
+            else
+            {
+                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u", protobufSize, TAF_HEADER_SIZE);
+            }
+        }
+        else
+        {
+            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE, read_length);
         }
         fsCloseFile(file);
     }
