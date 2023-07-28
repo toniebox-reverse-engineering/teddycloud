@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "fs_port.h"
+#include "handler.h"
 #include "handler_api.h"
 #include "handler_cloud.h"
 #include "settings.h"

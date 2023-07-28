@@ -1,3 +1,6 @@
+#ifndef _HANDLER_RTNL_H
+#define _HANDLER_RTNL_H
+
 #include "debug.h"
 
 #include "core/net.h"
@@ -6,6 +9,8 @@
 #include "core/tcp.h"
 #include "http/http_server.h"
 #include "http/http_server_misc.h"
+
+#include "proto/toniebox.pb.rtnl.pb-c.h"
 
 typedef enum
 {
@@ -31,3 +36,8 @@ typedef enum
 } rtnl_function;
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+void rtnlEvent(TonieRtnlRPC *rpc);
+void rtnlEventLog(TonieRtnlRPC *rpc);
+void rtnlEventDump(TonieRtnlRPC *rpc);
+
+#endif

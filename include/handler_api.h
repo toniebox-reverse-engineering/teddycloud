@@ -1,3 +1,6 @@
+#ifndef _HANDLER_API_H
+#define _HANDLER_API_H
+
 #include "debug.h"
 
 #include "core/net.h"
@@ -8,6 +11,7 @@
 #include "http/http_server_misc.h"
 
 void stats_update(const char *item, int count);
+
 error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString);
@@ -19,3 +23,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+
+#endif

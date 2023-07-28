@@ -28,6 +28,7 @@
 #include "handler_reverse.h"
 #include "handler_rtnl.h"
 #include "handler_api.h"
+#include "handler_sse.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -190,6 +191,8 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
+    {REQ_GET, "/api/sse/sub", &handleApiSseSub},
+    {REQ_GET, "/api/sse/con", &handleApiSseCon},
     /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
