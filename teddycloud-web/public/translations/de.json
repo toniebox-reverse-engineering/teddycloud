@@ -4,7 +4,12 @@
     "title": "Willkommen!",
     "stats": {
       "navigationTitle": "Statistiken",
-      "title": "Statistiken"
+      "title": "Statistiken",
+      "connections": "Verbindungen zu diesem Server",
+      "reverse_requests": "Reverse Proxy-Aufrufe von Clients",
+      "cloud_requests": "Cloudanfragen ausgeführt",
+      "cloud_blocked": "Cloudanfragen blockiert",
+      "cloud_failed": "Fehlgeschlagene Cloudanfragen"
     }
   },
   "settings": {

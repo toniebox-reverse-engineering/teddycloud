@@ -7,9 +7,10 @@ import {
   StyledSider,
 } from "../../components/StyledComponents";
 import { HomeSubNav } from "../../components/HomeSubNav";
-import { StatsItem, StatsList, TeddyCloudApi } from "../../api";
+import { StatsList, TeddyCloudApi } from "../../api";
 import { defaultAPIConfig } from "../../config/defaultApiConfig";
 import { useEffect, useState } from "react";
+import React from "react";
 
 const api = new TeddyCloudApi(defaultAPIConfig());
 
@@ -40,6 +41,15 @@ export const StatsPage = () => {
         </StyledBreadcrumb>
         <StyledContent>
           <h1>{t(`home.stats.title`)}</h1>
+          {stats?.stats?.map((stat) => {
+            console.log("stat", stat);
+            return (
+              <div key={stat.iD}>
+                <h2>{t("home.stats." + stat.iD)}</h2>
+                <p>{stat.value}</p>
+              </div>
+            );
+          })}
         </StyledContent>
       </StyledLayout>
     </>
