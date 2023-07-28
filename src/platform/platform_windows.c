@@ -1,16 +1,15 @@
 
-#include <sys/random.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
-#include "platform_linux.h"
+/* prevents conflicts due to multiple definitions */
+#define _WINERROR_
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <errno.h>
+
+#include <time.h>
+
+#include "platform_windows.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -18,7 +17,9 @@
 #include "core/tcp.h"
 #include "debug.h"
 
-// Special IP addresses
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "Advapi32.lib")
+
 const IpAddr IP_ADDR_ANY = {0};
 const IpAddr IP_ADDR_UNSPECIFIED = {0};
 
@@ -32,10 +33,56 @@ typedef struct
 
 void platform_init()
 {
+    WSADATA wsaData;
+    HCRYPTPROV hProvider;
+
+    // Winsock initialization
+    int ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    // Any error to report?
+    if (ret)
+    {
+        // Debug message
+        TRACE_ERROR("Error: Winsock initialization failed (%d)\r\n", ret);
+        // Exit immediately
+        return;
+    }
 }
 
 void platform_deinit()
 {
+}
+
+size_t getrandom(void *buf, size_t buflen, unsigned int flags)
+{
+    int_t ret;
+    HCRYPTPROV hProvider;
+
+    // Acquire cryptographic context
+    ret = CryptAcquireContext(&hProvider, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+    // Any error to report?
+    if (!ret)
+    {
+        // Debug message
+        TRACE_ERROR("Error: Cannot acquire cryptographic context (%d)\r\n", GetLastError());
+        // Exit immediately
+        return -1;
+    }
+
+    // Generate a random seed
+    ret = CryptGenRandom(hProvider, buflen, buf);
+    // Any error to report?
+    if (!ret)
+    {
+        // Debug message
+        TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", GetLastError());
+        // Exit immediately
+        return -1;
+    }
+
+    // Release cryptographic context
+    CryptReleaseContext(hProvider, 0);
+
+    return 0;
 }
 
 Socket *socketOpen(uint_t type, uint_t protocol)
@@ -209,7 +256,7 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     error_t error;
 
     // Send data
-    n = send(sock->sockfd, data, length, MSG_NOSIGNAL);
+    n = send(sock->sockfd, data, length, 0);
 
     // Check return value
     if (n > 0)
@@ -398,4 +445,12 @@ bool resolve_get_ip(void *res, int pos, IpAddr *ipAddr)
 void resolve_free(void *res)
 {
     freeaddrinfo(res);
+}
+
+struct tm *localtime_r(const time_t *timer, struct tm *result)
+{
+    if (localtime_s(result, timer) == 0)
+        return result;
+    else
+        return NULL;
 }
