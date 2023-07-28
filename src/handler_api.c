@@ -923,8 +923,6 @@ void fileUploaded(const char *filename)
 {
     TRACE_INFO("Received new file '%s'\r\n", filename);
 }
-#include <string.h>
-#include <stdbool.h>
 
 void sanitizePath(char *path, bool isDir)
 {
