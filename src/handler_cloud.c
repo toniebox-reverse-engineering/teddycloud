@@ -341,7 +341,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 
     if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Time"))
     {
-        sprintf(response, "%" PRIuTIME, time(NULL));
+        osSprintf(response, "%" PRIuTIME, time(NULL));
     }
     else
     {
@@ -353,7 +353,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
         }
         else
         {
-            sprintf(response, "%" PRIuTIME, time(NULL));
+            osSprintf(response, "%" PRIuTIME, time(NULL));
         }
     }
 
@@ -626,7 +626,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 if (unix_time < 0x0e000000)
                 {
-                    sprintf(date_buffer, "special");
+                    osSprintf(date_buffer, "special");
                 }
                 else
                 {
@@ -638,7 +638,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     }
                     if (localtime_r(&unix_time, &tm_info) == 0)
                     {
-                        sprintf(date_buffer, "(localtime failed)");
+                        osSprintf(date_buffer, "(localtime failed)");
                     }
                     else
                     {
