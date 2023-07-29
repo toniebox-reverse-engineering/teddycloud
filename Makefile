@@ -102,16 +102,21 @@ INCLUDES = \
 	-Icyclone/cyclone_ssl \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
-	-Icyclone/cyclone_crypto/pkix
+	-Icyclone/cyclone_crypto/pkix \
+	-IcJSON
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
+	cJSON/cJSON.c \
+	cJSON/cJSON_Utils.c
 
 HEADERS = \
 	$(wildcard include/*.h) \
-	$(CYCLONE_SOURCES:.c=.h)
+	$(CYCLONE_SOURCES:.c=.h) \
+	cJSON/cJSON.h \
+	cJSON/cJSON_Utils.h
 
 
 #
@@ -314,6 +319,11 @@ clean:
 	$(QUIET)$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
 	$(QUIET)$(RM) $(subst /,$(SEP),$(EXECUTABLE))
 	$(QUIET)$(RM) $(foreach O,$(CLEAN_FILES),$(subst /,$(SEP),$(O)) )
+
+.PHONY: submodules
+submodules:
+	$(QUIET)git submodule init
+	$(QUIET)git submodule update
 
 preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
