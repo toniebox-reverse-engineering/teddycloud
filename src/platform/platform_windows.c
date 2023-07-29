@@ -392,8 +392,9 @@ error_t socketReceive(Socket *socket, void *data_in,
                     return ERROR_END_OF_STREAM;
                 }
 
+                int err = WSAGetLastError();
                 /* would block, nothing in buffer */
-                if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+                if (err == EWOULDBLOCK || err == EAGAIN || err == WSAETIMEDOUT)
                 {
                     return NO_ERROR;
                 }
@@ -413,7 +414,7 @@ void *resolve_host(const char *hostname)
     int status;
 
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_INET;
 
     if ((status = getaddrinfo(hostname, NULL, &hints, &res)) != 0)
     {
@@ -427,25 +428,29 @@ void *resolve_host(const char *hostname)
 bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
 {
     struct addrinfo *res = (struct addrinfo *)ctx;
-    struct addrinfo *p;
+    struct addrinfo *p = res;
 
-    for (p = (struct addrinfo *)res->ai_addr; p != NULL; p = p->ai_next)
+    while (p)
     {
         if (!pos)
         {
-            memcpy(&ipAddr->ipv4Addr, &p->ai_addr, 4);
-
             if (p->ai_family == AF_INET)
             {
-                memcpy(&ipAddr->ipv4Addr, &p->ai_addr, 4);
+                // ai_addr is a pointer to a sockaddr, which we know is a sockaddr_in because ai_family == AF_INET.
+                struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+                memcpy(&ipAddr->ipv4Addr, &(ipv4->sin_addr), sizeof(struct in_addr));
+                return true;
             }
-            else
+            // Handle the case of an IPv6 address
+            else if (p->ai_family == AF_INET6)
             {
-                memcpy(&ipAddr->ipv4Addr, &p->ai_addr, 6);
+                struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+                memcpy(&ipAddr->ipv6Addr, &(ipv6->sin6_addr), sizeof(struct in6_addr));
+                return true;
             }
-            return true;
         }
         pos--;
+        p = p->ai_next;
     }
     return false;
 }
