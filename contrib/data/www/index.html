@@ -975,7 +975,7 @@
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
-                                            <span>{file.size.padStart(10)}</span>
+                                            <span>{file.size.toString().padStart(10)}</span>
                                             {file.desc.startsWith('TAF:') &&
                                                 <div className="parent">
                                                     <button

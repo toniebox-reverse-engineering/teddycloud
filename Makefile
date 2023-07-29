@@ -102,16 +102,21 @@ INCLUDES = \
 	-Icyclone/cyclone_ssl \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
-	-Icyclone/cyclone_crypto/pkix
+	-Icyclone/cyclone_crypto/pkix \
+	-IcJSON
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
+	cJSON/cJSON.c \
+	cJSON/cJSON_Utils.c
 
 HEADERS = \
 	$(wildcard include/*.h) \
-	$(CYCLONE_SOURCES:.c=.h)
+	$(CYCLONE_SOURCES:.c=.h) \
+	cJSON/cJSON.h \
+	cJSON/cJSON_Utils.h
 
 
 #
