@@ -69,6 +69,9 @@ typedef struct
     settings_cert_t client;
     bool config_init;
     bool config_changed;
+
+    char *contentdirfull;
+    char *wwwdirfull;
 } settings_internal_t;
 
 typedef struct
@@ -207,6 +210,10 @@ typedef struct
 
 settings_t *get_settings();
 settings_t *get_settings_ovl(char *overlay);
+
+void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
+void settings_generate_internal_dirs();
+void settings_changed();
 
 /**
  * @brief Initializes the settings subsystem.

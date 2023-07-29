@@ -240,12 +240,12 @@ static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, cons
 
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath)
 {
-    *pcontentPath = osAllocMem(30);
+    *pcontentPath = osAllocMem(256);
     char filePath[18];
     osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
     strupr(filePath);
 
-    osSprintf(*pcontentPath, "www/CONTENT/%s", filePath);
+    osSprintf(*pcontentPath, "%s/%s", get_settings()->internal.contentdirfull, filePath);
 }
 
 void getContentPathFromUID(uint64_t uid, char **pcontentPath)

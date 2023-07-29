@@ -58,7 +58,7 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *prefix = settings_get_string("core.contentdir");
+    const char *prefix = settings_get_string("internal.contentdirfull");
     char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(prefix) + 1);
 
     if (new_uri == NULL)
@@ -511,8 +511,9 @@ bool sanityChecks()
 {
     bool ret = true;
 
-    ret &= sanityCheckDir("core.wwwdir");
-    ret &= sanityCheckDir("core.contentdir");
+    ret &= sanityCheckDir("core.datadir");
+    ret &= sanityCheckDir("internal.wwwdirfull");
+    ret &= sanityCheckDir("internal.contentdirfull");
     ret &= sanityCheckDir("core.certdir");
 
     if (!ret)
@@ -543,7 +544,7 @@ void server_init()
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
-    strcpy(http_settings.rootDirectory, settings_get_string("core.wwwdir"));
+    strcpy(http_settings.rootDirectory, settings_get_string("internal.wwwdirfull"));
     strcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;

@@ -20,8 +20,8 @@ OPTION_UNSIGNED("log.level", &Settings.log.level, 4, 0, 6, "0=off - 6=verbose")
 OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
 OPTION_UNSIGNED("core.server.http_port", &Settings.core.https_port, 80, 1, 65535, "HTTP port")
 OPTION_STRING("core.certdir", &Settings.core.certdir, "certs/client", "Directory where to upload genuine client certs to")
-OPTION_STRING("core.contentdir", &Settings.core.contentdir, "content", "Directory where cloud content is placed")
-OPTION_STRING("core.datadir", &Settings.core.datadir, "data", "Directory which is the base directory for contentdir/wwwdir when relative")
+OPTION_STRING("core.contentdir", &Settings.core.contentdir, "default", "Directory where cloud content is placed")
+OPTION_STRING("core.datadir", &Settings.core.datadir, "data", "Base directory for contentdir/wwwdir when relative")
 OPTION_STRING("core.wwwdir", &Settings.core.wwwdir, "www", "Directory where web content is placed")
 
 OPTION_STRING("core.server_cert.file.ca", &Settings.core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
@@ -52,6 +52,8 @@ OPTION_INTERNAL_BOOL("internal.exit", &Settings.internal.exit, FALSE, "Exit the 
 OPTION_INTERNAL_SIGNED("internal.returncode", &Settings.internal.returncode, 0, -128, 127, "Returncode when exiting")
 OPTION_INTERNAL_BOOL("internal.config_init", &Settings.internal.config_init, TRUE, "Config initialized?")
 OPTION_INTERNAL_BOOL("internal.config_changed", &Settings.internal.config_changed, FALSE, "Config changed and unsaved?")
+OPTION_INTERNAL_STRING("internal.contentdirfull", &Settings.internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
+OPTION_INTERNAL_STRING("internal.wwwdirfull", &Settings.internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
 
 OPTION_BOOL("cloud.enabled", &Settings.cloud.enabled, FALSE, "Generally enable cloud operation")
 OPTION_STRING("cloud.hostname", &Settings.cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
@@ -93,6 +95,40 @@ settings_t *get_settings()
 settings_t *get_settings_ovl(char *overlay)
 {
     return get_settings();
+}
+
+void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
+{
+    if (path[0] == '/')
+    {
+        osSprintf(*resolvedPath, "%s", path);
+    }
+    else
+    {
+        osSprintf(*resolvedPath, "%s/%s", basePath, path);
+    }
+}
+void settings_generate_internal_dirs()
+{
+    free(Settings.internal.contentdirfull);
+    free(Settings.internal.wwwdirfull);
+
+    Settings.internal.contentdirfull = osAllocMem(256);
+    Settings.internal.wwwdirfull = osAllocMem(256);
+
+    char contentPath[256];
+    char *contentPathPointer = contentPath;
+
+    settings_resolve_dir(&contentPathPointer, "content", Settings.core.datadir);
+    settings_resolve_dir(&Settings.internal.contentdirfull, Settings.core.contentdir, contentPath);
+
+    settings_resolve_dir(&Settings.internal.wwwdirfull, Settings.core.wwwdir, Settings.core.datadir);
+}
+
+void settings_changed()
+{
+    Settings.internal.config_changed = true;
+    settings_generate_internal_dirs();
 }
 
 void settings_deinit()
@@ -327,6 +363,7 @@ void settings_load()
         }
     }
     fsCloseFile(file);
+    settings_generate_internal_dirs();
 
     if (Settings.configVersion < CONFIG_VERSION)
     {
@@ -395,7 +432,7 @@ bool settings_set_bool(const char *item, bool value)
     }
 
     if (!opt->internal)
-        Settings.internal.config_changed = true;
+        settings_changed();
     *((bool *)opt->ptr) = value;
     return true;
 }
@@ -436,7 +473,7 @@ bool settings_set_signed(const char *item, int32_t value)
     }
 
     if (!opt->internal)
-        Settings.internal.config_changed = true;
+        settings_changed();
     *((int32_t *)opt->ptr) = value;
     return true;
 }
@@ -477,7 +514,7 @@ bool settings_set_unsigned(const char *item, uint32_t value)
     }
 
     if (!opt->internal)
-        Settings.internal.config_changed = true;
+        settings_changed();
     *((uint32_t *)opt->ptr) = value;
     return true;
 }
@@ -518,7 +555,7 @@ bool settings_set_float(const char *item, float value)
     }
 
     if (!opt->internal)
-        Settings.internal.config_changed = true;
+        settings_changed();
     *((float *)opt->ptr) = value;
     return true;
 }
@@ -560,7 +597,7 @@ bool settings_set_string(const char *item, const char *value)
     }
 
     if (!opt->internal)
-        Settings.internal.config_changed = true;
+        settings_changed();
     *ptr = strdup(value);
     return true;
 }

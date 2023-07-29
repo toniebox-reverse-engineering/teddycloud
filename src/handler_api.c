@@ -420,7 +420,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 {
     char *query = connection->request.queryString;
 
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -973,11 +973,11 @@ void sanitizePath(char *path, bool isDir)
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
 
@@ -1026,11 +1026,11 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];
@@ -1073,11 +1073,11 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];
@@ -1120,11 +1120,11 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];
