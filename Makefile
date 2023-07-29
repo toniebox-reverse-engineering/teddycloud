@@ -19,6 +19,7 @@ ifeq ($(OS),Windows_NT)
 	MKDIR       = mkdir 
 	RM          = del
 	CP          = copy
+	CP_R        = xcopy /E /I 
 	TO_TRASH    = >NUL 2>NUL
 	# special assignment to have only the backslash in the variable
 	SEP         = \$(strip)
@@ -27,6 +28,7 @@ else
 	ECHO        = echo -e
 	RM          = rm -f
 	CP          = cp
+	CP_R        = cp -r
 	TO_TRASH    = >/dev/null 2>&1
 	SEP         = /
 endif
@@ -296,7 +298,7 @@ $(LINK_LO_FILE): $$(dir $$@)
 
 workdirs: certs/server/ certs/client/ config/ data/www/ data/content/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
-	$(QUIET)cp -r $(CONTRIB_DIR)/data/www/* data/www/
+	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
 
 .SECONDEXPANSION:
 $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs | $$(dir $$@)
@@ -315,8 +317,8 @@ clean:
 
 preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
-	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
-	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -
