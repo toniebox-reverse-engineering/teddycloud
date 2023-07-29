@@ -5,7 +5,7 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
-#define CONFIG_VERSION 3
+#define CONFIG_VERSION 4
 
 typedef enum
 {
@@ -96,6 +96,7 @@ typedef struct
 typedef struct
 {
     settings_loglevel level;
+    bool color;
 } settings_log_t;
 
 typedef struct

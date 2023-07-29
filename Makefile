@@ -217,7 +217,6 @@ CYCLONE_SOURCES += \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
-CFLAGS += -D TRACE_COLORED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 

@@ -15,6 +15,7 @@ OPTION_START()
 
 OPTION_INTERNAL_UNSIGNED("configVersion", &Settings.configVersion, 0, 0, 255, "Config version")
 OPTION_UNSIGNED("log.level", &Settings.log.level, 4, 0, 6, "0=off - 6=verbose")
+OPTION_BOOL("log.color", &Settings.log.color, TRUE, "Colored log")
 
 /* settings for HTTPS server */
 OPTION_UNSIGNED("core.server.https_port", &Settings.core.http_port, 443, 1, 65535, "HTTPS port")
