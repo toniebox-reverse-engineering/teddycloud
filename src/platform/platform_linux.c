@@ -380,7 +380,7 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
     struct addrinfo *res = (struct addrinfo *)ctx;
     struct addrinfo *p;
 
-    for (p = (struct addrinfo *)res->ai_addr; p != NULL; p = p->ai_next)
+    for (p = (struct addrinfo *)res; p != NULL; p = p->ai_next)
     {
         if (!pos)
         {
