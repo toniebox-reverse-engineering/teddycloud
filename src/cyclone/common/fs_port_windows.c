@@ -49,6 +49,43 @@
 #include <unistd.h>
 #endif
 
+
+void strConvertFromWchar(const WCHAR* wstr, char* outString, int maxLen)
+{
+    if (wstr == NULL || outString == NULL)
+    {
+        return;
+    }
+
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+    if (sizeNeeded > maxLen)
+    {
+        // The output string won't fit into the provided buffer
+        // Handle this situation (e.g., by returning, throwing an exception, etc.)
+        return;
+    }
+
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, outString, sizeNeeded, NULL, NULL);
+}
+
+void strConvertToWchar(const char* str, WCHAR* outWStr, int maxLen)
+{
+    if (str == NULL || outWStr == NULL)
+    {
+        return;
+    }
+
+    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+    if (sizeNeeded > maxLen)
+    {
+        // The output string won't fit into the provided buffer
+        // Handle this situation (e.g., by returning, throwing an exception, etc.)
+        return;
+    }
+
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, outWStr, sizeNeeded);
+}
+
 /**
  * @brief File system initialization
  * @return Error code
@@ -135,9 +172,12 @@ error_t fsGetFileSize(const char_t *path, uint32_t *size)
 error_t fsGetFileStat(const char_t *path, FsFileStat *fileStat)
 {
    error_t error = NO_ERROR;
+   wchar_t wpath[FS_MAX_PATH_LEN + 1];
+   WIN32_FILE_ATTRIBUTE_DATA fad; 
 
-   WIN32_FILE_ATTRIBUTE_DATA fad;
-   if (!GetFileAttributesEx(path, GetFileExInfoStandard, &fad))
+   strConvertToWchar(path, wpath, FS_MAX_PATH_LEN);
+
+   if (!GetFileAttributesExW(wpath, GetFileExInfoStandard, &fad))
    {
       error = GetLastError();
       return error;
@@ -549,6 +589,7 @@ error_t fsReadDir(FsDir *dir, FsDirEntry *dirEntry)
    struct dirent *entry;
    struct stat fileStat;
    char_t path[FS_MAX_PATH_LEN + 1];
+   wchar_t wpath[FS_MAX_PATH_LEN + 1];
 
    // Check parameters
    if (dir == NULL || dirEntry == NULL)
@@ -557,29 +598,30 @@ error_t fsReadDir(FsDir *dir, FsDirEntry *dirEntry)
    // Clear directory entry
    osMemset(dirEntry, 0, sizeof(FsDirEntry));
 
-   WIN32_FIND_DATA FindFileData;
+   WIN32_FIND_DATAW FindFileData;
    bool success = false;
 
    strSafeCopy(path, dir->path, FS_MAX_PATH_LEN);
    strcat(path, "*");
+   strConvertToWchar(path, wpath, FS_MAX_PATH_LEN);
 
    if (dir->handle == NULL)
    {
-      if ((dir->handle = FindFirstFile(path, &FindFileData)) == INVALID_HANDLE_VALUE)
+      if ((dir->handle = FindFirstFileW(wpath, &FindFileData)) == INVALID_HANDLE_VALUE)
       {
          return ERROR_END_OF_STREAM;
       }
    }
    else
    {
-      if (!FindNextFile(dir->handle, &FindFileData))
+      if (!FindNextFileW(dir->handle, &FindFileData))
       {
          return ERROR_END_OF_STREAM;
       }
    }
 
    // Copy the file name component
-   strSafeCopy(dirEntry->name, FindFileData.cFileName, FS_MAX_NAME_LEN);
+   strConvertFromWchar(FindFileData.cFileName, dirEntry->name, FS_MAX_NAME_LEN);
 
    // Check file attributes
    if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)

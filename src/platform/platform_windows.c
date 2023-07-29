@@ -3,6 +3,7 @@
 /* prevents conflicts due to multiple definitions */
 #define _WINERROR_
 
+#include <locale.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <errno.h>
@@ -46,6 +47,7 @@ void platform_init()
         // Exit immediately
         return;
     }
+    setlocale(LC_ALL, ".UTF8");
 }
 
 void platform_deinit()
