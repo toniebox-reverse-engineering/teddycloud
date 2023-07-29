@@ -137,18 +137,71 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
 void rtnlEvent(TonieRtnlRPC *rpc)
 {
+    char_t buffer[4096];
     if (rpc->log2)
     {
+        sse_startEventRaw("rtnl-raw-log2");
+        osSprintf(buffer, "\"uptime\": %" PRIu64 ", "
+                          "\"sequence\": %" PRIu32 ", "
+                          "\"field3\": %" PRIu32 ", "
+                          "\"function_group\": %" PRIu32 ", "
+                          "\"function\": %" PRIu32 ", "
+                          "\"field6\": \"",
+                  rpc->log2->uptime,
+                  rpc->log2->sequence,
+                  rpc->log2->field3,
+                  rpc->log2->function_group,
+                  rpc->log2->function);
+        sse_rawData(buffer);
+
+        if (rpc->log2->field6.len > 0)
+        {
+            for (size_t i = 0; i < rpc->log2->field6.len; i++)
+            {
+                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
+            }
+            sse_rawData(buffer);
+        }
+
+        osSprintf(buffer, "\","
+                          "\"field8\": %" PRIu32 ", "
+                          "\"field9\": \"",
+                  rpc->log2->field8);
+        sse_rawData(buffer);
+
+        if (rpc->log2->field9.len > 0)
+        {
+            for (size_t i = 0; i < rpc->log2->field9.len; i++)
+            {
+                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
+            }
+            sse_rawData(buffer);
+        }
+        sse_rawData("\"");
+
+        sse_endEventRaw();
     }
+
+    if (rpc->log3)
+    {
+        sse_startEventRaw("rtnl-raw-log3");
+        osSprintf(buffer, "\"datetime\": %" PRIu32 ", "
+                          "\"field2\": %" PRIu32,
+                  rpc->log3->datetime,
+                  rpc->log3->field2);
+        sse_rawData(buffer);
+        sse_endEventRaw();
+    }
+
     if (rpc->log3)
     {
         if (rpc->log3->field2 == 1)
         {
-            sse_sendEvent("rtnl", "ear-big", true);
+            sse_sendEvent("pressed", "ear-big", true);
         }
         else if (rpc->log3->field2 == 2)
         {
-            sse_sendEvent("rtnl", "ear-small", true);
+            sse_sendEvent("pressed", "ear-small", true);
         }
     }
 }

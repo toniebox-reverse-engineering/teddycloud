@@ -20,6 +20,9 @@ typedef struct
 } SseSubscriptionContext;
 
 error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData);
+error_t sse_startEventRaw(const char *eventname);
+error_t sse_rawData(const char *content);
+error_t sse_endEventRaw(void);
 error_t sse_keepAlive(void);
 
 #endif
