@@ -296,7 +296,7 @@ $(LINK_LO_FILE): $$(dir $$@)
 
 workdirs: certs/server/ certs/client/ config/ data/www/ data/content/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
-	$(QUIET)cp -r $(CONTRIB_DIR)/www/* data/www/
+	$(QUIET)cp -r $(CONTRIB_DIR)/data/www/* data/www/
 
 .SECONDEXPANSION:
 $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs | $$(dir $$@)
