@@ -39,7 +39,8 @@ ifeq ($(PLATFORM),linux)
 	CC_IN_OPT      = -c
 	OBJ_EXT        = $(OBJ_EXT)
 	LINK_LO_OPT    = @$(LINK_LO_FILE)
-	LD             = $(CC)
+	CC             = gcc
+	LD             = gcc
 	OBJ_EXT        = .o
 endif
 
@@ -72,7 +73,7 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-LFLAGS_linux = -lpthread -lc
+LFLAGS_linux = 
 CFLAGS_linux += -Wall -Werror
 CFLAGS_linux += -ggdb -O3
 #CFLAGS += -fsanitize=address -static-libasan -Og
@@ -293,11 +294,14 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/
+	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
+	$(QUIET)cp -r $(CONTRIB_DIR)/www/* data/www/
+
 .SECONDEXPANSION:
-$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/server/ certs/client/ config/ | $$(dir $$@)
+$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs | $$(dir $$@)
 	$(QUIET)$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
 	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)${NC}'; false)
-	$(QUIET)cp -r $(CONTRIB_DIR)/www .
 
 .SECONDEXPANSION:
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)

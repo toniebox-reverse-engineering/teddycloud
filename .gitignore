@@ -1,9 +1,9 @@
-/bin
 /obj
 /certs
 /install
 /config
-/www
+/data
+/report
 contrib/certs/server/ca-key.pem
 contrib/certs/server/ca-root.pem
 contrib/certs/server/ca-root.srl

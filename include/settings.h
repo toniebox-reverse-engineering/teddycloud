@@ -83,6 +83,7 @@ typedef struct
     uint32_t https_port;
     char *certdir;
     char *contentdir;
+    char *wwwdir;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;

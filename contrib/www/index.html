@@ -733,7 +733,7 @@
             }
 
             componentDidMount() {
-                fetch("/www/tonies.json")
+                fetch("/tonies.json")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
                 this.fetchFileIndex(this.state.path);
@@ -970,7 +970,7 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/CONTENT${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -980,7 +980,7 @@
                                                 <div className="parent">
                                                     <button
                                                         onClick={() => {
-                                                            this.oggPlayerRef.current.setUrl(`/ogg/CONTENT${this.state.path}${file.name}`);
+                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
                                                         }
                                                         } className="small-round-button"
