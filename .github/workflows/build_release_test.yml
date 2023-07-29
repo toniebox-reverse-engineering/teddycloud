@@ -23,6 +23,8 @@ jobs:
         echo "IS_PRERELEASE=true" >> $GITHUB_ENV
     
     - uses: actions/checkout@v2
+      with:
+        submodules: recursive
 
     - name: Build and zip windows
       id:  build-zip
