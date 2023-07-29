@@ -1,6 +1,5 @@
 
 #ifdef WIN32
-#include <winsock2.h>
 #else
 #include <sys/random.h>
 #include <sys/types.h>
@@ -26,6 +25,7 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
+#include "platform.h"
 
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)
@@ -84,6 +84,8 @@ int_t cloud_request_post(const char *server, int port, const char *uri, const ch
     return cloud_request(server, port, true, uri, queryString, "POST", body, bodyLen, hash, cbr);
 }
 
+char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
+
 int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
     if (!settings_get_bool("cloud.enabled"))
@@ -94,7 +96,6 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
     }
 
     HttpClientContext httpClientContext;
-    IpAddr ipAddr;
 
     if (!server)
     {
@@ -109,16 +110,6 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
     TRACE_INFO("Connecting to HTTP server %s:%d...\r\n",
                server, port);
-
-    struct hostent *host = gethostbyname(server);
-
-    if (host->h_addrtype != AF_INET)
-    {
-        TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
-        stats_update("cloud_failed", 1);
-        return ERROR_ADDRESS_NOT_FOUND;
-    }
-    TRACE_INFO("  resolved as: %s\n", host->h_name);
 
     httpClientInit(&httpClientContext);
     error_t error;
@@ -143,16 +134,29 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         return error;
     }
 
-    struct in_addr **addr_list = (struct in_addr **)host->h_addr_list;
-
-    for (int i = 0; addr_list[i] != NULL; i++)
+    void *ctx = resolve_host(server);
+    if (!ctx)
     {
+        TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
+        stats_update("cloud_failed", 1);
+        return ERROR_ADDRESS_NOT_FOUND;
+    }
+
+    int pos = 0;
+    do
+    {
+        IpAddr ipAddr;
+        if (!resolve_get_ip(ctx, pos, &ipAddr))
+        {
+            break;
+        }
         bool success = FALSE;
 
-        TRACE_INFO("  trying IP: %s\n", inet_ntoa(*addr_list[i]));
-        memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
+        char_t host[129];
 
-        ipAddr.length = host->h_length;
+        ipv4AddrToString(ipAddr.ipv4Addr, host);
+        TRACE_INFO("  trying IP: %s\n", host);
+
         do
         {
             error = httpClientConnect(&httpClientContext, &ipAddr,
@@ -360,8 +364,9 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         {
             break;
         }
-    }
+    } while (0);
 
+    resolve_free(ctx);
     // Release HTTP client context
     httpClientDeinit(&httpClientContext);
 

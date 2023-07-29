@@ -8,7 +8,7 @@ INSTALL_DIR    = install
 PREINSTALL_DIR = install/pre
 ZIP_DIR        = install/zip
 
-EXECUTABLE     = $(BIN_DIR)/teddycloud
+EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
@@ -33,7 +33,7 @@ endif
 
 
 ifeq ($(PLATFORM),linux)
-	EXEC_EXT       = .so
+	EXEC_EXT       =  
 	LINK_OUT_OPT   = -o $@
 	CC_OUT_OPT     = -o
 	CC_IN_OPT      = -c
@@ -44,12 +44,12 @@ ifeq ($(PLATFORM),linux)
 endif
 
 ifeq ($(PLATFORM),windows)
-	EXEC_EXT       = .dll
+	EXEC_EXT       = .exe
 	LINK_OUT_OPT   = /OUT:$@
 	CC_OUT_OPT     = /Fo
 	CC_IN_OPT      = /c
 	OBJ_EXT        = .obj
-	LINK_LO_OPT    = $(OBJ_FILES)
+	LINK_LO_OPT    = $(OBJECTS)
 	OBJ_EXT        = .obj
 	CPU            = x64
 	ifeq ($(VCToolsVersion),)
@@ -60,7 +60,6 @@ ifeq ($(PLATFORM),windows)
 	endif
 	CC = cl.exe
 	LD = link.exe
-	CFLAGS += /nologo -DWIN32 
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)\lib\$(VSCMD_ARG_TGT_ARCH)"
@@ -76,13 +75,17 @@ SOURCES_linux = \
 LFLAGS_linux = -lpthread -lc
 CFLAGS_linux += -Wall -Werror
 CFLAGS_linux += -ggdb -O3
+#CFLAGS += -fsanitize=address -static-libasan -Og
 
 ## win32 specific headers/sources
-HEADERS_win32 = 
-INCLUDES_win32 = 
-SOURCES_win32 = \
-	src/platform/platform_$(PLATFORM).c
-LFLAGS_win32 = 
+HEADERS_windows = 
+INCLUDES_windows = 
+SOURCES_windows = \
+	src/platform/platform_$(PLATFORM).c\
+	cyclone/common/os_port_windows.c \
+	src/cyclone/common/fs_port_windows.c 
+LFLAGS_windows = /DEBUG:FULL
+CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
 
 
 ## generic headers/sources
@@ -205,20 +208,12 @@ CYCLONE_SOURCES += \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
-
-
-#CFLAGS += -fsanitize=address -static-libasan -Og
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_COLORED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 
-#CFLAGS += -pg
-#LFLAGS += -pg -lc_p
-
-
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
-
 
 # Location of your .proto files
 PROTO_DIR := proto
@@ -233,7 +228,7 @@ PROTO_H_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/
 
 # Rule to build .c files from .proto files
 $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $(PROTO_DIR)/%.proto
-	@$(ECHO) '[${GREEN}PROTO${NC} ] ${CYAN}$<${NC}'
+	$(QUIET)$(ECHO) '[${GREEN}PROTO${NC} ] ${CYAN}$<${NC}'
 	$(QUIET)protoc-c --c_out=$(PROTO_GEN_DIR) $< || ($(ECHO) '[ ${YELLOW}LD${NC} ] Failed: ${RED}protoc-c --c_out=$(PROTO_GEN_DIR) $<${NC}'; false)
 
 SOURCES += $(PROTO_C_FILES)
@@ -245,23 +240,23 @@ OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=$(OBJ_EXT))))
 CLEAN_FILES += $(OBJECTS) $(LINK_LO_FILE)
 
 ifeq ($(OS),Windows_NT)
-CYAN=
-RED=
-YELLOW=
-GREEN=
-NC=
+	CYAN=
+	RED=
+	YELLOW=
+	GREEN=
+	NC=
 else
-CYAN=\033[0;36m
-RED=\033[0;31m
-YELLOW=\033[0;33m
-GREEN=\033[0;32m
-NC=\033[0m
+	CYAN=\033[0;36m
+	RED=\033[0;31m
+	YELLOW=\033[0;33m
+	GREEN=\033[0;32m
+	NC=\033[0m
 endif
 
 ifeq ($(VERBOSE),1)
-  QUIET=
+	QUIET=
 else
-  QUIET=@
+	QUIET=@
 endif
 
 
@@ -277,12 +272,10 @@ else
 check_dependencies:
 	@which protoc-c >/dev/null || ($(ECHO) '${RED}Error:${NC} protoc-c not found. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install protobuf-c-compiler' && \
-	$(ECHO) '  ${CYAN}Alpine:${NC} apk add protobuf' && \
-	exit 1)
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add protobuf' && exit 1)
 	@which gcc >/dev/null || ($(ECHO) '${RED}Error:${NC} gcc not found. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install gcc' && \
-	$(ECHO) '  ${CYAN}Alpine:${NC} apk add gcc' && \
-	exit 1)
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add gcc' && exit 1)
 	@which openssl >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} openssl not found, required for generating certificates. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install openssl' && \
 	$(ECHO) '  ${CYAN}Alpine:${NC} apk add openssl')
@@ -290,7 +283,6 @@ check_dependencies:
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime' && \
 	$(ECHO) '  ${CYAN}Alpine:${NC} apk add faketime')
 endif
-
 
 .PRECIOUS: %/
 %/:
@@ -302,23 +294,23 @@ $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
 .SECONDEXPANSION:
-$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/  certs/server/ certs/client/ config/ | $$(dir $$@)
-	@$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
+$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/server/ certs/client/ config/ | $$(dir $$@)
+	$(QUIET)$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
 	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)${NC}'; false)
 	$(QUIET)cp -r $(CONTRIB_DIR)/www .
 
 .SECONDEXPANSION:
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
-	@$(ECHO) '[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}'
 	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@ || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@${NC}'; false)
 
 clean:
-	@$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
-	$(QUIET)$(RM) $(EXECUTABLE)
-	$(QUIET)$(foreach O,$(CLEAN_FILES),$(RM) $(O);)
+	$(QUIET)$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
+	$(QUIET)$(RM) $(subst /,$(SEP),$(EXECUTABLE))
+	$(QUIET)$(RM) $(foreach O,$(CLEAN_FILES),$(subst /,$(SEP),$(O)) )
 
 preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
-	@$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
+	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
@@ -337,24 +329,21 @@ scan-build: clean
 
 .PHONY: auto
 auto:
-	@$(ECHO) 'Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit.'
-	@last_build_time=$$(date +%s); \
-	$(ECHO) '[ ${CYAN}AUTO${NC} ] Clean up'; \
-	screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit; \
-	$(ECHO) '[ ${CYAN}AUTO${NC} ] Build'; \
-	make --no-print-directory -j; \
-	screen -S teddycloud_auto -dm; \
-	screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
+	$(QUIET)$(ECHO) 'Entering ${CYAN}auto rebuild mode${NC}. Press Ctrl-C to exit.'
+	$(QUIET)$(ECHO) '[ ${CYAN}AUTO${NC} ] Clean up'
+	$(QUIET)screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit
+	$(QUIET)$(ECHO) '[ ${CYAN}AUTO${NC} ] Build'
+	$(QUIET)make --no-print-directory -j
+	$(QUIET)screen -S teddycloud_auto -dm
+	$(QUIET)screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'
+	$(QUIET)last_build_time=$$(date +%s); \
 	while true; do \
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
-			$(ECHO) '[ ${CYAN}AUTO${NC} ] Detected file change. Terminating process."; \
-			screen -S teddycloud_auto -X stuff "^C'; \
-			$(ECHO) '[ ${CYAN}AUTO${NC} ] Rebuild'; \
+			screen -S teddycloud_auto -X stuff "^C"; \
 			make --no-print-directory -j; \
 			last_build_time=$$(date +%s); \
 			screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
-			$(ECHO) '[ ${CYAN}AUTO${NC} ] Done'; \
 		fi; \
 		sleep 1; \
-	done
+	done;

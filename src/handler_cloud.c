@@ -299,17 +299,17 @@ tonie_info_t getTonieInfo(const char *contentPath)
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32, read_length, protobufSize);
+                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", read_length, protobufSize);
                 }
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u", protobufSize, TAF_HEADER_SIZE);
+                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", protobufSize, TAF_HEADER_SIZE);
             }
         }
         else
         {
-            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE, read_length);
+            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", read_length);
         }
         fsCloseFile(file);
     }
