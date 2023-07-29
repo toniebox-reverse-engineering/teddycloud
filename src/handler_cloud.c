@@ -57,11 +57,11 @@ typedef struct
 static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp);
 static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp)
 {
-    freshResp->max_vol_spk = Settings.toniebox.max_vol_spk;
-    freshResp->max_vol_hdp = Settings.toniebox.max_vol_hdp;
-    freshResp->slap_en = Settings.toniebox.slap_enabled;
-    freshResp->slap_dir = Settings.toniebox.slap_back_left;
-    freshResp->led = Settings.toniebox.led;
+    freshResp->max_vol_spk = get_settings()->toniebox.max_vol_spk;
+    freshResp->max_vol_hdp = get_settings()->toniebox.max_vol_hdp;
+    freshResp->slap_en = get_settings()->toniebox.slap_enabled;
+    freshResp->slap_dir = get_settings()->toniebox.slap_back_left;
+    freshResp->led = get_settings()->toniebox.led;
 }
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
@@ -123,7 +123,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
     switch (ctx->api)
     {
     case V2_CONTENT:
-        if (Settings.cloud.cacheContent && httpClientContext->statusCode == 200)
+        if (get_settings()->cloud.cacheContent && httpClientContext->statusCode == 200)
         {
             // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
             // TRACE_INFO(">> %s\r\n", ctx->uri);
@@ -176,7 +176,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         break;
     case V1_FRESHNESS_CHECK:
-        if (Settings.toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
+        if (get_settings()->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
             TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
             setTonieboxSettings(freshResp);
@@ -405,7 +405,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
 bool checkCustomTonie(char *ruid, uint8_t *token)
 {
-    if (Settings.cloud.markCustomTagByPass)
+    if (get_settings()->cloud.markCustomTagByPass)
     {
         bool tokenIsZero = TRUE;
         for (uint8_t i = 0; i < 32; i++)
@@ -422,7 +422,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
             return true;
         }
     }
-    if (Settings.cloud.markCustomTagByUid &&
+    if (get_settings()->cloud.markCustomTagByUid &&
         (ruid[15] != '0' || ruid[14] != 'e' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
     {
         TRACE_INFO("Found possible custom tonie by uid\r\n");

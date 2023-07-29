@@ -94,9 +94,9 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     char_t *data = connection->buffer;
     size_t size = connection->response.contentLength;
 
-    if (Settings.rtnl.logRaw)
+    if (get_settings()->rtnl.logRaw)
     {
-        FsFile *file = fsOpenFile2(Settings.rtnl.logRawFile, "ab");
+        FsFile *file = fsOpenFile2(get_settings()->rtnl.logRawFile, "ab");
         fsWriteFile(file, &data[connection->response.byteCount], size);
         fsCloseFile(file);
     }
@@ -244,10 +244,10 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
 }
 void rtnlEventDump(TonieRtnlRPC *rpc)
 {
-    if (Settings.rtnl.logHuman)
+    if (get_settings()->rtnl.logHuman)
     {
-        bool_t addHeader = !fsFileExists(Settings.rtnl.logHumanFile);
-        FsFile *file = fsOpenFile2(Settings.rtnl.logHumanFile, "ab");
+        bool_t addHeader = !fsFileExists(get_settings()->rtnl.logHumanFile);
+        FsFile *file = fsOpenFile2(get_settings()->rtnl.logHumanFile, "ab");
         if (addHeader)
         {
             char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";

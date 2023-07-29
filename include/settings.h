@@ -205,7 +205,8 @@ typedef struct
     }                    \
     ;
 
-extern settings_t Settings;
+settings_t *get_settings();
+settings_t *get_settings_ovl(char *overlay);
 
 /**
  * @brief Initializes the settings subsystem.
