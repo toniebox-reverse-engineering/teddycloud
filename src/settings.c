@@ -9,7 +9,7 @@
 
 #include "fs_port.h"
 
-settings_t Settings;
+static settings_t Settings;
 
 OPTION_START()
 
@@ -84,8 +84,16 @@ OPTION_STRING("mqtt.hostname", &Settings.mqtt.hostname, "", "MQTT hostname")
 OPTION_STRING("mqtt.username", &Settings.mqtt.username, "", "Username")
 OPTION_STRING("mqtt.password", &Settings.mqtt.password, "", "Password")
 OPTION_STRING("mqtt.identification", &Settings.mqtt.identification, "", "Client identification")
-
 OPTION_END()
+
+settings_t *get_settings()
+{
+    return &Settings;
+}
+settings_t *get_settings_ovl(char *overlay)
+{
+    return get_settings();
+}
 
 void settings_deinit()
 {

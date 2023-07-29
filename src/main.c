@@ -83,7 +83,7 @@ int_t main(int argc, char *argv[])
     error_t error = 0;
 
     /* platform specific init */
-    Settings.log.level = LOGLEVEL_INFO; // TODO via CLI
+    get_settings()->log.level = LOGLEVEL_INFO; // TODO via CLI
     settings_init();
     platform_init();
 
