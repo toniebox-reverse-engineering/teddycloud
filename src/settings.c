@@ -268,25 +268,25 @@ void settings_load()
                                 *((bool *)opt->ptr) = false;
                             else
                                 TRACE_WARNING("Invalid boolean value '%s' for setting '%s'\r\n", value_str, option_name);
-                            TRACE_INFO("%s=%s\r\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
+                            TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
                             break;
                         case TYPE_SIGNED:
                             *((int32_t *)opt->ptr) = atoi(value_str);
-                            TRACE_INFO("%s=%d\r\n", opt->option_name, *((int32_t *)opt->ptr));
+                            TRACE_DEBUG("%s=%d\r\n", opt->option_name, *((int32_t *)opt->ptr));
                             break;
                         case TYPE_UNSIGNED:
                         case TYPE_HEX:
                             *((uint32_t *)opt->ptr) = strtoul(value_str, NULL, 10);
-                            TRACE_INFO("%s=%u\r\n", opt->option_name, *((uint32_t *)opt->ptr));
+                            TRACE_DEBUG("%s=%u\r\n", opt->option_name, *((uint32_t *)opt->ptr));
                             break;
                         case TYPE_FLOAT:
                             *((float *)opt->ptr) = strtof(value_str, NULL);
-                            TRACE_INFO("%s=%f\r\n", opt->option_name, *((float *)opt->ptr));
+                            TRACE_DEBUG("%s=%f\r\n", opt->option_name, *((float *)opt->ptr));
                             break;
                         case TYPE_STRING:
                             free(*((char **)opt->ptr));
                             *((char **)opt->ptr) = strdup(value_str);
-                            TRACE_INFO("%s=%s\r\n", opt->option_name, *((char **)opt->ptr));
+                            TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((char **)opt->ptr));
                             break;
 
                         default:

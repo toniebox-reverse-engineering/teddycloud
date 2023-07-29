@@ -21,9 +21,11 @@
 #include "rng/yarrow.h"
 #include "tls_adapter.h"
 #include "settings.h"
+#include "returncodes.h"
 
 #include "path.h"
 #include "debug.h"
+#include "os_port.h"
 
 #include "cloud_request.h"
 #include "handler_cloud.h"
@@ -488,8 +490,47 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     return NO_ERROR;
 }
 
+bool sanityCheckDir(const char *dir)
+{
+    const char *path = settings_get_string(dir);
+
+    if (!path)
+    {
+        TRACE_ERROR("Config item '%s' not found\r\n", dir);
+        return false;
+    }
+    if (!fsDirExists(path))
+    {
+        TRACE_ERROR("Config item '%s' is set to '%s' which was not found\r\n", dir, path);
+        return false;
+    }
+    return true;
+}
+
+bool sanityChecks()
+{
+    bool ret = true;
+
+    ret &= sanityCheckDir("core.wwwdir");
+    ret &= sanityCheckDir("core.contentdir");
+    ret &= sanityCheckDir("core.certdir");
+
+    if (!ret)
+    {
+        TRACE_ERROR("Sanity checks failed, exiting\r\n");
+        settings_set_signed("internal.returncode", RETURNCODE_INVALID_CONFIG);
+        settings_set_bool("internal.exit", true);
+    }
+
+    return ret;
+}
+
 void server_init()
 {
+    if (!sanityChecks())
+    {
+        return;
+    }
     settings_set_bool("internal.exit", FALSE);
 
     HttpServerSettings http_settings;
@@ -540,14 +581,20 @@ void server_init()
         return;
     }
 
+    systime_t last = osGetSystemTime();
     while (!settings_get_bool("internal.exit"))
     {
-        usleep(100000);
+        osDelayTask(250);
+        systime_t now = osGetSystemTime();
+        if ((now - last) / 1000 > 5)
+        {
+            last = now;
+            sanityChecks();
+        }
     }
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
-    usleep(100000);
 
     exit(ret);
 }
