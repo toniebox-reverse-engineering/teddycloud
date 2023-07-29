@@ -73,8 +73,22 @@ error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const cha
 
     return error;
 }
+error_t sse_startEventRaw(const char *eventname)
+{
+    error_t error = NO_ERROR;
 
-error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData)
+    error = sse_rawData("data: { \"type\":\"");
+    if (error != NO_ERROR)
+        return error;
+
+    error = sse_rawData(eventname);
+    if (error != NO_ERROR)
+        return error;
+
+    error = sse_rawData("\", \"data\":");
+    return error;
+}
+error_t sse_rawData(const char *content)
 {
     error_t error = NO_ERROR;
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
@@ -85,34 +99,42 @@ error_t sse_sendEvent(const char *eventname, const char *content, bool escapeDat
         if (sseCtx->connection == NULL)
             continue;
 
-        error = httpWriteString(conn, "data: { \"type\":\"");
-        if (error != NO_ERROR)
-            return error;
-        error = httpWriteString(conn, eventname);
-        if (error != NO_ERROR)
-            return error;
-        error = httpWriteString(conn, "\", \"data\":");
-        if (error != NO_ERROR)
-            return error;
-        if (escapeData)
-        {
-            error = httpWriteString(conn, "\"");
-            if (error != NO_ERROR)
-                return error;
-        }
         error = httpWriteString(conn, content);
         if (error != NO_ERROR)
             return error;
-        if (escapeData)
-        {
-            error = httpWriteString(conn, "\"");
-            if (error != NO_ERROR)
-                return error;
-        }
-        error = httpWriteString(conn, " }\r\n");
+    }
+    return error;
+}
+error_t sse_endEventRaw(void)
+{
+    error_t error = NO_ERROR;
+    error = sse_rawData(" }\r\n");
+    return error;
+}
+
+error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData)
+{
+    error_t error = NO_ERROR;
+
+    error = sse_startEventRaw(eventname);
+    if (error != NO_ERROR)
+        return error;
+    if (escapeData)
+    {
+        error = sse_rawData("\"");
         if (error != NO_ERROR)
             return error;
     }
+    error = sse_rawData(content);
+    if (error != NO_ERROR)
+        return error;
+    if (escapeData)
+    {
+        error = sse_rawData("\"");
+        if (error != NO_ERROR)
+            return error;
+    }
+    error = sse_endEventRaw();
     return error;
 }
 
