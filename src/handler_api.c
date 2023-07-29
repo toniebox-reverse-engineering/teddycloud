@@ -440,7 +440,8 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
     int pos = 0;
     FsDir *dir = fsOpenDir(pathAbsolute);
 
-    cJSON *json = cJSON_CreateArray();
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
 
     while (true)
     {
@@ -488,7 +489,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
         cJSON_AddStringToObject(jsonEntry, "desc", desc);
 
-        cJSON_AddItemToArray(json, jsonEntry);
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
     }

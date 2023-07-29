@@ -744,8 +744,8 @@
                     const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
 
                     if (response.ok) {
-                        const files = await response.json();
-                        this.setState({ files, path });
+                        const data = await response.json();
+                        this.setState({ files: data.files, path });
                     } else {
                         console.error('Failed to fetch file index');
                     }
