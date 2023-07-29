@@ -89,6 +89,17 @@ OPTION_STRING("mqtt.password", &Settings.mqtt.password, "", "Password")
 OPTION_STRING("mqtt.identification", &Settings.mqtt.identification, "", "Client identification")
 OPTION_END()
 
+#define MAX_OVERLAYS 2
+static settings_t OverlaySettings[MAX_OVERLAYS];
+void overlay_settings_init()
+{
+    for (int i = 0; i < MAX_OVERLAYS; i++)
+    {
+        osMemcpy(&OverlaySettings[i], &Settings, sizeof(settings_t));
+        OverlaySettings[i].internal.config_init = false;
+    }
+}
+
 settings_t *get_settings()
 {
     return &Settings;
@@ -109,27 +120,27 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
         osSprintf(*resolvedPath, "%s/%s", basePath, path);
     }
 }
-void settings_generate_internal_dirs()
+void settings_generate_internal_dirs(settings_t *settings)
 {
-    free(Settings.internal.contentdirfull);
-    free(Settings.internal.wwwdirfull);
+    free(settings->internal.contentdirfull);
+    free(settings->internal.wwwdirfull);
 
-    Settings.internal.contentdirfull = osAllocMem(256);
-    Settings.internal.wwwdirfull = osAllocMem(256);
+    settings->internal.contentdirfull = osAllocMem(256);
+    settings->internal.wwwdirfull = osAllocMem(256);
 
     char contentPath[256];
     char *contentPathPointer = contentPath;
 
-    settings_resolve_dir(&contentPathPointer, "content", Settings.core.datadir);
-    settings_resolve_dir(&Settings.internal.contentdirfull, Settings.core.contentdir, contentPath);
+    settings_resolve_dir(&contentPathPointer, "content", settings->core.datadir);
+    settings_resolve_dir(&settings->internal.contentdirfull, settings->core.contentdir, contentPath);
 
-    settings_resolve_dir(&Settings.internal.wwwdirfull, Settings.core.wwwdir, Settings.core.datadir);
+    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->core.datadir);
 }
 
 void settings_changed()
 {
     Settings.internal.config_changed = true;
-    settings_generate_internal_dirs();
+    settings_generate_internal_dirs(&Settings);
 }
 
 void settings_deinit()
@@ -246,6 +257,10 @@ void settings_save()
 }
 
 void settings_load()
+{
+    settings_load_ovl(NULL);
+}
+void settings_load_ovl(char_t *overlay)
 {
     TRACE_INFO("Load settings from %s\r\n", CONFIG_PATH);
     if (!fsFileExists(CONFIG_PATH))
@@ -364,7 +379,7 @@ void settings_load()
         }
     }
     fsCloseFile(file);
-    settings_generate_internal_dirs();
+    settings_generate_internal_dirs(&Settings);
 
     if (Settings.configVersion < CONFIG_VERSION)
     {

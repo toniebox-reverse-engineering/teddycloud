@@ -209,11 +209,13 @@ typedef struct
     }                    \
     ;
 
+void overlay_settings_init();
+
 settings_t *get_settings();
 settings_t *get_settings_ovl(char *overlay);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
-void settings_generate_internal_dirs();
+void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
 
 /**
@@ -267,6 +269,7 @@ void settings_save();
  * @endcode
  */
 void settings_load();
+void settings_load_ovl(char *overlay);
 
 /**
  * @brief Gets the setting item at a specific index.
