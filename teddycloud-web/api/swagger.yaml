@@ -50,30 +50,7 @@ paths:
               schema:
                 type: string
               description: "x-requested-with, Content-Type, origin, authorization, accept, client-security-token"
-  /ping:
-    get:
-      tags:
-        - Generic
-      description: "Check server status"
-      responses:
-        '200':
-          description: HTML meta tags
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Status'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '406':
-          $ref: '#/components/responses/Unacceptable'
-        '5XX':
-          $ref: '#/components/responses/InternalServerError'
+
   #
   # TeddyCloud
   #
@@ -99,31 +76,44 @@ paths:
           $ref: '#/components/responses/Unacceptable'
         '5XX':
           $ref: '#/components/responses/InternalServerError'
-  /stats/{id}:
+          
+  /triggerWriteConfig:
     get:
       tags:
         - TeddyCloud
-      description: Load a specific stats item.
-      parameters:
-        - name: id
-          in: path
-          description: Unique ID or slug of requested stats item
-          required: true
-          schema:
-            type: string
-            minLength: 1
-          examples:
-            Page ID:
-              value: "5"
-            URL Slug:
-              value: technik
+      description: tell server to write to config file
       responses:
         '200':
           description: Stats item
           content:
-            application/json:
+            "text/plain":
               schema:
-                $ref: '#/components/schemas/StatsItem'
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '406':
+          $ref: '#/components/responses/Unacceptable'
+        '5XX':
+          $ref: '#/components/responses/InternalServerError'       
+          
+  /set/cloud.cacheContent:
+    post:
+      tags:
+        - TeddyCloud
+      description: Cache cloud content on local server
+      requestBody:
+        required: true
+        content:
+          "text/plain":
+            schema:
+              type: boolean
+      responses:
+        '200':
+          description: 'just 200 for success, no response content'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -161,49 +151,6 @@ components:
                 type: string
                 description: Error string
 
-    Status:
-      type: object
-      description: Server status.
-      properties:
-        data:
-          type: object
-          required:
-            - type
-            - id
-            - attributes
-          properties:
-            type:
-              type: string
-              description: 'Object title: status'
-              default: status
-            id:
-              type: string
-              description: 'Application name'
-            attributes:
-              type: object
-              description: All object attributes
-              required:
-                - version
-                - ping
-              properties:
-                version:
-                  type: string
-                  description: Application version
-                ping:
-                  type: boolean
-                  default: true
-                  description: Server status
-      example:
-        {
-          "data": {
-            "type": "status",
-            "id": "Buero",
-            "attributes": {
-              "version": "9.6.1",
-              "ping": true
-            }
-          }
-        }
     #
     # TeddyCloud
     #
