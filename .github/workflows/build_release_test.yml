@@ -1,0 +1,64 @@
+name: Build and zip
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    outputs:
+      upload_url: ${{ steps.set_data1.outputs.upload_url }}
+      appendix: ${{ steps.set_data2.outputs.appendix }}
+    steps:
+    - name: Get current datetime
+      id: get-datetime
+      run: echo "CURRENT_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+    - name: Set templates for nightly
+      id: set-templates-nightly
+      run: |
+        echo "TAG_NAME=${GITHUB_REF#refs/tags/}_${{ env.CURRENT_DATE }}_${{ github.run_number }}" >> $GITHUB_ENV
+        echo "RELEASE_NAME=Nightly ${{ env.CURRENT_DATE }} - Run ID ${{ github.run_number }}" >> $GITHUB_ENV
+        echo "ASSET_APPENDIX=nightly_${{ env.CURRENT_DATE }}.${{ github.run_number }}" >> $GITHUB_ENV
+        echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+    
+    - uses: actions/checkout@v2
+
+    - name: Build and zip windows
+      id:  build-zip
+      run: make zip
+    - name: Check windows release zip existence
+      id: check_release
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "./install/zip/release.zip"  
+        allow_failure: true 
+    - name: File exist
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: echo windows release zip exists!
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.TAG_NAME }}
+        release_name: TeddyCloud ${{ env.RELEASE_NAME }}
+        draft: true
+        prerelease: ${{ env.IS_PRERELEASE }}
+        
+    - name: Upload Release Asset
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./install/zip/release.zip
+        asset_name: teddycloud.windows.${{ env.ASSET_APPENDIX }}.zip
+        asset_content_type: application/zip
+    - id: set_data1
+      run: echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> "$GITHUB_OUTPUT"
+    - id: set_data2
+      run: echo "appendix=${{ env.ASSET_APPENDIX }}" >> "$GITHUB_OUTPUT"
