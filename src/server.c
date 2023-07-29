@@ -24,6 +24,7 @@
 
 #include "path.h"
 #include "debug.h"
+#include "os_port.h"
 
 #include "cloud_request.h"
 #include "handler_cloud.h"
@@ -542,12 +543,11 @@ void server_init()
 
     while (!settings_get_bool("internal.exit"))
     {
-        usleep(100000);
+        osDelayTask(250);
     }
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
-    usleep(100000);
 
     exit(ret);
 }
