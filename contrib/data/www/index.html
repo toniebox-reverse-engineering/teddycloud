@@ -828,7 +828,7 @@
                 const trimmedPath = path.endsWith('/') ? path.slice(0, -1) : path;
                 const parts = trimmedPath.split('/');
                 parts.pop();
-                return parts.join('/') || '/';
+                return (parts.join('/') + '/') || '/';
             }
 
             async deleteSelectedFiles() {
