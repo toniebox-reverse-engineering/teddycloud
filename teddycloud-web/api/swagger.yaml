@@ -77,6 +77,19 @@ paths:
         '5XX':
           $ref: '#/components/responses/InternalServerError'
           
+  /getIndex:
+    get:
+      tags:
+        - TeddyCloud
+      description: get all options
+      responses:
+        '200':
+          description: all options recieved as array
+          content:
+            "text/plain":
+              schema:
+                $ref: '#/components/schemas/OptionsList'
+  
   /triggerWriteConfig:
     get:
       tags:
@@ -166,16 +179,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StatsItem'
-      example:
-        {
-          "stats": [
-            {
-              "ID": "connections",
-              "description": "Connections made to this server",
-              "value": "2296",
-            }
-          ]
-        }
 
     StatsItem:
       type: object
@@ -194,6 +197,41 @@ components:
         value:
           type: string
           description: "Object value"
+
+
+    OptionsList:
+      type: object
+      description: List of Options.
+      required:
+        - meta
+        - data
+      properties:
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/OptionsItem'
+
+    OptionsItem:
+      type: object
+      description: Option item.
+      required:
+        - ID
+        - shortname
+        - description
+        - type
+      properties:
+        ID:
+          type: string
+          description: 'Object title'
+        shortname:
+          type: string
+          description: 'Object shortname'
+        description:
+          type: string
+          description: "Object description"
+        type:
+          type: string
+          description: "Object type"
 
   responses:
     BadRequest:

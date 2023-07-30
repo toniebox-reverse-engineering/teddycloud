@@ -5,10 +5,9 @@ apis/index.ts
 index.ts
 models/Errors.ts
 models/ErrorsErrorsInner.ts
+models/OptionsItem.ts
+models/OptionsList.ts
 models/StatsItem.ts
 models/StatsList.ts
-models/Status.ts
-models/StatusData.ts
-models/StatusDataAttributes.ts
 models/index.ts
 runtime.ts

@@ -17,6 +17,7 @@ const api = new TeddyCloudApi(defaultAPIConfig());
 export const StatsPage = () => {
   const { t } = useTranslation();
   const [stats, setStats] = useState<StatsList | undefined>();
+  
   useEffect(() => {
     const fetchStats = async () => {
       const statsRequest = (await api.statsGet()) as StatsList;

@@ -14,47 +14,11 @@
 
 
 import * as runtime from '../runtime';
-import type {
-  Errors,
-  Status,
-} from '../models';
-import {
-    ErrorsFromJSON,
-    ErrorsToJSON,
-    StatusFromJSON,
-    StatusToJSON,
-} from '../models';
 
 /**
  * 
  */
 export class GenericApi extends runtime.BaseAPI {
-
-    /**
-     * Check server status
-     */
-    async pingGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        const response = await this.request({
-            path: `/ping`,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
-    }
-
-    /**
-     * Check server status
-     */
-    async pingGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.pingGetRaw(initOverrides);
-        return await response.value();
-    }
 
     /**
      * CORS preflight request

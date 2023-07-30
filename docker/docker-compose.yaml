@@ -3,7 +3,7 @@ services:
   teddycloud:
     container_name: teddycloud
     hostname: teddycloud
-    image: ghcr.io/toniebox-reverse-engineering/teddycloud:latest
+    image: ghcr.io/toniebox-reverse-engineering/teddycloud:develop
     ports:
       - 80:80
       - 443:443

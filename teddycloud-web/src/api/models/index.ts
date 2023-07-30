@@ -2,8 +2,7 @@
 /* eslint-disable */
 export * from './Errors';
 export * from './ErrorsErrorsInner';
+export * from './OptionsItem';
+export * from './OptionsList';
 export * from './StatsItem';
 export * from './StatsList';
-export * from './Status';
-export * from './StatusData';
-export * from './StatusDataAttributes';

@@ -16,26 +16,84 @@
 import * as runtime from '../runtime';
 import type {
   Errors,
-  StatsItem,
+  OptionsList,
   StatsList,
 } from '../models';
 import {
     ErrorsFromJSON,
     ErrorsToJSON,
-    StatsItemFromJSON,
-    StatsItemToJSON,
+    OptionsListFromJSON,
+    OptionsListToJSON,
     StatsListFromJSON,
     StatsListToJSON,
 } from '../models';
 
-export interface StatsIdGetRequest {
-    id: string;
+export interface SetCloudCacheContentPostRequest {
+    body: boolean;
 }
 
 /**
  * 
  */
 export class TeddyCloudApi extends runtime.BaseAPI {
+
+    /**
+     * get all options
+     */
+    async getIndexGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OptionsList>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        const response = await this.request({
+            path: `/getIndex`,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OptionsListFromJSON(jsonValue));
+    }
+
+    /**
+     * get all options
+     */
+    async getIndexGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OptionsList> {
+        const response = await this.getIndexGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Cache cloud content on local server
+     */
+    async setCloudCacheContentPostRaw(requestParameters: SetCloudCacheContentPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters.body === null || requestParameters.body === undefined) {
+            throw new runtime.RequiredError('body','Required parameter requestParameters.body was null or undefined when calling setCloudCacheContentPost.');
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'text/plain';
+
+        const response = await this.request({
+            path: `/set/cloud.cacheContent`,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters.body as any,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Cache cloud content on local server
+     */
+    async setCloudCacheContentPost(requestParameters: SetCloudCacheContentPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.setCloudCacheContentPostRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Load all available stats.
@@ -64,32 +122,32 @@ export class TeddyCloudApi extends runtime.BaseAPI {
     }
 
     /**
-     * Load a specific stats item.
+     * tell server to write to config file
      */
-    async statsIdGetRaw(requestParameters: StatsIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StatsItem>> {
-        if (requestParameters.id === null || requestParameters.id === undefined) {
-            throw new runtime.RequiredError('id','Required parameter requestParameters.id was null or undefined when calling statsIdGet.');
-        }
-
+    async triggerWriteConfigGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
         const response = await this.request({
-            path: `/stats/{id}`.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters.id))),
+            path: `/triggerWriteConfig`,
             method: 'GET',
             headers: headerParameters,
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatsItemFromJSON(jsonValue));
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<string>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
-     * Load a specific stats item.
+     * tell server to write to config file
      */
-    async statsIdGet(requestParameters: StatsIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StatsItem> {
-        const response = await this.statsIdGetRaw(requestParameters, initOverrides);
+    async triggerWriteConfigGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
+        const response = await this.triggerWriteConfigGetRaw(initOverrides);
         return await response.value();
     }
 
