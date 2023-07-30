@@ -61,6 +61,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
     OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, TRUE, "Config initialized?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
+    OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
@@ -174,11 +175,11 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
     if (path[0] == '/')
     {
-        osSprintf(*resolvedPath, "%s", path);
+        snprintf(*resolvedPath, 255, "%s", path);
     }
     else
     {
-        osSprintf(*resolvedPath, "%s/%s", basePath, path);
+        snprintf(*resolvedPath, 255, "%s/%s", basePath, path);
     }
 }
 void settings_generate_internal_dirs(settings_t *settings)
@@ -189,14 +190,21 @@ void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.contentdirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
 
-    char contentPath[256];
-    char *contentPathPointer = contentPath;
+    /*
+        char dataPath[256];
+        char *dataPathPointer = dataPath;
+        char contentPath[256];
+        char *contentPathPointer = contentPath;
+        */
+    char *dataPath = osAllocMem(256);
+    char *contentPath = osAllocMem(256);
 
-    settings_resolve_dir(&contentPathPointer, "content", settings->core.datadir);
+    settings_resolve_dir(&dataPath, settings->core.datadir, settings->internal.cwd);
+    settings_resolve_dir(&contentPath, "content", dataPath);
     settings_resolve_dir(&settings->internal.contentdirfull, settings->core.contentdir, contentPath);
     fsCreateDir(settings->internal.contentdirfull);
 
-    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->core.datadir);
+    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, dataPath);
 }
 
 void settings_changed()
@@ -234,7 +242,7 @@ void settings_deinit()
     }
 }
 
-void settings_init()
+void settings_init(char *cwd)
 {
     option_map_init(&Option_Map_Overlay[0], 0);
 
@@ -274,6 +282,7 @@ void settings_init()
         }
         pos++;
     }
+    settings_set_string("internal.cwd", cwd);
     settings_changed();
     settings_load();
 }

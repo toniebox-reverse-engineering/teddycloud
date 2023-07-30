@@ -538,7 +538,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     if (tonieInfo.exists)
     {
         connection->response.keepAlive = true;
-        error_t error = httpSendResponse(connection, &tonieInfo.contentPath[4]);
+        error_t error = httpSendResponse(connection, tonieInfo.contentPath);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);

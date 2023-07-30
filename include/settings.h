@@ -71,6 +71,7 @@ typedef struct
     bool config_init;
     bool config_changed;
 
+    char *cwd;
     char *contentdirfull;
     char *wwwdirfull;
 
@@ -230,7 +231,7 @@ void settings_changed();
  *
  * This function should be called once, before any other settings functions are used.
  */
-void settings_init();
+void settings_init(char *cwd);
 
 /**
  * @brief Deinitializes the settings subsystem.

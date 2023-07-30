@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 
 #include "error.h"
 #include "debug.h"
@@ -26,6 +27,30 @@ typedef enum
     PROT_HTTP,
     PROT_HTTPS
 } Protocol;
+
+void get_directory_path(const char *filepath, char *dirpath, int maxLen)
+{
+    // Find the last occurrence of '/' or '\' in the file path
+    int lastSlash = -1;
+    for (int i = 0; filepath[i] != '\0'; i++)
+    {
+        if (filepath[i] == '/' || filepath[i] == '\\')
+        {
+            lastSlash = i;
+        }
+    }
+
+    if (lastSlash == -1)
+    {
+        // No directory part found, use an empty string for the directory path
+        dirpath[0] = '\0';
+    }
+    else
+    {
+        // Copy the characters before the last slash to the directory path buffer
+        snprintf(dirpath, maxLen, "%.*s", lastSlash, filepath);
+    }
+}
 
 bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Protocol *protocol)
 {
@@ -83,8 +108,14 @@ int_t main(int argc, char *argv[])
 {
     error_t error = 0;
 
+    char cwd[256];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        get_directory_path(argv[0], cwd, sizeof(cwd));
+    }
+
     /* platform specific init */
-    settings_init();
+    settings_init(cwd);
     platform_init();
 
     cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
