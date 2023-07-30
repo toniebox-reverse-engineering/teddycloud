@@ -10,6 +10,7 @@
 #include "fs_port.h"
 
 #define MAX_OVERLAYS 2 + 1
+#define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
 
@@ -124,6 +125,17 @@ settings_t *get_settings_ovl(const char *overlay)
 {
     return &Settings_Overlay[get_overlay_id(overlay)];
 }
+settings_t *get_settings_cn(const char *commonName)
+{
+    for (size_t i = 0; i < MAX_OVERLAYS; i++)
+    {
+        if (osStrcmp(Settings_Overlay[i].core.commonName, commonName) == 0)
+        {
+            return &Settings_Overlay[i];
+        }
+    }
+    return get_settings();
+}
 
 uint8_t get_overlay_id(const char *overlay)
 {
@@ -172,6 +184,7 @@ void settings_changed()
     Settings_Overlay[0].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings());
     overlay_settings_init();
+    settings_load_ovl(true);
 }
 
 void settings_deinit()
@@ -367,6 +380,14 @@ void settings_load_ovl(bool overlay)
                 char *value_str = &line[osStrlen(option_name) + 1];
 
                 char *overlay_name = NULL;
+                if (overlay && osStrncmp(OVERLAY_CONFIG_PREFIX, option_name, osStrlen(OVERLAY_CONFIG_PREFIX)) == 0)
+                {
+                    option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
+                    char *tokenizer = strdup(option_name);
+                    overlay_name = strtok(tokenizer, ".");
+                    option_name += osStrlen(overlay_name) + 1;
+                    free(tokenizer);
+                }
 
                 if (option_name != NULL && value_str != NULL)
                 {
@@ -435,13 +456,24 @@ void settings_load_ovl(bool overlay)
         }
     }
     fsCloseFile(file);
-    settings_generate_internal_dirs(get_settings());
-
-    if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
+    if (overlay)
     {
-        settings_save();
+        for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
+        {
+            settings_generate_internal_dirs(&Settings_Overlay[i]);
+            Settings_Overlay[i].internal.config_changed = false;
+        }
     }
-    Settings_Overlay[0].internal.config_changed = false;
+    else
+    {
+        settings_generate_internal_dirs(get_settings());
+
+        if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
+        {
+            settings_save();
+        }
+        Settings_Overlay[0].internal.config_changed = false;
+    }
 }
 
 setting_item_t *settings_get(int index)

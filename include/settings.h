@@ -217,6 +217,7 @@ void overlay_settings_init();
 
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay);
+settings_t *get_settings_cn(const char *cn);
 
 uint8_t get_overlay_id(const char *overlay);
 
