@@ -439,10 +439,9 @@ void markCustomTonie(tonie_info_t *tonieInfo)
     char contentPathDot[256];
 
     snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
-    subDir[osStrlen(subDir) - 8] = '\0';
-    snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
-
+    subDir[osStrlen(subDir) - 9] = '\0';
     fsCreateDir(subDir);
+    snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
 
     FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
     fsCloseFile(file);

@@ -194,6 +194,7 @@ void settings_generate_internal_dirs(settings_t *settings)
 
     settings_resolve_dir(&contentPathPointer, "content", settings->core.datadir);
     settings_resolve_dir(&settings->internal.contentdirfull, settings->core.contentdir, contentPath);
+    fsCreateDir(settings->internal.contentdirfull);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->core.datadir);
 }
