@@ -46,7 +46,6 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
             pos++;
             continue;
         }
-        const char *type = "unknown";
 
         cJSON *jsonEntry = cJSON_CreateObject();
         cJSON_AddStringToObject(jsonEntry, "ID", opt->option_name);
