@@ -63,6 +63,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
+    OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
 
@@ -185,22 +186,22 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 void settings_generate_internal_dirs(settings_t *settings)
 {
     free(settings->internal.contentdirfull);
+    free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
 
     settings->internal.contentdirfull = osAllocMem(256);
+    settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
 
-    char *dataPath = osAllocMem(256);
     char *contentPath = osAllocMem(256);
 
-    settings_resolve_dir(&dataPath, settings->core.datadir, settings->internal.cwd);
-    settings_resolve_dir(&contentPath, "content", dataPath);
+    settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.cwd);
+    settings_resolve_dir(&contentPath, "content", settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.contentdirfull, settings->core.contentdir, contentPath);
     fsCreateDir(settings->internal.contentdirfull);
 
-    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, dataPath);
+    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
 
-    free(dataPath);
     free(contentPath);
 }
 

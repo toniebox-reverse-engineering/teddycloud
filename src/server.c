@@ -353,6 +353,8 @@ error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
+    error_t error = NO_ERROR;
+
     stats_update("connections", 1);
 
     if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
@@ -364,25 +366,27 @@ httpServerRequestCallback(HttpConnection *connection,
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
+
+    client_ctx_t client_ctx;
+    char_t *commonName = NULL;
+    char_t *subject = connection->tlsContext->client_cert_subject;
+    if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+    {
+        commonName = strdup(&subject[2]);
+        commonName[osStrlen(commonName) - 1] = '\0';
+        client_ctx.settings = get_settings_cn(commonName);
+        free(commonName);
+    }
+    else
+    {
+        client_ctx.settings = get_settings();
+    }
+
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            client_ctx_t client_ctx;
-            char_t *commonName = NULL;
-            char_t *subject = connection->tlsContext->client_cert_subject;
-            if (connection->tlsContext != NULL && osStrlen(subject) == 15)
-            {
-                commonName = strdup(&subject[2]);
-                commonName[osStrlen(commonName) - 1] = '\0';
-                client_ctx.settings = get_settings_cn(commonName);
-                free(commonName);
-            }
-            else
-            {
-                client_ctx.settings = get_settings();
-            }
 
             return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
         }
@@ -393,13 +397,30 @@ httpServerRequestCallback(HttpConnection *connection,
         uri = "index.html";
     }
 
-    return httpSendResponse(connection, uri);
+    char_t *newUri = osAllocMem(osStrlen(uri) + osStrlen(client_ctx.settings->core.wwwdir) + 2);
+    osStrcpy(newUri, client_ctx.settings->core.wwwdir);
+    osStrcat(newUri, "/");
+    osStrcat(newUri, uri);
+
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
+    return error;
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
                                       const char_t *uri)
 {
-    return httpSendResponse(connection, "404.html");
+    error_t error = NO_ERROR;
+    char *fnf = "404.html";
+
+    char_t *newUri = osAllocMem(osStrlen(fnf) + osStrlen(get_settings()->core.wwwdir) + 2);
+    osStrcpy(newUri, get_settings()->core.wwwdir);
+    osStrcat(newUri, "/");
+    osStrcat(newUri, fnf);
+
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
+    return error;
 }
 
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
@@ -527,6 +548,7 @@ bool sanityChecks()
     bool ret = true;
 
     ret &= sanityCheckDir("core.datadir");
+    ret &= sanityCheckDir("internal.datadirfull");
     ret &= sanityCheckDir("internal.wwwdirfull");
     ret &= sanityCheckDir("internal.contentdirfull");
     ret &= sanityCheckDir("core.certdir");
@@ -559,7 +581,7 @@ void server_init()
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
-    strcpy(http_settings.rootDirectory, settings_get_string("internal.wwwdirfull"));
+    strcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
     strcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;

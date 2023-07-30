@@ -73,6 +73,7 @@ typedef struct
 
     char *cwd;
     char *contentdirfull;
+    char *datadirfull;
     char *wwwdirfull;
 
     char *overlayName;
