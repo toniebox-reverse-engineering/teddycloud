@@ -337,33 +337,33 @@ extern "C"
 {
 #endif
 
-   /**
-    * @brief Access status
-    **/
+      /**
+       * @brief Access status
+       **/
 
-   typedef enum
-   {
-      HTTP_ACCESS_DENIED = 0,
-      HTTP_ACCESS_ALLOWED = 1,
-      HTTP_ACCESS_BASIC_AUTH_REQUIRED = 2,
-      HTTP_ACCESS_DIGEST_AUTH_REQUIRED = 3
-   } HttpAccessStatus;
+      typedef enum
+      {
+            HTTP_ACCESS_DENIED = 0,
+            HTTP_ACCESS_ALLOWED = 1,
+            HTTP_ACCESS_BASIC_AUTH_REQUIRED = 2,
+            HTTP_ACCESS_DIGEST_AUTH_REQUIRED = 3
+      } HttpAccessStatus;
 
-   /**
-    * @brief HTTP connection states
-    **/
+      /**
+       * @brief HTTP connection states
+       **/
 
-   typedef enum
-   {
-      HTTP_CONN_STATE_IDLE = 0,
-      HTTP_CONN_STATE_REQ_LINE = 1,
-      HTTP_CONN_STATE_REQ_HEADER = 2,
-      HTTP_CONN_STATE_REQ_BODY = 3,
-      HTTP_CONN_STATE_RESP_HEADER = 4,
-      HTTP_CONN_STATE_RESP_BODY = 5,
-      HTTP_CONN_STATE_SHUTDOWN = 6,
-      HTTP_CONN_STATE_CLOSE = 7
-   } HttpConnState;
+      typedef enum
+      {
+            HTTP_CONN_STATE_IDLE = 0,
+            HTTP_CONN_STATE_REQ_LINE = 1,
+            HTTP_CONN_STATE_REQ_HEADER = 2,
+            HTTP_CONN_STATE_REQ_BODY = 3,
+            HTTP_CONN_STATE_RESP_HEADER = 4,
+            HTTP_CONN_STATE_RESP_BODY = 5,
+            HTTP_CONN_STATE_SHUTDOWN = 6,
+            HTTP_CONN_STATE_CLOSE = 7
+      } HttpConnState;
 
 // The HTTP_FLAG_BREAK macro causes the httpReadStream() function to stop
 // reading data whenever the specified break character is encountered
@@ -372,313 +372,315 @@ extern "C"
 // TLS supported?
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
 
-   /**
-    * @brief TLS initialization callback function
-    **/
+      /**
+       * @brief TLS initialization callback function
+       **/
 
-   typedef error_t (*TlsInitCallback)(HttpConnection *connection,
-                                      TlsContext *tlsContext);
+      typedef error_t (*TlsInitCallback)(HttpConnection *connection,
+                                         TlsContext *tlsContext);
 
 #endif
 
-   /**
-    * @brief Random data generation callback function
-    **/
+      /**
+       * @brief Random data generation callback function
+       **/
 
-   typedef error_t (*HttpRandCallback)(uint8_t *data, size_t length);
+      typedef error_t (*HttpRandCallback)(uint8_t *data, size_t length);
 
-   /**
-    * @brief HTTP authentication callback function
-    **/
+      /**
+       * @brief HTTP authentication callback function
+       **/
 
-   typedef HttpAccessStatus (*HttpAuthCallback)(HttpConnection *connection,
-                                                const char_t *user, const char_t *uri);
+      typedef HttpAccessStatus (*HttpAuthCallback)(HttpConnection *connection,
+                                                   const char_t *user, const char_t *uri);
 
-   /**
-    * @brief CGI callback function
-    **/
+      /**
+       * @brief CGI callback function
+       **/
 
-   typedef error_t (*HttpCgiCallback)(HttpConnection *connection,
-                                      const char_t *param);
+      typedef error_t (*HttpCgiCallback)(HttpConnection *connection,
+                                         const char_t *param);
 
-   /**
-    * @brief HTTP request callback function
-    **/
+      /**
+       * @brief HTTP request callback function
+       **/
 
-   typedef error_t (*HttpRequestCallback)(HttpConnection *connection,
-                                          const char_t *uri);
+      typedef error_t (*HttpRequestCallback)(HttpConnection *connection,
+                                             const char_t *uri);
 
-   /**
-    * @brief URI not found callback function
-    **/
+      /**
+       * @brief URI not found callback function
+       **/
 
-   typedef error_t (*HttpUriNotFoundCallback)(HttpConnection *connection,
-                                              const char_t *uri);
+      typedef error_t (*HttpUriNotFoundCallback)(HttpConnection *connection,
+                                                 const char_t *uri);
 
-   /**
-    * @brief HTTP status code
-    **/
+      /**
+       * @brief HTTP status code
+       **/
 
-   typedef struct
-   {
-      uint_t value;
-      const char_t message[28];
-   } HttpStatusCodeDesc;
+      typedef struct
+      {
+            uint_t value;
+            const char_t message[28];
+      } HttpStatusCodeDesc;
 
-   /**
-    * @brief Authorization header
-    **/
+      /**
+       * @brief Authorization header
+       **/
 
-   typedef struct
-   {
-      bool_t found;                                  ///< The Authorization header has been found
-      HttpAuthMode mode;                             ///< Authentication scheme
-      char_t user[HTTP_SERVER_USERNAME_MAX_LEN + 1]; ///< User name
+      typedef struct
+      {
+            bool_t found;                                  ///< The Authorization header has been found
+            HttpAuthMode mode;                             ///< Authentication scheme
+            char_t user[HTTP_SERVER_USERNAME_MAX_LEN + 1]; ///< User name
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED)
-      const char_t *password; ///< Password
+            const char_t *password; ///< Password
 #endif
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      const char_t *realm;
-      const char_t *nonce; ///< Server nonce
-      const char_t *uri;   ///< Digest URI
-      const char_t *qop;
-      const char_t *nc;     ///< Nonce count
-      const char_t *cnonce; ///< Client nonce
-      const char_t *response;
-      const char_t *opaque;
+            const char_t *realm;
+            const char_t *nonce; ///< Server nonce
+            const char_t *uri;   ///< Digest URI
+            const char_t *qop;
+            const char_t *nc;     ///< Nonce count
+            const char_t *cnonce; ///< Client nonce
+            const char_t *response;
+            const char_t *opaque;
 #endif
-   } HttpAuthorizationHeader;
+      } HttpAuthorizationHeader;
 
-   /**
-    * @brief Authenticate header
-    **/
+      /**
+       * @brief Authenticate header
+       **/
 
-   typedef struct
-   {
-      HttpAuthMode mode; ///< Authentication scheme
+      typedef struct
+      {
+            HttpAuthMode mode; ///< Authentication scheme
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      bool_t stale; ///< STALE flag
+            bool_t stale; ///< STALE flag
 #endif
-   } HttpAuthenticateHeader;
+      } HttpAuthenticateHeader;
 
-   /**
-    * @brief Range header
-    *
-    */
-   typedef struct
-   {
-      uint32_t start;
-      uint32_t end;
-      uint32_t size;
-   } HttpRangeHeader;
+      /**
+       * @brief Range header
+       *
+       */
+      typedef struct
+      {
+            uint32_t start;
+            uint32_t end;
+            uint32_t size;
+      } HttpRangeHeader;
 
-   /**
-    * @brief HTTP request
-    **/
+      /**
+       * @brief HTTP request
+       **/
 
-   typedef struct
-   {
-      uint_t version;                                           ///< HTTP version number
-      char_t method[HTTP_SERVER_METHOD_MAX_LEN + 1];            ///< HTTP method
-      char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///< Resource identifier
-      char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///< Query string
-      char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///< Host name
-      char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///< IfRange tag
-      HttpRangeHeader Range;                                    ///< Range field
-      bool_t keepAlive;
-      bool_t chunkedEncoding;
-      size_t contentLength;
-      size_t byteCount;
-      bool_t firstChunk;
-      bool_t lastChunk;
+      typedef struct
+      {
+            uint_t version;                                           ///< HTTP version number
+            char_t method[HTTP_SERVER_METHOD_MAX_LEN + 1];            ///< HTTP method
+            char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///< Resource identifier
+            char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///< Query string
+            char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///< Host name
+            char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///< IfRange tag
+            HttpRangeHeader Range;                                    ///< Range field
+            bool_t keepAlive;
+            bool_t chunkedEncoding;
+            size_t contentLength;
+            size_t byteCount;
+            bool_t firstChunk;
+            bool_t lastChunk;
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      HttpAuthorizationHeader auth; ///< Authorization header
+            HttpAuthorizationHeader auth; ///< Authorization header
 #endif
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
-      bool_t upgradeWebSocket;
-      bool_t connectionUpgrade;
-      char_t clientKey[WEB_SOCKET_CLIENT_KEY_SIZE + 1];
+            bool_t upgradeWebSocket;
+            bool_t connectionUpgrade;
+            char_t clientKey[WEB_SOCKET_CLIENT_KEY_SIZE + 1];
 #endif
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
-      bool_t acceptGzipEncoding;
+            bool_t acceptGzipEncoding;
 #endif
 #if (HTTP_SERVER_MULTIPART_TYPE_SUPPORT == ENABLED)
-      char_t boundary[HTTP_SERVER_BOUNDARY_MAX_LEN + 1]; ///< Boundary string
-      size_t boundaryLength;                             ///< Boundary string length
+            char_t boundary[HTTP_SERVER_BOUNDARY_MAX_LEN + 1]; ///< Boundary string
+            size_t boundaryLength;                             ///< Boundary string length
 #endif
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
-      char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///< Cookie header field
+            char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///< Cookie header field
 #endif
-   } HttpRequest;
+      } HttpRequest;
 
-   /**
-    * @brief HTTP response
-    **/
+      /**
+       * @brief HTTP response
+       **/
 
-   typedef struct
-   {
-      uint_t version;    ///< HTTP version number
-      uint_t statusCode; ///< HTTP status code
-      bool_t keepAlive;
-      bool_t noCache;
-      uint_t maxAge;
-      const char_t *location;
-      const char_t *contentType;
-      const char_t *contentRange;
-      bool_t chunkedEncoding;
-      size_t contentLength;
-      size_t byteCount;
+      typedef struct
+      {
+            uint_t version;    ///< HTTP version number
+            uint_t statusCode; ///< HTTP status code
+            bool_t keepAlive;
+            bool_t noCache;
+            uint_t maxAge;
+            const char_t *location;
+            const char_t *contentType;
+            const char_t *contentRange;
+            bool_t chunkedEncoding;
+            size_t contentLength;
+            size_t byteCount;
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      HttpAuthenticateHeader auth; ///< Authenticate header
+            HttpAuthenticateHeader auth; ///< Authenticate header
 #endif
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
-      bool_t gzipEncoding;
+            bool_t gzipEncoding;
 #endif
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
-      char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///< Set-Cookie header field
+            char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///< Set-Cookie header field
 #endif
-   } HttpResponse;
+      } HttpResponse;
 
-   /**
-    * @brief HTTP server settings
-    **/
+      /**
+       * @brief HTTP server settings
+       **/
 
-   typedef struct
-   {
-      NetInterface *interface;                                     ///< Underlying network interface
-      uint16_t port;                                               ///< HTTP server port number
-      IpAddr ipAddr;                                               ///< HTTP server IP address
-      uint_t backlog;                                              ///< Maximum length of the pending connection queue
-      uint_t maxConnections;                                       ///< Maximum number of client connections
-      HttpConnection *connections;                                 ///< Client connections
-      char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///< Web root directory
-      char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///< Default home page
+      typedef struct
+      {
+            NetInterface *interface;                                     ///< Underlying network interface
+            uint16_t port;                                               ///< HTTP server port number
+            IpAddr ipAddr;                                               ///< HTTP server IP address
+            uint_t backlog;                                              ///< Maximum length of the pending connection queue
+            uint_t maxConnections;                                       ///< Maximum number of client connections
+            HttpConnection *connections;                                 ///< Client connections
+            char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///< Web root directory
+            char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///< Default home page
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-      bool_t useTls;                   ///< Deprecated flag
-      TlsInitCallback tlsInitCallback; ///< TLS initialization callback function
+            bool_t useTls;                   ///< Deprecated flag
+            TlsInitCallback tlsInitCallback; ///< TLS initialization callback function
 #endif
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      HttpRandCallback randCallback; ///< Random data generation callback function
-      HttpAuthCallback authCallback; ///< HTTP authentication callback function
+            HttpRandCallback randCallback; ///< Random data generation callback function
+            HttpAuthCallback authCallback; ///< HTTP authentication callback function
 #endif
-      HttpCgiCallback cgiCallback;                 ///< CGI callback function
-      HttpRequestCallback requestCallback;         ///< HTTP request callback function
-      HttpUriNotFoundCallback uriNotFoundCallback; ///< URI not found callback function
-   } HttpServerSettings;
+            HttpCgiCallback cgiCallback;                 ///< CGI callback function
+            HttpRequestCallback requestCallback;         ///< HTTP request callback function
+            HttpUriNotFoundCallback uriNotFoundCallback; ///< URI not found callback function
 
-   /**
-    * @brief Nonce cache entry
-    **/
+            char_t *allowOrigin;
+      } HttpServerSettings;
 
-   typedef struct
-   {
-      char_t nonce[HTTP_SERVER_NONCE_SIZE * 2 + 1]; ///< Nonce
-      uint32_t count;                               ///< Nonce count
-      systime_t timestamp;                          ///< Time stamp to manage entry lifetime
-   } HttpNonceCacheEntry;
+      /**
+       * @brief Nonce cache entry
+       **/
 
-   /**
-    * @brief HTTP server context
-    **/
+      typedef struct
+      {
+            char_t nonce[HTTP_SERVER_NONCE_SIZE * 2 + 1]; ///< Nonce
+            uint32_t count;                               ///< Nonce count
+            systime_t timestamp;                          ///< Time stamp to manage entry lifetime
+      } HttpNonceCacheEntry;
 
-   struct _HttpServerContext
-   {
-      HttpServerSettings settings; ///< User settings
-      OsSemaphore semaphore;       ///< Semaphore limiting the number of connections
-      OsTaskId taskId;             ///< Task identifier
+      /**
+       * @brief HTTP server context
+       **/
+
+      struct _HttpServerContext
+      {
+            HttpServerSettings settings; ///< User settings
+            OsSemaphore semaphore;       ///< Semaphore limiting the number of connections
+            OsTaskId taskId;             ///< Task identifier
 #if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      OsTaskTcb taskTcb;                             ///< Task control block
-      OsStackType taskStack[HTTP_SERVER_STACK_SIZE]; ///< Task stack
+            OsTaskTcb taskTcb;                             ///< Task control block
+            OsStackType taskStack[HTTP_SERVER_STACK_SIZE]; ///< Task stack
 #endif
-      Socket *socket;              ///< Listening socket
-      HttpConnection *connections; ///< Client connections
+            Socket *socket;              ///< Listening socket
+            HttpConnection *connections; ///< Client connections
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)
-      TlsTicketContext tlsTicketContext; ///< TLS ticket encryption context
+            TlsTicketContext tlsTicketContext; ///< TLS ticket encryption context
 #endif
 #if (HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-      OsMutex nonceCacheMutex;                                      ///< Mutex preventing simultaneous access to the nonce cache
-      HttpNonceCacheEntry nonceCache[HTTP_SERVER_NONCE_CACHE_SIZE]; ///< Nonce cache
+            OsMutex nonceCacheMutex;                                      ///< Mutex preventing simultaneous access to the nonce cache
+            HttpNonceCacheEntry nonceCache[HTTP_SERVER_NONCE_CACHE_SIZE]; ///< Nonce cache
 #endif
-   };
+      };
 
-   /**
-    * @brief HTTP connection
-    *
-    * An HttpConnection instance represents one
-    * transaction with an HTTP client
-    *
-    **/
+      /**
+       * @brief HTTP connection
+       *
+       * An HttpConnection instance represents one
+       * transaction with an HTTP client
+       *
+       **/
 
-   struct _HttpConnection
-   {
-      HttpServerSettings *settings;     ///< Reference to the HTTP server settings
-      HttpServerContext *serverContext; ///< Reference to the HTTP server context
-      OsEvent startEvent;
-      bool_t running;
-      OsTaskId taskId; ///< Task identifier
+      struct _HttpConnection
+      {
+            HttpServerSettings *settings;     ///< Reference to the HTTP server settings
+            HttpServerContext *serverContext; ///< Reference to the HTTP server context
+            OsEvent startEvent;
+            bool_t running;
+            OsTaskId taskId; ///< Task identifier
 #if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      OsTaskTcb taskTcb;                             ///< Task control block
-      OsStackType taskStack[HTTP_SERVER_STACK_SIZE]; ///< Task stack
+            OsTaskTcb taskTcb;                             ///< Task control block
+            OsStackType taskStack[HTTP_SERVER_STACK_SIZE]; ///< Task stack
 #endif
-      Socket *socket; ///< Socket
+            Socket *socket; ///< Socket
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-      TlsContext *tlsContext; ///< TLS context
+            TlsContext *tlsContext; ///< TLS context
 #endif
-      HttpRequest request;                                ///< Incoming HTTP request header
-      HttpResponse response;                              ///< HTTP response header
-      HttpAccessStatus status;                            ///< Access status
-      char_t cgiParam[HTTP_SERVER_CGI_PARAM_MAX_LEN + 1]; ///< CGI parameter
-      uint32_t dummy;                                     ///< Force alignment of the buffer on 32-bit boundaries
-      char_t buffer[HTTP_SERVER_BUFFER_SIZE];             ///< Memory buffer for input/output operations
+            HttpRequest request;                                ///< Incoming HTTP request header
+            HttpResponse response;                              ///< HTTP response header
+            HttpAccessStatus status;                            ///< Access status
+            char_t cgiParam[HTTP_SERVER_CGI_PARAM_MAX_LEN + 1]; ///< CGI parameter
+            uint32_t dummy;                                     ///< Force alignment of the buffer on 32-bit boundaries
+            char_t buffer[HTTP_SERVER_BUFFER_SIZE];             ///< Memory buffer for input/output operations
 #if (NET_RTOS_SUPPORT == DISABLED)
-      HttpConnState state; ///< Connection state
-      systime_t timestamp;
-      size_t bufferPos;
-      size_t bufferLen;
-      uint8_t *bodyStart;
-      size_t bodyPos;
-      size_t bodyLen;
+            HttpConnState state; ///< Connection state
+            systime_t timestamp;
+            size_t bufferPos;
+            size_t bufferLen;
+            uint8_t *bodyStart;
+            size_t bodyPos;
+            size_t bodyLen;
 #endif
-      HTTP_SERVER_PRIVATE_CONTEXT ///< Application specific context
-   };
+            HTTP_SERVER_PRIVATE_CONTEXT ///< Application specific context
+      };
 
-   // HTTP server related functions
-   void httpServerGetDefaultSettings(HttpServerSettings *settings);
-   error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *settings);
-   error_t httpServerStart(HttpServerContext *context);
+      // HTTP server related functions
+      void httpServerGetDefaultSettings(HttpServerSettings *settings);
+      error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *settings);
+      error_t httpServerStart(HttpServerContext *context);
 
-   void httpListenerTask(void *param);
-   void httpConnectionTask(void *param);
+      void httpListenerTask(void *param);
+      void httpConnectionTask(void *param);
 
-   error_t httpWriteHeader(HttpConnection *connection);
+      error_t httpWriteHeader(HttpConnection *connection);
 
-   error_t httpReadStream(HttpConnection *connection,
-                          void *data, size_t size, size_t *received, uint_t flags);
+      error_t httpReadStream(HttpConnection *connection,
+                             void *data, size_t size, size_t *received, uint_t flags);
 
-   error_t httpWriteStream(HttpConnection *connection,
-                           const void *data, size_t length);
+      error_t httpWriteStream(HttpConnection *connection,
+                              const void *data, size_t length);
 
-   error_t httpCloseStream(HttpConnection *connection);
+      error_t httpCloseStream(HttpConnection *connection);
 
-   error_t httpSendResponse(HttpConnection *connection, const char_t *uri);
+      error_t httpSendResponse(HttpConnection *connection, const char_t *uri);
 
-   error_t httpSendErrorResponse(HttpConnection *connection,
-                                 uint_t statusCode, const char_t *message);
+      error_t httpSendErrorResponse(HttpConnection *connection,
+                                    uint_t statusCode, const char_t *message);
 
-   error_t httpSendRedirectResponse(HttpConnection *connection,
-                                    uint_t statusCode, const char_t *uri);
+      error_t httpSendRedirectResponse(HttpConnection *connection,
+                                       uint_t statusCode, const char_t *uri);
 
-   // HTTP authentication related functions
-   bool_t httpCheckPassword(HttpConnection *connection,
-                            const char_t *password, HttpAuthMode mode);
+      // HTTP authentication related functions
+      bool_t httpCheckPassword(HttpConnection *connection,
+                               const char_t *password, HttpAuthMode mode);
 
-   // WebSocket related functions
-   bool_t httpCheckWebSocketHandshake(HttpConnection *connection);
-   WebSocket *httpUpgradeToWebSocket(HttpConnection *connection);
+      // WebSocket related functions
+      bool_t httpCheckWebSocketHandshake(HttpConnection *connection);
+      WebSocket *httpUpgradeToWebSocket(HttpConnection *connection);
 
-   // Miscellaneous functions
-   error_t httpDecodePercentEncodedString(const char_t *input,
-                                          char_t *output, size_t outputSize);
+      // Miscellaneous functions
+      error_t httpDecodePercentEncodedString(const char_t *input,
+                                             char_t *output, size_t outputSize);
 
 // C++ guard
 #ifdef __cplusplus

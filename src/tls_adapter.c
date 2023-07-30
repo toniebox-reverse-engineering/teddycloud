@@ -1,5 +1,8 @@
 #include <errno.h>
+#ifdef WIN32
+#else
 #include <sys/random.h>
+#endif
 
 #include "pem_export.h"
 #include "rng/yarrow.h"
@@ -7,6 +10,7 @@
 #include "error.h"
 #include "debug.h"
 #include "settings.h"
+#include "fs_port.h"
 
 // tsl_certificate.c function Dependencies
 #include <string.h>
@@ -47,25 +51,40 @@ typedef enum
  * @param[in] fp The file to read from
  * @return The length read from the file
  */
-uint32_t der_get_length(FILE *fp)
+error_t der_get_length(FsFile *fp, size_t *outLength)
 {
-    uint8_t len;
-    fread(&len, 1, 1, fp);
-    if ((len & 0x80) == 0)
+    uint8_t derLen;
+    size_t len;
+    error_t err = fsReadFile(fp, &derLen, 1, &len);
+
+    if (err != NO_ERROR || len != 1)
     {
-        return len; // Short form
+        *outLength = 0;
+        return err;
+    }
+
+    if ((derLen & 0x80) == 0)
+    {
+        *outLength = derLen; // Short form
     }
     else
     {
-        uint8_t num_bytes = len & 0x7f; // Long form
+        uint8_t num_bytes = derLen & 0x7f; // Long form
         uint32_t length = 0;
         for (uint8_t i = 0; i < num_bytes; i++)
         {
-            fread(&len, 1, 1, fp);
-            length = (length << 8) | len;
+            error_t err = fsReadFile(fp, &derLen, 1, &len);
+            if (err != NO_ERROR || len != 1)
+            {
+                *outLength = 0;
+                return err;
+            }
+
+            length = (length << 8) | derLen;
         }
-        return length;
+        *outLength = length;
     }
+    return NO_ERROR;
 }
 
 /**
@@ -78,39 +97,67 @@ uint32_t der_get_length(FILE *fp)
  * @param[in] filename The name of the file to check
  * @return The type of the DER data in the file, or eDerTypeUnknown if the type could not be determined
  */
-eDerType der_detect(const char *filename)
+error_t der_detect(const char *filename, eDerType *type)
 {
-    eDerType ret = eDerTypeUnknown;
+    error_t ret = NO_ERROR;
+    *type = eDerTypeUnknown;
 
-    FILE *fp = fopen(filename, "rb");
+    FsFile *fp = fsOpenFile(filename, FS_FILE_MODE_READ);
     if (!fp)
     {
-        return eDerTypeUnknown;
+        return ERROR_FAILURE;
     }
 
-    uint8_t tag;
-    fread(&tag, 1, 1, fp); // Read the first tag
-
-    if (tag != 0x30)
+    /* while loop to break out and clean up commonly */
+    do
     {
-        fclose(fp);
-        return eDerTypeUnknown;
-    }
+        uint8_t tag;
+        size_t len;
 
-    der_get_length(fp); // Read the length of the SEQUENCE
+        /* read first byte */
+        error_t err = fsReadFile(fp, &tag, 1, &len);
+        if (err != NO_ERROR || len != 1)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
 
-    fread(&tag, 1, 1, fp); // Read the next tag
+        /* check for DER SEQUENCE format */
+        if (tag != 0x30)
+        {
+            break;
+        }
 
-    if (tag == 0x30)
-    {
-        ret = eDerTypeCertificate;
-    }
-    else if (tag == 0x02)
-    {
-        ret = eDerTypeKey;
-    }
+        /* read length of SEQUENCE */
+        size_t length;
+        err = der_get_length(fp, &length);
+        if (err != NO_ERROR)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
 
-    fclose(fp);
+        /* now get type of content */
+        err = fsReadFile(fp, &tag, 1, &len);
+        if (err != NO_ERROR || len != 1)
+        {
+            ret = ERROR_FAILURE;
+            break;
+        }
+
+        if (tag == 0x30)
+        {
+            /* when it's an SEQUENCE, its probably a certificate */
+            *type = eDerTypeCertificate;
+        }
+        else if (tag == 0x02)
+        {
+            /* when it's an INTEGER, its probably the RSA key */
+            *type = eDerTypeKey;
+        }
+    } while (0);
+
+    fsCloseFile(fp);
 
     return ret;
 }
@@ -123,9 +170,7 @@ eDerType der_detect(const char *filename)
  **/
 error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length)
 {
-    int_t ret;
     error_t error;
-    FILE *fp;
 
     // Initialize output parameters
     *buffer = NULL;
@@ -138,7 +183,14 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
     }
 
     const char_t *type = NULL;
-    eDerType derType = der_detect(filename);
+    eDerType derType;
+
+    error = der_detect(filename, &derType);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to open '%s' for cert type detection\r\n", filename);
+        return ERROR_READ_FAILED;
+    }
 
     switch (derType)
     {
@@ -156,10 +208,29 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
         break;
     }
 
+    FsFile *fp = NULL;
     do
     {
+        uint32_t fileLength = 0;
+        error = fsGetFileSize(filename, &fileLength);
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+
+        /* allocate file content buffer */
+        *length = fileLength;
+        *buffer = osAllocMem(fileLength + 1);
+
+        if (*buffer == NULL)
+        {
+            error = ERROR_OUT_OF_MEMORY;
+            break;
+        }
+        osMemset(*buffer, 0x00, fileLength + 1);
+
         // Open the specified file
-        fp = fopen(filename, "rb");
+        fp = fsOpenFile(filename, FS_FILE_MODE_READ);
 
         // Failed to open the file?
         if (fp == NULL)
@@ -168,36 +239,18 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
             break;
         }
 
-        // Jump to the end of the file
-        ret = fseek(fp, 0, SEEK_END);
-
-        // Any error to report?
-        if (ret != 0)
-        {
-            error = ERROR_FAILURE;
-            break;
-        }
-
-        // Retrieve the length of the file
-        *length = ftell(fp);
-        // Allocate a buffer to hold the contents of the file
-        *buffer = malloc(*length + 1);
-        memset(*buffer, 0x00, *length + 1);
-
-        // Failed to allocate memory?
-        if (*buffer == NULL)
-        {
-            error = ERROR_OUT_OF_MEMORY;
-            break;
-        }
-
-        // Rewind to the beginning of the file
-        rewind(fp);
         // Read file contents
-        ret = fread(*buffer, 1, *length, fp);
+        size_t read = 0;
+        error = fsReadFile(fp, *buffer, *length, &read);
 
         // Failed to read data?
-        if (ret != *length)
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+
+        // Failed to read data?
+        if (read != *length)
         {
             error = ERROR_READ_FAILED;
             break;
@@ -209,19 +262,20 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
 
     // Close file
     if (fp != NULL)
-        fclose(fp);
+        fsCloseFile(fp);
 
     // Any error to report?
     if (error)
     {
-        // Debug message
         TRACE_ERROR("Error: Cannot load file %s\r\n", filename);
         // Clean up side effects
-        free(*buffer);
+        osFreeMem(*buffer);
+        *buffer = NULL;
+        *length = 0;
     }
 
     /* convert .der to .pem by encoding it into ascii format */
-    if (type)
+    if (type && *buffer)
     {
         char *inBuf = *buffer;
         size_t inBufLen = *length;
@@ -238,11 +292,11 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
             return error;
         }
 
-        outBuf = malloc(outBufLen + 1);
-        memset(outBuf, 0x00, outBufLen + 1);
+        outBuf = osAllocMem(outBufLen + 1);
+        osMemset(outBuf, 0x00, outBufLen + 1);
         error = pemEncodeFile(inBuf, inBufLen, type, outBuf, &outBufLen);
 
-        free(inBuf);
+        osFreeMem(inBuf);
 
         /* replace output data with generated ascii string */
         *buffer = outBuf;
@@ -298,7 +352,7 @@ error_t tls_adapter_init()
 {
     uint8_t seed[32];
 
-    int ret = getrandom(seed, sizeof(seed), GRND_RANDOM);
+    int ret = getrandom(seed, sizeof(seed), 0);
     if (ret < 0)
     {
         TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);

@@ -1,20 +1,20 @@
 
+#ifdef WIN32
+#else
+#include <unistd.h>
+#endif
+
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <unistd.h>
 
+#include "handler.h"
 #include "handler_reverse.h"
 #include "settings.h"
 #include "stats.h"
 #include "cloud_request.h"
-
-typedef struct
-{
-    uint32_t status;
-    HttpConnection *connection;
-} cbr_ctx_t;
+#include "os_port.h"
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
 static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
@@ -66,14 +66,15 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-error_t handleReverse(HttpConnection *connection, const char_t *uri)
+error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    cbr_ctx_t ctx = {
+    cbr_ctx_t cbr_ctx = {
         .status = PROX_STATUS_IDLE,
-        .connection = connection};
+        .connection = connection,
+        .client_ctx = client_ctx};
 
     req_cbr_t cbr = {
-        .ctx = &ctx,
+        .ctx = &cbr_ctx,
         .response = &cbrCloudResponsePassthrough,
         .header = &cbrCloudHeaderPassthrough,
         .body = &cbrCloudBodyPassthrough,
@@ -83,7 +84,9 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
 
     /* here call cloud request, which has to get extended for cbr for header fields and content packets */
     uint8_t *token = connection->private.authentication_token;
-    error_t error = cloud_request_get(NULL, 0, &uri[8], token, &cbr);
+
+    // TODO POST
+    error_t error = cloud_request_get(NULL, 0, &uri[8], queryString, token, &cbr);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("cloud_request_get() failed\r\n");
@@ -91,9 +94,9 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri)
     }
 
     TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
-    while (ctx.status != PROX_STATUS_DONE)
+    while (cbr_ctx.status != PROX_STATUS_DONE)
     {
-        usleep(50000);
+        osDelayTask(50);
     }
     error = httpCloseStream(connection);
 

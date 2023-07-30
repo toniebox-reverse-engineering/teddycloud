@@ -15,12 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: Build Docker amd64 image
       run: docker buildx build --platform linux/amd64 . --tag revvox/teddycloud-amd64:$(date +%s) --tag revvox/teddycloud:latest
   build-arm64:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
       with:
@@ -31,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
       with:
@@ -41,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
       with:

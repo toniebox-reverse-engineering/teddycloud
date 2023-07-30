@@ -6,8 +6,14 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef WIN32
+#else
+#include <unistd.h>
+#endif
+
 #include "error.h"
 #include "debug.h"
+#include "cJSON.h"
 
 #include "tls_adapter.h"
 #include "cloud_request.h"
@@ -25,6 +31,30 @@ typedef enum
     PROT_HTTP,
     PROT_HTTPS
 } Protocol;
+
+void get_directory_path(const char *filepath, char *dirpath, int maxLen)
+{
+    // Find the last occurrence of '/' or '\' in the file path
+    int lastSlash = -1;
+    for (int i = 0; filepath[i] != '\0'; i++)
+    {
+        if (filepath[i] == '/' || filepath[i] == '\\')
+        {
+            lastSlash = i;
+        }
+    }
+
+    if (lastSlash == -1)
+    {
+        // No directory part found, use an empty string for the directory path
+        dirpath[0] = '\0';
+    }
+    else
+    {
+        // Copy the characters before the last slash to the directory path buffer
+        snprintf(dirpath, maxLen, "%.*s", lastSlash, filepath);
+    }
+}
 
 bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Protocol *protocol)
 {
@@ -82,10 +112,18 @@ int_t main(int argc, char *argv[])
 {
     error_t error = 0;
 
+    char cwd[256];
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    {
+        get_directory_path(argv[0], cwd, sizeof(cwd));
+    }
+
     /* platform specific init */
-    Settings.log.level = LOGLEVEL_INFO; // TODO via CLI
-    settings_init();
+    settings_init(cwd);
     platform_init();
+
+    cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
+    cJSON_InitHooks(&hooks);
 
     /* load certificates and TLS RNG */
     if (tls_adapter_init() != NO_ERROR)
@@ -140,7 +178,7 @@ int_t main(int argc, char *argv[])
 
             settings_set_bool("cloud.enabled", true);
 
-            error = cloud_request(hostname, port, protocol == PROT_HTTPS, uri, "GET", NULL, 0, hash, NULL);
+            error = cloud_request(hostname, port, protocol == PROT_HTTPS, uri, "", "GET", NULL, 0, hash, NULL);
 
             free(hostname);
             free(uri);
@@ -172,7 +210,7 @@ int_t main(int argc, char *argv[])
 
             TRACE_WARNING("\r\n");
 
-            error = cloud_request_get(NULL, 0, request, hash, NULL);
+            error = cloud_request_get(NULL, 0, request, "", hash, NULL);
         }
     }
     else

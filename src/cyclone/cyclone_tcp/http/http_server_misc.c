@@ -113,6 +113,8 @@ error_t httpReadRequestHeader(HttpConnection *connection)
 
    // Parse the Request-Line
    error = httpParseRequestLine(connection, connection->buffer);
+   if (error == ERROR_INVALID_REQUEST)
+      connection->response.contentLength = length;
    // Any error to report?
    if (error)
       return error;
@@ -603,7 +605,7 @@ void httpParseContentTypeField(HttpConnection *connection,
          if (n < HTTP_SERVER_BOUNDARY_MAX_LEN)
          {
             // Copy the boundary string
-            osStrncpy(connection->request.boundary, token, n);
+            osStrcpy(connection->request.boundary, token);
             // Properly terminate the string
             connection->request.boundary[n] = '\0';
 
@@ -907,6 +909,12 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Set-Cookie: %s\r\n", connection->response.setCookie);
    }
 #endif
+
+   char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+   if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+   {
+      p += osSprintf(p, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+   }
 
    // Valid content type?
    if (connection->response.contentType != NULL)

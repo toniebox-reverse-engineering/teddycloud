@@ -1,14 +1,18 @@
 
+#ifdef WIN32
+#else
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
+#include <arpa/inet.h>
+#endif
 
-// Dependencies
+#include <errno.h>
 #include <stdlib.h>
+
 #include "tls.h"
 #include "pem_export.h"
 #include "tls_cipher_suites.h"
@@ -21,10 +25,9 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
+#include "platform.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include "handler_cloud.h"
 
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)
@@ -44,9 +47,25 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
-    const char *client_ca = settings_get_string("internal.client.ca");
-    const char *client_crt = settings_get_string("internal.client.crt");
-    const char *client_key = settings_get_string("internal.client.key");
+    // TODO fix code duplication with server.c
+    settings_t *settings;
+    char_t *commonName = NULL;
+    char_t *subject = tlsContext->client_cert_subject;
+    if (tlsContext != NULL && osStrlen(subject) == 15)
+    {
+        commonName = strdup(&subject[2]);
+        commonName[osStrlen(commonName) - 1] = '\0';
+        settings = get_settings_cn(commonName);
+        free(commonName);
+    }
+    else
+    {
+        settings = get_settings();
+    }
+
+    const char *client_ca = settings->internal.client.ca;
+    const char *client_crt = settings->internal.client.crt;
+    const char *client_key = settings->internal.client.key;
 
     if (!client_ca || !client_crt || !client_key)
     {
@@ -73,19 +92,23 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     return NO_ERROR;
 }
 
-int_t cloud_request_get(const char *server, int port, const char *uri, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_get(const char *server, int port, const char *uri, const char *queryString, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, true, uri, "GET", NULL, 0, hash, cbr);
+    return cloud_request(server, port, true, uri, queryString, "GET", NULL, 0, hash, cbr);
 }
 
-int_t cloud_request_post(const char *server, int port, const char *uri, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
+int_t cloud_request_post(const char *server, int port, const char *uri, const char *queryString, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return cloud_request(server, port, true, uri, "POST", body, bodyLen, hash, cbr);
+    return cloud_request(server, port, true, uri, queryString, "POST", body, bodyLen, hash, cbr);
 }
 
-int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
+char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
+
+int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    if (!settings_get_bool("cloud.enabled"))
+    settings_t *settings = ((cbr_ctx_t *)cbr->ctx)->client_ctx->settings;
+
+    if (!settings->cloud.enabled)
     {
         TRACE_ERROR("Cloud requests generally blocked in settings\r\n");
         stats_update("cloud_blocked", 1);
@@ -93,31 +116,20 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
     }
 
     HttpClientContext httpClientContext;
-    IpAddr ipAddr;
 
     if (!server)
     {
-        server = settings_get_string("cloud.hostname");
+        server = settings->cloud.remote_hostname;
     }
     if (port <= 0)
     {
-        port = settings_get_unsigned("cloud.port");
+        port = settings->cloud.remote_port;
     }
 
     stats_update("cloud_requests", 1);
 
     TRACE_INFO("Connecting to HTTP server %s:%d...\r\n",
                server, port);
-
-    struct hostent *host = gethostbyname(server);
-
-    if (host->h_addrtype != AF_INET)
-    {
-        TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
-        stats_update("cloud_failed", 1);
-        return ERROR_ADDRESS_NOT_FOUND;
-    }
-    TRACE_INFO("  resolved as: %s\n", host->h_name);
 
     httpClientInit(&httpClientContext);
     error_t error;
@@ -142,16 +154,29 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         return error;
     }
 
-    struct in_addr **addr_list = (struct in_addr **)host->h_addr_list;
-
-    for (int i = 0; addr_list[i] != NULL; i++)
+    void *resolve_ctx = resolve_host(server);
+    if (!resolve_ctx)
     {
+        TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
+        stats_update("cloud_failed", 1);
+        return ERROR_ADDRESS_NOT_FOUND;
+    }
+
+    int pos = 0;
+    do
+    {
+        IpAddr ipAddr;
+        if (!resolve_get_ip(resolve_ctx, pos, &ipAddr))
+        {
+            break;
+        }
         bool success = FALSE;
 
-        TRACE_INFO("  trying IP: %s\n", inet_ntoa(*addr_list[i]));
-        memcpy(&ipAddr.ipv4Addr, &addr_list[i]->s_addr, 4);
+        char_t host[129];
 
-        ipAddr.length = host->h_length;
+        ipv4AddrToString(ipAddr.ipv4Addr, host);
+        TRACE_INFO("  trying IP: %s\n", host);
+
         do
         {
             error = httpClientConnect(&httpClientContext, &ipAddr,
@@ -169,6 +194,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             httpClientCreateRequest(&httpClientContext);
             httpClientSetMethod(&httpClientContext, method);
             httpClientSetUri(&httpClientContext, uri);
+            httpClientSetQueryString(&httpClientContext, queryString);
             if (body && bodyLen > 0)
             {
                 error = httpClientSetContentLength(&httpClientContext, bodyLen);
@@ -358,8 +384,9 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         {
             break;
         }
-    }
+    } while (0);
 
+    resolve_free(resolve_ctx);
     // Release HTTP client context
     httpClientDeinit(&httpClientContext);
 

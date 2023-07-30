@@ -1,16 +1,16 @@
 
 #define TRACE_LEVEL TRACE_LEVEL_WARNING
 
+#ifdef WIN32
+#else
 #include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -21,12 +21,18 @@
 #include "rng/yarrow.h"
 #include "tls_adapter.h"
 #include "settings.h"
+#include "returncodes.h"
+
+#include "path.h"
 #include "debug.h"
+#include "os_port.h"
 
 #include "cloud_request.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
+#include "handler_rtnl.h"
 #include "handler_api.h"
+#include "handler_sse.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -44,26 +50,167 @@ typedef struct
 {
     enum eRequestMethod method;
     char *path;
-    error_t (*handler)(HttpConnection *connection, const char_t *uri);
+    error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
 
-error_t handleWww(HttpConnection *connection, const char_t *uri)
+/* ToDo: a bit diry */
+bool queryGet(const char *query, const char *key, char *data, size_t data_len);
+
+error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return httpSendResponse(connection, &uri[4]);
+    const char *prefix = settings_get_string("internal.contentdirfull");
+    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(prefix) + 1);
+
+    if (new_uri == NULL)
+    {
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    TRACE_INFO("Query: '%s'\r\n", query);
+
+    char ogg[16];
+    if (!queryGet(connection->request.queryString, "ogg", ogg, sizeof(ogg)))
+    {
+        strcpy(ogg, "false");
+    }
+
+    bool skipFileHeader = !strcmp(ogg, "true");
+    size_t startOffset = skipFileHeader ? 4096 : 0;
+
+    osStrcpy(new_uri, prefix);
+    osStrcat(new_uri, &uri[8]);
+    TRACE_INFO("Request for '%s', ogg: %s\r\n", new_uri, ogg);
+
+    error_t error;
+    size_t n;
+    uint32_t length;
+    FsFile *file;
+
+    // Retrieve the size of the specified file
+    error = fsGetFileSize(new_uri, &length);
+    // The specified URI cannot be found?
+    if (error || length < startOffset)
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", new_uri);
+        return ERROR_NOT_FOUND;
+    }
+
+    // Open the file for reading
+    file = fsOpenFile(new_uri, FS_FILE_MODE_READ);
+    // Failed to open the file?
+    if (file == NULL)
+        return ERROR_NOT_FOUND;
+
+    // Format HTTP response header
+    // TODO add status 416 on invalid ranges
+    if (connection->request.Range.start > 0)
+    {
+        connection->request.Range.size = length - startOffset;
+        if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
+            connection->request.Range.end = connection->request.Range.size - 1;
+
+        if (connection->response.contentRange == NULL)
+            connection->response.contentRange = osAllocMem(255);
+
+        osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        connection->response.statusCode = 206;
+        connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+        TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+    }
+    else
+    {
+        connection->response.statusCode = 200;
+        connection->response.contentLength = length;
+    }
+    connection->response.contentType = "audio/ogg";
+    connection->response.chunkedEncoding = FALSE;
+    length = connection->response.contentLength;
+
+    // Send the header to the client
+    error = httpWriteHeader(connection);
+    // Any error to report?
+    if (error)
+    {
+        // Close the file
+        fsCloseFile(file);
+        // Return status code
+        return error;
+    }
+
+    if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+    {
+        TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+        fsSeekFile(file, connection->request.Range.start + startOffset, FS_SEEK_SET);
+    }
+    else
+    {
+        TRACE_DEBUG("No seeking, sending from beginning\r\n");
+        fsSeekFile(file, startOffset, FS_SEEK_SET);
+    }
+
+    // Send response body
+    while (length > 0)
+    {
+        // Limit the number of bytes to read at a time
+        n = MIN(length, HTTP_SERVER_BUFFER_SIZE);
+
+        // Read data from the specified file
+        error = fsReadFile(file, connection->buffer, n, &n);
+        // End of input stream?
+        if (error)
+            break;
+
+        // Send data to the client
+        error = httpWriteStream(connection, connection->buffer, n);
+        // Any error to report?
+        if (error)
+            break;
+
+        // Decrement the count of remaining bytes to be transferred
+        length -= n;
+    }
+
+    // Close the file
+    fsCloseFile(file);
+
+    // Successful file transfer?
+    if (error == NO_ERROR || error == ERROR_END_OF_FILE)
+    {
+        if (length == 0)
+        {
+            // Properly close the output stream
+            error = httpCloseStream(connection);
+        }
+    }
+
+    free(new_uri);
+
+    return error;
 }
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
+    /*binary handler (rtnl)*/
+    {REQ_ANY, "*binary", &handleRtnl},
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
-    {REQ_GET, "/www", &handleWww},
+    {REQ_GET, "/content/", &handleContent},
     /* custom API */
+    {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
+    {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
+    {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
+    {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
+    {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
+    {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
+    {REQ_GET, "/api/sse/sub", &handleApiSseSub},
+    {REQ_GET, "/api/sse/con", &handleApiSseCon},
     /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
@@ -71,7 +218,8 @@ request_type_t request_paths[] = {
     {REQ_GET, "/v1/content", &handleCloudContentV1},
     {REQ_GET, "/v2/content", &handleCloudContentV2},
     {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
-    {REQ_POST, "/v1/log", &handleCloudLog}};
+    {REQ_POST, "/v1/log", &handleCloudLog},
+    {REQ_POST, "/v1/cloud-reset", &handleCloudReset}};
 
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str)
 {
@@ -205,9 +353,11 @@ error_t
 httpServerRequestCallback(HttpConnection *connection,
                           const char_t *uri)
 {
+    error_t error = NO_ERROR;
+
     stats_update("connections", 1);
 
-    if (strlen(connection->tlsContext->client_cert_issuer))
+    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
     {
         TRACE_INFO("Certificate authentication:\r\n");
         TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
@@ -216,29 +366,61 @@ httpServerRequestCallback(HttpConnection *connection,
     }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
+
+    client_ctx_t client_ctx;
+    char_t *commonName = NULL;
+    char_t *subject = connection->tlsContext->client_cert_subject;
+    if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+    {
+        commonName = strdup(&subject[2]);
+        commonName[osStrlen(commonName) - 1] = '\0';
+        client_ctx.settings = get_settings_cn(commonName);
+        free(commonName);
+    }
+    else
+    {
+        client_ctx.settings = get_settings();
+    }
+
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            return (*request_paths[i].handler)(connection, uri);
+
+            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
         }
     }
 
     if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
     {
-        return httpSendResponse(connection, "index.html");
+        uri = "index.html";
     }
 
-    char dest[128];
-    snprintf(dest, sizeof(dest), "www/%s", uri);
-    return httpSendResponse(connection, dest);
+    char_t *newUri = osAllocMem(osStrlen(uri) + osStrlen(client_ctx.settings->core.wwwdir) + 2);
+    osStrcpy(newUri, client_ctx.settings->core.wwwdir);
+    osStrcat(newUri, "/");
+    osStrcat(newUri, uri);
+
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
+    return error;
 }
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection,
                                       const char_t *uri)
 {
-    return httpSendResponse(connection, "404.html");
+    error_t error = NO_ERROR;
+    char *fnf = "404.html";
+
+    char_t *newUri = osAllocMem(osStrlen(fnf) + osStrlen(get_settings()->core.wwwdir) + 2);
+    osStrcpy(newUri, get_settings()->core.wwwdir);
+    osStrcat(newUri, "/");
+    osStrcat(newUri, fnf);
+
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
+    return error;
 }
 
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
@@ -344,8 +526,49 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     return NO_ERROR;
 }
 
+bool sanityCheckDir(const char *dir)
+{
+    const char *path = settings_get_string(dir);
+
+    if (!path)
+    {
+        TRACE_ERROR("Config item '%s' not found\r\n", dir);
+        return false;
+    }
+    if (!fsDirExists(path))
+    {
+        TRACE_ERROR("Config item '%s' is set to '%s' which was not found\r\n", dir, path);
+        return false;
+    }
+    return true;
+}
+
+bool sanityChecks()
+{
+    bool ret = true;
+
+    ret &= sanityCheckDir("core.datadir");
+    ret &= sanityCheckDir("internal.datadirfull");
+    ret &= sanityCheckDir("internal.wwwdirfull");
+    ret &= sanityCheckDir("internal.contentdirfull");
+    ret &= sanityCheckDir("core.certdir");
+
+    if (!ret)
+    {
+        TRACE_ERROR("Sanity checks failed, exiting\r\n");
+        settings_set_signed("internal.returncode", RETURNCODE_INVALID_CONFIG);
+        settings_set_bool("internal.exit", true);
+    }
+
+    return ret;
+}
+
 void server_init()
 {
+    if (!sanityChecks())
+    {
+        return;
+    }
     settings_set_bool("internal.exit", FALSE);
 
     HttpServerSettings http_settings;
@@ -358,7 +581,7 @@ void server_init()
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
-    strcpy(http_settings.rootDirectory, "www/");
+    strcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
     strcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;
@@ -366,12 +589,14 @@ void server_init()
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
+    http_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
     https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
+    https_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
@@ -394,14 +619,20 @@ void server_init()
         return;
     }
 
+    systime_t last = osGetSystemTime();
     while (!settings_get_bool("internal.exit"))
     {
-        usleep(100000);
+        osDelayTask(250);
+        systime_t now = osGetSystemTime();
+        if ((now - last) / 1000 > 5)
+        {
+            last = now;
+            sanityChecks();
+        }
     }
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
-    usleep(100000);
 
     exit(ret);
 }

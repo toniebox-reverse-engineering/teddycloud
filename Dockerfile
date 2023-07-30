@@ -1,7 +1,7 @@
 FROM ubuntu:latest as buildenv
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential \
+    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential git \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /buildenv
@@ -15,14 +15,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends faketime openssl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /teddycloud/certs/server \
-    && mkdir -p /teddycloud/www/CONTENT \
-    && mkdir /teddycloud/config
+RUN mkdir -p /teddycloud/certs \
+    && mkdir /teddycloud/config \
+    && mkdir -p /teddycloud/data/content/default \
+    && mkdir -p /teddycloud/data/www 
 
 COPY --from=buildenv \
     /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv \
-    /buildenv/install/pre/www/ /teddycloud/www/
+    /buildenv/install/pre/data/www/ /teddycloud/data/www/
 
 COPY --from=buildenv \
     /buildenv/install/pre/*.sh /usr/local/bin/
@@ -30,7 +31,7 @@ COPY --from=buildenv \
     /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
 
 VOLUME [ \
-    "/teddycloud/www/CONTENT", \
+    "/teddycloud/data/content", \
     "/teddycloud/certs", \
     "/teddycloud/config", \
     ]
