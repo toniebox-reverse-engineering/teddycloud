@@ -9,9 +9,9 @@
 
 #include "fs_port.h"
 
-#define MAX_OVERLAYS 2
-static settings_t Settings_Overlay[MAX_OVERLAYS + 1];
-static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS + 1];
+#define MAX_OVERLAYS 2 + 1
+static settings_t Settings_Overlay[MAX_OVERLAYS];
+static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
 
 static void option_map_init(const char *overlay, setting_item_t **option_map)
 {
@@ -97,7 +97,8 @@ static void option_map_init(const char *overlay, setting_item_t **option_map)
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification")
     OPTION_END()
 
-    *option_map = osAllocMem(sizeof(setting_item_t) * sizeof(option_map_array));
+    if (*option_map == NULL)
+        *option_map = osAllocMem(sizeof(setting_item_t) * sizeof(option_map_array));
     osMemcpy(*option_map, option_map_array, sizeof(option_map_array));
 }
 static setting_item_t *get_option_map(const char *overlay)
@@ -175,23 +176,28 @@ void settings_changed()
 
 void settings_deinit()
 {
-    int pos = 0;
-    while (get_option_map(NULL)[pos].type != TYPE_END)
+    for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        setting_item_t *opt = &get_option_map(NULL)[pos];
-
-        switch (opt->type)
+        int pos = 0;
+        setting_item_t *option_map = Option_Map_Overlay[i];
+        while (option_map[pos].type != TYPE_END)
         {
-        case TYPE_STRING:
-            if (*((char **)opt->ptr))
+            setting_item_t *opt = &option_map[pos];
+
+            switch (opt->type)
             {
-                free(*((char **)opt->ptr));
+            case TYPE_STRING:
+                if (*((char **)opt->ptr))
+                {
+                    osFreeMem(*((char **)opt->ptr));
+                }
+                break;
+            default:
+                break;
             }
-            break;
-        default:
-            break;
+            pos++;
         }
-        pos++;
+        osFreeMem(option_map);
     }
 }
 
