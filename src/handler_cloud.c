@@ -55,14 +55,14 @@ typedef struct
     client_ctx_t *client_ctx;
 } cbr_ctx_t;
 
-static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp);
-static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp)
+static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
+static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings)
 {
-    freshResp->max_vol_spk = get_settings()->toniebox.max_vol_spk;
-    freshResp->max_vol_hdp = get_settings()->toniebox.max_vol_hdp;
-    freshResp->slap_en = get_settings()->toniebox.slap_enabled;
-    freshResp->slap_dir = get_settings()->toniebox.slap_back_left;
-    freshResp->led = get_settings()->toniebox.led;
+    freshResp->max_vol_spk = settings->toniebox.max_vol_spk;
+    freshResp->max_vol_hdp = settings->toniebox.max_vol_hdp;
+    freshResp->slap_en = settings->toniebox.slap_enabled;
+    freshResp->slap_dir = settings->toniebox.slap_back_left;
+    freshResp->led = settings->toniebox.led;
 }
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
@@ -124,7 +124,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
     switch (ctx->api)
     {
     case V2_CONTENT:
-        if (get_settings()->cloud.cacheContent && httpClientContext->statusCode == 200)
+        if (ctx->client_ctx->settings->cloud.cacheContent && httpClientContext->statusCode == 200)
         {
             // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
             // TRACE_INFO(">> %s\r\n", ctx->uri);
@@ -177,10 +177,10 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         break;
     case V1_FRESHNESS_CHECK:
-        if (get_settings()->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
+        if (ctx->client_ctx->settings->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
             TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
-            setTonieboxSettings(freshResp);
+            setTonieboxSettings(freshResp, ctx->client_ctx->settings);
             size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
 
             // TODO: Check if size is stable and this is obsolete
@@ -405,9 +405,9 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     return ret;
 }
 
-bool checkCustomTonie(char *ruid, uint8_t *token)
+bool checkCustomTonie(char *ruid, uint8_t *token, settings_t *settings)
 {
-    if (get_settings()->cloud.markCustomTagByPass)
+    if (settings->cloud.markCustomTagByPass)
     {
         bool tokenIsZero = TRUE;
         for (uint8_t i = 0; i < 32; i++)
@@ -424,7 +424,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
             return true;
         }
     }
-    if (get_settings()->cloud.markCustomTagByUid &&
+    if (settings->cloud.markCustomTagByUid &&
         (ruid[15] != '0' || ruid[14] != 'e' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
     {
         TRACE_INFO("Found possible custom tonie by uid\r\n");
@@ -479,7 +479,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!tonieInfo.nocloud && checkCustomTonie(ruid, token))
+    if (!tonieInfo.nocloud && checkCustomTonie(ruid, token, client_ctx->settings))
     {
         tonieInfo.nocloud = true;
         markCustomTonie(&tonieInfo);
@@ -530,7 +530,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token))
+    if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
     {
         tonieInfo.nocloud = true;
         markCustomTonie(&tonieInfo);
@@ -697,7 +697,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             {
                 tonie_freshness_check_request__free_unpacked(freshReq, NULL);
             }
-            setTonieboxSettings(&freshResp);
+            setTonieboxSettings(&freshResp, client_ctx->settings);
 
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);

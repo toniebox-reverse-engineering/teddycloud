@@ -89,14 +89,14 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
     output[j] = '\0';
 }
 
-error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
+error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char_t *data = connection->buffer;
     size_t size = connection->response.contentLength;
 
-    if (get_settings()->rtnl.logRaw)
+    if (client_ctx->settings->rtnl.logRaw)
     {
-        FsFile *file = fsOpenFile2(get_settings()->rtnl.logRawFile, "ab");
+        FsFile *file = fsOpenFile2(client_ctx->settings->rtnl.logRawFile, "ab");
         fsWriteFile(file, &data[connection->response.byteCount], size);
         fsCloseFile(file);
     }
@@ -124,7 +124,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         {
             rtnlEvent(rpc);
             rtnlEventLog(rpc);
-            rtnlEventDump(rpc);
+            rtnlEventDump(rpc, client_ctx->settings);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
@@ -242,12 +242,12 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
         TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
     }
 }
-void rtnlEventDump(TonieRtnlRPC *rpc)
+void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
 {
-    if (get_settings()->rtnl.logHuman)
+    if (settings->rtnl.logHuman)
     {
-        bool_t addHeader = !fsFileExists(get_settings()->rtnl.logHumanFile);
-        FsFile *file = fsOpenFile2(get_settings()->rtnl.logHumanFile, "ab");
+        bool_t addHeader = !fsFileExists(settings->rtnl.logHumanFile);
+        FsFile *file = fsOpenFile2(settings->rtnl.logHumanFile, "ab");
         if (addHeader)
         {
             char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";
