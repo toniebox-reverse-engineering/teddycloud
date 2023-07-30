@@ -333,7 +333,7 @@ void httpPrepareHeader(HttpConnection *connection, const void *contentType, size
     connection->response.contentLength = contentLength;
 }
 
-error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     TRACE_INFO(" >> respond with current time\r\n");
 
@@ -361,7 +361,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
     return httpWriteResponseString(connection, response, false);
 }
 
-error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     error_t ret = NO_ERROR;
     char *query = strdup(connection->request.queryString);
@@ -444,7 +444,7 @@ void markCustomTonie(tonie_info_t *tonieInfo)
     TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
 }
 
-error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
     {
@@ -455,7 +455,7 @@ error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char
     return NO_ERROR;
 }
 
-error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
@@ -567,11 +567,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     freeTonieInfo(&tonieInfo);
     return error;
 }
-error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     return handleCloudContent(connection, uri, queryString, TRUE);
 }
-error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
@@ -584,7 +584,7 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
     return NO_ERROR;
 }
 
-error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
@@ -709,7 +709,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
     return NO_ERROR;
 }
 
-error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     // EMPTY POST REQUEST?
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))

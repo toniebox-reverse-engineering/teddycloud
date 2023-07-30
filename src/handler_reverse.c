@@ -71,14 +71,14 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
-    cbr_ctx_t ctx = {
+    cbr_ctx_t cbr_ctx = {
         .status = PROX_STATUS_IDLE,
         .connection = connection};
 
     req_cbr_t cbr = {
-        .ctx = &ctx,
+        .ctx = &cbr_ctx,
         .response = &cbrCloudResponsePassthrough,
         .header = &cbrCloudHeaderPassthrough,
         .body = &cbrCloudBodyPassthrough,
@@ -98,7 +98,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_
     }
 
     TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
-    while (ctx.status != PROX_STATUS_DONE)
+    while (cbr_ctx.status != PROX_STATUS_DONE)
     {
         osDelayTask(50);
     }

@@ -27,7 +27,7 @@ typedef enum
 #define SAVE_SIZE 80
 #define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
 
-error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     cJSON *json = cJSON_CreateObject();
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "options");
@@ -115,7 +115,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     return NO_ERROR;
 }
 
-error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *item = &uri[5];
     char response[256];
@@ -177,7 +177,7 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     return NO_ERROR;
 }
 
-error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *item = &uri[5 + 3 + 1];
 
@@ -238,7 +238,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     return NO_ERROR;
 }
 
-error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     char response[256];
     sprintf(response, "ERROR");
@@ -413,7 +413,7 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
     return false; // Key not found
 }
 
-error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     char *query = connection->request.queryString;
 
@@ -527,7 +527,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
     return NO_ERROR;
 }
 
-error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     cJSON *json = cJSON_CreateObject();
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "stats");
@@ -881,7 +881,7 @@ void fileCertUploaded(const char *filename)
     osFreeMem(path);
 }
 
-error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     uint_t statusCode = 500;
     char message[128];
@@ -965,7 +965,7 @@ void sanitizePath(char *path, bool isDir)
     }
 }
 
-error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
@@ -1018,7 +1018,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
-error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
@@ -1065,7 +1065,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     return httpWriteResponseString(connection, message, false);
 }
 
-error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
@@ -1112,7 +1112,7 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     return httpWriteResponseString(connection, message, false);
 }
 
-error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
 

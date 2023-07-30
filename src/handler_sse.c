@@ -5,7 +5,7 @@
 static SseSubscriptionContext sseSubs[SSE_MAX_CHANNELS];
 static uint8_t sseSubscriptionCount = 0;
 
-error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     uint8_t channel;
     SseSubscriptionContext *sseCtx = NULL;
@@ -40,7 +40,7 @@ error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const cha
     connection->response.contentType = "text/plain";
     return httpWriteResponseString(connection, url, true);
 }
-error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString)
+error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
 {
     uint8_t channel = atoi(&uri[osStrlen(SSE_BASE_URL)]);
     SseSubscriptionContext *sseCtx = &sseSubs[channel];

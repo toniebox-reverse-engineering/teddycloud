@@ -10,6 +10,7 @@
 #include "http/http_server.h"
 #include "http/http_server_misc.h"
 
+#include "handler.h"
 #include "proto/toniebox.pb.taf-header.pb-c.h"
 
 #define BODY_BUFFER_SIZE 4096
@@ -33,14 +34,14 @@ void freeTonieInfo(tonie_info_t *tonieInfo);
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);
 
-error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, bool_t noPassword);
-error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString);
-error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString);
+error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
 
 #endif
