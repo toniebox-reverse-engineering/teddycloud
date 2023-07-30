@@ -432,13 +432,16 @@ bool checkCustomTonie(char *ruid, uint8_t *token)
 }
 void markCustomTonie(tonie_info_t *tonieInfo)
 {
-    char contentDir[22];         //".nocloud" / ".live"
-    char contentPathDot[30 + 8]; //".nocloud" / ".live"
-    osMemcpy(contentDir, tonieInfo->contentPath, 21);
-    contentDir[21] = '\0';
-    osMemcpy(contentPathDot, tonieInfo->contentPath, 30);
-    osStrcat(contentPathDot, ".nocloud");
-    fsCreateDir(contentDir);
+    int maxLen = 255;
+    char subDir[256];
+    char contentPathDot[256];
+
+    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
+    subDir[osStrlen(subDir) - 8] = '\0';
+    snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
+
+    fsCreateDir(subDir);
+
     FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
     fsCloseFile(file);
     TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
