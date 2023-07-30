@@ -21,11 +21,11 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_START()
 
     OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
+    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "", "common name of the certificate (for overlays)")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "0=off - 6=verbose")
     OPTION_BOOL("log.color", &settings->log.color, TRUE, "Colored log")
 
     /* settings for HTTPS server */
-    OPTION_STRING("core.commonName", &settings->core.commonName, "", "common name of the certificate (for overlays)")
     OPTION_UNSIGNED("core.server.https_port", &settings->core.http_port, 443, 1, 65535, "HTTPS port")
     OPTION_UNSIGNED("core.server.http_port", &settings->core.https_port, 80, 1, 65535, "HTTP port")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Directory where to upload genuine client certs to")
@@ -149,7 +149,7 @@ settings_t *get_settings_cn(const char *commonName)
 {
     for (size_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        if (osStrcmp(Settings_Overlay[i].core.commonName, commonName) == 0)
+        if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
         {
             return &Settings_Overlay[i];
         }

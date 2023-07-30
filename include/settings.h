@@ -86,7 +86,6 @@ typedef struct
 
 typedef struct
 {
-    char *commonName;
     uint32_t http_port;
     uint32_t https_port;
     char *certdir;
@@ -115,6 +114,7 @@ typedef struct
 typedef struct
 {
     uint32_t configVersion;
+    char *commonName;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
