@@ -98,7 +98,7 @@ static void option_map_init(const char *overlay, setting_item_t **option_map)
     OPTION_END()
 
     *option_map = osAllocMem(sizeof(setting_item_t) * sizeof(option_map_array));
-    osMemcpy(*option_map, option_map_array, sizeof(setting_item_t));
+    osMemcpy(*option_map, option_map_array, sizeof(option_map_array));
 }
 static setting_item_t *get_option_map(const char *overlay)
 {
