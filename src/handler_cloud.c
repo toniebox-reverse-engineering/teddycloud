@@ -13,48 +13,6 @@
 #include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
 #include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
 
-#define PROX_STATUS_IDLE 0
-#define PROX_STATUS_CONN 1
-#define PROX_STATUS_HEAD 2
-#define PROX_STATUS_BODY 3
-#define PROX_STATUS_DONE 4
-
-typedef enum
-{
-    NONE = 0,
-    V1_TIME,
-    V1_OTA,
-    V1_CLAIM,
-    V2_CONTENT,
-    V1_FRESHNESS_CHECK,
-    V1_LOG,
-    V1_CLOUDRESET
-} cloudapi_t;
-
-typedef enum
-{
-    OTA_FIRMWARE_PD = 2,
-    OTA_FIRMWARE_EU = 3,
-    OTA_SERVICEPACK_CC3200 = 4,
-    OTA_HTML_CONFIG = 5,
-    OTA_SFX_BIN = 6,
-} cloudapi_ota_t;
-
-typedef struct
-{
-    const char_t *uri;
-    const char_t *queryString;
-    cloudapi_t api;
-    char_t *buffer;
-    size_t bufferPos;
-    size_t bufferLen;
-    uint32_t status;
-    FsFile *file;
-    tonie_info_t tonieInfo;
-    HttpConnection *connection;
-    client_ctx_t *client_ctx;
-} cbr_ctx_t;
-
 static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
 static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings)
 {
