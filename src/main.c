@@ -8,6 +8,7 @@
 
 #include "error.h"
 #include "debug.h"
+#include "cJSON.h"
 
 #include "tls_adapter.h"
 #include "cloud_request.h"
@@ -83,9 +84,12 @@ int_t main(int argc, char *argv[])
     error_t error = 0;
 
     /* platform specific init */
-    Settings.log.level = LOGLEVEL_INFO; // TODO via CLI
+    get_settings()->log.level = LOGLEVEL_INFO; // TODO via CLI
     settings_init();
     platform_init();
+
+    cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
+    cJSON_InitHooks(&hooks);
 
     /* load certificates and TLS RNG */
     if (tls_adapter_init() != NO_ERROR)

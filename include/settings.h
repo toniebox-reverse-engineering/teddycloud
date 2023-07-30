@@ -5,7 +5,7 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
-#define CONFIG_VERSION 3
+#define CONFIG_VERSION 4
 
 typedef enum
 {
@@ -69,6 +69,9 @@ typedef struct
     settings_cert_t client;
     bool config_init;
     bool config_changed;
+
+    char *contentdirfull;
+    char *wwwdirfull;
 } settings_internal_t;
 
 typedef struct
@@ -83,6 +86,8 @@ typedef struct
     uint32_t https_port;
     char *certdir;
     char *contentdir;
+    char *datadir;
+    char *wwwdir;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
@@ -91,6 +96,7 @@ typedef struct
 typedef struct
 {
     settings_loglevel level;
+    bool color;
 } settings_log_t;
 
 typedef struct
@@ -203,7 +209,14 @@ typedef struct
     }                    \
     ;
 
-extern settings_t Settings;
+void overlay_settings_init();
+
+settings_t *get_settings();
+settings_t *get_settings_ovl(char *overlay);
+
+void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
+void settings_generate_internal_dirs(settings_t *settings);
+void settings_changed();
 
 /**
  * @brief Initializes the settings subsystem.
@@ -256,6 +269,7 @@ void settings_save();
  * @endcode
  */
 void settings_load();
+void settings_load_ovl(char *overlay);
 
 /**
  * @brief Gets the setting item at a specific index.

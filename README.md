@@ -18,7 +18,6 @@ Currently implemented are:
 * Customize original box sounds (ex. jingle) over the air
 
 ## Planned
-* Update live content only when changed (based on file date)
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (ideas welcome)
@@ -64,7 +63,7 @@ With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries 
 Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the TeddyCloud servers ip-address. Beware, this will cut off the connection of all tonieboxes within your network, which arn't patched with your replacement CA!
 
 ### Content
-Please put your content into the ```/www/CONTENT/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live.
+Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
 
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).

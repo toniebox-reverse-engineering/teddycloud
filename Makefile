@@ -19,6 +19,7 @@ ifeq ($(OS),Windows_NT)
 	MKDIR       = mkdir 
 	RM          = del
 	CP          = copy
+	CP_R        = xcopy /E /I 
 	TO_TRASH    = >NUL 2>NUL
 	# special assignment to have only the backslash in the variable
 	SEP         = \$(strip)
@@ -27,6 +28,7 @@ else
 	ECHO        = echo -e
 	RM          = rm -f
 	CP          = cp
+	CP_R        = cp -r
 	TO_TRASH    = >/dev/null 2>&1
 	SEP         = /
 endif
@@ -39,7 +41,8 @@ ifeq ($(PLATFORM),linux)
 	CC_IN_OPT      = -c
 	OBJ_EXT        = $(OBJ_EXT)
 	LINK_LO_OPT    = @$(LINK_LO_FILE)
-	LD             = $(CC)
+	CC             = gcc
+	LD             = gcc
 	OBJ_EXT        = .o
 endif
 
@@ -72,7 +75,7 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-LFLAGS_linux = -lpthread -lc
+LFLAGS_linux = 
 CFLAGS_linux += -Wall -Werror
 CFLAGS_linux += -ggdb -O3
 #CFLAGS += -fsanitize=address -static-libasan -Og
@@ -99,16 +102,21 @@ INCLUDES = \
 	-Icyclone/cyclone_ssl \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
-	-Icyclone/cyclone_crypto/pkix
+	-Icyclone/cyclone_crypto/pkix \
+	-IcJSON
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
+	cJSON/cJSON.c \
+	cJSON/cJSON_Utils.c
 
 HEADERS = \
 	$(wildcard include/*.h) \
-	$(CYCLONE_SOURCES:.c=.h)
+	$(CYCLONE_SOURCES:.c=.h) \
+	cJSON/cJSON.h \
+	cJSON/cJSON_Utils.h
 
 
 #
@@ -209,7 +217,6 @@ CYCLONE_SOURCES += \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
-CFLAGS += -D TRACE_COLORED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += $(INCLUDES)
 
@@ -293,11 +300,14 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/
+	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
+	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
+
 .SECONDEXPANSION:
-$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) certs/server/ certs/client/ config/ | $$(dir $$@)
+$(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs | $$(dir $$@)
 	$(QUIET)$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
 	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)${NC}'; false)
-	$(QUIET)cp -r $(CONTRIB_DIR)/www .
 
 .SECONDEXPANSION:
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
@@ -309,10 +319,15 @@ clean:
 	$(QUIET)$(RM) $(subst /,$(SEP),$(EXECUTABLE))
 	$(QUIET)$(RM) $(foreach O,$(CLEAN_FILES),$(subst /,$(SEP),$(O)) )
 
+.PHONY: submodules
+submodules:
+	$(QUIET)git submodule init
+	$(QUIET)git submodule update
+
 preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
-	$(QUIET)cp $(BIN_DIR)/* $(PREINSTALL_DIR)/
-	$(QUIET)cp -r $(CONTRIB_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
+	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -

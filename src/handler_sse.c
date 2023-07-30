@@ -33,9 +33,9 @@ error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const cha
 
     char_t *urlPrintf = SSE_BASE_URL "%" PRIu8;
     char_t *url = osAllocMem(osStrlen(urlPrintf));
-    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s\r\n", channel, url);
 
     osSprintf(url, urlPrintf, channel);
+    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s\r\n", channel, url);
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
     return httpWriteResponseString(connection, url, true);

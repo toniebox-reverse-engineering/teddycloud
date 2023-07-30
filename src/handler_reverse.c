@@ -100,7 +100,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_
     TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
     while (ctx.status != PROX_STATUS_DONE)
     {
-        usleep(50000);
+        osDelayTask(50);
     }
     error = httpCloseStream(connection);
 

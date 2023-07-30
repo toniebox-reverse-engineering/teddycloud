@@ -13,6 +13,7 @@
 #include "settings.h"
 #include "stats.h"
 #include "returncodes.h"
+#include "cJSON.h"
 
 typedef enum
 {
@@ -28,11 +29,10 @@ typedef enum
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    char *json = strdup("{\"options\": [");
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "options");
     int pos = 0;
-    bool first = true;
 
-    json = realloc(json, osStrlen(json) + 10);
     while (true)
     {
         setting_item_t *opt = settings_get(pos);
@@ -72,36 +72,33 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
             break;
         }
 
-        if (!first)
-        {
-            strcat(json, ",");
-        }
-        first = false;
-
-        char buf[1024];
-        sprintf(buf, "{\"ID\": \"%s\", \"shortname\": \"%s\", \"description\": \"%s\", \"type\": \"%s\"}",
-                opt->option_name, opt->option_name, opt->description, type);
-
-        json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
-        strcat(json, buf);
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "ID", opt->option_name);
+        cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
+        cJSON_AddStringToObject(jsonEntry, "description", opt->description);
+        cJSON_AddStringToObject(jsonEntry, "type", type);
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
     }
-    strcat(json, "]}");
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
-    connection->response.contentLength = osStrlen(json);
+    connection->response.contentLength = osStrlen(jsonString);
 
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
-        free(json);
+        osFreeMem(jsonString);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
-    error = httpWriteStream(connection, json, connection->response.contentLength);
-    free(json);
+    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
+    osFreeMem(jsonString);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
@@ -185,7 +182,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     const char *item = &uri[5 + 3 + 1];
 
     char json[256];
-    strcpy(json, "ERROR");
+    osStrcpy(json, "ERROR");
     setting_item_t *opt = settings_get_by_name(item);
 
     if (opt)
@@ -274,7 +271,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
             {
                 if (settings_set_bool(item, !strcasecmp(data, "true")))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -282,7 +279,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
             {
                 if (settings_set_string(item, data))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -292,7 +289,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 
                 if (settings_set_unsigned(item, value))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -303,7 +300,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 
                 if (settings_set_unsigned(item, value))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -314,7 +311,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 
                 if (settings_set_signed(item, value))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -325,7 +322,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 
                 if (settings_set_float(item, value))
                 {
-                    strcpy(response, "OK");
+                    osStrcpy(response, "OK");
                 }
                 break;
             }
@@ -386,7 +383,7 @@ int urldecode(char *dest, const char *src)
 bool queryGet(const char *query, const char *key, char *data, size_t data_len)
 {
     const char *q = query;
-    size_t key_len = strlen(key);
+    size_t key_len = osStrlen(key);
     while ((q = strstr(q, key)))
     {
         if (q[key_len] == '=')
@@ -420,7 +417,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 {
     char *query = connection->request.queryString;
 
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -434,21 +431,20 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
     if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
     {
-        strcpy(path, "/");
+        osStrcpy(path, "/");
     }
 
     snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     int pos = 0;
-    char *json = strdup("[");
     FsDir *dir = fsOpenDir(pathAbsolute);
 
-    json = realloc(json, osStrlen(json) + 128);
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
 
     while (true)
     {
-        char buf[384];
         FsDirEntry entry;
 
         if (fsReadDir(dir, &entry) != NO_ERROR)
@@ -462,10 +458,6 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             continue;
         }
 
-        if (pos != 0)
-        {
-            strcat(json, ",");
-        }
         char dateString[64];
 
         osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
@@ -490,29 +482,35 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         }
         freeTonieInfo(&tafInfo);
 
-        snprintf(buf, sizeof(buf), "{\"name\": \"%s\", \"date\": \"%s\", \"size\": \"%d\", \"isDirectory\": %s, \"desc\": \"%s\" }",
-                 entry.name, dateString, entry.size, (entry.attributes & FS_FILE_ATTR_DIRECTORY) ? "true" : "false", desc);
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "name", entry.name);
+        cJSON_AddStringToObject(jsonEntry, "date", dateString);
+        cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
+        cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
+        cJSON_AddStringToObject(jsonEntry, "desc", desc);
 
-        json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
-        strcat(json, buf);
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
     }
-    strcat(json, "]");
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+
+    cJSON_Delete(json);
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/json";
-    connection->response.contentLength = osStrlen(json);
+    connection->response.contentLength = osStrlen(jsonString);
 
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
-        free(json);
+        osFreeMem(jsonString);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
-    error = httpWriteStream(connection, json, connection->response.contentLength);
-    free(json);
+    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
+    osFreeMem(jsonString);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
@@ -531,48 +529,44 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
 error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    char *json = strdup("{\"stats\": [");
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "stats");
     int pos = 0;
 
-    json = realloc(json, osStrlen(json) + 10);
     while (true)
     {
-        char buf[1024];
         stat_t *stat = stats_get(pos);
 
         if (!stat)
         {
             break;
         }
-
-        if (pos != 0)
-        {
-            strcat(json, ",");
-        }
-
-        sprintf(buf, "{\"ID\": \"%s\", \"description\": \"%s\", \"value\": \"%d\" }",
-                stat->name, stat->description, stat->value);
-
-        json = realloc(json, osStrlen(json) + osStrlen(buf) + 10);
-        strcat(json, buf);
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "ID", stat->name);
+        cJSON_AddStringToObject(jsonEntry, "description", stat->description);
+        cJSON_AddNumberToObject(jsonEntry, "value", stat->value);
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
     }
-    strcat(json, "]}");
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
-    connection->response.contentLength = osStrlen(json);
+    connection->response.contentLength = osStrlen(jsonString);
 
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
-        free(json);
+        osFreeMem(jsonString);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
-    error = httpWriteStream(connection, json, connection->response.contentLength);
-    free(json);
+    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
+    osFreeMem(jsonString);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
@@ -632,7 +626,7 @@ void multipartEnd(FsFile *file)
 
 int find_string(const void *haystack, size_t haystack_len, size_t haystack_start, const char *str)
 {
-    size_t str_len = strlen(str);
+    size_t str_len = osStrlen(str);
 
     if (str_len > haystack_len)
     {
@@ -714,7 +708,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
             }
             else
             {
-                save_start = boundary_start + strlen(boundary);
+                save_start = boundary_start + osStrlen(boundary);
                 save_end = payload_size;
                 state = PARSE_FILENAME;
             }
@@ -753,7 +747,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
                 break;
             }
 
-            fn_start += strlen("filename=\"");
+            fn_start += osStrlen("filename=\"");
             int fn_end = find_string(buffer, payload_size, fn_start, "\"\r\n");
             if (fn_end < 0)
             {
@@ -861,7 +855,7 @@ void fileCertUploaded(const char *filename)
     /* rootpath must be valid, which is ensured by upload handler */
     const char *rootPath = settings_get_string("core.certdir");
 
-    char *path = malloc(strlen(rootPath) + strlen(filename) + 3);
+    char *path = osAllocMem(osStrlen(rootPath) + osStrlen(filename) + 3);
     osSprintf(path, "%s/%s", rootPath, filename);
 
     if (!osStrcasecmp(filename, "ca.der"))
@@ -884,7 +878,7 @@ void fileCertUploaded(const char *filename)
         TRACE_INFO("Unknown file type %s\r\n", filename);
     }
 
-    free(path);
+    osFreeMem(path);
 }
 
 error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString)
@@ -973,11 +967,11 @@ void sanitizePath(char *path, bool isDir)
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
 
@@ -985,7 +979,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
-        strcpy(path, "/");
+        osStrcpy(path, "/");
     }
 
     sanitizePath(path, true);
@@ -1026,11 +1020,11 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];
@@ -1073,11 +1067,11 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];
@@ -1120,11 +1114,11 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString)
 {
-    const char *rootPath = settings_get_string("core.contentdir");
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.contentdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
     char path[256];

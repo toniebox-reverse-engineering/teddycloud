@@ -479,6 +479,7 @@ void httpConnectionTask(void *param)
                   error = httpReceive(connection, &connection->buffer[pos],
                                       HTTP_SERVER_BUFFER_SIZE - pos, &length, SOCKET_FLAG_PEEK); // TODO
                   connection->response.contentLength = length + pos;
+                  osDelayTask(10);
                }
             }
             else
