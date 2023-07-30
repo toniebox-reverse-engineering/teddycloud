@@ -27,6 +27,8 @@
 #include "settings.h"
 #include "platform.h"
 
+#include "handler_cloud.h"
+
 error_t httpClientTlsInitCallback(HttpClientContext *context,
                                   TlsContext *tlsContext)
 {
@@ -45,9 +47,25 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
-    const char *client_ca = settings_get_string("internal.client.ca");
-    const char *client_crt = settings_get_string("internal.client.crt");
-    const char *client_key = settings_get_string("internal.client.key");
+    // TODO fix code duplication with server.c
+    settings_t *settings;
+    char_t *commonName = NULL;
+    char_t *subject = tlsContext->client_cert_subject;
+    if (tlsContext != NULL && osStrlen(subject) == 15)
+    {
+        commonName = strdup(&subject[2]);
+        commonName[osStrlen(commonName) - 1] = '\0';
+        settings = get_settings_cn(commonName);
+        free(commonName);
+    }
+    else
+    {
+        settings = get_settings();
+    }
+
+    const char *client_ca = settings->internal.client.ca;
+    const char *client_crt = settings->internal.client.crt;
+    const char *client_key = settings->internal.client.key;
 
     if (!client_ca || !client_crt || !client_key)
     {
@@ -88,7 +106,9 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 
 int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    if (!settings_get_bool("cloud.enabled"))
+    settings_t *settings = ((cbr_ctx_t *)cbr->ctx)->client_ctx->settings;
+
+    if (!settings->cloud.enabled)
     {
         TRACE_ERROR("Cloud requests generally blocked in settings\r\n");
         stats_update("cloud_blocked", 1);
@@ -99,11 +119,11 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
     if (!server)
     {
-        server = settings_get_string("cloud.hostname");
+        server = settings->cloud.remote_hostname;
     }
     if (port <= 0)
     {
-        port = settings_get_unsigned("cloud.port");
+        port = settings->cloud.remote_port;
     }
 
     stats_update("cloud_requests", 1);
@@ -134,8 +154,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         return error;
     }
 
-    void *ctx = resolve_host(server);
-    if (!ctx)
+    void *resolve_ctx = resolve_host(server);
+    if (!resolve_ctx)
     {
         TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
         stats_update("cloud_failed", 1);
@@ -146,7 +166,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
     do
     {
         IpAddr ipAddr;
-        if (!resolve_get_ip(ctx, pos, &ipAddr))
+        if (!resolve_get_ip(resolve_ctx, pos, &ipAddr))
         {
             break;
         }
@@ -366,7 +386,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         }
     } while (0);
 
-    resolve_free(ctx);
+    resolve_free(resolve_ctx);
     // Release HTTP client context
     httpClientDeinit(&httpClientContext);
 
