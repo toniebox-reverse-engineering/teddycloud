@@ -9,7 +9,7 @@
 
 #include "fs_port.h"
 
-#define MAX_OVERLAYS 2 + 1
+#define MAX_OVERLAYS 16 + 1
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
