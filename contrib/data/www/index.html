@@ -194,11 +194,7 @@
             }
 
             componentDidMount() {
-                fetch(`/api/get/${this.props.id}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        this.setState({ isChecked: data === 'true' });
-                    });
+                this.setState({ isChecked: this.props.value });
             }
 
             handleCheckboxChange = () => {
@@ -237,11 +233,7 @@
             }
 
             componentDidMount() {
-                fetch(`/api/get/${this.props.id}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        this.setState({ value: parseInt(data, 10) });
-                    });
+                this.setState({ value: this.props.value });
             }
 
             handleInputChange = (event) => {
@@ -272,6 +264,7 @@
                 );
             }
         }
+
         class StringInput extends React.Component {
             constructor(props) {
                 super(props);
@@ -279,11 +272,7 @@
             }
 
             componentDidMount() {
-                fetch(`/api/get/${this.props.id}`)
-                    .then(response => response.text())
-                    .then(data => {
-                        this.setState({ value: data });
-                    });
+                this.setState({ value: this.props.value });
             }
 
             handleInputChange = (event) => {
@@ -379,25 +368,25 @@
                     case 'bool':
                         return (
                             <div style={{ marginLeft: `${indent}px` }}>
-                                <Checkbox id={option.ID} label={option.description} />
+                                <Checkbox id={option.ID} label={option.description} value={option.value} />
                             </div>
                         );
                     case 'int':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} />
+                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
                             </div>
                         );
                     case 'uint':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} />
+                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
                             </div>
                         );
                     case 'string':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <StringInput id={option.ID} label={option.description} />
+                                <StringInput id={option.ID} label={option.description} value={option.value} />
                             </div>
                         );
                     default:
