@@ -190,12 +190,6 @@ void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.contentdirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
 
-    /*
-        char dataPath[256];
-        char *dataPathPointer = dataPath;
-        char contentPath[256];
-        char *contentPathPointer = contentPath;
-        */
     char *dataPath = osAllocMem(256);
     char *contentPath = osAllocMem(256);
 
@@ -205,6 +199,9 @@ void settings_generate_internal_dirs(settings_t *settings)
     fsCreateDir(settings->internal.contentdirfull);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, dataPath);
+
+    free(dataPath);
+    free(contentPath);
 }
 
 void settings_changed()
