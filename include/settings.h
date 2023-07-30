@@ -5,6 +5,7 @@
 #define SETTINGS_H
 
 #define CONFIG_PATH "config/config.ini"
+#define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
 #define CONFIG_VERSION 4
 
 typedef enum
@@ -72,6 +73,8 @@ typedef struct
 
     char *contentdirfull;
     char *wwwdirfull;
+
+    char *overlayName;
 } settings_internal_t;
 
 typedef struct
@@ -82,6 +85,7 @@ typedef struct
 
 typedef struct
 {
+    char *commonName;
     uint32_t http_port;
     uint32_t https_port;
     char *certdir;
@@ -183,7 +187,7 @@ typedef struct
     bool internal;
 } setting_item_t;
 
-#define OPTION_START() setting_item_t option_map[] = {
+#define OPTION_START() setting_item_t option_map_array[] = {
 #define OPTION_ADV_BOOL(o, p, d, desc, i) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i},
 #define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i},
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i},
@@ -212,7 +216,9 @@ typedef struct
 void overlay_settings_init();
 
 settings_t *get_settings();
-settings_t *get_settings_ovl(char *overlay);
+settings_t *get_settings_ovl(const char *overlay);
+
+uint8_t get_overlay_id(const char *overlay);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
@@ -250,6 +256,7 @@ void settings_deinit();
  * @endcode
  */
 void settings_save();
+void settings_save_ovl(bool overlay);
 
 /**
  * @brief Loads settings from a persistent storage (like a file or database).
@@ -269,7 +276,7 @@ void settings_save();
  * @endcode
  */
 void settings_load();
-void settings_load_ovl(char *overlay);
+void settings_load_ovl(bool overlay);
 
 /**
  * @brief Gets the setting item at a specific index.
@@ -278,6 +285,7 @@ void settings_load_ovl(char *overlay);
  * @return A pointer to the setting item, or NULL if the index is out of bounds.
  */
 setting_item_t *settings_get(int index);
+setting_item_t *settings_get_ovl(int index, const char *overlay_name);
 
 /**
  * @brief Sets the value of a boolean setting item.
@@ -294,6 +302,7 @@ bool settings_set_bool(const char *item, bool value);
  * @return The current value of the setting item. If the item does not exist or is not a boolean, the behavior is undefined.
  */
 bool settings_get_bool(const char *item);
+bool settings_get_bool_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Gets the value of an signed integer setting item.
@@ -302,6 +311,7 @@ bool settings_get_bool(const char *item);
  * @return The current value of the setting item. If the item does not exist or is not an integer, the behavior is undefined.
  */
 int32_t settings_get_signed(const char *item);
+int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Sets the value of an integer setting item.
@@ -318,6 +328,7 @@ bool settings_set_signed(const char *item, int32_t value);
  * @return The current value of the setting item. If the item does not exist or is not an integer, the behavior is undefined.
  */
 uint32_t settings_get_unsigned(const char *item);
+uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Sets the value of an unsigned integer setting item.
@@ -334,6 +345,7 @@ bool settings_set_unsigned(const char *item, uint32_t value);
  * @return A pointer to the setting item, or NULL if the item does not exist.
  */
 setting_item_t *settings_get_by_name(const char *item);
+setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Retrieves the value of a string setting item.
@@ -342,6 +354,7 @@ setting_item_t *settings_get_by_name(const char *item);
  * @return The current string value of the setting item. If the item does not exist or is not a string, the behavior is undefined.
  */
 const char *settings_get_string(const char *item);
+const char *settings_get_string_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Sets the value of a string setting item.
@@ -358,6 +371,7 @@ bool settings_set_string(const char *item, const char *value);
  * @return The current float value of the setting item. If the item does not exist or is not a float, the behavior is undefined.
  */
 float settings_get_float(const char *item);
+float settings_get_float_ovl(const char *item, const char *overlay_name);
 
 /**
  * @brief Sets the value of a floating point setting item.
