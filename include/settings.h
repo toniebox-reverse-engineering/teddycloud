@@ -287,6 +287,7 @@ void settings_load_ovl(bool overlay);
  */
 setting_item_t *settings_get(int index);
 setting_item_t *settings_get_ovl(int index, const char *overlay_name);
+setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of a boolean setting item.
@@ -364,6 +365,7 @@ const char *settings_get_string_ovl(const char *item, const char *overlay_name);
  * @param value The new string value for the setting item.
  */
 bool settings_set_string(const char *item, const char *value);
+bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId);
 
 /**
  * @brief Retrieves the value of a floating point setting item.

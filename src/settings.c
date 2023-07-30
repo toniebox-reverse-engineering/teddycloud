@@ -111,9 +111,28 @@ void overlay_settings_init()
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
         osMemcpy(&Settings_Overlay[i], get_settings(), sizeof(settings_t));
-        //  TODO clone strings and free them
-        option_map_init(NULL, &Option_Map_Overlay[i]);
         Settings_Overlay[i].internal.config_init = false;
+        option_map_init(NULL, &Option_Map_Overlay[i]);
+
+        int pos = 0;
+        setting_item_t *option_map = Option_Map_Overlay[i];
+        while (option_map[pos].type != TYPE_END)
+        {
+            setting_item_t *opt = &option_map[pos];
+
+            switch (opt->type)
+            {
+            case TYPE_STRING:
+                // Duplicate strings, may be optional
+                // TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
+                *((char **)opt->ptr) = strdup(*((char **)opt->ptr));
+                break;
+            default:
+                break;
+            }
+            pos++;
+        }
+        Settings_Overlay[i].internal.config_init = true;
     }
 }
 
@@ -143,7 +162,7 @@ uint8_t get_overlay_id(const char *overlay)
         return 0;
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        if (osStrcmp(Settings_Overlay[i].internal.overlayName, overlay))
+        if (osStrcmp(Settings_Overlay[i].internal.overlayName, overlay) == 0)
         {
             return i;
         }
@@ -323,7 +342,8 @@ void settings_save_ovl(bool overlay)
 }
 void settings_load()
 {
-    settings_load_ovl(NULL);
+    settings_load_ovl(false);
+    settings_load_ovl(true);
 }
 void settings_load_ovl(bool overlay)
 {
@@ -380,13 +400,26 @@ void settings_load_ovl(bool overlay)
                 char *value_str = &line[osStrlen(option_name) + 1];
 
                 char *overlay_name = NULL;
+                char *tokenizer = NULL;
                 if (overlay && osStrncmp(OVERLAY_CONFIG_PREFIX, option_name, osStrlen(OVERLAY_CONFIG_PREFIX)) == 0)
                 {
                     option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
-                    char *tokenizer = strdup(option_name);
+                    tokenizer = strdup(option_name);
                     overlay_name = strtok(tokenizer, ".");
                     option_name += osStrlen(overlay_name) + 1;
-                    free(tokenizer);
+
+                    if (get_overlay_id(overlay_name) == 0)
+                    {
+                        for (size_t i = 1; i < MAX_OVERLAYS; i++)
+                        {
+                            if (osStrlen(Settings_Overlay[i].internal.overlayName) == 0)
+                            {
+                                setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
+                                *((char **)opt->ptr) = strdup(overlay_name);
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 if (option_name != NULL && value_str != NULL)
@@ -435,6 +468,7 @@ void settings_load_ovl(bool overlay)
                         TRACE_WARNING("Setting item '%s' not found\r\n", option_name);
                     }
                 }
+                free(tokenizer);
             }
 
             line = next_line + 1; // Move to the next line
@@ -501,12 +535,17 @@ setting_item_t *settings_get_by_name(const char *item)
 }
 setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_name)
 {
+    return settings_get_by_name_id(item, get_overlay_id(overlay_name));
+}
+setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
+{
     int pos = 0;
-    while (get_option_map(overlay_name)[pos].type != TYPE_END)
+    setting_item_t *option_map = Option_Map_Overlay[settingsId];
+    while (option_map[pos].type != TYPE_END)
     {
-        if (!strcmp(item, get_option_map(overlay_name)[pos].option_name))
+        if (!strcmp(item, option_map[pos].option_name))
         {
-            return &get_option_map(overlay_name)[pos];
+            return &option_map[pos];
         }
         pos++;
     }
@@ -710,12 +749,16 @@ const char *settings_get_string_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_string(const char *item, const char *value)
 {
+    return settings_set_string_id(item, value, 0);
+}
+bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId)
+{
     if (!item || !value)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_STRING)
     {
         return false;
