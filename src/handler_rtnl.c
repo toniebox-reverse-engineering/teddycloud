@@ -89,7 +89,7 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
     output[j] = '\0';
 }
 
-error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
+error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
 {
     char_t *data = connection->buffer;
     size_t size = connection->response.contentLength;

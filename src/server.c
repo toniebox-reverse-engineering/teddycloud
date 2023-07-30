@@ -50,13 +50,13 @@ typedef struct
 {
     enum eRequestMethod method;
     char *path;
-    error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+    error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
 
 /* ToDo: a bit diry */
 bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
-error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
+error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *prefix = settings_get_string("internal.contentdirfull");
     char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(prefix) + 1);
@@ -369,22 +369,22 @@ httpServerRequestCallback(HttpConnection *connection,
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            client_ctx_t ctx;
+            client_ctx_t client_ctx;
             char_t *commonName = NULL;
             char_t *subject = connection->tlsContext->client_cert_subject;
             if (osStrlen(subject) == 15)
             {
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
-                ctx.settings = get_settings_cn(commonName);
+                client_ctx.settings = get_settings_cn(commonName);
                 free(commonName);
             }
             else
             {
-                ctx.settings = get_settings();
+                client_ctx.settings = get_settings();
             }
 
-            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, ctx);
+            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
         }
     }
 

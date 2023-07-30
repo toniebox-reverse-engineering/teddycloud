@@ -71,7 +71,7 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
     ctx->status = PROX_STATUS_DONE;
 }
 
-error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx)
+error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     cbr_ctx_t cbr_ctx = {
         .status = PROX_STATUS_IDLE,

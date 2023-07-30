@@ -36,7 +36,7 @@ typedef enum
     RTNL_FUNC_VOLUME_CHANGE = 8672,
 } rtnl_function;
 
-error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t ctx);
+error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx);
 void rtnlEvent(TonieRtnlRPC *rpc);
 void rtnlEventLog(TonieRtnlRPC *rpc);
 void rtnlEventDump(TonieRtnlRPC *rpc);
