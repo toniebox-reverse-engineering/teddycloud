@@ -1098,18 +1098,12 @@ error_t httpReceive(HttpConnection *connection,
 void httpGetAbsolutePath(HttpConnection *connection,
                          const char_t *relative, char_t *absolute, size_t maxLen)
 {
-   if (relative[0] != '/')
-   {
-      // Copy the root directory
-      osStrcpy(absolute, connection->settings->rootDirectory);
+   // Copy the root directory
+   osStrcpy(absolute, connection->settings->rootDirectory);
 
-      // Append the specified path
-      pathCombine(absolute, relative, maxLen);
-   }
-   else
-   {
-      osStrcpy(absolute, relative);
-   }
+   // Append the specified path
+   pathCombine(absolute, relative, maxLen);
+
    // Clean the resulting path
    pathCanonicalize(absolute);
 }
