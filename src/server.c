@@ -355,7 +355,7 @@ httpServerRequestCallback(HttpConnection *connection,
 {
     stats_update("connections", 1);
 
-    if (strlen(connection->tlsContext->client_cert_issuer))
+    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
     {
         TRACE_INFO("Certificate authentication:\r\n");
         TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
@@ -372,7 +372,7 @@ httpServerRequestCallback(HttpConnection *connection,
             client_ctx_t client_ctx;
             char_t *commonName = NULL;
             char_t *subject = connection->tlsContext->client_cert_subject;
-            if (osStrlen(subject) == 15)
+            if (connection->tlsContext != NULL && osStrlen(subject) == 15)
             {
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
