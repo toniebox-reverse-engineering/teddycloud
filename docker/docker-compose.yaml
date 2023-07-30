@@ -10,7 +10,7 @@ services:
     volumes:
       - certs:/teddycloud/certs
       - config:/teddycloud/config
-      - content:/teddycloud/content
+      - content:/teddycloud/data/content
     restart: unless-stopped
 volumes:
   certs:
