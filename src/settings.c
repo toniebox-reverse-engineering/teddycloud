@@ -345,10 +345,9 @@ void settings_save_ovl(bool overlay)
                 fsWriteFile(file, buffer, osStrlen(buffer));
         }
         pos++;
-
-        fsCloseFile(file);
-        Settings_Overlay[0].internal.config_changed = false;
     }
+    fsCloseFile(file);
+    Settings_Overlay[0].internal.config_changed = false;
 }
 void settings_load()
 {
