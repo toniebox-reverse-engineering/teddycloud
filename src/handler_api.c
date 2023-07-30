@@ -91,7 +91,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     cJSON_Delete(json);
 
     httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
+    connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
     error_t error = httpWriteHeader(connection);
@@ -186,8 +186,10 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
 {
     const char *item = &uri[5 + 3 + 1];
 
-    char json[256];
-    osStrcpy(json, "ERROR");
+    char response[32];
+    osStrcpy(response, "ERROR");
+    const char *response_ptr = response;
+
     setting_item_t *opt = settings_get_by_name(item);
 
     if (opt)
@@ -195,20 +197,20 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
         switch (opt->type)
         {
         case TYPE_BOOL:
-            sprintf(json, "%s", settings_get_bool(item) ? "true" : "false");
+            sprintf(response, "%s", settings_get_bool(item) ? "true" : "false");
             break;
         case TYPE_HEX:
         case TYPE_UNSIGNED:
-            sprintf(json, "%d", settings_get_unsigned(item));
+            sprintf(response, "%d", settings_get_unsigned(item));
             break;
         case TYPE_SIGNED:
-            sprintf(json, "%d", settings_get_signed(item));
+            sprintf(response, "%d", settings_get_signed(item));
             break;
         case TYPE_STRING:
-            sprintf(json, "%s", settings_get_string(item));
+            response_ptr = settings_get_string(item);
             break;
         case TYPE_FLOAT:
-            sprintf(json, "%f", settings_get_float(item));
+            sprintf(response, "%f", settings_get_float(item));
             break;
         default:
             break;
@@ -217,7 +219,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/plain";
-    connection->response.contentLength = osStrlen(json);
+    connection->response.contentLength = osStrlen(response_ptr);
 
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
@@ -226,7 +228,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
         return error;
     }
 
-    error = httpWriteStream(connection, json, connection->response.contentLength);
+    error = httpWriteStream(connection, response_ptr, connection->response.contentLength);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send header\r\n");
@@ -559,7 +561,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char
     cJSON_Delete(json);
 
     httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
+    connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
     error_t error = httpWriteHeader(connection);
