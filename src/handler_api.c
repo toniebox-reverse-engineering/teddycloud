@@ -48,35 +48,41 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         }
         const char *type = "unknown";
 
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "ID", opt->option_name);
+        cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
+        cJSON_AddStringToObject(jsonEntry, "description", opt->description);
+
         switch (opt->type)
         {
         case TYPE_BOOL:
-            type = "bool";
+            cJSON_AddStringToObject(jsonEntry, "type", "bool");
+            cJSON_AddBoolToObject(jsonEntry, "value", settings_get_bool(opt->option_name));
             break;
         case TYPE_UNSIGNED:
-            type = "uint";
+            cJSON_AddStringToObject(jsonEntry, "type", "uint");
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned(opt->option_name));
             break;
         case TYPE_SIGNED:
-            type = "int";
+            cJSON_AddStringToObject(jsonEntry, "type", "int");
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed(opt->option_name));
             break;
         case TYPE_HEX:
-            type = "hex";
+            cJSON_AddStringToObject(jsonEntry, "type", "hex");
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned(opt->option_name));
             break;
         case TYPE_STRING:
-            type = "string";
+            cJSON_AddStringToObject(jsonEntry, "type", "string");
+            cJSON_AddStringToObject(jsonEntry, "value", settings_get_string(opt->option_name));
             break;
         case TYPE_FLOAT:
-            type = "float";
+            cJSON_AddStringToObject(jsonEntry, "type", "float");
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float(opt->option_name));
             break;
         default:
             break;
         }
 
-        cJSON *jsonEntry = cJSON_CreateObject();
-        cJSON_AddStringToObject(jsonEntry, "ID", opt->option_name);
-        cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
-        cJSON_AddStringToObject(jsonEntry, "description", opt->description);
-        cJSON_AddStringToObject(jsonEntry, "type", type);
         cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
