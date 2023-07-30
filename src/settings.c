@@ -141,6 +141,7 @@ void settings_changed()
 {
     Settings.internal.config_changed = true;
     settings_generate_internal_dirs(&Settings);
+    overlay_settings_init();
 }
 
 void settings_deinit()
@@ -200,7 +201,7 @@ void settings_init()
         }
         pos++;
     }
-
+    settings_changed();
     settings_load();
 }
 
