@@ -15,6 +15,7 @@
 #include "path.h"
 #include "debug.h"
 #include "os_port.h"
+#include "esp32.h"
 
 #include "ff.h"
 #include "diskio.h"
@@ -128,8 +129,6 @@ struct wl_state
 };
 
 #pragma pack(pop)
-
-error_t esp32_dump_image(FsFile *file, size_t offset, size_t length);
 
 struct wl_state esp32_wl_state;
 
@@ -252,7 +251,7 @@ error_t esp32_wl_init(struct wl_state *state, FsFile *file, size_t offset, size_
     return NO_ERROR;
 }
 
-error_t esp32_dump_fatfs(FsFile *file, size_t offset, size_t length)
+error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modify)
 {
     if (esp32_wl_init(&esp32_wl_state, file, offset, length) != NO_ERROR)
     {
@@ -487,7 +486,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
     return NO_ERROR;
 }
 
-error_t esp32_dump_partitions(FsFile *file, size_t offset)
+error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
 {
     size_t offset_current = offset;
     struct ESP32_part_entry entry;
@@ -513,11 +512,11 @@ error_t esp32_dump_partitions(FsFile *file, size_t offset)
 
             if (entry.partType == ESP_PARTITION_TYPE_APP)
             {
-                esp32_dump_image(file, entry.fileOffset, entry.length);
+                esp32_fixup_image(file, entry.fileOffset, entry.length, modify);
             }
             if (entry.partType == ESP_PARTITION_TYPE_DATA && entry.partSubType == 0x81)
             {
-                esp32_dump_fatfs(file, entry.fileOffset, entry.length);
+                esp32_fixup_fatfs(file, entry.fileOffset, entry.length, modify);
             }
         }
         else
@@ -584,7 +583,7 @@ void esp32_chk_update(uint8_t *chk, void *buffer, size_t length)
     }
 }
 
-error_t esp32_dump_image(FsFile *file, size_t offset, size_t length)
+error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modify)
 {
     size_t offset_current = offset;
     struct ESP32_header header;
@@ -674,6 +673,20 @@ error_t esp32_dump_image(FsFile *file, size_t offset, size_t length)
     TRACE_INFO("CHK: 0x%02X\r\n", chk);
     TRACE_INFO("CHK: 0x%02X (calculated)\r\n", chk_calc);
 
+    if (modify && chk != chk_calc)
+    {
+        TRACE_INFO("Fix checksum\r\n");
+        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        error = fsWriteFile(file, &chk_calc, sizeof(chk_calc));
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to write chk\r\n");
+            return ERROR_FAILURE;
+        }
+    }
+
+    offset_current += 1;
+
     sha256Update(&ctx, &chk_calc, sizeof(chk_calc));
 
     uint8_t sha256_calc[32];
@@ -700,11 +713,23 @@ error_t esp32_dump_image(FsFile *file, size_t offset, size_t length)
             osSprintf(&buf[pos * 2], "%02X", sha256_calc[pos]);
         }
         TRACE_INFO("SHA1: %s (calculated)\r\n", buf);
+
+        if (modify && osMemcmp(sha256_calc, sha256, sizeof(sha256_calc)))
+        {
+            TRACE_INFO("Fix SHA1\r\n");
+            fsSeekFile(file, offset_current, FS_SEEK_SET);
+            error = fsWriteFile(file, &sha256_calc, sizeof(sha256_calc));
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to write SHA1\r\n");
+                return ERROR_FAILURE;
+            }
+        }
     }
     return error;
 }
 
-error_t esp32_dump(const char *path)
+error_t esp32_fixup(const char *path, bool modify)
 {
     uint32_t length;
     error_t error = fsGetFileSize(path, &length);
@@ -715,10 +740,10 @@ error_t esp32_dump(const char *path)
         return ERROR_NOT_FOUND;
     }
 
-    FsFile *file = fsOpenFile(path, FS_FILE_MODE_READ);
+    FsFile *file = fsOpenFileEx(path, "rb+");
 
-    esp32_dump_image(file, 0, length);
-    esp32_dump_partitions(file, 0x9000);
+    esp32_fixup_image(file, 0, length, modify);
+    esp32_fixup_partitions(file, 0x9000, modify);
 
     return NO_ERROR;
 }
@@ -734,7 +759,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
         return ERROR_NOT_FOUND;
     }
 
-    FsFile *file = fsOpenFile(firmware, FS_FILE_MODE_READ);
+    FsFile *file = fsOpenFileEx(firmware, "rb+");
 
     size_t part_offset;
     size_t part_size;
