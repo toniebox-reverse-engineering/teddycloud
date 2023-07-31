@@ -509,6 +509,7 @@ extern "C"
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
             char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///< Cookie header field
 #endif
+            char_t userAgent[64 + 1];
       } HttpRequest;
 
       /**

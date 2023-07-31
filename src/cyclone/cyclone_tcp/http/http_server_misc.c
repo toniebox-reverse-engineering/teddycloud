@@ -502,6 +502,11 @@ void httpParseHeaderField(HttpConnection *connection,
       httpParseCookieField(connection, value);
    }
 #endif
+   else if (!osStrcasecmp(name, "User-Agent"))
+   {
+      strSafeCopy(connection->request.userAgent, value,
+                  sizeof(connection->request.userAgent) + 1);
+   }
 }
 
 /**
