@@ -43,6 +43,7 @@ You'll have to manually extract it from the flash of the box with a SOP8 clamp d
 
 #### ESP32
 You can extract the flash memory via the debug port of the box and the esptool. Keep your backup!
+Please connect the jumper J100 (Boot) and reset the box to put it into the required mode. Connect your 3.3V UART to J103 (TxD, RxD, GND).
 
 ```
 esptool.py -b 921600 read_flash 0x0 0x800000 tb.esp32.bin
