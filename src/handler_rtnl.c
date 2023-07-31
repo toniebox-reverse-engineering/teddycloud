@@ -12,28 +12,10 @@
 #include "handler_rtnl.h"
 #include "settings.h"
 #include "stats.h"
+#include "fs_ext.h"
 #include "cloud_request.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
-
-FsFile *fsOpenFile2(const char_t *path, char *mode);
-FsFile *fsOpenFile2(const char_t *path, char *mode)
-{
-    // Workaround due to missing append in cyclone framwwork.
-
-    // File pointer
-    FILE *fp = NULL;
-
-    // Make sure the pathname is valid
-    if (path == NULL)
-        return NULL;
-
-    // Open the specified file
-    fp = fopen(path, mode);
-
-    // Return a handle to the file
-    return fp;
-}
 
 static void escapeString(const char_t *input, size_t size, char_t *output);
 static void escapeString(const char_t *input, size_t size, char_t *output)
@@ -96,7 +78,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
     if (client_ctx->settings->rtnl.logRaw)
     {
-        FsFile *file = fsOpenFile2(client_ctx->settings->rtnl.logRawFile, "ab");
+        FsFile *file = fsOpenFileEx(client_ctx->settings->rtnl.logRawFile, "ab");
         fsWriteFile(file, &data[connection->response.byteCount], size);
         fsCloseFile(file);
     }
@@ -247,7 +229,7 @@ void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
     if (settings->rtnl.logHuman)
     {
         bool_t addHeader = !fsFileExists(settings->rtnl.logHumanFile);
-        FsFile *file = fsOpenFile2(settings->rtnl.logHumanFile, "ab");
+        FsFile *file = fsOpenFileEx(settings->rtnl.logHumanFile, "ab");
         if (addHeader)
         {
             char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";
