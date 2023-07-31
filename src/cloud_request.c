@@ -268,15 +268,16 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             // Retrieve HTTP status code
             uint_t status = httpClientGetStatus(&httpClientContext);
 
+            if (status)
+            {
+                TRACE_INFO("HTTP code from cloud: %u\r\n", status);
+            }
+
             if (cbr && cbr->response)
             {
                 cbr->response(cbr->ctx, &httpClientContext);
             }
 
-            if (status)
-            {
-                TRACE_INFO("HTTP code: %u\r\n", status);
-            }
             char content_type[64];
 
             strcpy(content_type, "");

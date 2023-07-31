@@ -23,25 +23,25 @@ static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings
     freshResp->led = settings->toniebox.led;
 }
 
-static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
-static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
+static void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
+static void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
+static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error);
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
 
 static char *strupr(char input[]);
 
-static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
+static void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
+    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
 
-static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value)
+static void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
@@ -73,7 +73,7 @@ static bool fillCbrBodyCache(cbr_ctx_t *ctx, HttpClientContext *httpClientContex
     return (ctx->bufferPos == ctx->bufferLen);
 }
 
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error)
+static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
@@ -167,7 +167,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *
     ctx->status = PROX_STATUS_BODY;
 }
 
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
+static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
