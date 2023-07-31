@@ -798,7 +798,7 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
         return ERROR_NOT_FOUND;
     }
 
-    esp32_fat_inject_folder(file, part_offset, part_size, "CERT", in_path);
+    esp32_fat_inject_folder(file, part_offset, part_size, fat_path, in_path);
 
     fsCloseFile(file);
 
