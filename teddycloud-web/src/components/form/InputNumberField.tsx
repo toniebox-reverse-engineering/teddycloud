@@ -27,6 +27,13 @@ const InputNumberField = (props: InputNumberFieldProps & InputNumberProps) => {
         {...inputNumberProps}
         {...field}
         onChange={(value: number | undefined | string | null) => {
+          fetch(`http://localhost/api/set/${name}`, {
+            method: "POST",
+            body: value?.toString(),
+            headers: {
+              "Content-Type": "text/plain",
+            },
+          });
           helpers.setValue(value === null ? undefined : Number(value));
         }}
         onBlur={() => helpers.setTouched(true)}

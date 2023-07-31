@@ -36,11 +36,16 @@ export const SwitchField = (props: SwitchFieldProps & SwitchProps) => {
         {...field}
         checked={isChecked}
         onChange={(value: boolean) => {
-          const convertedValue = valueConverter
-            ? valueConverter.fromBooleanToValue(value)
-            : value;
+          //TODO: Fix fetch and replace with apiClient
+          fetch(`http://localhost/api/set/${name}`, {
+            method: "POST",
+            body: value.toString(),
+            headers: {
+              "Content-Type": "text/plain",
+            },
+          });
 
-          setValue(convertedValue);
+          setValue(value);
         }}
       />
     </FormItem>
