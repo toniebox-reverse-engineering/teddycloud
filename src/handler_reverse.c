@@ -9,17 +9,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "handler.h"
 #include "handler_reverse.h"
 #include "settings.h"
 #include "stats.h"
 #include "cloud_request.h"
 #include "os_port.h"
-
-typedef struct
-{
-    uint32_t status;
-    HttpConnection *connection;
-} cbr_ctx_t;
 
 static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
 static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
@@ -75,7 +70,8 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_
 {
     cbr_ctx_t cbr_ctx = {
         .status = PROX_STATUS_IDLE,
-        .connection = connection};
+        .connection = connection,
+        .client_ctx = client_ctx};
 
     req_cbr_t cbr = {
         .ctx = &cbr_ctx,
