@@ -19,6 +19,7 @@
 #include "cloud_request.h"
 
 #include "settings.h"
+#include "esp32.h"
 
 void platform_init(void);
 void platform_deinit(void);
@@ -211,6 +212,23 @@ int_t main(int argc, char *argv[])
             TRACE_WARNING("\r\n");
 
             error = cloud_request_get(NULL, 0, request, "", hash, NULL);
+        }
+        else if (!strcasecmp(type, "ESP32CERT"))
+        {
+            if (argc < 5)
+            {
+                TRACE_ERROR("Usage: %s ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n", argv[0]);
+                return -1;
+            }
+            const char *cmd = argv[2];
+            if (!strcasecmp(cmd, "inject"))
+            {
+                esp32_fat_inject((const char *)argv[3], "CERT", (const char *)argv[4]);
+            }
+            else if (!strcasecmp(cmd, "extract"))
+            {
+                esp32_fat_extract((const char *)argv[3], "CERT", (const char *)argv[4]);
+            }
         }
     }
     else
