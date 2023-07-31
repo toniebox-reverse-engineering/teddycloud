@@ -76,7 +76,7 @@ SOURCES_linux = \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
 LFLAGS_linux = 
-CFLAGS_linux += -Wall -Werror
+CFLAGS_linux += -Wall -Werror -Wno-error=pointer-sign
 CFLAGS_linux += -ggdb -O3
 #CFLAGS += -fsanitize=address -static-libasan -Og
 
@@ -103,20 +103,25 @@ INCLUDES = \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
-	-IcJSON
+	-IcJSON \
+	-Ifat/source
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
 	cJSON/cJSON.c \
-	cJSON/cJSON_Utils.c
+	cJSON/cJSON_Utils.c \
+	fat/source/ff.c \
+	fat/source/ffsystem.c \
+	fat/source/ffunicode.c
 
 HEADERS = \
 	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h) \
 	cJSON/cJSON.h \
-	cJSON/cJSON_Utils.h
+	cJSON/cJSON_Utils.h \
+	fat/source/ff.h
 
 
 #
