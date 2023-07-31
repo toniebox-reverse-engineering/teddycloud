@@ -171,21 +171,18 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
-    while (count)
+    for (int sec = 0; sec < count; sec++)
     {
-        size_t trans_sec = esp32_wl_translate(state, sector);
+        size_t trans_sec = esp32_wl_translate(state, sector + sec);
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        error_t error = fsWriteFile(state->file, (void *)buffer, WL_SECTOR_SIZE);
+        error_t error = fsWriteFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE);
         if (error != NO_ERROR)
         {
             TRACE_ERROR("Failed to write sector\r\n");
             return RES_ERROR;
         }
-        count--;
-        sector++;
-        buffer += WL_SECTOR_SIZE;
     }
     return RES_OK;
 }
@@ -194,22 +191,19 @@ DRESULT disk_read(BYTE pdrv, BYTE *buffer, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
-    while (count)
+    for (int sec = 0; sec < count; sec++)
     {
-        size_t trans_sec = esp32_wl_translate(state, sector);
+        size_t read;
+        size_t trans_sec = esp32_wl_translate(state, sector + sec);
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        size_t read;
-        error_t error = fsReadFile(state->file, buffer, WL_SECTOR_SIZE, &read);
+        error_t error = fsReadFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE, &read);
         if (error != NO_ERROR || read != WL_SECTOR_SIZE)
         {
             TRACE_ERROR("Failed to read sector\r\n");
             return RES_ERROR;
         }
-        count--;
-        sector++;
-        buffer += WL_SECTOR_SIZE;
     }
     return RES_OK;
 }
@@ -347,7 +341,7 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             pathCombine(outFileName, fileInfo.fname, FS_MAX_PATH_LEN);
             pathCanonicalize(outFileName);
 
-            TRACE_INFO("Write to '%s '%s'\r\n", fatFileName, outFileName);
+            TRACE_INFO("Write '%s to '%s' (%d bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
 
             FsFile *outFile = fsOpenFile(outFileName, FS_FILE_MODE_WRITE);
             if (!outFile)
@@ -442,12 +436,14 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
 
         TRACE_INFO("Write '%s to '%s'\r\n", inFileName, fatFileName);
 
-        FsFile *inFile = fsOpenFileEx(inFileName, "ab+");
+        FsFile *inFile = fsOpenFile(inFileName, FS_FILE_MODE_READ);
         if (!inFile)
         {
             TRACE_ERROR("Failed to open output file\r\n");
             return ERROR_FAILURE;
         }
+
+        // f_unlink(fatFileName);
 
         FIL fp;
         if (f_open(&fp, fatFileName, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK)
@@ -457,6 +453,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
         }
 
         uint8_t buffer[512];
+        uint32_t written_total = 0;
         for (int pos = 0; pos < dirEntry.size; pos += sizeof(buffer))
         {
             size_t read;
@@ -465,14 +462,19 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
                 TRACE_ERROR("Failed to read from input file\r\n");
                 return ERROR_FAILURE;
             }
+            TRACE_INFO("  Read %" PRIuSIZE " byte\r\n", read);
 
             uint32_t written;
-            if (f_write(&fp, buffer, read, &written) != FR_OK)
+            if (f_write(&fp, buffer, read, &written) != FR_OK || read != written)
             {
                 TRACE_ERROR("Failed to write to FAT file\r\n");
                 return ERROR_FAILURE;
             }
+
+            written_total += written;
         }
+        TRACE_INFO("  Wrote %d byte\r\n", written_total);
+        f_sync(&fp);
         f_close(&fp);
         fsCloseFile(inFile);
 
@@ -744,6 +746,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
     }
 
     esp32_fat_extract_folder(file, part_offset, part_size, "CERT", out_path);
+    fsCloseFile(file);
 
     return NO_ERROR;
 }
@@ -759,7 +762,7 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
         return ERROR_NOT_FOUND;
     }
 
-    FsFile *file = fsOpenFileEx(firmware, "ab+");
+    FsFile *file = fsOpenFileEx(firmware, "rb+");
 
     size_t part_offset;
     size_t part_size;
@@ -771,6 +774,8 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
     }
 
     esp32_fat_inject_folder(file, part_offset, part_size, "CERT", in_path);
+
+    fsCloseFile(file);
 
     return NO_ERROR;
 }
