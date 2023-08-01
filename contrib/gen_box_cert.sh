@@ -31,9 +31,9 @@ fi
 # Setup directories and file paths
 BOX_DIR="certs/box/$box_name"
 mkdir -p $BOX_DIR
-CL_KEY="${BOX_DIR}/PRIVATE.DER"
-CL_CRT="${BOX_DIR}/CLIENT.DER"
-CL_CA_DER="${BOX_DIR}/CA.DER"
+CL_KEY="${BOX_DIR}/private.der"
+CL_CRT="${BOX_DIR}/client.der"
+CL_CA_DER="${BOX_DIR}/ca.der"
 CL_CSR="${BOX_DIR}/box.csr"
 CL_KEY_PEM="${BOX_DIR}/key.pem"
 CL_CRT_PEM="${BOX_DIR}/cert.pem"
