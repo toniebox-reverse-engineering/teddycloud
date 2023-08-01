@@ -346,7 +346,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                     if (!binary)
                     {
                         // Properly terminate the string with a NULL character
-                        buffer[maxSize] = '\0';
+                        buffer[length] = '\0';
                         // Dump HTTP response body
                         TRACE_INFO("Response: '%s'\r\n", buffer);
                     }
