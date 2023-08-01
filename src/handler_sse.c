@@ -9,32 +9,28 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 {
     uint8_t channel;
     SseSubscriptionContext *sseCtx = NULL;
+
     osSuspendAllTasks();
     for (channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     { // Find first free slot
         sseCtx = &sseSubs[channel];
-        if (sseCtx->connection != NULL && sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
-        {
-            httpCloseStream(connection);
-            sseCtx->connection = NULL;
-            sseCtx->lastConnection = 0;
-            sseSubscriptionCount--;
-        }
-
         if (sseCtx->lastConnection == 0 && sseCtx->connection == NULL)
-        {
             break;
-        }
     }
     osResumeAllTasks();
     if (sseCtx == NULL)
+    {
+        TRACE_ERROR("All slots full, in total %" PRIu8 " clients", sseSubscriptionCount);
         return NO_ERROR;
+    }
 
     sseCtx->lastConnection = time(NULL);
     sseSubscriptionCount++;
 
+    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", channel, sseSubscriptionCount);
+
     httpInitResponseHeader(connection);
-    connection->response.contentType = "application/json";
+    connection->response.contentType = "text/event-stream";
     connection->response.contentLength = CONTENT_LENGTH_UNKNOWN;
 
     error_t error = httpWriteHeader(connection);
@@ -48,17 +44,23 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 
     httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
 
-    while (sseCtx->connection != NULL)
+    while (true)
     {
-        if (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
+        if ((sseCtx->connection == NULL) ||
+            (sseCtx->connection->socket != NULL && (sseCtx->connection->socket->state == TCP_STATE_CLOSED)) ||
+            (sseCtx->connection->tlsContext != NULL && (sseCtx->connection->tlsContext->state == TLS_STATE_CLOSED)) ||
+            (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
-            httpCloseStream(sseCtx->connection);
             osSuspendAllTasks();
+            httpCloseStream(sseCtx->connection);
             sseCtx->connection = NULL;
             sseCtx->lastConnection = 0;
             sseSubscriptionCount--;
             osResumeAllTasks();
+            TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", channel, sseSubscriptionCount);
+            break;
         }
+        osDelayTask(100);
     }
 
     return error;
