@@ -15,17 +15,26 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     { // Find first free slot
         sseCtx = &sseSubs[channel];
         if (sseCtx->lastConnection == 0 && sseCtx->connection == NULL)
+        {
             break;
+        }
+        else
+        {
+            sseCtx = NULL;
+        }
     }
-    osResumeAllTasks();
     if (sseCtx == NULL)
     {
+        osResumeAllTasks();
         TRACE_ERROR("All slots full, in total %" PRIu8 " clients", sseSubscriptionCount);
         return NO_ERROR;
     }
 
     sseCtx->lastConnection = time(NULL);
+    sseCtx->connection = connection;
     sseSubscriptionCount++;
+
+    osResumeAllTasks();
 
     TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", channel, sseSubscriptionCount);
 
@@ -39,20 +48,15 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
-    sseCtx->connection = connection;
-    sseCtx->lastConnection = time(NULL);
 
     httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
 
     while (true)
     {
-        if ((sseCtx->connection == NULL) ||
-            (sseCtx->connection->socket != NULL && (sseCtx->connection->socket->state == TCP_STATE_CLOSED)) ||
-            (sseCtx->connection->tlsContext != NULL && (sseCtx->connection->tlsContext->state == TLS_STATE_CLOSED)) ||
-            (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
+        if ((sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
+            httpCloseStream(connection);
             osSuspendAllTasks();
-            httpCloseStream(sseCtx->connection);
             sseCtx->connection = NULL;
             sseCtx->lastConnection = 0;
             sseSubscriptionCount--;
