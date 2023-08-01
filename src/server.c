@@ -381,16 +381,13 @@ httpServerRequestCallback(HttpConnection *connection,
         }
     }
 
-    /* ToDo: why is this not automatically set? */
-    connection->request.keepAlive = TRUE;
-    connection->response.keepAlive = TRUE;
+    connection->response.keepAlive = connection->request.keepAlive;
 
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-
             return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
         }
     }
