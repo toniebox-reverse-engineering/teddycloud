@@ -66,10 +66,10 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         return ERROR_OUT_OF_MEMORY;
     }
 
-    TRACE_INFO("Query: '%s'\r\n", query);
+    TRACE_INFO("Query: '%s'\r\n", queryString);
 
     char ogg[16];
-    if (!queryGet(connection->request.queryString, "ogg", ogg, sizeof(ogg)))
+    if (!queryGet(queryString, "ogg", ogg, sizeof(ogg)))
     {
         strcpy(ogg, "false");
     }

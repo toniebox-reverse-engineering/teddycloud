@@ -324,7 +324,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     error_t ret = NO_ERROR;
-    char *query = strdup(connection->request.queryString);
+    char *query = strdup(queryString);
     char *localUri = strdup(uri);
     char *savelocalUri = localUri;
     char *filename = strtok_r(&localUri[8], "?", &savelocalUri);
