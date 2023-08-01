@@ -135,7 +135,7 @@ static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx,
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
                 if (fsFileExists(ctx->tonieInfo.contentPath))
                 {
-                TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
                 }
                 else
                 {
@@ -569,6 +569,36 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
     return NO_ERROR;
 }
 
+void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId);
+void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId)
+{
+    struct tm tm_info;
+    time_t unix_time = audioId;
+
+    *isCustom = false;
+    if (unix_time < 0x0e000000)
+    {
+        osSprintf(date_buffer, "special");
+    }
+    else
+    {
+        /* custom tonies from TeddyBench have the audio id reduced by a constant */
+        if (unix_time < 0x50000000)
+        {
+            unix_time += 0x50000000;
+            *isCustom = true;
+        }
+        if (localtime_r(&unix_time, &tm_info) == 0)
+        {
+            osSprintf(date_buffer, "(localtime failed)");
+        }
+        else
+        {
+            strftime(date_buffer, 32, "%Y-%m-%d %H:%M:%S", &tm_info);
+        }
+    }
+}
+
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint8_t data[BODY_BUFFER_SIZE];
@@ -604,35 +634,17 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
-                struct tm tm_info;
-                char date_buffer[32];
-                bool_t custom = false;
-                time_t unix_time = freshReq->tonie_infos[i]->audio_id;
-
-                if (unix_time < 0x0e000000)
-                {
-                    osSprintf(date_buffer, "special");
-                }
-                else
-                {
-                    /* custom tonies from TeddyBench have the audio id reduced by a constant */
-                    if (unix_time < 0x50000000)
-                    {
-                        unix_time += 0x50000000;
-                        custom = true;
-                    }
-                    if (localtime_r(&unix_time, &tm_info) == 0)
-                    {
-                        osSprintf(date_buffer, "(localtime failed)");
-                    }
-                    else
-                    {
-                        strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
-                    }
-                }
                 tonie_info_t tonieInfo;
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath, client_ctx->settings);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
+
+                char date_buffer[32];
+                bool_t custom;
+                char date_buffer_server[32];
+                bool_t custom_server;
+
+                checkAudioIdForCustom(&custom, date_buffer, freshReq->tonie_infos[i]->audio_id);
+                checkAudioIdForCustom(&custom_server, date_buffer_server, tonieInfo.tafHeader->audio_id);
 
                 tonieInfo.updated = tonieInfo.valid && (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
 
@@ -642,14 +654,17 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 }
 
                 (void)custom;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)\n",
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s), audioid-server: %08X (%s%s)\r\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer,
-                           custom ? ", custom" : "");
+                           custom ? ", custom" : "",
+                           tonieInfo.tafHeader->audio_id,
+                           date_buffer_server,
+                           custom_server ? ", custom" : "");
                 if (tonieInfo.live || tonieInfo.updated)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
