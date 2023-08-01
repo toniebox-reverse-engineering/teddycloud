@@ -12,7 +12,7 @@ EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
-build_gitDirty:=${shell git diff --quiet || echo '1'}
+build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
 build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
 build_gitDateTime:="${shell git log -1 --format=%ai}"
 build_gitShortSha:=${shell git rev-parse --short HEAD}
@@ -23,7 +23,7 @@ CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${
 build_gitTagPrefix:=${shell echo "${build_gitTag0:3}"}
 ifeq ($(build_gitTagPrefix),tc_)
 	build_version:=${shell echo "${build_gitTag:3}"}
-	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\"
+	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
 endif
 
 ifeq ($(OS),Windows_NT)
