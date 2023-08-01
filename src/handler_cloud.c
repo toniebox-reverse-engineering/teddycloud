@@ -259,17 +259,22 @@ tonie_info_t getTonieInfo(const char *contentPath)
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", read_length, protobufSize);
+                    TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", contentPath, read_length, protobufSize);
                 }
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", protobufSize, TAF_HEADER_SIZE);
+                TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", contentPath, protobufSize, TAF_HEADER_SIZE);
             }
+        }
+        else if (read_length == 0)
+        {
+            // TODO don't send invalid TAF files via API
+            TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", contentPath);
         }
         else
         {
-            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", read_length);
+            TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", contentPath, read_length);
         }
         fsCloseFile(file);
     }
@@ -495,6 +500,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     if (tonieInfo.exists)
     {
+        TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
         error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
         if (error)
@@ -520,6 +526,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         else
         {
+            TRACE_INFO("Serve cloud content from %s\r\n", uri);
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
