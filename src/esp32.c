@@ -1,20 +1,13 @@
 
 #define TRACE_LEVEL TRACE_LEVEL_INFO
 
-#ifdef WIN32
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
+#include <stdint.h>
 
-#include "settings.h"
 #include "hash/sha256.h"
-#include "path.h"
-#include "fs_port.h"
 #include "fs_ext.h"
 #include "path.h"
 #include "debug.h"
-#include "os_port.h"
+
 #include "esp32.h"
 
 #include "ff.h"
@@ -143,7 +136,7 @@ size_t esp32_wl_translate(const struct wl_state *state, size_t sector)
     return sector;
 }
 
-uint32_t get_fattime()
+DWORD get_fattime()
 {
     uint32_t year = 2023;
     uint32_t mon = 7;
@@ -281,10 +274,13 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 {
                     break;
                 }
-                TRACE_INFO("  %-12s %-10u %04d-%02d-%02d\r\n", fileInfo.fname, fileInfo.fsize,
-                           (fileInfo.fdate >> 25) + 1980,
-                           (fileInfo.fdate >> 21) & 15,
-                           (fileInfo.fdate >> 16) & 31);
+                TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
+                           ((fileInfo.fdate >> 9) & 0x7F) + 1980,
+                           (fileInfo.fdate >> 5) & 0x1F,
+                           (fileInfo.fdate) & 0x1F,
+                           (fileInfo.ftime >> 11) & 0x1F,
+                           (fileInfo.ftime >> 5) & 0x3F,
+                           (fileInfo.ftime & 0x1F) * 2);
             } while (1);
 
             f_closedir(&dirInfo);
