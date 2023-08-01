@@ -19,6 +19,7 @@ typedef struct
 {
     HttpConnection *connection;
     time_t lastConnection;
+    uint8_t channel;
 } SseSubscriptionContext;
 
 error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx);

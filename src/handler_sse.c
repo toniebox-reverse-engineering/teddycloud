@@ -7,15 +7,15 @@ static uint8_t sseSubscriptionCount = 0;
 
 error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
 {
-    uint8_t channel;
-    SseSubscriptionContext *sseCtx = NULL;
-
     osSuspendAllTasks();
-    for (channel = 0; channel < SSE_MAX_CHANNELS; channel++)
+
+    SseSubscriptionContext *sseCtx = NULL;
+    for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     { // Find first free slot
         sseCtx = &sseSubs[channel];
         if (sseCtx->lastConnection == 0 && sseCtx->connection == NULL)
         {
+            sseCtx->channel = channel;
             break;
         }
         else
@@ -36,7 +36,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 
     osResumeAllTasks();
 
-    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", channel, sseSubscriptionCount);
+    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", sseCtx->channel, sseSubscriptionCount);
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/event-stream";
@@ -62,9 +62,10 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
             osSuspendAllTasks();
             sseCtx->connection = NULL;
             sseCtx->lastConnection = 0;
+            sseCtx->channel = 0;
             sseSubscriptionCount--;
             osResumeAllTasks();
-            TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", channel, sseSubscriptionCount);
+            TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", sseCtx->channel, sseSubscriptionCount);
             break;
         }
         osDelayTask(100);
@@ -93,8 +94,10 @@ error_t sse_rawData(const char *content)
     error_t error = NO_ERROR;
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     {
+        osSuspendAllTasks();
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
         sseCtx->lastConnection = time(NULL);
+        osResumeAllTasks();
         HttpConnection *conn = sseCtx->connection;
         if (sseCtx->connection == NULL)
             continue;
@@ -115,7 +118,6 @@ error_t sse_endEventRaw(void)
 error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData)
 {
     error_t error = NO_ERROR;
-
     error = sse_startEventRaw(eventname);
     if (error != NO_ERROR)
         return error;
