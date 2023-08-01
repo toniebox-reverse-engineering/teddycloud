@@ -382,6 +382,10 @@ httpServerRequestCallback(HttpConnection *connection,
         client_ctx.settings = get_settings();
     }
 
+    /* ToDo: why is this not automatically set? */
+    connection->request.keepAlive = TRUE;
+    connection->response.keepAlive = TRUE;
+
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
         size_t pathLen = osStrlen(request_paths[i].path);
