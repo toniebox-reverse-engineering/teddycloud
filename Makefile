@@ -13,20 +13,16 @@ LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
-build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
-build_rawDateTime:="${shell date /t}"
-build_gitDateTime:="${shell git log -1 --format=%ai}"
-build_gitShortSha:=${shell git rev-parse --short HEAD}
-build_gitSha:=${shell git rev-parse HEAD}
-build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+build_rawDateTime:="${shell date /t} ${shell time /t}"
 else
-build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
 build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
+endif
+
+build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
 build_gitDateTime:="${shell git log -1 --format=%ai}"
 build_gitShortSha:=${shell git rev-parse --short HEAD}
 build_gitSha:=${shell git rev-parse HEAD}
 build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
-endif
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 
