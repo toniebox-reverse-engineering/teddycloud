@@ -422,8 +422,6 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
 
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *query = connection->request.queryString;
-
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
     if (rootPath == NULL || !fsDirExists(rootPath))
@@ -431,12 +429,12 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         TRACE_ERROR("core.certdir not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
-    TRACE_INFO("Query: '%s'\r\n", query);
+    TRACE_INFO("Query: '%s'\r\n", queryString);
 
     char path[128];
     char pathAbsolute[256];
 
-    if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
+    if (!queryGet(queryString, "path", path, sizeof(path)))
     {
         osStrcpy(path, "/");
     }
