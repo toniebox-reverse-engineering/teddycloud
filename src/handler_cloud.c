@@ -643,7 +643,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 char date_buffer_box[32];
                 bool_t custom_box;
                 char date_buffer_server[32];
-                bool_t custom_server;
+                bool_t custom_server = FALSE;
 
                 checkAudioIdForCustom(&custom_box, date_buffer_box, freshReq->tonie_infos[i]->audio_id);
 
