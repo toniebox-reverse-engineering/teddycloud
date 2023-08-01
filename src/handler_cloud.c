@@ -100,17 +100,27 @@ static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx,
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
                 getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
-                char tmpPath[34];
                 ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
-                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
-                tmpPath[29] = 0;
+
+                char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
+                osStrcpy(tmpPath, ctx->tonieInfo.contentPath);
                 osStrcat(tmpPath, ".tmp");
-                tmpPath[20] = 0;
-                fsCreateDir(tmpPath);
-                tmpPath[20] = '/';
+
+                char *dir = strdup(ctx->tonieInfo.contentPath);
+                dir[osStrlen(dir) - 8] = '\0';
+                fsCreateDir(dir);
+
                 ctx->file = fsOpenFile(tmpPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+
+                if (ctx->file != NULL)
+                {
+                    TRACE_ERROR(">> Could not open file %s\r\n", tmpPath);
+                    length = 0;
+                }
+                free(tmpPath);
+                free(dir);
             }
-            if (length > 0)
+            if (length > 0 && ctx->file != NULL)
             {
                 error_t error = fsWriteFile(ctx->file, (void *)payload, length);
                 if (error)
@@ -119,13 +129,12 @@ static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx,
             if (error == ERROR_END_OF_STREAM)
             {
                 fsCloseFile(ctx->file);
-                char tmpPath[34];
-                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
-                tmpPath[29] = 0;
-                osStrcat(tmpPath, ".tmp");
+                char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
+                osStrcpy(tmpPath, ".tmp");
                 fsDeleteFile(ctx->tonieInfo.contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
                 TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                free(tmpPath);
             }
             if (error != NO_ERROR)
             {
