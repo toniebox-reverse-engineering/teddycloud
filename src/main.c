@@ -14,6 +14,7 @@
 #include "error.h"
 #include "debug.h"
 #include "cJSON.h"
+#include "esp32.h"
 
 #include "tls_adapter.h"
 #include "cloud_request.h"
@@ -229,6 +230,15 @@ int_t main(int argc, char *argv[])
             {
                 esp32_fat_extract((const char *)argv[3], "CERT", (const char *)argv[4]);
             }
+        }
+        else if (!strcasecmp(type, "ESP32FIXUP"))
+        {
+            if (argc < 3)
+            {
+                TRACE_ERROR("Usage: %s ESP32FIXUP <esp32-image-bin>\r\n", argv[0]);
+                return -1;
+            }
+            esp32_fixup((const char *)argv[2], true);
         }
     }
     else
