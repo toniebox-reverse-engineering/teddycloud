@@ -500,6 +500,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     if (tonieInfo.exists)
     {
+        TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
         error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
         if (error)
@@ -525,6 +526,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         else
         {
+            TRACE_INFO("Serve cloud content from %s\r\n", uri);
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
