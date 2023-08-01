@@ -112,10 +112,9 @@ static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx,
 
                 ctx->file = fsOpenFile(tmpPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
 
-                if (ctx->file != NULL)
+                if (ctx->file == NULL)
                 {
                     TRACE_ERROR(">> Could not open file %s\r\n", tmpPath);
-                    length = 0;
                 }
                 free(tmpPath);
                 free(dir);
@@ -130,10 +129,18 @@ static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx,
             {
                 fsCloseFile(ctx->file);
                 char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
-                osStrcpy(tmpPath, ".tmp");
+                osStrcpy(tmpPath, ctx->tonieInfo.contentPath);
+                osStrcat(tmpPath, ".tmp");
                 fsDeleteFile(ctx->tonieInfo.contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
+                if (fsFileExists(ctx->tonieInfo.contentPath))
+                {
                 TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                }
+                else
+                {
+                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo.contentPath);
+                }
                 free(tmpPath);
             }
             if (error != NO_ERROR)
