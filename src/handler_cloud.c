@@ -245,6 +245,7 @@ tonie_info_t getTonieInfo(const char *contentPath)
 
     checkFile[maxLen] = 0;
     tonieInfo.valid = false;
+    tonieInfo.updated = false;
     tonieInfo.tafHeader = NULL;
     tonieInfo.contentPath = strdup(contentPath);
     snprintf(checkFile, maxLen, "%s", contentPath);
@@ -645,22 +646,27 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 bool_t custom_server;
 
                 checkAudioIdForCustom(&custom_box, date_buffer_box, freshReq->tonie_infos[i]->audio_id);
-                checkAudioIdForCustom(&custom_server, date_buffer_server, tonieInfo.tafHeader->audio_id);
 
                 uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
-                uint32_t serverAudioId = tonieInfo.tafHeader->audio_id;
                 if (custom_box)
                     boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
-                if (custom_server)
-                    serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
-                tonieInfo.updated = tonieInfo.valid && (boxAudioId < serverAudioId);
-                if (client_ctx->settings->cloud.prioCustomContent)
+                if (tonieInfo.valid)
                 {
-                    if (custom_box && !custom_server)
-                        tonieInfo.updated = false;
-                    if (!custom_box && custom_server)
-                        tonieInfo.updated = true;
+                    uint32_t serverAudioId = tonieInfo.tafHeader->audio_id;
+                    checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
+
+                    if (custom_server)
+                        serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+                    tonieInfo.updated = boxAudioId < serverAudioId;
+                    if (client_ctx->settings->cloud.prioCustomContent)
+                    {
+                        if (custom_box && !custom_server)
+                            tonieInfo.updated = false;
+                        if (!custom_box && custom_server)
+                            tonieInfo.updated = true;
+                    }
                 }
 
                 if (!tonieInfo.nocloud)
@@ -670,17 +676,25 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 (void)custom_box;
                 (void)custom_server;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s), audioid-server: %08X (%s%s)\r\n",
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
-                           custom_box ? ", custom" : "",
-                           tonieInfo.tafHeader->audio_id,
-                           date_buffer_server,
-                           custom_server ? ", custom" : "");
+                           custom_box ? ", custom" : "");
+
+                if (tonieInfo.valid)
+                {
+                    TRACE_INFO_RESUME(", audioid-server: %08X (%s%s)",
+                                      tonieInfo.tafHeader->audio_id,
+                                      date_buffer_server,
+                                      custom_server ? ", custom" : "");
+                }
+
+                TRACE_INFO_RESUME("\r\n");
+
                 if (tonieInfo.live || tonieInfo.updated)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
