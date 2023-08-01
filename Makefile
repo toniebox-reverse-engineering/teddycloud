@@ -20,9 +20,9 @@ build_gitSha:=${shell git rev-parse HEAD}
 build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 
-build_gitTagPrefix:=${shell echo "${build_gitTag:0:3}"}
-ifeq ($(build_gitTagPrefix),tc_)
-	build_version:=${shell echo "${build_gitTag:3}"}
+build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
+ifeq ($(build_gitTagPrefix),tc)
+	build_version:=$(subst ${build_gitTagPrefix}_,,${build_gitTag})
 	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
 endif
 
