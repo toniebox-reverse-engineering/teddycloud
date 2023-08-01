@@ -5,10 +5,11 @@
 static SseSubscriptionContext sseSubs[SSE_MAX_CHANNELS];
 static uint8_t sseSubscriptionCount = 0;
 
-error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
+error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
 {
     uint8_t channel;
     SseSubscriptionContext *sseCtx = NULL;
+    osSuspendAllTasks();
     for (channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     { // Find first free slot
         sseCtx = &sseSubs[channel];
@@ -25,25 +26,12 @@ error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const cha
             break;
         }
     }
+    osResumeAllTasks();
     if (sseCtx == NULL)
         return NO_ERROR;
 
     sseCtx->lastConnection = time(NULL);
     sseSubscriptionCount++;
-
-    char_t *urlPrintf = SSE_BASE_URL "%" PRIu8;
-    char_t *url = osAllocMem(osStrlen(urlPrintf));
-
-    osSprintf(url, urlPrintf, channel);
-    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s\r\n", channel, url);
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
-    return httpWriteResponseString(connection, url, true);
-}
-error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
-{
-    uint8_t channel = atoi(&uri[osStrlen(SSE_BASE_URL)]);
-    SseSubscriptionContext *sseCtx = &sseSubs[channel];
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "application/json";
@@ -65,14 +53,17 @@ error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const cha
         if (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
         {
             httpCloseStream(sseCtx->connection);
+            osSuspendAllTasks();
             sseCtx->connection = NULL;
             sseCtx->lastConnection = 0;
             sseSubscriptionCount--;
+            osResumeAllTasks();
         }
     }
 
     return error;
 }
+
 error_t sse_startEventRaw(const char *eventname)
 {
     error_t error = NO_ERROR;
