@@ -39,7 +39,7 @@ typedef struct
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
-// #define HTTP_SERVER_PERSISTENT_CONN_SUPPORT ENABLED
+#define HTTP_SERVER_PERSISTENT_CONN_SUPPORT ENABLED
 
 // Trace level for TCP/IP stack debugging
 #define MEM_TRACE_LEVEL TRACE_LEVEL_INFO
