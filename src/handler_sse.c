@@ -53,6 +53,9 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 
     while (true)
     {
+        //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
+        //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
+
         if ((sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
             httpCloseStream(connection);
