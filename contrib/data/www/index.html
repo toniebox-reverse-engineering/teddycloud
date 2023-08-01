@@ -1012,7 +1012,8 @@
                     time: 0,
                     cloud_time: 0,
                     display_time: 0,
-                    display_cloud_time: 0
+                    display_cloud_time: 0,
+                    version: "(unknown version)"
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
@@ -1022,6 +1023,17 @@
             componentDidMount() {
                 this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
+
+                fetch(`/api/get/internal.version.v_long`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(version => {
+                        this.setState({ version: version });
+                    })
             }
 
             componentWillUnmount() {
@@ -1098,6 +1110,7 @@
                             <SettingsTile />
                             <ActionsTile />
                         </div>
+                        <h4>{this.state.version}</h4>
                     </div>
                 );
             }
