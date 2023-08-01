@@ -65,6 +65,18 @@ typedef struct
 
 typedef struct
 {
+    char *id;
+    char *git_sha_short;
+    char *git_sha;
+    bool dirty;
+    char *datetime;
+    char *v_short;
+    char *v_long;
+    char *v_full;
+} settings_version_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -79,6 +91,8 @@ typedef struct
     char *wwwdirfull;
 
     char *overlayName;
+
+    settings_version_t version;
 } settings_internal_t;
 
 typedef struct
