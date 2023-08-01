@@ -143,7 +143,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         }
     }
 
-    error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_0);
+    error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_1);
     if (error)
     {
         return error;
