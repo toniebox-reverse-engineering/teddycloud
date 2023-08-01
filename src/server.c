@@ -367,18 +367,18 @@ httpServerRequestCallback(HttpConnection *connection,
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     client_ctx_t client_ctx;
-    char_t *commonName = NULL;
-    char_t *subject = connection->tlsContext->client_cert_subject;
-    if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+    client_ctx.settings = get_settings();
+
+    if (connection->tlsContext)
     {
-        commonName = strdup(&subject[2]);
-        commonName[osStrlen(commonName) - 1] = '\0';
-        client_ctx.settings = get_settings_cn(commonName);
-        free(commonName);
-    }
-    else
-    {
-        client_ctx.settings = get_settings();
+        char_t *subject = connection->tlsContext->client_cert_subject;
+        if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+        {
+            char_t *commonName = strdup(&subject[2]);
+            commonName[osStrlen(commonName) - 1] = '\0';
+            client_ctx.settings = get_settings_cn(commonName);
+            free(commonName);
+        }
     }
 
     /* ToDo: why is this not automatically set? */
