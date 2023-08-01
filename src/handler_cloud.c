@@ -569,6 +569,7 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
     return NO_ERROR;
 }
 
+#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
 void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId);
 void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId)
 {
@@ -583,9 +584,9 @@ void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioI
     else
     {
         /* custom tonies from TeddyBench have the audio id reduced by a constant */
-        if (unix_time < 0x50000000)
+        if (unix_time < TEDDY_BENCH_AUDIO_ID_DEDUCT)
         {
-            unix_time += 0x50000000;
+            unix_time += TEDDY_BENCH_AUDIO_ID_DEDUCT;
             *isCustom = true;
         }
         if (localtime_r(&unix_time, &tm_info) == 0)
@@ -638,30 +639,45 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath, client_ctx->settings);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-                char date_buffer[32];
-                bool_t custom;
+                char date_buffer_box[32];
+                bool_t custom_box;
                 char date_buffer_server[32];
                 bool_t custom_server;
 
-                checkAudioIdForCustom(&custom, date_buffer, freshReq->tonie_infos[i]->audio_id);
+                checkAudioIdForCustom(&custom_box, date_buffer_box, freshReq->tonie_infos[i]->audio_id);
                 checkAudioIdForCustom(&custom_server, date_buffer_server, tonieInfo.tafHeader->audio_id);
 
-                tonieInfo.updated = tonieInfo.valid && (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
+                uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
+                uint32_t serverAudioId = tonieInfo.tafHeader->audio_id;
+                if (custom_box)
+                    boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+                if (custom_server)
+                    serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+                tonieInfo.updated = tonieInfo.valid && (boxAudioId < serverAudioId);
+                if (client_ctx->settings->cloud.prioCustomContent)
+                {
+                    if (custom_box && !custom_server)
+                        tonieInfo.updated = false;
+                    if (!custom_box && custom_server)
+                        tonieInfo.updated = true;
+                }
 
                 if (!tonieInfo.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
-                (void)custom;
+                (void)custom_box;
+                (void)custom_server;
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s), audioid-server: %08X (%s%s)\r\n",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
-                           date_buffer,
-                           custom ? ", custom" : "",
+                           date_buffer_box,
+                           custom_box ? ", custom" : "",
                            tonieInfo.tafHeader->audio_id,
                            date_buffer_server,
                            custom_server ? ", custom" : "");

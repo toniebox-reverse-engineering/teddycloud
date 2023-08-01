@@ -81,6 +81,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, FALSE, "Cache cloud content on local server")
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Automatically mark custom tags by password")
     OPTION_BOOL("cloud.markCustomTagByUid", &settings->cloud.markCustomTagByUid, TRUE, "Automatically mark custom tags by Uid")
+    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Priotize custom over boxine content (force update)")
 
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
     OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")

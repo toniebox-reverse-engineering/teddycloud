@@ -34,6 +34,7 @@ typedef struct
     bool cacheContent;
     bool markCustomTagByPass;
     bool markCustomTagByUid;
+    bool prioCustomContent;
 } settings_cloud_t;
 
 typedef struct
