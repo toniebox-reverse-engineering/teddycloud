@@ -12,6 +12,19 @@ EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
+build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
+build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
+build_gitDateTime:="${shell git log -1 --format=%ai}"
+build_gitShortSha:=${shell git rev-parse --short HEAD}
+build_gitSha:=${shell git rev-parse HEAD}
+build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
+
+build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
+ifeq ($(build_gitTagPrefix),tc)
+	build_version:=$(subst ${build_gitTagPrefix}_,,${build_gitTag})
+	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
+endif
 
 ifeq ($(OS),Windows_NT)
 	SHELL       = cmd.exe
@@ -225,6 +238,7 @@ CYCLONE_SOURCES += \
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
+CFLAGS += ${CFLAGS_VERSION}
 CFLAGS += $(INCLUDES)
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))

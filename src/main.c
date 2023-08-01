@@ -16,6 +16,8 @@
 #include "cJSON.h"
 #include "esp32.h"
 
+#include "version.h"
+
 #include "tls_adapter.h"
 #include "cloud_request.h"
 
@@ -112,6 +114,8 @@ bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Pro
 
 int_t main(int argc, char *argv[])
 {
+    TRACE_PRINTF(BUILD_FULL_NAME_LONG "\r\n\r\n");
+
     error_t error = 0;
 
     char cwd[256];

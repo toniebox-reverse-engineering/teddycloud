@@ -751,7 +751,7 @@ error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const ch
     else
     {
         httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
-        connection->response.keepAlive = false;
+        connection->response.keepAlive = true;
         return httpWriteResponseString(connection, "{}", false);
     }
     return NO_ERROR;
