@@ -205,7 +205,7 @@ void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *
     osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
     strupr(filePath);
 
-    osSprintf(*pcontentPath, "content/%s/%s", settings->core.contentdir, filePath);
+    osSprintf(*pcontentPath, "%s/%s", settings->internal.contentdirfull, filePath);
 }
 
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings)
@@ -496,7 +496,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     if (tonieInfo.exists)
     {
         connection->response.keepAlive = true;
-        error_t error = httpSendResponse(connection, tonieInfo.contentPath);
+        error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);

@@ -72,6 +72,7 @@ typedef struct
     bool config_changed;
 
     char *cwd;
+    char *contentdirrel;
     char *contentdirfull;
     char *datadirfull;
     char *wwwdirfull;
