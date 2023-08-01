@@ -96,6 +96,11 @@ error_t sse_rawData(const char *content)
     {
         osSuspendAllTasks();
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
+        if (sseCtx->lastConnection == 0)
+        {
+            osResumeAllTasks();
+            continue;
+        }
         sseCtx->lastConnection = time(NULL);
         osResumeAllTasks();
         HttpConnection *conn = sseCtx->connection;
@@ -106,6 +111,7 @@ error_t sse_rawData(const char *content)
         if (error != NO_ERROR)
             return error;
     }
+
     return error;
 }
 error_t sse_endEventRaw(void)
