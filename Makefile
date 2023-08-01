@@ -88,10 +88,12 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-LFLAGS_linux = 
-CFLAGS_linux += -Wall -Werror -Wno-error=pointer-sign
-CFLAGS_linux += -ggdb -O3
-#CFLAGS += -fsanitize=address -static-libasan -Og
+CFLAGS_linux += -Wall -Werror
+CFLAGS_linux += -ggdb
+
+# for now enable extensive error checking
+CFLAGS_linux += -fsanitize=undefined -fsanitize=address -Og
+LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 
 ## win32 specific headers/sources
 HEADERS_windows = 
