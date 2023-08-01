@@ -95,6 +95,9 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         return ERROR_NOT_FOUND;
     }
 
+    /* in case of skipped headers, also reduce the file length */
+    length -= startOffset;
+
     // Open the file for reading
     file = fsOpenFile(new_uri, FS_FILE_MODE_READ);
     // Failed to open the file?
@@ -105,7 +108,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     // TODO add status 416 on invalid ranges
     if (connection->request.Range.start > 0)
     {
-        connection->request.Range.size = length - startOffset;
+        connection->request.Range.size = length;
         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
             connection->request.Range.end = connection->request.Range.size - 1;
 
@@ -124,7 +127,6 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     }
     connection->response.contentType = "audio/ogg";
     connection->response.chunkedEncoding = FALSE;
-    length = connection->response.contentLength;
 
     // Send the header to the client
     error = httpWriteHeader(connection);
@@ -140,7 +142,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
     {
         TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, connection->request.Range.start + startOffset, FS_SEEK_SET);
+        fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
     }
     else
     {
