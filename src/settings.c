@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "version.h"
 #include "debug.h"
 #include "settings.h"
 
@@ -67,6 +68,15 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
+
+    OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
+    OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Git sha short hash")
+    OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Git sha hash")
+    OPTION_INTERNAL_BOOL("internal.version.dirty", &settings->internal.version.dirty, FALSE, "Dirty build")
+    OPTION_INTERNAL_STRING("internal.version.datetime", &settings->internal.version.datetime, "", "Build/git datetime")
+    OPTION_INTERNAL_STRING("internal.version.v_short", &settings->internal.version.v_short, "", "Short version string")
+    OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Long version string")
+    OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Full version string")
 
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Generally enable cloud operation")
     OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
@@ -287,6 +297,16 @@ void settings_init(char *cwd)
         pos++;
     }
     settings_set_string("internal.cwd", cwd);
+
+    settings_set_string("internal.version.id", BUILD_VERSION);
+    settings_set_string("internal.version.git_sha_short", BUILD_GIT_SHORT_SHA);
+    settings_set_string("internal.version.git_sha", BUILD_GIT_SHA);
+    settings_set_bool("internal.version.id", BUILD_GIT_IS_DIRTY);
+    settings_set_string("internal.version.datetime", BUILD_DATETIME);
+    settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
+    settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
+    settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
     settings_changed();
     settings_load();
 }
