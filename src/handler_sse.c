@@ -108,7 +108,7 @@ error_t sse_startEventRaw(const char *eventname)
 error_t sse_rawData(const char *content)
 {
     error_t error = NO_ERROR;
-    osSuspendAllTasks();
+    // osSuspendAllTasks();
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     {
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
@@ -117,7 +117,7 @@ error_t sse_rawData(const char *content)
         sseCtx->lastConnection = time(NULL);
         sseCtx->error = httpWriteString(sseCtx->connection, content);
     }
-    osResumeAllTasks();
+    // osResumeAllTasks();
 
     return error;
 }
