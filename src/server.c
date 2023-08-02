@@ -654,6 +654,7 @@ void server_init()
     while (!settings_get_bool("internal.exit"))
     {
         osDelayTask(250);
+        settings_loop();
         systime_t now = osGetSystemTime();
         if ((now - last) / 1000 > 5)
         {
