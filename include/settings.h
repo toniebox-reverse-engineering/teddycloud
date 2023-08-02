@@ -92,6 +92,7 @@ typedef struct
     char *wwwdirfull;
 
     char *overlayName;
+    char *assign_unknown;
 
     settings_version_t version;
 } settings_internal_t;

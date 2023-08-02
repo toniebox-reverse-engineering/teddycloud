@@ -59,12 +59,6 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
-    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(rootPath) + 1);
-
-    if (new_uri == NULL)
-    {
-        return ERROR_OUT_OF_MEMORY;
-    }
 
     TRACE_INFO("Query: '%s'\r\n", queryString);
 
@@ -101,6 +95,12 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 
     bool skipFileHeader = !strcmp(ogg, "true");
     size_t startOffset = skipFileHeader ? 4096 : 0;
+
+    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(rootPath) + 1);
+    if (new_uri == NULL)
+    {
+        return ERROR_OUT_OF_MEMORY;
+    }
 
     osStrcpy(new_uri, rootPath);
     osStrcat(new_uri, &uri[8]);
@@ -234,6 +234,7 @@ request_type_t request_paths[] = {
 
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
     {REQ_GET, "/api/sse", &handleApiSse},

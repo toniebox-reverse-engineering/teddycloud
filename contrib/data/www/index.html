@@ -192,6 +192,61 @@
             color: red;
             font-family: monospace;
         }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #0000ff;
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px #0000ff;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .slider.round {
+            border-radius: 20px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
     </style>
 </head>
 
@@ -722,7 +777,7 @@
                     files: [],
                     selectedFiles: [],
                     tonies: [],
-                    mode: 'content', // default to 'content' mode
+                    mode: "content"
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -731,6 +786,7 @@
                 this.onDrop = this.onDrop.bind(this);
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
+                this.assignNextUnknown = this.assignNextUnknown.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
                 this.handleModeChange = this.handleModeChange.bind(this); // bind the handler
                 this.oggPlayerRef = React.createRef();
@@ -743,11 +799,48 @@
                 this.fetchFileIndex(this.state.path);
             }
 
-            handleModeChange(event) {
-                this.setState({ mode: event.target.value, path: '/' }, () => {
-                    this.fetchFileIndex(this.state.path); // Refresh file index after mode change
-                });
+            async assignNextUnknown() {
+                const selectedFiles = this.state.selectedFiles;
+                if (selectedFiles.length !== 1) {
+                    alert('Please select exactly one file.');
+                    return;
+                }
+
+                let file = selectedFiles[0];
+
+                try {
+                    const response = await fetch(`/api/assignUnknown?path=${encodeURIComponent(this.state.path + '/' + file.name)}&special=${this.state.mode}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: "",
+                    });
+
+                    if (response.ok && await response.text() === 'OK') {
+                        alert('File has been processed successfully.');
+                    } else {
+                        alert('Failed to process the file.');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                    alert('Failed to process the file due to an error.');
+                }
+
+                this.setState({ selectedFiles: [] });
+                this.fetchFileIndex(this.state.path);
             }
+
+
+            handleModeChange = () => {
+                this.setState(
+                    prevState => ({
+                        mode: prevState.mode === "content" ? "library" : "content",
+                        path: '/'
+                    }),
+                    () => {
+                        this.fetchFileIndex(this.state.path);
+                    }
+                );
+            };
 
             async fetchFileIndex(path) {
                 try {
@@ -895,22 +988,16 @@
                         {/* Mode Switch */}
                         <div>
                             <label>
-                                <input
-                                    type="radio"
-                                    value="content"
-                                    checked={this.state.mode === 'content'}
-                                    onChange={this.handleModeChange}
-                                />
-                                Content
-                            </label>
-                            <label>
-                                <input
-                                    type="radio"
-                                    value="library"
-                                    checked={this.state.mode === 'library'}
-                                    onChange={this.handleModeChange}
-                                />
-                                Library
+                                <span>Content </span>
+                                <label className="switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.mode === 'library'}
+                                        onChange={this.handleModeChange}
+                                    />
+                                    <span className="slider round"></span>
+                                </label>
+                                <span> Library</span>
                             </label>
                         </div>
 
@@ -919,6 +1006,7 @@
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
+                            <button className="button" onClick={this.assignNextUnknown}>Assign Unknown</button>
                             {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
