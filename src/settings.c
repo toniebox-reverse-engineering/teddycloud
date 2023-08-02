@@ -116,20 +116,27 @@ static void option_map_init(uint8_t settingsId)
     OPTION_END()
 
     if (Option_Map_Overlay[settingsId] == NULL)
+    {
         Option_Map_Overlay[settingsId] = osAllocMem(sizeof(option_map_array));
+    }
 
     osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
 }
+
 static setting_item_t *get_option_map(const char *overlay)
 {
     return Option_Map_Overlay[get_overlay_id(overlay)];
 }
+
 void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
         if (Settings_Overlay[i].internal.config_init)
+        {
             settings_deinit(i);
+        }
+
         option_map_init(i);
 
         setting_item_t *option_map = Option_Map_Overlay[i];
@@ -168,10 +175,12 @@ settings_t *get_settings()
 {
     return &Settings_Overlay[0];
 }
+
 settings_t *get_settings_ovl(const char *overlay)
 {
     return &Settings_Overlay[get_overlay_id(overlay)];
 }
+
 settings_t *get_settings_cn(const char *commonName)
 {
     for (size_t i = 0; i < MAX_OVERLAYS; i++)
@@ -187,7 +196,10 @@ settings_t *get_settings_cn(const char *commonName)
 uint8_t get_overlay_id(const char *overlay)
 {
     if (overlay == NULL)
+    {
         return 0;
+    }
+
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
         if (osStrcmp(Settings_Overlay[i].internal.overlayName, overlay) == 0)
@@ -209,6 +221,7 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
         snprintf(*resolvedPath, 255, "%s/%s", basePath, path);
     }
 }
+
 void settings_generate_internal_dirs(settings_t *settings)
 {
     free(settings->internal.contentdirrel);
@@ -252,7 +265,10 @@ void settings_deinit(uint8_t overlayId)
     int pos = 0;
     setting_item_t *option_map = Option_Map_Overlay[overlayId];
     if (option_map == NULL)
+    {
         return;
+    }
+
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
@@ -270,9 +286,12 @@ void settings_deinit(uint8_t overlayId)
         }
         pos++;
     }
-    osFreeMem(Option_Map_Overlay[overlayId]);
     Settings_Overlay[overlayId].internal.config_init = FALSE;
+
+    osFreeMem(Option_Map_Overlay[overlayId]);
+    Option_Map_Overlay[overlayId] = NULL;
 }
+
 void settings_deinit_all()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
@@ -344,6 +363,7 @@ void settings_save()
 {
     settings_save_ovl(NULL);
 }
+
 void settings_save_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
@@ -402,11 +422,13 @@ void settings_save_ovl(bool overlay)
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
 }
+
 void settings_load()
 {
     settings_load_ovl(false);
     settings_load_ovl(true);
 }
+
 void settings_load_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
@@ -578,6 +600,7 @@ setting_item_t *settings_get(int index)
 {
     return settings_get_ovl(index, NULL);
 }
+
 setting_item_t *settings_get_ovl(int index, const char *overlay_name)
 {
     int pos = 0;
@@ -597,10 +620,12 @@ setting_item_t *settings_get_by_name(const char *item)
 {
     return settings_get_by_name_ovl(item, NULL);
 }
+
 setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_name)
 {
     return settings_get_by_name_id(item, get_overlay_id(overlay_name));
 }
+
 setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
 {
     int pos = 0;
@@ -621,6 +646,7 @@ bool settings_get_bool(const char *item)
 {
     return settings_get_bool_ovl(item, NULL);
 }
+
 bool settings_get_bool_ovl(const char *item, const char *overlay_name)
 {
     if (!item)
@@ -650,9 +676,12 @@ bool settings_set_bool(const char *item, bool value)
         return false;
     }
 
-    if (!opt->internal)
-        settings_changed();
     *((bool *)opt->ptr) = value;
+
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
     return true;
 }
 
@@ -660,6 +689,7 @@ int32_t settings_get_signed(const char *item)
 {
     return settings_get_signed_ovl(item, NULL);
 }
+
 int32_t settings_get_signed_ovl(const char *item, const char *overlay_name)
 {
     if (!item)
@@ -695,9 +725,12 @@ bool settings_set_signed(const char *item, int32_t value)
         return false;
     }
 
-    if (!opt->internal)
-        settings_changed();
     *((int32_t *)opt->ptr) = value;
+
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
     return true;
 }
 
@@ -740,9 +773,12 @@ bool settings_set_unsigned(const char *item, uint32_t value)
         return false;
     }
 
-    if (!opt->internal)
-        settings_changed();
     *((uint32_t *)opt->ptr) = value;
+
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
     return true;
 }
 
@@ -785,9 +821,12 @@ bool settings_set_float(const char *item, float value)
         return false;
     }
 
-    if (!opt->internal)
-        settings_changed();
     *((float *)opt->ptr) = value;
+
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
     return true;
 }
 
@@ -795,6 +834,7 @@ const char *settings_get_string(const char *item)
 {
     return settings_get_string_ovl(item, NULL);
 }
+
 const char *settings_get_string_ovl(const char *item, const char *overlay_name)
 {
     if (!item)
@@ -815,6 +855,7 @@ bool settings_set_string(const char *item, const char *value)
 {
     return settings_set_string_id(item, value, 0);
 }
+
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId)
 {
     if (!item || !value)
@@ -835,8 +876,11 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
         free(*ptr);
     }
 
-    if (!opt->internal)
-        settings_changed();
     *ptr = strdup(value);
+
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
     return true;
 }

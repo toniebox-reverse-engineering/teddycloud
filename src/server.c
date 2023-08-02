@@ -612,22 +612,22 @@ void server_init()
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
-    strcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
-    strcpy(http_settings.defaultDocument, "index.shtm");
+    osStrcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
+    osStrcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;
     http_settings.requestCallback = httpServerRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
-    http_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
+    http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
     https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
+    https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
