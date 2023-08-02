@@ -109,7 +109,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
       length = HTTP_SERVER_BUFFER_SIZE - 1;
    connection->buffer[length] = '\0';
    // Debug message
-   TRACE_INFO("%s", connection->buffer);
+   // TRACE_INFO("%s", connection->buffer);
 
    // Parse the Request-Line
    error = httpParseRequestLine(connection, connection->buffer);
