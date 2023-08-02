@@ -69,3 +69,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.teddycloud_meta.outputs.tags }}
         labels: ${{ steps.teddycloud_meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
