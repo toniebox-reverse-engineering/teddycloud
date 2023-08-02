@@ -128,8 +128,8 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             rtnlEvent(rpc);
             rtnlEventLog(rpc);
             rtnlEventDump(rpc, client_ctx->settings);
-            tonie_rtnl_rpc__free_unpacked(rpc, NULL);
         }
+        tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     } while (true);
 
     /* move left-over data to the start of the buffer */
