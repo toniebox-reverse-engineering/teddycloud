@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "settings.h"
+#include "fs_ext.h"
 
 #include "handler.h"
 #include "handler_api.h"
@@ -515,7 +516,57 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         markCustomTonie(&tonieInfo);
     }
 
-    if (tonieInfo.exists)
+    settings_t *settings = get_settings();
+    if (!tonieInfo.exists && osStrlen(settings->internal.assign_unknown) > 0)
+    {
+        char *path = settings->internal.assign_unknown;
+        if (fsFileExists(path))
+        {
+            tonie_info_t tonieInfoAssign = getTonieInfo(path);
+            if (tonieInfoAssign.valid)
+            {
+                char *dir = strdup(tonieInfo.contentPath);
+                dir[osStrlen(dir) - 8] = '\0';
+                fsCreateDir(dir);
+                osFreeMem(dir);
+
+                if ((error = fsCopyFile(path, tonieInfo.contentPath, false)) == NO_ERROR)
+                {
+                    char *oldFile = strdup(tonieInfo.contentPath);
+                    freeTonieInfo(&tonieInfo);
+                    tonieInfo = getTonieInfo(oldFile);
+                    free(oldFile);
+                    if (tonieInfo.valid)
+                    {
+                        TRACE_INFO("Assigned unknown set to %s\r\n", path);
+                        settings_set_string("internal.assign_unknown", "");
+                    }
+                    else
+                    {
+                        TRACE_ERROR("TAF header of assign unknown invalid, delete it again: %s\r\n", tonieInfo.contentPath)
+                        fsDeleteFile(tonieInfo.contentPath);
+                    }
+                }
+                else
+                {
+                    freeTonieInfo(&tonieInfoAssign);
+                    TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error)
+                }
+            }
+            else
+            {
+                freeTonieInfo(&tonieInfoAssign);
+                TRACE_ERROR("TAF header of assign unknown invalid: %s\r\n", path)
+            }
+        }
+        else
+        {
+            TRACE_ERROR("Assign unknown path not available: %s\r\n", path)
+        }
+        error = NO_ERROR;
+    }
+
+    if (tonieInfo.exists && tonieInfo.valid)
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
@@ -548,6 +599,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+            error = NO_ERROR;
         }
     }
     freeTonieInfo(&tonieInfo);
