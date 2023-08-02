@@ -252,7 +252,7 @@ int_t main(int argc, char *argv[])
 
     tls_adapter_deinit();
     platform_deinit();
-    settings_deinit();
+    settings_deinit_all();
 
     return error;
 }
