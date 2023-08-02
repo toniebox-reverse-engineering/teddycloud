@@ -27,6 +27,7 @@
 #include "debug.h"
 #include "os_port.h"
 
+#include "mutex_manager.h"
 #include "cloud_request.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
@@ -593,6 +594,7 @@ bool sanityChecks()
 
 void server_init()
 {
+    mutex_manager_init();
     if (!sanityChecks())
     {
         return;
@@ -659,6 +661,7 @@ void server_init()
             sanityChecks();
         }
     }
+    mutex_manager_deinit();
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);
