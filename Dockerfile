@@ -32,6 +32,7 @@ COPY --from=buildenv \
 
 VOLUME [ \
     "/teddycloud/data/content", \
+    "/teddycloud/data/library", \
     "/teddycloud/certs", \
     "/teddycloud/config", \
     ]
