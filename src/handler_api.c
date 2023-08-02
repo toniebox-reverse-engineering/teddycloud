@@ -33,6 +33,8 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
+    char *response = "OK";
+    error_t ret = NO_ERROR;
 
     TRACE_INFO("Query: '%s'\r\n", queryString);
 
@@ -62,23 +64,31 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
             if (rootPath == NULL || !fsDirExists(rootPath))
             {
                 TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
+                response = "FAIL";
+                ret = ERROR_FAILURE;
             }
         }
     }
 
-    pathCanonicalize(path);
-    char *pathAbsolute = osAllocMem(strlen(rootPath) + osStrlen(path) + 2);
+    if (ret == NO_ERROR)
+    {
+        pathCanonicalize(path);
+        char *pathAbsolute = osAllocMem(strlen(rootPath) + osStrlen(path) + 2);
 
-    osSprintf(pathAbsolute, "%s/%s", rootPath, path);
-    pathCanonicalize(pathAbsolute);
+        osSprintf(pathAbsolute, "%s/%s", rootPath, path);
+        pathCanonicalize(pathAbsolute);
 
-    TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
+        TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-    settings_set_string("internal.assign_unknown", pathAbsolute);
+        settings_set_string("internal.assign_unknown", pathAbsolute);
+        osFreeMem(pathAbsolute);
+    }
 
-    osFreeMem(pathAbsolute);
-    return NO_ERROR;
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/plain";
+    connection->response.contentLength = osStrlen(response);
+
+    return httpWriteResponseString(connection, response, false);
 }
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)

@@ -777,7 +777,10 @@
                     files: [],
                     selectedFiles: [],
                     tonies: [],
-                    mode: "content"
+                    mode: "content",
+                    showSuccessMessage: false,
+                    showSuccessState: false,
+                    opacity: 1
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -788,8 +791,9 @@
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
                 this.assignNextUnknown = this.assignNextUnknown.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
-                this.handleModeChange = this.handleModeChange.bind(this); // bind the handler
+                this.handleModeChange = this.handleModeChange.bind(this);
                 this.oggPlayerRef = React.createRef();
+                this.showSuccess = this.showSuccess.bind(this);
             }
 
             componentDidMount() {
@@ -799,10 +803,26 @@
                 this.fetchFileIndex(this.state.path);
             }
 
+            showSuccess(success) {
+                // Start by showing the success message
+                this.setState({ showSuccessMessage: true, showSuccessState: success, opacity: 1 });
+
+                // After 1 second, start fading out
+                setTimeout(() => {
+                    this.setState({ opacity: 0 });
+
+                    // Once the message has faded out, hide it and reset opacity
+                    setTimeout(() => {
+                        this.setState({ showSuccessMessage: false, opacity: 1 });
+                    }, 2000); // Corresponds to the transition duration in your CSS
+                }, 1000);
+            }
+
             async assignNextUnknown() {
                 const selectedFiles = this.state.selectedFiles;
                 if (selectedFiles.length !== 1) {
                     alert('Please select exactly one file.');
+                    this.showSuccess(false);
                     return;
                 }
 
@@ -815,20 +835,20 @@
                         body: "",
                     });
 
-                    if (response.ok) {
-                        alert('File has been processed successfully.');
+                    if (response.ok && await response.text() === 'OK') {
+                        this.showSuccess(true);
                     } else {
                         alert('Failed to process the file.');
+                        this.showSuccess(false);
                     }
                 } catch (err) {
-                    console.error('There was an error!', err);
                     alert('Failed to process the file due to an error.');
+                    this.showSuccess(false);
                 }
 
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path);
             }
-
 
             handleModeChange = () => {
                 this.setState(
@@ -890,8 +910,10 @@
                         });
 
                         if (response.ok) {
+                            this.showSuccess(true);
                         } else {
                             alert('File upload failed');
+                            this.showSuccess(false);
                         }
                     } catch (err) {
                         console.error('There was an error!', err);
@@ -918,8 +940,10 @@
 
                     if (response.ok) {
                         this.fetchFileIndex(this.state.path); // Refresh files
+                        this.showSuccess(true);
                     } else {
                         alert('Failed to create directory');
+                        this.showSuccess(false);
                     }
                 } catch (err) {
                     console.error('There was an error!', err);
@@ -959,6 +983,8 @@
 
                 if (failedCount > 0) {
                     alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                } else {
+                    this.showSuccess(true);
                 }
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path); // Refresh files after delete
@@ -1023,6 +1049,23 @@
                                 }}
                             />
                         </p>
+                        <div style={{ position: 'relative' }}>
+                            {this.state.showSuccessMessage &&
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    fontSize: '200px',
+                                    color: this.state.showSuccessState ? 'green' : 'red',
+                                    opacity: this.state.opacity,
+                                    transition: 'opacity 2s ease-out'
+                                }}>
+                                    {this.state.showSuccessState ? String.fromCharCode(10004) : String.fromCharCode(10008)}
+                                </div>
+                            }
+                        </div>
+
 
                         <pre key="path" style={{ fontFamily: 'monospace' }}>
                             <span>Index of {this.state.path}</span>
