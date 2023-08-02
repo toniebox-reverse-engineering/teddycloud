@@ -73,7 +73,10 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char_t *data = connection->buffer;
+    char_t *buffer = osAllocMem(sizeof(connection->buffer));
+    osMemcpy(buffer, connection->buffer, sizeof(connection->buffer));
+
+    char_t *data = buffer;
     size_t size = connection->response.contentLength;
 
     if (client_ctx->settings->rtnl.logRaw)
@@ -86,7 +89,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     size_t pos = 0;
     while (size > 4 && pos < (size - 4))
     {
-        data = &connection->buffer[pos];
+        data = &buffer[pos];
         uint32_t protoLength = (uint32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
         char_t *protoData = &data[4];
         if (protoLength > (size - 4 - pos))
@@ -111,8 +114,10 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     }
 
-    osMemcpy(connection->buffer, data, size - pos);
+    osMemcpy(buffer, data, size - pos);
+    osMemcpy(connection->buffer, buffer, sizeof(connection->buffer));
     connection->response.byteCount = size - pos;
+    osFreeMem(buffer);
 
     return NO_ERROR;
 }

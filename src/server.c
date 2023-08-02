@@ -572,6 +572,7 @@ void server_init()
         return;
     }
     settings_set_bool("internal.exit", FALSE);
+    sse_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;

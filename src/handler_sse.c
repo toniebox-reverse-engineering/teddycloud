@@ -13,9 +13,8 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     { // Find first free slot
         sseCtx = &sseSubs[channel];
-        if (sseCtx->lastConnection == 0 && sseCtx->connection == NULL)
+        if (!sseCtx->active)
         {
-            sseCtx->channel = channel;
             break;
         }
         else
@@ -27,11 +26,14 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     {
         osResumeAllTasks();
         TRACE_ERROR("All slots full, in total %" PRIu8 " clients", sseSubscriptionCount);
+        httpCloseStream(connection);
         return NO_ERROR;
     }
 
     sseCtx->lastConnection = time(NULL);
     sseCtx->connection = connection;
+    sseCtx->active = TRUE;
+    sseCtx->error = NO_ERROR;
     sseSubscriptionCount++;
 
     osResumeAllTasks();
@@ -56,22 +58,36 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
         //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
 
-        if ((sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
+        if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
             httpCloseStream(connection);
             osSuspendAllTasks();
-            sseCtx->connection = NULL;
-            sseCtx->lastConnection = 0;
-            sseCtx->channel = 0;
+            sseCtx->active = FALSE;
+            error = sseCtx->error;
             sseSubscriptionCount--;
             osResumeAllTasks();
             TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", sseCtx->channel, sseSubscriptionCount);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("SSE Client with error %" PRIu32 "\r\n", error);
+            }
             break;
         }
         osDelayTask(100);
     }
 
     return error;
+}
+
+void sse_init()
+{
+    SseSubscriptionContext *sseCtx = NULL;
+    for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
+    {
+        sseCtx = &sseSubs[channel];
+        sseCtx->channel = channel;
+        sseCtx->active = FALSE;
+    }
 }
 
 error_t sse_startEventRaw(const char *eventname)
@@ -92,25 +108,16 @@ error_t sse_startEventRaw(const char *eventname)
 error_t sse_rawData(const char *content)
 {
     error_t error = NO_ERROR;
+    osSuspendAllTasks();
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     {
-        osSuspendAllTasks();
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
-        if (sseCtx->lastConnection == 0)
-        {
-            osResumeAllTasks();
+        if (!sseCtx->active)
             continue;
-        }
         sseCtx->lastConnection = time(NULL);
-        osResumeAllTasks();
-        HttpConnection *conn = sseCtx->connection;
-        if (sseCtx->connection == NULL)
-            continue;
-
-        error = httpWriteString(conn, content);
-        if (error != NO_ERROR)
-            return error;
+        sseCtx->error = httpWriteString(sseCtx->connection, content);
     }
+    osResumeAllTasks();
 
     return error;
 }
