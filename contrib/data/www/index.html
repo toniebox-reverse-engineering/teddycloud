@@ -24,6 +24,19 @@
             margin: 0;
         }
 
+        .sse-content {
+            width: 90%;
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            padding: 5px;
+            white-space: pre-wrap;
+            white-space: -moz-pre-wrap;
+            white-space: -pre-wrap;
+            white-space: -o-pre-wrap;
+            word-wrap: break-word;
+        }
+
         .small-round-button {
             position: absolute;
             top: 0;
@@ -178,6 +191,61 @@
         .status-failed {
             color: red;
             font-family: monospace;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #0000ff;
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px #0000ff;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .slider.round {
+            border-radius: 20px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
         }
     </style>
 </head>
@@ -709,6 +777,7 @@
                     files: [],
                     selectedFiles: [],
                     tonies: [],
+                    mode: "content"
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -717,7 +786,9 @@
                 this.onDrop = this.onDrop.bind(this);
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
+                this.assignNextUnknown = this.assignNextUnknown.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
+                this.handleModeChange = this.handleModeChange.bind(this); // bind the handler
                 this.oggPlayerRef = React.createRef();
             }
 
@@ -728,10 +799,52 @@
                 this.fetchFileIndex(this.state.path);
             }
 
+            async assignNextUnknown() {
+                const selectedFiles = this.state.selectedFiles;
+                if (selectedFiles.length !== 1) {
+                    alert('Please select exactly one file.');
+                    return;
+                }
+
+                let file = selectedFiles[0];
+
+                try {
+                    const response = await fetch(`/api/assignUnknown?path=${encodeURIComponent(this.state.path + '/' + file.name)}&special=${this.state.mode}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: "",
+                    });
+
+                    if (response.ok) {
+                        alert('File has been processed successfully.');
+                    } else {
+                        alert('Failed to process the file.');
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                    alert('Failed to process the file due to an error.');
+                }
+
+                this.setState({ selectedFiles: [] });
+                this.fetchFileIndex(this.state.path);
+            }
+
+
+            handleModeChange = () => {
+                this.setState(
+                    prevState => ({
+                        mode: prevState.mode === "content" ? "library" : "content",
+                        path: '/'
+                    }),
+                    () => {
+                        this.fetchFileIndex(this.state.path);
+                    }
+                );
+            };
+
             async fetchFileIndex(path) {
                 try {
-                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
-
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
                     if (response.ok) {
                         const data = await response.json();
                         this.setState({ files: data.files, path });
@@ -871,11 +984,29 @@
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
                         <h2>File Viewer</h2>
                         <OggPlayer ref={this.oggPlayerRef} />
+
+                        {/* Mode Switch */}
+                        <div>
+                            <label>
+                                <span>Content </span>
+                                <label className="switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.mode === 'library'}
+                                        onChange={this.handleModeChange}
+                                    />
+                                    <span className="slider round"></span>
+                                </label>
+                                <span> Library</span>
+                            </label>
+                        </div>
+
                         <p>
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
+                            <button className="button" onClick={this.assignNextUnknown}>Assign Unknown</button>
                             {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
@@ -959,7 +1090,7 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={`/content${this.state.path}${file.name}?special=${this.state.mode}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -969,7 +1100,7 @@
                                                 <div className="parent">
                                                     <button
                                                         onClick={() => {
-                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true`);
+                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
                                                         }
                                                         } className="small-round-button"
@@ -1002,7 +1133,54 @@
                 );
             }
         }
+        class SSE extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    messages: [],
+                };
+            }
+            componentDidMount() {
+                const eventSource = new EventSource('/api/sse');
 
+                eventSource.onmessage = e => {
+                    try {
+                        const data = JSON.parse(e.data);
+
+                        this.setState(prevState => ({
+                            messages: [...prevState.messages, data]
+                        }));
+                    } catch (error) {
+                        console.error("Error parsing event data: ", error);
+                    }
+                };
+                eventSource.onerror = e => {
+                    console.error("EventSource failed:", e);
+                };
+                this._sseEventSource = eventSource;
+            }
+
+            componentWillUnmount() {
+                if (this._sseEventSource) {
+                    this._sseEventSource.close();
+                }
+            }
+
+            render() {
+                return (
+                    <div className="tile sse-tile">
+                        <h2>Server-Sent Events</h2>
+                        <div className="sse-content" style={{ overflowY: 'scroll', maxHeight: '300px' }}>
+                            {this.state.messages.map((message, index) => (
+                                <pre key={index}>
+                                    {message}
+                                </pre>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+        }
 
 
         class App extends React.Component {

@@ -87,10 +87,12 @@ typedef struct
     char *cwd;
     char *contentdirrel;
     char *contentdirfull;
+    char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
 
     char *overlayName;
+    char *assign_unknown;
 
     settings_version_t version;
 } settings_internal_t;
@@ -107,6 +109,7 @@ typedef struct
     uint32_t https_port;
     char *certdir;
     char *contentdir;
+    char *librarydir;
     char *datadir;
     char *wwwdir;
     settings_cert_opt_t server_cert;

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "path.h"
 #include "fs_port.h"
 #include "handler.h"
 #include "handler_api.h"
@@ -26,6 +27,59 @@ typedef enum
 #define DATA_SIZE 1024
 #define SAVE_SIZE 80
 #define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
+
+bool queryGet(const char *query, const char *key, char *data, size_t data_len);
+
+error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = settings_get_string("internal.contentdirfull");
+
+    TRACE_INFO("Query: '%s'\r\n", queryString);
+
+    char path[256];
+    char overlay[16];
+    char special[16];
+
+    osStrcpy(path, "");
+    osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "path", path, sizeof(path)))
+    {
+        TRACE_INFO("got path '%s'\r\n", path);
+    }
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
+
+    pathCanonicalize(path);
+    char *pathAbsolute = osAllocMem(strlen(rootPath) + osStrlen(path) + 2);
+
+    osSprintf(pathAbsolute, "%s/%s", rootPath, path);
+    pathCanonicalize(pathAbsolute);
+
+    TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
+
+    settings_set_string("internal.assign_unknown", pathAbsolute);
+
+    osFreeMem(pathAbsolute);
+    return NO_ERROR;
+}
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -426,10 +480,35 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
         return ERROR_FAILURE;
     }
     TRACE_INFO("Query: '%s'\r\n", queryString);
+
+    char overlay[16];
+    char special[16];
+    osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("requested index for overlay '%s'\r\n", overlay);
+    }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
 
     char path[128];
     char pathAbsolute[256];
