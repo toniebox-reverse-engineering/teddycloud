@@ -12,7 +12,7 @@ FROM ubuntu:latest
 EXPOSE 80 443
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends faketime openssl \
+    && apt-get install -y --no-install-recommends faketime openssl libubsan0 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /teddycloud/certs \
