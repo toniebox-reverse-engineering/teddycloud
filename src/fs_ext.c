@@ -49,22 +49,19 @@ error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t 
     size_t bytes_read;
 
     error_t error = NO_ERROR;
-    while (error != NO_ERROR)
+    while (error == NO_ERROR)
     {
         error = fsReadFile(source_file, buffer, buffer_size, &bytes_read);
-        if (error == NO_ERROR || error == ERROR_END_OF_FILE)
+        if (error == NO_ERROR)
             error = fsWriteFile(target_file, buffer, bytes_read);
-        if (error != NO_ERROR)
-        {
-            fsCloseFile(source_file);
-            fsCloseFile(target_file);
-            return error;
-        }
     }
 
     // Close the files
     fsCloseFile(source_file);
     fsCloseFile(target_file);
+
+    if (error == ERROR_END_OF_FILE)
+        return NO_ERROR;
 
     return error;
 }
