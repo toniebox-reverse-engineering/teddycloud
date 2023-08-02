@@ -258,7 +258,8 @@ void settings_init(char *cwd);
  *
  * This function should be called to clean up all allocated memory.
  */
-void settings_deinit();
+void settings_deinit(uint8_t overlayId);
+void settings_deinit_all();
 
 /**
  * @brief Saves the current settings to a persistent storage (like a file or database).

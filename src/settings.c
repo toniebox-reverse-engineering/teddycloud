@@ -15,7 +15,7 @@
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
 
-static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
+static void option_map_init(uint8_t settingsId)
 {
     settings_t *settings = &Settings_Overlay[settingsId];
 
@@ -115,9 +115,10 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification")
     OPTION_END()
 
-    if (*option_map == NULL)
-        *option_map = osAllocMem(sizeof(setting_item_t) * sizeof(option_map_array));
-    osMemcpy(*option_map, option_map_array, sizeof(option_map_array));
+    if (Option_Map_Overlay[settingsId] == NULL)
+        Option_Map_Overlay[settingsId] = osAllocMem(sizeof(option_map_array));
+
+    osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
 }
 static setting_item_t *get_option_map(const char *overlay)
 {
@@ -127,22 +128,32 @@ void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        osMemcpy(&Settings_Overlay[i], get_settings(), sizeof(settings_t));
-        Settings_Overlay[i].internal.config_init = false;
-        option_map_init(&Option_Map_Overlay[i], i);
+        if (Settings_Overlay[i].internal.config_init)
+            settings_deinit(i);
+        option_map_init(i);
+
+        setting_item_t *option_map = Option_Map_Overlay[i];
+        setting_item_t *option_map_src = Option_Map_Overlay[0];
 
         int pos = 0;
-        setting_item_t *option_map = Option_Map_Overlay[i];
         while (option_map[pos].type != TYPE_END)
         {
             setting_item_t *opt = &option_map[pos];
+            setting_item_t *opt_src = &option_map_src[pos];
 
             switch (opt->type)
             {
+            case TYPE_BOOL:
+                *((bool *)opt->ptr) = *((bool *)opt_src->ptr);
+                break;
+            case TYPE_SIGNED:
+            case TYPE_UNSIGNED:
+            case TYPE_HEX:
+            case TYPE_FLOAT:
+                *((uint32_t *)opt->ptr) = *((uint32_t *)opt_src->ptr);
+                break;
             case TYPE_STRING:
-                // Duplicate strings, may be optional
-                // TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
-                *((char **)opt->ptr) = strdup(*((char **)opt->ptr));
+                *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
                 break;
             default:
                 break;
@@ -236,36 +247,43 @@ void settings_changed()
     settings_load_ovl(true);
 }
 
-void settings_deinit()
+void settings_deinit(uint8_t overlayId)
+{
+    int pos = 0;
+    setting_item_t *option_map = Option_Map_Overlay[overlayId];
+    if (option_map == NULL)
+        return;
+    while (option_map[pos].type != TYPE_END)
+    {
+        setting_item_t *opt = &option_map[pos];
+
+        switch (opt->type)
+        {
+        case TYPE_STRING:
+            if (*((char **)opt->ptr))
+            {
+                osFreeMem(*((char **)opt->ptr));
+            }
+            break;
+        default:
+            break;
+        }
+        pos++;
+    }
+    osFreeMem(Option_Map_Overlay[overlayId]);
+    Settings_Overlay[overlayId].internal.config_init = FALSE;
+}
+void settings_deinit_all()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        int pos = 0;
-        setting_item_t *option_map = Option_Map_Overlay[i];
-        while (option_map[pos].type != TYPE_END)
-        {
-            setting_item_t *opt = &option_map[pos];
-
-            switch (opt->type)
-            {
-            case TYPE_STRING:
-                if (*((char **)opt->ptr))
-                {
-                    osFreeMem(*((char **)opt->ptr));
-                }
-                break;
-            default:
-                break;
-            }
-            pos++;
-        }
-        osFreeMem(option_map);
+        settings_deinit(i);
     }
 }
 
 void settings_init(char *cwd)
 {
-    option_map_init(&Option_Map_Overlay[0], 0);
+    option_map_init(0);
 
     Settings_Overlay[0].log.level = LOGLEVEL_INFO;
 
@@ -302,6 +320,10 @@ void settings_init(char *cwd)
             break;
         }
         pos++;
+    }
+    for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
+    {
+        Settings_Overlay[i].internal.config_init = FALSE;
     }
     settings_set_string("internal.cwd", cwd);
 
