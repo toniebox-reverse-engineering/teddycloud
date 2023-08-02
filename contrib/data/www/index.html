@@ -24,6 +24,19 @@
             margin: 0;
         }
 
+        .sse-content {
+            width: 90%;
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            padding: 5px;
+            white-space: pre-wrap;
+            white-space: -moz-pre-wrap;
+            white-space: -pre-wrap;
+            white-space: -o-pre-wrap;
+            word-wrap: break-word;
+        }
+
         .small-round-button {
             position: absolute;
             top: 0;
@@ -709,6 +722,7 @@
                     files: [],
                     selectedFiles: [],
                     tonies: [],
+                    mode: 'content', // default to 'content' mode
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -718,6 +732,7 @@
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
+                this.handleModeChange = this.handleModeChange.bind(this); // bind the handler
                 this.oggPlayerRef = React.createRef();
             }
 
@@ -728,10 +743,15 @@
                 this.fetchFileIndex(this.state.path);
             }
 
+            handleModeChange(event) {
+                this.setState({ mode: event.target.value, path: '/' }, () => {
+                    this.fetchFileIndex(this.state.path); // Refresh file index after mode change
+                });
+            }
+
             async fetchFileIndex(path) {
                 try {
-                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
-
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
                     if (response.ok) {
                         const data = await response.json();
                         this.setState({ files: data.files, path });
@@ -871,6 +891,29 @@
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
                         <h2>File Viewer</h2>
                         <OggPlayer ref={this.oggPlayerRef} />
+
+                        {/* Mode Switch */}
+                        <div>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="content"
+                                    checked={this.state.mode === 'content'}
+                                    onChange={this.handleModeChange}
+                                />
+                                Content
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    value="library"
+                                    checked={this.state.mode === 'library'}
+                                    onChange={this.handleModeChange}
+                                />
+                                Library
+                            </label>
+                        </div>
+
                         <p>
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
@@ -959,7 +1002,7 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={`/content${this.state.path}${file.name}?special=${this.state.mode}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -969,7 +1012,7 @@
                                                 <div className="parent">
                                                     <button
                                                         onClick={() => {
-                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true`);
+                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
                                                         }
                                                         } className="small-round-button"
@@ -1002,7 +1045,54 @@
                 );
             }
         }
+        class SSE extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    messages: [],
+                };
+            }
+            componentDidMount() {
+                const eventSource = new EventSource('/api/sse');
 
+                eventSource.onmessage = e => {
+                    try {
+                        const data = JSON.parse(e.data);
+
+                        this.setState(prevState => ({
+                            messages: [...prevState.messages, data]
+                        }));
+                    } catch (error) {
+                        console.error("Error parsing event data: ", error);
+                    }
+                };
+                eventSource.onerror = e => {
+                    console.error("EventSource failed:", e);
+                };
+                this._sseEventSource = eventSource;
+            }
+
+            componentWillUnmount() {
+                if (this._sseEventSource) {
+                    this._sseEventSource.close();
+                }
+            }
+
+            render() {
+                return (
+                    <div className="tile sse-tile">
+                        <h2>Server-Sent Events</h2>
+                        <div className="sse-content" style={{ overflowY: 'scroll', maxHeight: '300px' }}>
+                            {this.state.messages.map((message, index) => (
+                                <pre key={index}>
+                                    {message}
+                                </pre>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+        }
 
 
         class App extends React.Component {

@@ -31,6 +31,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_UNSIGNED("core.server.http_port", &settings->core.https_port, 80, 1, 65535, "HTTP port")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Directory where to upload genuine client certs to")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Directory where cloud content is placed")
+    OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Directory wof the audio library")
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Base directory for contentdir/wwwdir when relative")
     OPTION_STRING("core.wwwdir", &settings->core.wwwdir, "www", "Directory where web content is placed")
 
@@ -65,6 +66,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
+    OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
@@ -199,11 +201,13 @@ void settings_generate_internal_dirs(settings_t *settings)
 {
     free(settings->internal.contentdirrel);
     free(settings->internal.contentdirfull);
+    free(settings->internal.librarydirfull);
     free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
 
     settings->internal.contentdirrel = osAllocMem(256);
     settings->internal.contentdirfull = osAllocMem(256);
+    settings->internal.librarydirfull = osAllocMem(256);
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
 
@@ -217,6 +221,8 @@ void settings_generate_internal_dirs(settings_t *settings)
     settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
     settings_resolve_dir(&settings->internal.contentdirfull, tmpPath, settings->internal.datadirfull);
     fsCreateDir(settings->internal.contentdirfull);
+
+    settings_resolve_dir(&settings->internal.librarydirfull, settings->core.librarydir, settings->internal.datadirfull);
 
     free(tmpPath);
 }

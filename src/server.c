@@ -58,8 +58,8 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *prefix = settings_get_string("internal.contentdirfull");
-    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(prefix) + 1);
+    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(rootPath) + 1);
 
     if (new_uri == NULL)
     {
@@ -69,15 +69,40 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     TRACE_INFO("Query: '%s'\r\n", queryString);
 
     char ogg[16];
+    char overlay[16];
+    char special[16];
+
+    osStrcpy(ogg, "");
+    osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
     if (!queryGet(queryString, "ogg", ogg, sizeof(ogg)))
     {
         strcpy(ogg, "false");
+    }
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
     }
 
     bool skipFileHeader = !strcmp(ogg, "true");
     size_t startOffset = skipFileHeader ? 4096 : 0;
 
-    osStrcpy(new_uri, prefix);
+    osStrcpy(new_uri, rootPath);
     osStrcat(new_uri, &uri[8]);
     TRACE_INFO("Request for '%s', ogg: %s\r\n", new_uri, ogg);
 
