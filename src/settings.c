@@ -70,6 +70,7 @@ static void option_map_init(setting_item_t **option_map, uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
+    OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
 
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
     OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Git sha short hash")

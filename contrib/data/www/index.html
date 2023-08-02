@@ -815,7 +815,7 @@
                         body: "",
                     });
 
-                    if (response.ok && await response.text() === 'OK') {
+                    if (response.ok) {
                         alert('File has been processed successfully.');
                     } else {
                         alert('Failed to process the file.');
