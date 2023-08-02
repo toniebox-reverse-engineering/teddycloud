@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "mutex_manager.h"
 #include "handler_sse.h"
 #include "handler_rtnl.h"
 #include "settings.h"
@@ -78,12 +79,13 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
     char_t *data = buffer;
     size_t size = connection->response.contentLength;
-
     if (client_ctx->settings->rtnl.logRaw)
     {
+        mutex_lock(MUTEX_RTNL_FILE);
         FsFile *file = fsOpenFileEx(client_ctx->settings->rtnl.logRawFile, "ab");
         fsWriteFile(file, &data[connection->response.byteCount], size);
         fsCloseFile(file);
+        mutex_unlock(MUTEX_RTNL_FILE);
     }
 
     size_t pos = 0;
