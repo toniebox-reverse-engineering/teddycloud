@@ -1,3 +1,7 @@
 [submodule "cJSON"]
 	path = cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+
+[submodule "teddycloud_web"]
+	path = teddycloud_web
+	url = https://github.com/toniebox-reverse-engineering/teddycloud_web.git
