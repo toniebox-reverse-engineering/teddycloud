@@ -17,71 +17,10 @@
 #include "os_port.h"
 #include "http/http_client.h"
 
-static void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
-static void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error);
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
-
-static void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
-
-    // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode);
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_CONN;
-}
-
-static void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
-
-    if (header)
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> httpServerHeaderCbr: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
-
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_HEAD;
-}
-
-static void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    // TRACE_INFO(">> httpServerBodyCbr: %lu received\r\n", length);
-    httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_BODY;
-}
-
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(">> httpServerDiscCbr\r\n");
-    httpFlushStream(ctx->connection);
-    ctx->status = PROX_STATUS_DONE;
-}
-
 error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    cbr_ctx_t cbr_ctx = {
-        .status = PROX_STATUS_IDLE,
-        .connection = connection,
-        .client_ctx = client_ctx};
-
-    req_cbr_t cbr = {
-        .ctx = &cbr_ctx,
-        .response = &cbrCloudResponsePassthrough,
-        .header = &cbrCloudHeaderPassthrough,
-        .body = &cbrCloudBodyPassthrough,
-        .disconnect = &cbrCloudServerDiscoPassthrough};
+    cbr_ctx_t cbr_ctx;
+    req_cbr_t cbr = getCloudCbr(connection, uri, queryString, API_NONE, &cbr_ctx, client_ctx);
 
     stats_update("reverse_requests", 1);
 
