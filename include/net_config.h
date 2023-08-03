@@ -178,4 +178,8 @@ typedef struct
 
 #define HTTP_SERVER_MULTIPART_TYPE_SUPPORT ENABLED
 
+/* match original cloud settings */
+#define HTTP_SERVER_IDLE_TIMEOUT (5*60000)
+#define HTTP_SERVER_TIMEOUT      (1*60000)
+
 #endif
