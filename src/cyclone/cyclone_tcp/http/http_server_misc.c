@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -1077,7 +1077,9 @@ error_t httpReceive(HttpConnection *connection,
          c = LSB(flags);
 
          //Search for the specified break character
-         for(i = 0; i < n && connection->buffer[connection->bufferPos + i] != c; i++);
+         for(i = 0; i < n && connection->buffer[connection->bufferPos + i] != c; i++)
+         {
+         }
 
          //Adjust the number of data to read
          n = MIN(n, i + 1);
@@ -1104,6 +1106,7 @@ error_t httpReceive(HttpConnection *connection,
    return error;
 #endif
 }
+
 
 /**
  * @brief Retrieve the full pathname to the specified resource
@@ -1150,9 +1153,13 @@ bool_t httpCompExtension(const char_t *filename, const char_t *extension)
 
    //Compare extensions
    if(!osStrncasecmp(filename + n - m, extension, m))
+   {
       return TRUE;
+   }
    else
+   {
       return FALSE;
+   }
 }
 
 

@@ -446,8 +446,8 @@ error_t tlsParseCertificateList(TlsContext *context,
     uint_t i;
     size_t n;
     const char_t *subjectName;
-    X509CertificateInfo *certInfo;
-    X509CertificateInfo *issuerCertInfo;
+    X509CertInfo *certInfo;
+    X509CertInfo *issuerCertInfo;
 
     // Initialize X.509 certificates
     certInfo = NULL;
@@ -457,7 +457,7 @@ error_t tlsParseCertificateList(TlsContext *context,
     do
     {
         // Allocate a memory buffer to store X.509 certificate info
-        certInfo = tlsAllocMem(sizeof(X509CertificateInfo));
+        certInfo = tlsAllocMem(sizeof(X509CertInfo));
         // Failed to allocate memory?
         if (certInfo == NULL)
         {
@@ -467,7 +467,7 @@ error_t tlsParseCertificateList(TlsContext *context,
         }
 
         // Allocate a memory buffer to store the parent certificate
-        issuerCertInfo = tlsAllocMem(sizeof(X509CertificateInfo));
+        issuerCertInfo = tlsAllocMem(sizeof(X509CertInfo));
         // Failed to allocate memory?
         if (issuerCertInfo == NULL)
         {
@@ -533,13 +533,10 @@ error_t tlsParseCertificateList(TlsContext *context,
         if (context->entity == TLS_CONNECTION_END_CLIENT)
         {
             TlsCertificateType certType;
-            TlsSignatureAlgo certSignAlgo;
-            TlsHashAlgo certHashAlgo;
             TlsNamedGroup namedCurve;
 
             // Retrieve the type of the X.509 certificate
-            error = tlsGetCertificateType(certInfo, &certType, &certSignAlgo,
-                                          &certHashAlgo, &namedCurve);
+            error = tlsGetCertificateType(certInfo, &certType, &namedCurve);
             // Unsupported certificate?
             if (error)
                 break;
@@ -584,9 +581,9 @@ error_t tlsParseCertificateList(TlsContext *context,
             subjectName = NULL;
 
             /* TeddyCloud customizations - copy certificate into TLS context */
-            copyAsString(context->client_cert_issuer, sizeof(context->client_cert_issuer), certInfo->tbsCert.issuer.commonNameLen, certInfo->tbsCert.issuer.commonName);
-            copyAsString(context->client_cert_subject, sizeof(context->client_cert_subject), certInfo->tbsCert.subject.commonNameLen, certInfo->tbsCert.subject.commonName);
-            copyAsHex(context->client_cert_serial, sizeof(context->client_cert_serial), certInfo->tbsCert.serialNumber.length, certInfo->tbsCert.serialNumber.data);
+            copyAsString(context->client_cert_issuer, sizeof(context->client_cert_issuer), certInfo->tbsCert.issuer.commonName.length, certInfo->tbsCert.issuer.commonName.value);
+            copyAsString(context->client_cert_subject, sizeof(context->client_cert_subject), certInfo->tbsCert.subject.commonName.length, certInfo->tbsCert.subject.commonName.value);
+            copyAsHex(context->client_cert_serial, sizeof(context->client_cert_serial), certInfo->tbsCert.serialNumber.length, certInfo->tbsCert.serialNumber.value);
         }
 
         // Check if the end-user certificate can be matched with a trusted CA

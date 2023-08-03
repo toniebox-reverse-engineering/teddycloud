@@ -5,3 +5,15 @@
 [submodule "teddycloud_web"]
 	path = teddycloud_web
 	url = https://github.com/toniebox-reverse-engineering/teddycloud_web.git
+[submodule "cyclone/common"]
+	path = cyclone/common
+	url = https://github.com/Oryx-Embedded/Common
+[submodule "cyclone/cyclone_tcp"]
+	path = cyclone/cyclone_tcp
+	url = https://github.com/Oryx-Embedded/CycloneTCP.git
+[submodule "cyclone/cyclone_ssl"]
+	path = cyclone/cyclone_ssl
+	url = https://github.com/Oryx-Embedded/CycloneSSL.git
+[submodule "cyclone/cyclone_crypto"]
+	path = cyclone/cyclone_crypto
+	url = https://github.com/Oryx-Embedded/CycloneCrypto.git

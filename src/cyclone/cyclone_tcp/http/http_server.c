@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2022 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.2.0
+ * @version 2.3.0
  **/
 
 //Switch to the appropriate trace level
@@ -243,10 +243,10 @@ error_t httpServerStart(HttpServerContext *context)
    }
 
 #if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      //Create a task using statically allocated memory
-      context->taskId = osCreateStaticTask("HTTP Listener",
-         (OsTaskCode) httpListenerTask, context, &context->taskTcb,
-         context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
+   //Create a task using statically allocated memory
+   context->taskId = osCreateStaticTask("HTTP Listener",
+      (OsTaskCode) httpListenerTask, context, &context->taskTcb,
+      context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
 #else
    //Create a task
    context->taskId = osCreateTask("HTTP Listener", httpListenerTask,
@@ -273,7 +273,6 @@ void httpListenerTask(void *param)
    uint_t counter;
    uint16_t clientPort;
    IpAddr clientIpAddr;
-   uint32_t dummy = 0;
    HttpServerContext *context;
    HttpConnection *connection;
    Socket *socket;
@@ -287,22 +286,11 @@ void httpListenerTask(void *param)
    //Process incoming connections to the server
    for(counter = 1; ; counter++)
    {
-      dummy++;
-
-      if(dummy != counter)
-      {
-         TRACE_ERROR("stack check failed\r\n");
-         return;
-      }
       //Debug message
       TRACE_INFO("Ready to accept a new connection...\r\n");
 
       //Limit the number of simultaneous connections to the HTTP server
-      if(!osWaitForSemaphore(&context->semaphore, INFINITE_DELAY))
-      {
-         TRACE_ERROR("Semaphore wait unexpectedly returned\r\n");
-         return;
-      }
+      osWaitForSemaphore(&context->semaphore, INFINITE_DELAY);
 
       //Loop through the connection table
       for(i = 0; i < context->settings.maxConnections; i++)
@@ -341,7 +329,8 @@ void httpListenerTask(void *param)
             else
             {
                //Just for sanity
-               osReleaseSemaphore(&context->semaphore);
+               //osReleaseSemaphore(&context->semaphore);
+               osReleaseSemaphore(&connection->serverContext->semaphore);
                
             }
 
@@ -488,162 +477,160 @@ void httpConnectionTask(void *param)
                   if (length == 0)
                      osDelayTask(100);
                }
+			   continue;
             }
-            else
+            //Any error to report?
+            if(error)
             {
-               //Any error to report?
-               if(error)
-               {
-                  //Debug message
-                  TRACE_INFO("No HTTP request received or parsing error...\r\n");
-                  break;
-               }
+               //Debug message
+               TRACE_INFO("No HTTP request received or parsing error...\r\n");
+               break;
+            }
 
-   #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-               //No Authorization header found?
-               if(!connection->request.auth.found)
+#if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
+            //No Authorization header found?
+            if(!connection->request.auth.found)
+            {
+               //Invoke user-defined callback, if any
+               if(connection->settings->authCallback != NULL)
                {
-                  //Invoke user-defined callback, if any
-                  if(connection->settings->authCallback != NULL)
-                  {
-                     //Check whether the access to the specified URI is authorized
-                     connection->status = connection->settings->authCallback(connection,
-                        connection->request.auth.user, connection->request.uri);
-                  }
-                  else
-                  {
-                     //Access to the specified URI is allowed
-                     connection->status = HTTP_ACCESS_ALLOWED;
-                  }
-               }
-
-               //Check access status
-               if(connection->status == HTTP_ACCESS_ALLOWED)
-               {
-                  //Access to the specified URI is allowed
-                  error = NO_ERROR;
-               }
-               else if(connection->status == HTTP_ACCESS_BASIC_AUTH_REQUIRED)
-               {
-                  //Basic access authentication is required
-                  connection->response.auth.mode = HTTP_AUTH_MODE_BASIC;
-                  //Report an error
-                  error = ERROR_AUTH_REQUIRED;
-               }
-               else if(connection->status == HTTP_ACCESS_DIGEST_AUTH_REQUIRED)
-               {
-                  //Digest access authentication is required
-                  connection->response.auth.mode = HTTP_AUTH_MODE_DIGEST;
-                  //Report an error
-                  error = ERROR_AUTH_REQUIRED;
+                  //Check whether the access to the specified URI is authorized
+                  connection->status = connection->settings->authCallback(connection,
+                     connection->request.auth.user, connection->request.uri);
                }
                else
                {
-                  //Access to the specified URI is denied
+                  //Access to the specified URI is allowed
+                  connection->status = HTTP_ACCESS_ALLOWED;
+               }
+            }
+
+            //Check access status
+            if(connection->status == HTTP_ACCESS_ALLOWED)
+            {
+               //Access to the specified URI is allowed
+               error = NO_ERROR;
+            }
+            else if(connection->status == HTTP_ACCESS_BASIC_AUTH_REQUIRED)
+            {
+               //Basic access authentication is required
+               connection->response.auth.mode = HTTP_AUTH_MODE_BASIC;
+               //Report an error
+               error = ERROR_AUTH_REQUIRED;
+            }
+            else if(connection->status == HTTP_ACCESS_DIGEST_AUTH_REQUIRED)
+            {
+               //Digest access authentication is required
+               connection->response.auth.mode = HTTP_AUTH_MODE_DIGEST;
+               //Report an error
+               error = ERROR_AUTH_REQUIRED;
+            }
+            else
+            {
+               //Access to the specified URI is denied
+               error = ERROR_NOT_FOUND;
+            }
+#endif
+            //Debug message
+            TRACE_INFO("Sending HTTP response to the client...\r\n");
+
+            //Check status code
+            if(!error)
+            {
+               //Default HTTP header fields
+               httpInitResponseHeader(connection);
+
+               //Invoke user-defined callback, if any
+               if(connection->settings->requestCallback != NULL)
+               {
+                  error = connection->settings->requestCallback(connection,
+                     connection->request.uri);
+               }
+               else
+               {
+                  //Keep processing...
                   error = ERROR_NOT_FOUND;
                }
-   #endif
-               //Debug message
-               TRACE_INFO("Sending HTTP response to the client...\r\n");
 
                //Check status code
-               if(!error)
+               if(error == ERROR_NOT_FOUND)
+               {
+#if (HTTP_SERVER_SSI_SUPPORT == ENABLED)
+                  //Use server-side scripting to dynamically generate HTML code?
+                  if(httpCompExtension(connection->request.uri, ".stm") ||
+                     httpCompExtension(connection->request.uri, ".shtm") ||
+                     httpCompExtension(connection->request.uri, ".shtml"))
+                  {
+                     //SSI processing (Server Side Includes)
+                     error = ssiExecuteScript(connection, connection->request.uri, 0);
+                  }
+                  else
+#endif
+                  {
+                     //Set the maximum age for static resources
+                     connection->response.maxAge = HTTP_SERVER_MAX_AGE;
+
+                     //Send the contents of the requested page
+                     error = httpSendResponse(connection, connection->request.uri);
+                  }
+               }
+
+               //The requested resource is not available?
+               if(error == ERROR_NOT_FOUND)
                {
                   //Default HTTP header fields
                   httpInitResponseHeader(connection);
 
                   //Invoke user-defined callback, if any
-                  if(connection->settings->requestCallback != NULL)
+                  if(connection->settings->uriNotFoundCallback != NULL)
                   {
-                     error = connection->settings->requestCallback(connection,
+                     error = connection->settings->uriNotFoundCallback(connection,
                         connection->request.uri);
                   }
-                  else
-                  {
-                     //Keep processing...
-                     error = ERROR_NOT_FOUND;
-                  }
-
-                  //Check status code
-                  if(error == ERROR_NOT_FOUND)
-                  {
-   #if (HTTP_SERVER_SSI_SUPPORT == ENABLED)
-                     //Use server-side scripting to dynamically generate HTML code?
-                     if(httpCompExtension(connection->request.uri, ".stm") ||
-                        httpCompExtension(connection->request.uri, ".shtm") ||
-                        httpCompExtension(connection->request.uri, ".shtml"))
-                     {
-                        //SSI processing (Server Side Includes)
-                        error = ssiExecuteScript(connection, connection->request.uri, 0);
-                     }
-                     else
-   #endif
-                     {
-                        //Set the maximum age for static resources
-                        connection->response.maxAge = HTTP_SERVER_MAX_AGE;
-
-                        //Send the contents of the requested page
-                        error = httpSendResponse(connection, connection->request.uri);
-                     }
-                  }
-
-                  //The requested resource is not available?
-                  if(error == ERROR_NOT_FOUND)
-                  {
-                     //Default HTTP header fields
-                     httpInitResponseHeader(connection);
-
-                     //Invoke user-defined callback, if any
-                     if(connection->settings->uriNotFoundCallback != NULL)
-                     {
-                        error = connection->settings->uriNotFoundCallback(connection,
-                           connection->request.uri);
-                     }
-                  }
                }
+            }
 
-               //Check status code
-               if(error)
+            //Check status code
+            if(error)
+            {
+               //Default HTTP header fields
+               httpInitResponseHeader(connection);
+
+               //Bad request?
+               if(error == ERROR_INVALID_REQUEST)
                {
-                  //Default HTTP header fields
-                  httpInitResponseHeader(connection);
-
-                  //Bad request?
-                  if(error == ERROR_INVALID_REQUEST)
-                  {
-                     //Send an error 400 and close the connection immediately
-                     httpSendErrorResponse(connection, 400,
-                        "The request is badly formed");
-                  }
-                  //Authorization required?
-                  else if(error == ERROR_AUTH_REQUIRED)
-                  {
-                     //Send an error 401 and keep the connection alive
-                     error = httpSendErrorResponse(connection, 401,
-                        "Authorization required");
-                  }
-                  //Page not found?
-                  else if(error == ERROR_NOT_FOUND)
-                  {
-                     //Send an error 404 and keep the connection alive
-                     error = httpSendErrorResponse(connection, 404,
-                        "The requested page could not be found");
-                  }
+                  //Send an error 400 and close the connection immediately
+                  httpSendErrorResponse(connection, 400,
+                     "The request is badly formed");
                }
-
-               //Internal error?
-               if(error)
+               //Authorization required?
+               else if(error == ERROR_AUTH_REQUIRED)
                {
-                  //Close the connection immediately
-                  break;
+                  //Send an error 401 and keep the connection alive
+                  error = httpSendErrorResponse(connection, 401,
+                     "Authorization required");
                }
-
-               //Check whether the connection is persistent or not
-               if(!connection->request.keepAlive || !connection->response.keepAlive)
+               //Page not found?
+               else if(error == ERROR_NOT_FOUND)
                {
-                  //Close the connection immediately
-                  break;
+                  //Send an error 404 and keep the connection alive
+                  error = httpSendErrorResponse(connection, 404,
+                     "The requested page could not be found");
                }
+            }
+
+            //Internal error?
+            if(error)
+            {
+               //Close the connection immediately
+               break;
+            }
+
+            //Check whether the connection is persistent or not
+            if(!connection->request.keepAlive || !connection->response.keepAlive)
+            {
+               //Close the connection immediately
+               break;
             }
          }
       }
@@ -681,8 +668,6 @@ void httpConnectionTask(void *param)
       //Release semaphore
       osReleaseSemaphore(&connection->serverContext->semaphore);
    }
-
-   osDeleteTask(OS_SELF_TASK_ID);
 }
 
 

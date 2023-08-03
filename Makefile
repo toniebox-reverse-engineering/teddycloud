@@ -92,7 +92,7 @@ HEADERS_linux =
 INCLUDES_linux = 
 SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
-	cyclone/common/os_port_posix.c \
+	src/cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
 CFLAGS_linux += -Wall -Werror
 CFLAGS_linux += -ggdb
@@ -106,7 +106,7 @@ HEADERS_windows =
 INCLUDES_windows = 
 SOURCES_windows = \
 	src/platform/platform_$(PLATFORM).c\
-	cyclone/common/os_port_windows.c \
+	src/cyclone/common/os_port_windows.c \
 	src/cyclone/common/fs_port_windows.c 
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
@@ -216,16 +216,21 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/encoding/oid.c \
 	cyclone/cyclone_crypto/pkix/pem_import.c \
 	cyclone/cyclone_crypto/pkix/pem_export.c \
+	cyclone/cyclone_crypto/pkix/pem_common.c \
+	cyclone/cyclone_crypto/pkix/pem_decrypt.c \
 	cyclone/cyclone_crypto/pkix/pkcs8_key_parse.c \
 	cyclone/cyclone_crypto/pkix/pkcs8_key_format.c \
 	cyclone/cyclone_crypto/pkix/x509_key_format.c \
 	cyclone/cyclone_crypto/pkix/x509_key_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_parse.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_validate.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_validate.c \
+	cyclone/cyclone_crypto/pkix/x509_crl_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_common.c \
-	cyclone/cyclone_crypto/pkix/x509_signature.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_verify.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_parse.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
 	cyclone/cyclone_crypto/rng/yarrow.c
 
