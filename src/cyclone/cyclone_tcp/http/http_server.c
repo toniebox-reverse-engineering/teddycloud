@@ -1082,7 +1082,7 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
 
    if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
    {
-      TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+      TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
       fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
    }
    else
