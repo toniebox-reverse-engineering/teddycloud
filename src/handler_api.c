@@ -431,7 +431,6 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
             break;
         }
-        TRACE_INFO("Query: '%s'\r\n", queryString);
 
         char overlay[16];
         char special[16];
@@ -440,12 +439,12 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
         if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
         {
-            TRACE_INFO("requested index for overlay '%s'\r\n", overlay);
+            TRACE_INFO("requested index using overlay '%s'\r\n", overlay);
         }
 
         if (queryGet(queryString, "special", special, sizeof(special)))
         {
-            TRACE_INFO("requested index for special '%s'\r\n", special);
+            TRACE_INFO("requested index for '%s'\r\n", special);
             if (!osStrcmp(special, "library"))
             {
                 rootPath = settings_get_string("internal.librarydirfull");
