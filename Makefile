@@ -5,7 +5,10 @@ OBJ_DIR        = obj
 SRC_DIR        = src
 CONTRIB_DIR    = contrib
 INSTALL_DIR    = install
-PREINSTALL_DIR = install/pre
+PREINSTALL_DIR = $(INSTALL_DIR)/pre
+WEB_SRC_DIR    = teddycloud_web
+WEB_BUILD_DIR  = build
+WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
 
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
@@ -359,8 +362,26 @@ preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -
 
-zip: preinstall
-	mkdir $(ZIP_DIR)/
+web: 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud React Webinterface'
+	$(MKDIR) $(WEB_DIR)/
+	$(QUIET)cd $(WEB_SRC_DIR) \
+		&& npm install \
+		&& npm run build \
+		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(WEB_DIR)/ \
+		&& cd -
+
+web_ship: preinstall
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build & Copy TeddyCloud React Webinterface'
+	$(MKDIR) $(WEB_DIR)/
+	$(QUIET)cd $(WEB_SRC_DIR) \
+		&& npm install \
+		&& npm run build \
+		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(PREINSTALL_DIR)/$(WEB_DIR)/ \
+		&& cd -
+
+zip: web_ship
+	$(MKDIR) $(ZIP_DIR)/
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -

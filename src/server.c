@@ -423,12 +423,16 @@ httpServerRequestCallback(HttpConnection *connection,
 
     if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
     {
-        uri = "index.html";
+        uri = "/index.html";
+    }
+    if (!strcmp(uri, "/web") || !strcmp(uri, "/web/"))
+    {
+        uri = "/web/index.html";
     }
 
-    char_t *newUri = osAllocMem(osStrlen(uri) + osStrlen(client_ctx.settings->core.wwwdir) + 2);
+    char_t *newUri = osAllocMem(osStrlen(client_ctx.settings->core.wwwdir) + osStrlen(uri) + 1);
     osStrcpy(newUri, client_ctx.settings->core.wwwdir);
-    osStrcat(newUri, "/");
+    // osStrcat(newUri, "/");
     osStrcat(newUri, uri);
 
     error = httpSendResponse(connection, newUri);
