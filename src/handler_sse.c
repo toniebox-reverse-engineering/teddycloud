@@ -80,7 +80,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         if (now - last > SSE_KEEPALIVE_S)
         {
             mutex_lock(MUTEX_SSE_EVENT);
-            sseCtx->error = httpWriteString(connection, "event: keep-alive\r\ndata: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
+            sseCtx->error = httpWriteString(connection, "event: keep-alive\ndata: { \"type\":\"keep-alive\", \"data\":\"\" }\n\n");
             mutex_unlock(MUTEX_SSE_EVENT);
             last = now;
             if (sseCtx->error != NO_ERROR)
@@ -123,7 +123,7 @@ error_t sse_startEventRaw(const char *eventname)
     if (error != NO_ERROR)
         return error;
 
-    error = sse_rawData("\r\ndata: { \"type\":\"");
+    error = sse_rawData("\ndata: { \"type\":\"");
     if (error != NO_ERROR)
         return error;
 
@@ -161,7 +161,7 @@ error_t sse_rawData(const char *content)
 error_t sse_endEventRaw(void)
 {
     error_t error = NO_ERROR;
-    error = sse_rawData(" }\r\n");
+    error = sse_rawData(" }\n\n");
     mutex_unlock(MUTEX_SSE_EVENT);
     return error;
 }
