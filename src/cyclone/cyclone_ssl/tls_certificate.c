@@ -282,7 +282,7 @@ error_t tlsFormatRawPublicKey(TlsContext *context, uint8_t *p,
  * @return Error code
  **/
 
-__weak_func error_t tlsParseCertificateList(TlsContext *context,
+__weak_func error_t tlsParseCertificateList_override(TlsContext *context,
    const uint8_t *p, size_t length)
 {
    error_t error;

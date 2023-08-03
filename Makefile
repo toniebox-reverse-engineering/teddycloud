@@ -242,13 +242,15 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/common/debug.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
+	cyclone/cyclone_ssl/tls_certificate.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
-	src/cyclone/cyclone_tcp/http/http_server_misc.c
+	src/cyclone/cyclone_tcp/http/http_server_misc.c \
+	src/cyclone/cyclone_ssl/tls_certificate.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
