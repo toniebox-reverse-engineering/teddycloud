@@ -99,8 +99,9 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             break;
         }
 
-        /* check if we have enough data for the packet we seem to have there. do some safety checks */
-        if (protoLength == 0)
+        /* check if we have enough data but not too much for the packet we seem to have there.
+           do some safety checks */
+        if (protoLength == 0 || buffer[pos] != 0 || buffer[pos + 1] != 0)
         {
             TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
             return ERROR_FAILURE;
