@@ -121,8 +121,11 @@ error_t sse_rawData(const char *content)
         {
             continue;
         }
-        sseCtx->lastConnection = time(NULL);
         sseCtx->error = httpWriteString(sseCtx->connection, content);
+        if (sseCtx->error == NO_ERROR)
+        {
+            sseCtx->lastConnection = time(NULL);
+        }
     }
     mutex_unlock(MUTEX_SSE_CTX);
 
