@@ -84,6 +84,10 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode,
    handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) taskCode,
       param, 0, NULL);
 
+   WCHAR wname[128];
+   MultiByteToWideChar(CP_ACP, 0, name, -1, wname, sizeof(wname) / sizeof(wname[0]));
+   SetThreadDescription(handle, wname);
+   
    //Return a pointer to the newly created thread
    return (OsTaskId) handle;
 }
