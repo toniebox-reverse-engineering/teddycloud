@@ -14,5 +14,8 @@ typedef enum
 void mutex_manager_init();
 void mutex_manager_deinit();
 
-void mutex_lock(mutex_id_t mutex);
-void mutex_unlock(mutex_id_t mutex);
+void mutex_lock(mutex_id_t mutex_id);
+void mutex_unlock(mutex_id_t mutex_id);
+
+void mutex_manager_loop();
+void mutex_manager_check();

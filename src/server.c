@@ -660,6 +660,7 @@ void server_init()
             last = now;
             sanityChecks();
         }
+        mutex_manager_loop();
     }
     mutex_manager_deinit();
 
