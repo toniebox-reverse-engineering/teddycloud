@@ -23,7 +23,7 @@ Currently implemented are:
 * MQTT client
 * Home Assistant integration (ideas welcome)
 * TeddyBench integration
-* Web frontend (full stack developers welcome)
+* [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
 
 ## Preparation
 ### Generate certificates
@@ -61,7 +61,7 @@ It is recommended to flash the replacement CA to /cert/c2.der and use the hackie
 ```
 python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
-**Beware** The ```blockCheckRemove.310``` patch is breaks the content passthrough to Boxine. Please disable it, if your are using it.
+**Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
 
 #### CC3235
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
