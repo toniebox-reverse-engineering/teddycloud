@@ -1,6 +1,8 @@
 
 #include "fs_ext.h"
 
+#define FILE_COPY_BUFFER_SIZE 4096 // You can adjust this buffer size as needed
+
 FsFile *fsOpenFileEx(const char_t *path, char *mode)
 {
     // Workaround due to missing append in cyclone framwwork.
@@ -44,14 +46,13 @@ error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t 
     }
 
     // Read from the source file and write to the target file
-    const size_t buffer_size = 4096; // You can adjust this buffer size as needed
-    uint8_t buffer[buffer_size];
+    uint8_t buffer[FILE_COPY_BUFFER_SIZE];
     size_t bytes_read;
 
     error_t error = NO_ERROR;
     while (error == NO_ERROR)
     {
-        error = fsReadFile(source_file, buffer, buffer_size, &bytes_read);
+        error = fsReadFile(source_file, buffer, sizeof(buffer), &bytes_read);
         if (error == NO_ERROR)
             error = fsWriteFile(target_file, buffer, bytes_read);
     }
