@@ -70,6 +70,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
             {
                 TRACE_ERROR("SSE Client with error %" PRIu32 "\r\n", error);
             }
+            mutex_unlock(MUTEX_SSE_CTX);
             break;
         }
         mutex_unlock(MUTEX_SSE_CTX);
