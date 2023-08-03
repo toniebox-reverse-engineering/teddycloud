@@ -14,6 +14,8 @@
 
 #define SSE_MAX_CHANNELS 16
 #define SSE_TIMEOUT_S 60
+#define SSE_KEEPALIVE_S 30
+
 typedef struct
 {
     bool active;

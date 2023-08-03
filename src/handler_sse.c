@@ -54,8 +54,15 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 
     httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
 
+    time_t last = time(NULL);
     while (true)
     {
+        time_t now = time(NULL);
+        if (now - last > SSE_KEEPALIVE_S)
+        {
+            sse_sendEvent("keep-alive", "", true);
+            last = now;
+        }
         //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
         //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
         mutex_lock(MUTEX_SSE_CTX);
