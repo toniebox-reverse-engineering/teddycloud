@@ -25,7 +25,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, b
         return error;
     }
 
-    error = httpCloseStream(connection);
+    error = httpFlushStream(connection);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to close: %d\r\n", error);
@@ -38,4 +38,9 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, b
 error_t httpWriteString(HttpConnection *connection, const char_t *content)
 {
     return httpWriteStream(connection, content, osStrlen(content));
+}
+
+error_t httpFlushStream(HttpConnection *connection)
+{
+    return httpCloseStream(connection);
 }

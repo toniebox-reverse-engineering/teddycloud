@@ -207,7 +207,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         if (length == 0)
         {
             // Properly close the output stream
-            error = httpCloseStream(connection);
+            error = httpFlushStream(connection);
         }
     }
 

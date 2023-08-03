@@ -188,6 +188,7 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *clo
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
+    httpFlushStream(ctx->connection);
     ctx->status = PROX_STATUS_DONE;
 }
 

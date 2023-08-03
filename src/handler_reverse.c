@@ -65,6 +65,7 @@ static void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *clo
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     TRACE_INFO(">> httpServerDiscCbr\r\n");
+    httpFlushStream(ctx->connection);
     ctx->status = PROX_STATUS_DONE;
 }
 
@@ -100,7 +101,7 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_
     {
         osDelayTask(50);
     }
-    error = httpCloseStream(connection);
+    error = httpFlushStream(connection);
 
     TRACE_INFO("httpServerRequestCallback: (done)\r\n");
     return error;

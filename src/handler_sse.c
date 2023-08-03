@@ -63,7 +63,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
         if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
-            httpCloseStream(connection);
+            httpFlushStream(connection);
             sseCtx->active = FALSE;
             error = sseCtx->error;
             sseSubscriptionCount--;

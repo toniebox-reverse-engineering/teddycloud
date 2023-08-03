@@ -75,4 +75,5 @@ typedef struct
 error_t httpWriteResponseString(HttpConnection *connection, char_t *data, bool_t freeMemory);
 error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, bool_t freeMemory);
 error_t httpWriteString(HttpConnection *connection, const char_t *content);
+error_t httpFlushStream(HttpConnection *connection);
 #endif
