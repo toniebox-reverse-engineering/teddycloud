@@ -55,17 +55,9 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     time_t last = 0;
     while (true)
     {
-        time_t now = time(NULL);
-        if (now - last > SSE_KEEPALIVE_S)
-        {
-            mutex_lock(MUTEX_SSE_EVENT);
-            httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
-            mutex_unlock(MUTEX_SSE_EVENT);
-            last = now;
-        }
+        mutex_lock(MUTEX_SSE_CTX);
         //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
         //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
-        mutex_lock(MUTEX_SSE_CTX);
         if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
             httpCloseStream(connection);
@@ -80,6 +72,22 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
             mutex_unlock(MUTEX_SSE_CTX);
             break;
         }
+
+        time_t now = time(NULL);
+        if (now - last > SSE_KEEPALIVE_S)
+        {
+            mutex_lock(MUTEX_SSE_EVENT);
+            sseCtx->error = httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
+            mutex_unlock(MUTEX_SSE_EVENT);
+            last = now;
+            if (sseCtx->error != NO_ERROR)
+            {
+                mutex_unlock(MUTEX_SSE_CTX);
+                continue;
+            }
+            sseCtx->lastConnection = now;
+        }
+
         mutex_unlock(MUTEX_SSE_CTX);
         osDelayTask(100);
     }

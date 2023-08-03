@@ -12,7 +12,7 @@
 
 #include "handler.h"
 
-#define SSE_MAX_CHANNELS 16
+#define SSE_MAX_CHANNELS 8
 #define SSE_TIMEOUT_S 60
 #define SSE_KEEPALIVE_S 15
 
