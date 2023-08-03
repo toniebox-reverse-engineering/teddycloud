@@ -52,15 +52,15 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         return error;
     }
 
-    httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
-
-    time_t last = time(NULL);
+    time_t last = 0;
     while (true)
     {
         time_t now = time(NULL);
         if (now - last > SSE_KEEPALIVE_S)
         {
-            sse_sendEvent("keep-alive", "", true);
+            mutex_lock(MUTEX_SSE_EVENT);
+            httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
+            mutex_unlock(MUTEX_SSE_EVENT);
             last = now;
         }
         //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
