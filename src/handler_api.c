@@ -158,30 +158,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -222,28 +199,7 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     connection->response.contentType = "text/plain";
     connection->response.contentLength = osStrlen(response);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, response, connection->response.contentLength, false);
 }
 
 error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -285,28 +241,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     connection->response.contentType = "text/plain";
     connection->response.contentLength = osStrlen(response_ptr);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response_ptr, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
 error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -604,30 +539,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -660,30 +572,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 FsFile *multipartStart(const char *rootPath, const char *filename, char *message, size_t message_max)
