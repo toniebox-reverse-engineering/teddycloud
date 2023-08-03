@@ -136,13 +136,22 @@ void osSwitchTask(void)
 }
 
 
+static CRITICAL_SECTION critSec;
+static bool isCritSecInitialized = false;
+
 /**
  * @brief Suspend scheduler activity
  **/
 
 void osSuspendAllTasks(void)
 {
-   //Not implemented
+   if (!isCritSecInitialized)
+   {
+      InitializeCriticalSection(&critSec);
+      isCritSecInitialized = true;
+   }
+
+   EnterCriticalSection(&critSec);
 }
 
 
@@ -152,7 +161,14 @@ void osSuspendAllTasks(void)
 
 void osResumeAllTasks(void)
 {
-   //Not implemented
+   if (!isCritSecInitialized)
+   {
+      InitializeCriticalSection(&critSec);
+      isCritSecInitialized = true;
+      return;
+   }
+
+   LeaveCriticalSection(&critSec);
 }
 
 
