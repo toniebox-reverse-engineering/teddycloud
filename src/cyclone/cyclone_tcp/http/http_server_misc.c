@@ -776,7 +776,7 @@ void httpInitResponseHeader(HttpConnection *connection)
    connection->response.maxAge = 0;
    connection->response.location = NULL;
    connection->response.contentType = mimeGetType(connection->request.uri);
-   connection->response.chunkedEncoding = TRUE;
+   connection->response.chunkedEncoding = FALSE;
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
    //Do not use gzip encoding
