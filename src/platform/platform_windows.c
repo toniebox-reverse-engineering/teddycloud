@@ -294,6 +294,10 @@ error_t socketReceive(Socket *socket, void *data_in,
     socket_info_t *sock = (socket_info_t *)socket;
 
     *received = 0;
+    if (!size)
+    {
+        return NO_ERROR;
+    }
 
     /* annoying part. the lib shall implement CRLF-breaking read. so we have to buffer data */
     if (!sock->buffer)
