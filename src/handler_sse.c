@@ -27,8 +27,11 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     {
         mutex_unlock(MUTEX_SSE_CTX);
         TRACE_ERROR("All slots full, in total %" PRIu8 " clients", sseSubscriptionCount);
-        httpCloseStream(connection);
-        return NO_ERROR;
+        httpInitResponseHeader(connection);
+        connection->response.contentLength = 0;
+        connection->response.statusCode = 503; // Service Unavailable
+        connection->response.keepAlive = FALSE;
+        return httpWriteHeader(connection);
     }
 
     sseCtx->lastConnection = time(NULL);
