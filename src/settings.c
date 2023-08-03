@@ -14,6 +14,8 @@
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
+DateTime settings_last_load;
+DateTime settings_last_load_ovl;
 
 static void option_map_init(uint8_t settingsId)
 {
@@ -594,6 +596,19 @@ void settings_load_ovl(bool overlay)
         }
         Settings_Overlay[0].internal.config_changed = false;
     }
+
+    FsFileStat stat;
+    if (fsGetFileStat(config_path, &stat) == NO_ERROR)
+    {
+        if (overlay)
+        {
+            settings_last_load_ovl = stat.modified;
+        }
+        else
+        {
+            settings_last_load = stat.modified;
+        }
+    }
 }
 
 setting_item_t *settings_get(int index)
@@ -883,4 +898,25 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
         settings_changed();
     }
     return true;
+}
+
+void settings_loop()
+{
+    FsFileStat stat;
+    if (fsGetFileStat(CONFIG_PATH, &stat) == NO_ERROR)
+    {
+        if (compareDateTime(&stat.modified, &settings_last_load))
+        {
+            TRACE_INFO("Settings file changed. Reloading.\r\n");
+            settings_load();
+        }
+    }
+    if (fsGetFileStat(CONFIG_OVERLAY_PATH, &stat) == NO_ERROR)
+    {
+        if (compareDateTime(&stat.modified, &settings_last_load_ovl))
+        {
+            TRACE_INFO("Overlay settings file changed. Reloading.\r\n");
+            settings_load();
+        }
+    }
 }

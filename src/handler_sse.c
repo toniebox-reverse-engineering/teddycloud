@@ -108,22 +108,27 @@ error_t sse_startEventRaw(const char *eventname)
     error = sse_rawData("\", \"data\":");
     return error;
 }
+
 error_t sse_rawData(const char *content)
 {
     error_t error = NO_ERROR;
+
+    mutex_lock(MUTEX_SSE_CTX);
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     {
-        mutex_lock(MUTEX_SSE_CTX);
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
         if (!sseCtx->active)
+        {
             continue;
+        }
         sseCtx->lastConnection = time(NULL);
         sseCtx->error = httpWriteString(sseCtx->connection, content);
-        mutex_unlock(MUTEX_SSE_CTX);
     }
+    mutex_unlock(MUTEX_SSE_CTX);
 
     return error;
 }
+
 error_t sse_endEventRaw(void)
 {
     error_t error = NO_ERROR;
@@ -136,23 +141,37 @@ error_t sse_sendEvent(const char *eventname, const char *content, bool escapeDat
 {
     error_t error = NO_ERROR;
     error = sse_startEventRaw(eventname);
-    if (error != NO_ERROR)
-        return error;
-    if (escapeData)
+
+    do
     {
-        error = sse_rawData("\"");
         if (error != NO_ERROR)
-            return error;
-    }
-    error = sse_rawData(content);
-    if (error != NO_ERROR)
-        return error;
-    if (escapeData)
-    {
-        error = sse_rawData("\"");
+            break;
+
+        if (escapeData)
+        {
+            error = sse_rawData("\"");
+            if (error != NO_ERROR)
+            {
+                break;
+            }
+        }
+
+        error = sse_rawData(content);
         if (error != NO_ERROR)
-            return error;
-    }
+        {
+            break;
+        }
+
+        if (escapeData)
+        {
+            error = sse_rawData("\"");
+            if (error != NO_ERROR)
+            {
+                break;
+            }
+        }
+    } while (0);
+
     error = sse_endEventRaw();
     return error;
 }

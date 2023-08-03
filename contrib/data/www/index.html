@@ -867,12 +867,14 @@
                     const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
                     if (response.ok) {
                         const data = await response.json();
-                        this.setState({ files: data.files, path });
+                        this.setState({ files: data.files, path, selectedFiles: [] });
                     } else {
                         console.error('Failed to fetch file index');
+                        this.setState({ files: [], path, selectedFiles: [] });
                     }
                 } catch (err) {
                     console.error('There was an error!', err);
+                    this.setState({ files: [], path, selectedFiles: [] });
                 }
             }
 

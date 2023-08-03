@@ -486,111 +486,120 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
 
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    char *jsonString = strdup("{\"files\":[]}");
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
-    if (rootPath == NULL || !fsDirExists(rootPath))
+    do
     {
-        TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
-        return ERROR_FAILURE;
-    }
-    TRACE_INFO("Query: '%s'\r\n", queryString);
-
-    char overlay[16];
-    char special[16];
-    osStrcpy(overlay, "");
-    osStrcpy(special, "");
-
-    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
-    {
-        TRACE_INFO("requested index for overlay '%s'\r\n", overlay);
-    }
-
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_INFO("requested index for special '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
+        if (rootPath == NULL || !fsDirExists(rootPath))
         {
-            rootPath = settings_get_string("internal.librarydirfull");
+            TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
+            break;
+        }
+        TRACE_INFO("Query: '%s'\r\n", queryString);
 
-            if (rootPath == NULL || !fsDirExists(rootPath))
+        char overlay[16];
+        char special[16];
+        osStrcpy(overlay, "");
+        osStrcpy(special, "");
+
+        if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+        {
+            TRACE_INFO("requested index for overlay '%s'\r\n", overlay);
+        }
+
+        if (queryGet(queryString, "special", special, sizeof(special)))
+        {
+            TRACE_INFO("requested index for special '%s'\r\n", special);
+            if (!osStrcmp(special, "library"))
             {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
+                rootPath = settings_get_string("internal.librarydirfull");
+
+                if (rootPath == NULL || !fsDirExists(rootPath))
+                {
+                    TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                    break;
+                }
             }
         }
-    }
 
-    char path[128];
-    char pathAbsolute[256];
+        char path[128];
+        char pathAbsolute[256];
 
-    if (!queryGet(queryString, "path", path, sizeof(path)))
-    {
-        osStrcpy(path, "/");
-    }
-
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
-
-    int pos = 0;
-    FsDir *dir = fsOpenDir(pathAbsolute);
-
-    cJSON *json = cJSON_CreateObject();
-    cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
-
-    while (true)
-    {
-        FsDirEntry entry;
-
-        if (fsReadDir(dir, &entry) != NO_ERROR)
+        if (!queryGet(queryString, "path", path, sizeof(path)))
         {
-            fsCloseDir(dir);
+            osStrcpy(path, "/");
+        }
+
+        snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+        pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+
+        int pos = 0;
+        FsDir *dir = fsOpenDir(pathAbsolute);
+        if (dir == NULL)
+        {
+            TRACE_ERROR("Failed to open dir '%s'\r\n", pathAbsolute);
             break;
         }
 
-        if (!osStrcmp(entry.name, ".") || !osStrcmp(entry.name, ".."))
+        cJSON *json = cJSON_CreateObject();
+        cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
+
+        while (true)
         {
-            continue;
-        }
+            FsDirEntry entry;
 
-        char dateString[64];
-
-        osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
-                  entry.modified.year, entry.modified.month, entry.modified.day,
-                  entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
-
-        char filePathAbsolute[384];
-        snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
-
-        char desc[64];
-        desc[0] = 0;
-        tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
-        if (tafInfo.valid)
-        {
-            snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
-            for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+            if (fsReadDir(dir, &entry) != NO_ERROR)
             {
-                char tmp[3];
-                sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
-                osStrcat(desc, tmp);
+                fsCloseDir(dir);
+                break;
             }
+
+            if (!osStrcmp(entry.name, ".") || !osStrcmp(entry.name, ".."))
+            {
+                continue;
+            }
+
+            char dateString[64];
+
+            osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
+                      entry.modified.year, entry.modified.month, entry.modified.day,
+                      entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
+
+            char filePathAbsolute[384];
+            snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
+
+            char desc[64];
+            desc[0] = 0;
+            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
+            if (tafInfo.valid)
+            {
+                snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
+                for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+                {
+                    char tmp[3];
+                    sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                    osStrcat(desc, tmp);
+                }
+            }
+            freeTonieInfo(&tafInfo);
+
+            cJSON *jsonEntry = cJSON_CreateObject();
+            cJSON_AddStringToObject(jsonEntry, "name", entry.name);
+            cJSON_AddStringToObject(jsonEntry, "date", dateString);
+            cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
+            cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
+            cJSON_AddStringToObject(jsonEntry, "desc", desc);
+
+            cJSON_AddItemToArray(jsonArray, jsonEntry);
+
+            pos++;
         }
-        freeTonieInfo(&tafInfo);
 
-        cJSON *jsonEntry = cJSON_CreateObject();
-        cJSON_AddStringToObject(jsonEntry, "name", entry.name);
-        cJSON_AddStringToObject(jsonEntry, "date", dateString);
-        cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
-        cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
-        cJSON_AddStringToObject(jsonEntry, "desc", desc);
+        jsonString = cJSON_PrintUnformatted(json);
+        cJSON_Delete(json);
+    } while (0);
 
-        cJSON_AddItemToArray(jsonArray, jsonEntry);
-
-        pos++;
-    }
-
-    char *jsonString = cJSON_PrintUnformatted(json);
-
-    cJSON_Delete(json);
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);

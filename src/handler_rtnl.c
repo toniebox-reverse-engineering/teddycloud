@@ -64,7 +64,14 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
         if (!replaced)
         {
-            output[j++] = input[i];
+            if (isalnum(input[i]))
+            {
+                output[j++] = input[i];
+            }
+            else
+            {
+                output[j++] = '.';
+            }
         }
     }
 
@@ -74,39 +81,48 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char_t *buffer = osAllocMem(sizeof(connection->buffer));
-    osMemcpy(buffer, connection->buffer, sizeof(connection->buffer));
-
-    char_t *data = buffer;
+    char_t *buffer = connection->buffer;
     size_t size = connection->response.contentLength;
-    if (client_ctx->settings->rtnl.logRaw)
-    {
-        mutex_lock(MUTEX_RTNL_FILE);
-        FsFile *file = fsOpenFileEx(client_ctx->settings->rtnl.logRawFile, "ab");
-        fsWriteFile(file, &data[connection->response.byteCount], size);
-        fsCloseFile(file);
-        mutex_unlock(MUTEX_RTNL_FILE);
-    }
 
     size_t pos = 0;
-    while (size > 4 && pos < (size - 4))
+    do
     {
-        data = &buffer[pos];
-        uint32_t protoLength = (uint32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
-        char_t *protoData = &data[4];
-        if (protoLength > (size - 4 - pos))
+        /* check for enough data for the length header */
+        if (pos + 4 > size)
         {
             break;
         }
-        if (protoLength == 0 || (protoLength + 4 > HTTP_SERVER_BUFFER_SIZE)) // find apropiate size
+        uint32_t protoLength = (uint32_t)((buffer[pos] << 24) | (buffer[pos + 1] << 16) | (buffer[pos + 2] << 8) | buffer[pos + 3]);
+
+        if (pos + 4 + protoLength > size)
+        {
+            break;
+        }
+
+        /* check if we have enough data for the packet we seem to have there. do some safety checks */
+        if (protoLength == 0)
         {
             TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
-            pos++;
-            continue;
+            return ERROR_FAILURE;
         }
-        TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)protoData);
 
-        pos += protoLength + 4;
+        /* there is enough bytes for that packet */
+        if (client_ctx->settings->rtnl.logRaw)
+        {
+            mutex_lock(MUTEX_RTNL_FILE);
+            FsFile *file = fsOpenFileEx(client_ctx->settings->rtnl.logRawFile, "ab");
+            if (file)
+            {
+                fsWriteFile(file, &buffer[pos], 4 + protoLength);
+                fsCloseFile(file);
+            }
+            mutex_unlock(MUTEX_RTNL_FILE);
+        }
+
+        pos += 4;
+        TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)&buffer[pos]);
+
+        pos += protoLength;
         if (rpc && (rpc->log2 || rpc->log3))
         {
             rtnlEvent(rpc);
@@ -114,12 +130,11 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             rtnlEventDump(rpc, client_ctx->settings);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
-    }
+    } while (true);
 
-    osMemcpy(buffer, data, size - pos);
-    osMemcpy(connection->buffer, buffer, sizeof(connection->buffer));
+    /* move left-over data to the start of the buffer */
     connection->response.byteCount = size - pos;
-    osFreeMem(buffer);
+    osMemmove(buffer, &buffer[pos], connection->response.byteCount);
 
     return NO_ERROR;
 }
@@ -231,6 +246,7 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
         TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
     }
 }
+
 void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
 {
     if (settings->rtnl.logHuman)

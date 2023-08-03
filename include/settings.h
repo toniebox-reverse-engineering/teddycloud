@@ -245,6 +245,7 @@ uint8_t get_overlay_id(const char *overlay);
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
+void settings_loop();
 
 /**
  * @brief Initializes the settings subsystem.

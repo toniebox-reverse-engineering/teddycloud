@@ -110,7 +110,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
     if (!settings->cloud.enabled)
     {
-        TRACE_ERROR("Cloud requests generally blocked in settings\r\n");
+        TRACE_INFO("Cloud requests generally blocked in settings\r\n");
         stats_update("cloud_blocked", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
