@@ -17,22 +17,24 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, b
 
     error = httpWriteStream(connection, data, size);
     if (freeMemory)
-        if (freeMemory)
-            osFreeMem(data);
+        osFreeMem(data);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to send payload: %d\r\n", error);
         return error;
     }
 
-    error = httpFlushStream(connection);
+    // can fail, when stream is already closed
+    httpFlushStream(connection);
+    /*
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Failed to close: %d\r\n", error);
         return error;
     }
+    */
 
-    return NO_ERROR;
+    return error;
 }
 
 error_t httpWriteString(HttpConnection *connection, const char_t *content)
