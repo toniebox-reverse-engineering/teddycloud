@@ -361,7 +361,7 @@ submodules:
 	$(QUIET)git submodule init
 	$(QUIET)git submodule update
 
-preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+preinstall: clean build web_ship $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
@@ -371,23 +371,23 @@ preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 
 web: 
 	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud React Webinterface'
-	$(MKDIR) $(WEB_DIR)/
+	$(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
 	$(QUIET)cd $(WEB_SRC_DIR) \
 		&& npm install \
 		&& npm run build \
 		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(WEB_DIR)/ \
 		&& cd -
 
-web_ship: preinstall
+web_ship: 
 	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build & Copy TeddyCloud React Webinterface'
-	$(MKDIR) $(WEB_DIR)/
+	$(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
 	$(QUIET)cd $(WEB_SRC_DIR) \
 		&& npm install \
 		&& npm run build \
 		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(PREINSTALL_DIR)/$(WEB_DIR)/ \
 		&& cd -
 
-zip: web_ship
+zip: preinstall
 	$(MKDIR) $(ZIP_DIR)/
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
