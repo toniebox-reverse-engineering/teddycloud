@@ -1,7 +1,7 @@
 FROM ubuntu:latest as buildenv
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential git \
+    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential git npm \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /buildenv
