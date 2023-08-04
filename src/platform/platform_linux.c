@@ -400,6 +400,7 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
                 // ai_addr is a pointer to a sockaddr, which we know is a sockaddr_in because ai_family == AF_INET.
                 struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
                 memcpy(&ipAddr->ipv4Addr, &(ipv4->sin_addr), sizeof(struct in_addr));
+                ipAddr->length = 4;
                 return true;
             }
             // Handle the case of an IPv6 address
@@ -407,6 +408,7 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
             {
                 struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
                 memcpy(&ipAddr->ipv6Addr, &(ipv6->sin6_addr), sizeof(struct in6_addr));
+                ipAddr->length = 6;
                 return true;
             }
         }
@@ -419,4 +421,42 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
 void resolve_free(void *res)
 {
     freeaddrinfo(res);
+}
+
+/**
+ * @brief Wait for a particular TCP event
+ * @param[in] socket Handle referencing the socket
+ * @param[in] eventMask Logic OR of all the TCP events that will complete the wait
+ * @param[in] timeout Maximum time to wait
+ * @return Logic OR of all the TCP events that satisfied the wait
+ **/
+
+uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
+{
+    fd_set read_fds;
+    struct timeval tv;
+
+    if (socket == NULL)
+        return 0;
+
+    socket_info_t *sock = (socket_info_t *)socket;
+
+    // Initialize the file descriptor set.
+    FD_ZERO(&read_fds);
+    FD_SET(sock->sockfd, &read_fds);
+
+    // Set timeout.
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+
+    // Wait for the event.
+    int result = select(sock->sockfd + 1, &read_fds, NULL, NULL, &tv);
+
+    // Check if socket is ready for reading.
+    if (result > 0 && FD_ISSET(sock->sockfd, &read_fds))
+    {
+        return eventMask;
+    }
+
+    return 0;
 }
