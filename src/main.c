@@ -23,6 +23,7 @@
 
 #include "settings.h"
 #include "esp32.h"
+#include "mqtt.h"
 
 void platform_init(void);
 void platform_deinit(void);
@@ -247,6 +248,7 @@ int_t main(int argc, char *argv[])
     }
     else
     {
+        mqtt_init();
         server_init();
     }
 

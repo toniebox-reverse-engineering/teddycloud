@@ -41,6 +41,7 @@ typedef struct
 {
     bool enabled;
     char *hostname;
+    uint32_t port;
     char *username;
     char *password;
     char *identification;

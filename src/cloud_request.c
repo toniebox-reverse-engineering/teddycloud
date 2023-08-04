@@ -25,6 +25,7 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
+#include "mqtt.h"
 #include "platform.h"
 
 #include "handler_cloud.h"
@@ -114,6 +115,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         stats_update("cloud_blocked", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
+
+    mqtt_sendEvent("CloudRequest", uri);
 
     HttpClientContext httpClientContext;
 

@@ -13,6 +13,7 @@
 #include "handler_rtnl.h"
 #include "settings.h"
 #include "stats.h"
+#include "mqtt.h"
 #include "fs_ext.h"
 #include "cloud_request.h"
 
@@ -140,6 +141,11 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     return NO_ERROR;
 }
 
+int32_t read_little_endian(const uint8_t *buf)
+{
+    return (int32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+}
+
 void rtnlEvent(TonieRtnlRPC *rpc)
 {
     char_t buffer[4096];
@@ -200,13 +206,105 @@ void rtnlEvent(TonieRtnlRPC *rpc)
 
     if (rpc->log3)
     {
-        if (rpc->log3->field2 == 1)
+        switch (rpc->log3->field2)
         {
+        case 1:
             sse_sendEvent("pressed", "ear-big", true);
-        }
-        else if (rpc->log3->field2 == 2)
-        {
+            mqtt_sendEvent("VolUp", "ON");
+            mqtt_sendEvent("VolUp", "OFF");
+            break;
+        case 2:
             sse_sendEvent("pressed", "ear-small", true);
+            mqtt_sendEvent("VolDown", "ON");
+            mqtt_sendEvent("VolDown", "OFF");
+            break;
+        case 3:
+            sse_sendEvent("knock", "forward", true);
+            mqtt_sendEvent("KnockForward", "ON");
+            mqtt_sendEvent("KnockForward", "OFF");
+            break;
+        case 4:
+            sse_sendEvent("knock", "backward", true);
+            mqtt_sendEvent("KnockBackward", "ON");
+            mqtt_sendEvent("KnockBackward", "OFF");
+            break;
+        case 5:
+            sse_sendEvent("tilt", "forward", true);
+            mqtt_sendEvent("TiltForward", "ON");
+            mqtt_sendEvent("TiltForward", "OFF");
+            break;
+        case 6:
+            sse_sendEvent("tilt", "backward", true);
+            mqtt_sendEvent("TiltBackward", "ON");
+            mqtt_sendEvent("TiltBackward", "OFF");
+            break;
+        case 11:
+            sse_sendEvent("playback", "starting", true);
+            mqtt_sendEvent("Playback", "ON");
+            mqtt_sendEvent("TagInvalid", "");
+            break;
+        case 12:
+            sse_sendEvent("playback", "started", true);
+            mqtt_sendEvent("Playback", "ON");
+            mqtt_sendEvent("TagInvalid", "");
+            break;
+        case 13:
+            sse_sendEvent("playback", "stopped", true);
+            mqtt_sendEvent("Playback", "OFF");
+            mqtt_sendEvent("TagValid", "");
+            mqtt_sendEvent("TagInvalid", "");
+            break;
+        default:
+            TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
+            break;
+        }
+    }
+
+    if (rpc->log2)
+    {
+        const char *eventname = NULL;
+        char buffer[33];
+
+        /* ESP32 sends tag IDs, even if unknown */
+        if (rpc->log2->function_group == 15 && rpc->log2->function == 15452)
+        {
+            eventname = "TagInvalid";
+            if (rpc->log2->field6.len == 8)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                }
+            }
+        }
+        else if (rpc->log2->function_group == 15 && rpc->log2->function == 16065)
+        {
+            eventname = "TagValid";
+            if (rpc->log2->field6.len == 8)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                }
+            }
+        }
+        else if (rpc->log2->function_group == 12 && rpc->log2->function == 15427)
+        {
+            eventname = "BoxTilt";
+            int32_t angle = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", angle);
+        }
+        else if (rpc->log2->function_group == 12 && rpc->log2->function == 15426)
+        {
+            eventname = "BoxTilt";
+            int32_t angle = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", angle);
+        }
+
+        if (eventname)
+        {
+            sse_sendEvent(eventname, buffer, true);
+            mqtt_sendEvent(eventname, buffer);
         }
     }
 }

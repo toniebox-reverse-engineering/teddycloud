@@ -172,6 +172,9 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_tcp/http/http_common.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_packet.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_misc.c \
 	cyclone/cyclone_ssl/tls.c \
 	cyclone/cyclone_ssl/tls_cipher_suites.c \
 	cyclone/cyclone_ssl/tls_handshake.c \
@@ -245,6 +248,7 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
 	cyclone/cyclone_ssl/tls_certificate.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
@@ -252,6 +256,7 @@ CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
+	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	src/cyclone/cyclone_ssl/tls_certificate.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
