@@ -40,6 +40,7 @@ ifeq ($(OS),Windows_NT)
 	ECHO        = echo
 	MKDIR       = mkdir 
 	RM          = del
+	RM_R        = rd /S /Q
 	CP          = copy
 	CP_R        = xcopy /E /I 
 	TO_TRASH    = >NUL 2>NUL
@@ -49,6 +50,7 @@ else
 	MKDIR       = mkdir -p
 	ECHO        = echo -e
 	RM          = rm -f
+	RM_R        = rm -rf
 	CP          = cp
 	CP_R        = cp -r
 	TO_TRASH    = >/dev/null 2>&1
@@ -304,7 +306,7 @@ else
 endif
 
 
-all: check_dependencies build
+all: check_dependencies submodules web build 
 
 build: $(EXECUTABLE)
 
@@ -326,6 +328,9 @@ check_dependencies:
 	@which faketime >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime' && \
 	$(ECHO) '  ${CYAN}Alpine:${NC} apk add faketime')
+	@which npm >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} npm not found, required for building the teddycloud_web. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install npm' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add npm')
 endif
 
 .PRECIOUS: %/
@@ -337,7 +342,7 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
-workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
 
@@ -361,7 +366,7 @@ submodules:
 	$(QUIET)git submodule init
 	$(QUIET)git submodule update
 
-preinstall: clean build web_ship $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+preinstall: clean build web_copy $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
@@ -369,26 +374,27 @@ preinstall: clean build web_ship $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -
 
-web: 
+web_clean: 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Clean TeddyCloud React Webinterface'
+	$(RM_R) $(CONTRIB_DIR)/$(WEB_DIR)
+		
+web: web_clean 
 	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud React Webinterface'
-	$(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
+	$(QUIET) $(MKDIR) $(CONTRIB_DIR)/$(WEB_DIR)/
 	$(QUIET)cd $(WEB_SRC_DIR) \
 		&& npm install \
 		&& npm run build \
-		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(WEB_DIR)/ \
+		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(CONTRIB_DIR)/$(WEB_DIR)/ \
 		&& cd -
 
-web_ship: 
-	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build & Copy TeddyCloud React Webinterface'
-	$(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
-	$(QUIET)cd $(WEB_SRC_DIR) \
-		&& npm install \
-		&& npm run build \
-		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(PREINSTALL_DIR)/$(WEB_DIR)/ \
-		&& cd -
+web_copy: 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Copy TeddyCloud React Webinterface'
+	$(QUIET) $(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
+	$(QUIET) $(CP_R) $(CONTRIB_DIR)/$(WEB_DIR)/* $(PREINSTALL_DIR)/$(WEB_DIR)/ 
 
 zip: preinstall
-	$(MKDIR) $(ZIP_DIR)/
+	$(QUIET)$(ECHO) '[ ${GREEN}ZIP${NC}  ] Create release zip'
+	$(QUIET) $(MKDIR) $(ZIP_DIR)/
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -
