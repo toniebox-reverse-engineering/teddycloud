@@ -11,8 +11,10 @@ services:
       - certs:/teddycloud/certs
       - config:/teddycloud/config
       - content:/teddycloud/data/content
+      - library:/teddycloud/data/library
     restart: unless-stopped
 volumes:
   certs:
   config:
   content:
+  library:

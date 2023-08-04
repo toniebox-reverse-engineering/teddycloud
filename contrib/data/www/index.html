@@ -24,6 +24,24 @@
             margin: 0;
         }
 
+        .sse-content {
+            width: 90%;
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 5px;
+            white-space: nowrap;
+            line-height: 1.2;
+            word-wrap: break-word;
+            line-height: 0.8;
+        }
+
+        .sse-content .message {
+            margin: 1px;
+            line-height: 0.8;
+        }
+
         .small-round-button {
             position: absolute;
             top: 0;
@@ -178,6 +196,61 @@
         .status-failed {
             color: red;
             font-family: monospace;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked+.slider {
+            background-color: #0000ff;
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px #0000ff;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .slider.round {
+            border-radius: 20px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
         }
     </style>
 </head>
@@ -709,6 +782,10 @@
                     files: [],
                     selectedFiles: [],
                     tonies: [],
+                    mode: "content",
+                    showSuccessMessage: false,
+                    showSuccessState: false,
+                    opacity: 1
                 };
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
@@ -717,8 +794,11 @@
                 this.onDrop = this.onDrop.bind(this);
                 this.deleteSelectedFiles = this.deleteSelectedFiles.bind(this);
                 this.toggleFileSelection = this.toggleFileSelection.bind(this);
+                this.assignNextUnknown = this.assignNextUnknown.bind(this);
                 this.selectAllFiles = this.selectAllFiles.bind(this);
+                this.handleModeChange = this.handleModeChange.bind(this);
                 this.oggPlayerRef = React.createRef();
+                this.showSuccess = this.showSuccess.bind(this);
             }
 
             componentDidMount() {
@@ -728,18 +808,78 @@
                 this.fetchFileIndex(this.state.path);
             }
 
+            showSuccess(success) {
+                // Start by showing the success message
+                this.setState({ showSuccessMessage: true, showSuccessState: success, opacity: 1 });
+
+                // After 1 second, start fading out
+                setTimeout(() => {
+                    this.setState({ opacity: 0 });
+
+                    // Once the message has faded out, hide it and reset opacity
+                    setTimeout(() => {
+                        this.setState({ showSuccessMessage: false, opacity: 1 });
+                    }, 2000); // Corresponds to the transition duration in your CSS
+                }, 1000);
+            }
+
+            async assignNextUnknown() {
+                const selectedFiles = this.state.selectedFiles;
+                if (selectedFiles.length !== 1) {
+                    alert('Please select exactly one file.');
+                    this.showSuccess(false);
+                    return;
+                }
+
+                let file = selectedFiles[0];
+
+                try {
+                    const response = await fetch(`/api/assignUnknown?path=${encodeURIComponent(this.state.path + '/' + file.name)}&special=${this.state.mode}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: "",
+                    });
+
+                    if (response.ok && await response.text() === 'OK') {
+                        this.showSuccess(true);
+                    } else {
+                        alert('Failed to process the file.');
+                        this.showSuccess(false);
+                    }
+                } catch (err) {
+                    alert('Failed to process the file due to an error.');
+                    this.showSuccess(false);
+                }
+
+                this.setState({ selectedFiles: [] });
+                this.fetchFileIndex(this.state.path);
+            }
+
+            handleModeChange = () => {
+                this.setState(
+                    prevState => ({
+                        mode: prevState.mode === "content" ? "library" : "content",
+                        path: '/'
+                    }),
+                    () => {
+                        this.fetchFileIndex(this.state.path);
+                    }
+                );
+            };
+
             async fetchFileIndex(path) {
                 try {
-                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}`);
-
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
                     if (response.ok) {
                         const data = await response.json();
-                        this.setState({ files: data.files, path });
+                        this.setState({ files: data.files, path, selectedFiles: [] });
                     } else {
                         console.error('Failed to fetch file index');
+                        this.setState({ files: [], path, selectedFiles: [] });
                     }
                 } catch (err) {
                     console.error('There was an error!', err);
+                    this.setState({ files: [], path, selectedFiles: [] });
                 }
             }
 
@@ -777,8 +917,10 @@
                         });
 
                         if (response.ok) {
+                            this.showSuccess(true);
                         } else {
                             alert('File upload failed');
+                            this.showSuccess(false);
                         }
                     } catch (err) {
                         console.error('There was an error!', err);
@@ -805,8 +947,10 @@
 
                     if (response.ok) {
                         this.fetchFileIndex(this.state.path); // Refresh files
+                        this.showSuccess(true);
                     } else {
                         alert('Failed to create directory');
+                        this.showSuccess(false);
                     }
                 } catch (err) {
                     console.error('There was an error!', err);
@@ -846,6 +990,8 @@
 
                 if (failedCount > 0) {
                     alert(`Deleted: ${deletedCount}, Failed: ${failedCount} `);
+                } else {
+                    this.showSuccess(true);
                 }
                 this.setState({ selectedFiles: [] });
                 this.fetchFileIndex(this.state.path); // Refresh files after delete
@@ -871,11 +1017,29 @@
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
                         <h2>File Viewer</h2>
                         <OggPlayer ref={this.oggPlayerRef} />
+
+                        {/* Mode Switch */}
+                        <div>
+                            <label>
+                                <span>Content </span>
+                                <label className="switch">
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.mode === 'library'}
+                                        onChange={this.handleModeChange}
+                                    />
+                                    <span className="slider round"></span>
+                                </label>
+                                <span> Library</span>
+                            </label>
+                        </div>
+
                         <p>
                             <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
+                            <button className="button" onClick={this.assignNextUnknown}>Assign Unknown</button>
                             {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
@@ -892,6 +1056,23 @@
                                 }}
                             />
                         </p>
+                        <div style={{ position: 'relative' }}>
+                            {this.state.showSuccessMessage &&
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    fontSize: '200px',
+                                    color: this.state.showSuccessState ? 'green' : 'red',
+                                    opacity: this.state.opacity,
+                                    transition: 'opacity 2s ease-out'
+                                }}>
+                                    {this.state.showSuccessState ? String.fromCharCode(10004) : String.fromCharCode(10008)}
+                                </div>
+                            }
+                        </div>
+
 
                         <pre key="path" style={{ fontFamily: 'monospace' }}>
                             <span>Index of {this.state.path}</span>
@@ -959,7 +1140,7 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}`} target="_blank" rel="noopener noreferrer">
+                                            <a href={`/content${this.state.path}${file.name}?special=${this.state.mode}`} target="_blank" rel="noopener noreferrer">
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -969,7 +1150,7 @@
                                                 <div className="parent">
                                                     <button
                                                         onClick={() => {
-                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true`);
+                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
                                                         }
                                                         } className="small-round-button"
@@ -1003,7 +1184,211 @@
             }
         }
 
+        class RTNLDump extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    messages: [],
+                    enabled: false
+                };
+                this.handleModeChange = this.handleModeChange.bind(this);
+                this.hexToStr = this.hexToStr.bind(this);
+                this.littleEndianToNum = this.littleEndianToNum.bind(this);
+            }
 
+            componentDidMount() {
+                console.log("componentDidMount started");
+            }
+
+            componentDidUpdate(prevProps, prevState) {
+                if (this.state.enabled !== prevState.enabled) {
+                    if (this.state.enabled) {
+                        this.initSSE();
+                    } else {
+                        this.deinitSSE();
+                    }
+                }
+            }
+
+            hexToStr(hex) {
+                let str = '';
+                for (let i = 0; i < hex.length; i += 2) {
+                    let pair = hex.substr(i, 2);
+                    let charCode = parseInt(pair, 16);
+                    if (charCode >= 32 && charCode <= 126) {
+                        str += String.fromCharCode(charCode);
+                    } else {
+                        str += '.';
+                    }
+                }
+                return str;
+            }
+
+            littleEndianToNum(hexString) {
+                let bigEndianHex = "";
+                for (let i = 0; i < hexString.length; i += 2) {
+                    bigEndianHex = hexString.substring(i, i + 2) + bigEndianHex;
+                }
+
+                let num = parseInt(bigEndianHex, 16);
+                let maxVal = 2 ** 31;
+
+                if (num >= maxVal) {
+                    num = num - 2 * maxVal;
+                }
+                return num;
+            }
+
+            initSSE = () => {
+                const eventSource = new EventSource('/api/sse');
+
+                eventSource.onopen = e => {
+                    console.log("Connection to server opened", e);
+                };
+
+                eventSource.addEventListener('keep-alive', e => {
+                    console.log("keep-alive event received:", e);
+                });
+
+                eventSource.addEventListener('pressed', e => {
+                    const data = JSON.parse(e.data);
+
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages, "Pressed: " + data.data]
+                    }));
+                });
+
+
+                eventSource.addEventListener('rtnl-raw-log2', e => {
+                    const data = JSON.parse(e.data);
+                    const functionHandlers = {
+                        /* ESP32 box events */
+                        "15-15452": (payload) => {
+                            if (payload.length === 16) {
+                                const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UnknownTag | ${rearrangedPayload}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                        "15-16065": (payload) => {
+                            if (payload.length === 16) {
+                                const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `KnownTag | ${rearrangedPayload}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                        "12-15427": (payload) => {
+                            if (payload.length === 8) {
+                                const value = this.littleEndianToNum(payload);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UpsideState | ${value}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                        "12-15426": (payload) => {
+                            if (payload.length === 8) {
+                                const value = this.littleEndianToNum(payload);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UprightState | ${value}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                    };
+
+
+                    console.log("raw", data);
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages,
+                        "Raw2 |" +
+                        " #" + data.data.sequence +
+                        " Uptime: " + data.data.uptime +
+                        " Func: " + data.data.function_group + "-" + data.data.function +
+                        " Payload: '" + data.data.field6 + "'" +
+                        " ASCII: '" + this.hexToStr(data.data.field6) + "'"]
+                    }));
+
+                    const funcKey = `${data.data.function_group}-${data.data.function}`;
+                    if (functionHandlers[funcKey]) {
+                        functionHandlers[funcKey](data.data.field6);
+                    }
+                });
+
+                eventSource.addEventListener('rtnl-raw-log3', e => {
+                    const data = JSON.parse(e.data);
+
+                    console.log("raw", data);
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages,
+                        "Raw3 |" +
+                        " Datetime: " + data.data.datetime +
+                        " Unknown: " + data.data.field2]
+                    }));
+                });
+
+                eventSource.onerror = e => {
+                    console.error("EventSource failed:", e);
+                };
+                this._sseEventSource = eventSource;
+            };
+
+            deinitSSE = () => {
+                if (this._sseEventSource) {
+                    this._sseEventSource.close();
+                    this._sseEventSource = null;
+                }
+            };
+
+            componentWillUnmount() {
+                this.deinitSSE();
+            }
+
+            handleModeChange = () => {
+                this.setState(prevState => ({
+                    enabled: !prevState.enabled
+                }));
+            };
+
+            render() {
+                return (
+                    <div className="tile sse-tile">
+                        <h2>RTNL-Log</h2>
+                        <span>Enabled </span>
+                        <label className="switch">
+                            <input
+                                type="checkbox"
+                                checked={this.state.enabled == true}
+                                onChange={this.handleModeChange}
+                            />
+                            <span className="slider round"></span>
+                        </label>
+
+                        {this.state.enabled && (
+                            <div className="sse-content" style={{ overflowY: 'scroll', overflowX: 'scroll', maxHeight: '300px' }}>
+                                {this.state.messages.map((message, index) => (
+                                    <pre key={index} className="message">
+                                        {message}
+                                    </pre>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+        }
 
         class App extends React.Component {
             constructor(props) {
@@ -1012,16 +1397,34 @@
                     time: 0,
                     cloud_time: 0,
                     display_time: 0,
-                    display_cloud_time: 0
+                    display_cloud_time: 0,
+                    version: "(unknown version)",
+                    enableCloudTime: false
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
+                this.handleEnableCloudTimeChange = this.handleEnableCloudTimeChange.bind(this);
                 this.fetchFromServer();
             }
 
             componentDidMount() {
                 this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
+
+                fetch(`/api/get/internal.version.v_long`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(version => {
+                        this.setState({ version: version });
+                    })
+            }
+
+            handleEnableCloudTimeChange(event) {
+                this.setState({ enableCloudTime: event.target.checked }, () => { this.fetchFromServer() });
             }
 
             componentWillUnmount() {
@@ -1062,20 +1465,22 @@
                         this.setState({ time: 'Error', display_time: 'Error' });
                     });
 
-                fetch('/reverse/v1/time')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.text();
-                    })
-                    .then(unixTime => {
-                        this.setState({ cloud_time: parseInt(unixTime, 10) });
-                    })
-                    .catch(error => {
-                        console.error('There was an error!', error);
-                        this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
-                    });
+                if (this.state.enableCloudTime) {
+                    fetch('/reverse/v1/time')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.text();
+                        })
+                        .then(unixTime => {
+                            this.setState({ cloud_time: parseInt(unixTime, 10) });
+                        })
+                        .catch(error => {
+                            console.error('There was an error!', error);
+                            this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
+                        });
+                }
             }
 
             formatTime(date) {
@@ -1091,13 +1496,23 @@
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
+                            <label>
+                                Fetch Cloud Time
+                                <input
+                                    type="checkbox"
+                                    checked={this.state.enableCloudTime}
+                                    onChange={this.handleEnableCloudTimeChange}
+                                />
+                            </label>
                             <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
                             <CertificateUploadTile />
                             <FileViewerTile />
                             <SettingsTile />
                             <ActionsTile />
+                            <RTNLDump />
                         </div>
+                        <h4>{this.state.version}</h4>
                     </div>
                 );
             }

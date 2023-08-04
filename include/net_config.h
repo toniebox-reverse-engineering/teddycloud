@@ -39,6 +39,7 @@ typedef struct
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
+#define HTTP_SERVER_PERSISTENT_CONN_SUPPORT ENABLED
 
 // Trace level for TCP/IP stack debugging
 #define MEM_TRACE_LEVEL TRACE_LEVEL_INFO
@@ -176,5 +177,9 @@ typedef struct
 #define HTTP_SERVER_TLS_SUPPORT ENABLED
 
 #define HTTP_SERVER_MULTIPART_TYPE_SUPPORT ENABLED
+
+/* match original cloud settings */
+#define HTTP_SERVER_IDLE_TIMEOUT (5*60000)
+#define HTTP_SERVER_TIMEOUT      (1*60000)
 
 #endif

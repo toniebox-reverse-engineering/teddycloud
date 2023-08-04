@@ -3,295 +3,12 @@
 #include <string.h>
 
 #include "settings.h"
+#include "fs_ext.h"
 
 #include "handler.h"
 #include "handler_api.h"
 #include "handler_cloud.h"
 #include "http/http_client.h"
-
-#include "cloud_request.h"
-#include "proto/toniebox.pb.freshness-check.fc-request.pb-c.h"
-#include "proto/toniebox.pb.freshness-check.fc-response.pb-c.h"
-
-static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
-static void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings)
-{
-    freshResp->max_vol_spk = settings->toniebox.max_vol_spk;
-    freshResp->max_vol_hdp = settings->toniebox.max_vol_hdp;
-    freshResp->slap_en = settings->toniebox.slap_enabled;
-    freshResp->slap_dir = settings->toniebox.slap_back_left;
-    freshResp->led = settings->toniebox.led;
-}
-
-static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx);
-static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx);
-
-static char *strupr(char input[]);
-
-static void cbrCloudResponsePassthrough(void *src_ctx, void *cloud_ctx)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
-
-    // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(ctx->connection->response.version), LSB(ctx->connection->response.version), ctx->connection->response.statusCode);
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_CONN;
-}
-
-static void cbrCloudHeaderPassthrough(void *src_ctx, void *cloud_ctx, const char *header, const char *value)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
-
-    if (header)
-    {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
-
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_HEAD;
-}
-
-static bool fillCbrBodyCache(cbr_ctx_t *ctx, HttpClientContext *httpClientContext, const char *payload, size_t length)
-{
-    if (ctx->bufferPos == 0)
-    {
-        ctx->bufferLen = httpClientContext->bodyLen; // ctx->connection->response.contentLength;
-        ctx->buffer = osAllocMem(ctx->bufferLen);
-    }
-    osMemcpy(&ctx->buffer[ctx->bufferPos], payload, length);
-    ctx->bufferPos += length;
-    return (ctx->bufferPos == ctx->bufferLen);
-}
-
-static void cbrCloudBodyPassthrough(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
-
-    // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
-    switch (ctx->api)
-    {
-    case V2_CONTENT:
-        if (ctx->client_ctx->settings->cloud.cacheContent && httpClientContext->statusCode == 200)
-        {
-            // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
-            // TRACE_INFO(">> %s\r\n", ctx->uri);
-            if (ctx->status == PROX_STATUS_HEAD)
-            {
-                /* URI is always "/v2/content/xxxxxxxxxx0304E0" where the x's are hex digits. length has to be fixed */
-                TRACE_INFO(">> Start caching uri=%s\r\n", ctx->uri);
-                // TODO detect partial downloads
-                if (strlen(ctx->uri) < 28)
-                {
-                    TRACE_ERROR(">> ctx->uri is too short\r\n");
-                    return;
-                }
-                char ruid[17];
-                osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
-                ruid[16] = 0;
-                getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
-                char tmpPath[34];
-                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
-                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
-                tmpPath[29] = 0;
-                osStrcat(tmpPath, ".tmp");
-                tmpPath[20] = 0;
-                fsCreateDir(tmpPath);
-                tmpPath[20] = '/';
-                ctx->file = fsOpenFile(tmpPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
-            }
-            if (length > 0)
-            {
-                error_t error = fsWriteFile(ctx->file, (void *)payload, length);
-                if (error)
-                    TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
-            }
-            if (error == ERROR_END_OF_STREAM)
-            {
-                fsCloseFile(ctx->file);
-                char tmpPath[34];
-                osMemcpy(tmpPath, ctx->tonieInfo.contentPath, 30);
-                tmpPath[29] = 0;
-                osStrcat(tmpPath, ".tmp");
-                fsDeleteFile(ctx->tonieInfo.contentPath);
-                fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
-                TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
-            }
-            if (error != NO_ERROR)
-            {
-                freeTonieInfo(&ctx->tonieInfo);
-            }
-        }
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        break;
-    case V1_FRESHNESS_CHECK:
-        if (ctx->client_ctx->settings->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
-        {
-            TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
-            setTonieboxSettings(freshResp, ctx->client_ctx->settings);
-            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
-
-            // TODO: Check if size is stable and this is obsolete
-            // TODO Add live tonies here, too : freshResp.tonie_marked
-            if (ctx->bufferLen < packSize)
-            {
-                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
-                osFreeMem(ctx->buffer);
-                ctx->bufferLen = packSize;
-                ctx->buffer = osAllocMem(ctx->bufferLen);
-            }
-            tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
-            tonie_freshness_check_response__free_unpacked(freshResp, NULL);
-            httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
-            osFreeMem(ctx->buffer);
-        }
-        else
-        {
-            httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        }
-        break;
-    default:
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        break;
-    }
-    ctx->status = PROX_STATUS_BODY;
-}
-
-static void cbrCloudServerDiscoPassthrough(void *src_ctx, void *cloud_ctx)
-{
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
-    ctx->status = PROX_STATUS_DONE;
-}
-
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
-
-static req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
-{
-    ctx->uri = uri;
-    ctx->queryString = queryString;
-    ctx->api = api;
-    ctx->buffer = NULL;
-    ctx->bufferPos = 0;
-    ctx->bufferLen = 0;
-    ctx->status = PROX_STATUS_IDLE;
-    ctx->connection = connection;
-    ctx->client_ctx = client_ctx;
-
-    req_cbr_t cbr = {
-        .ctx = ctx,
-        .response = &cbrCloudResponsePassthrough,
-        .header = &cbrCloudHeaderPassthrough,
-        .body = &cbrCloudBodyPassthrough,
-        .disconnect = &cbrCloudServerDiscoPassthrough};
-
-    return cbr;
-}
-
-void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings)
-{
-    *pcontentPath = osAllocMem(256);
-    char filePath[18];
-    osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
-    strupr(filePath);
-
-    osSprintf(*pcontentPath, "%s/%s", settings->internal.contentdirfull, filePath);
-}
-
-void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings)
-{
-    uint16_t cuid[9];
-    osSprintf((char *)cuid, "%016" PRIX64 "", uid);
-    uint16_t cruid[9];
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        cruid[i] = cuid[7 - i];
-    }
-    cruid[8] = 0;
-    getContentPathFromCharRUID((char *)cruid, pcontentPath, settings);
-}
-
-tonie_info_t getTonieInfo(const char *contentPath)
-{
-    tonie_info_t tonieInfo;
-    int maxLen = strlen(contentPath) + 32;
-    char *checkFile = (char *)osAllocMem(maxLen + 1);
-
-    checkFile[maxLen] = 0;
-    tonieInfo.valid = false;
-    tonieInfo.tafHeader = NULL;
-    tonieInfo.contentPath = strdup(contentPath);
-    snprintf(checkFile, maxLen, "%s", contentPath);
-    tonieInfo.exists = fsFileExists(checkFile);
-    snprintf(checkFile, maxLen, "%s.nocloud", contentPath);
-    tonieInfo.nocloud = fsFileExists(checkFile);
-    snprintf(checkFile, maxLen, "%s.live", contentPath);
-    tonieInfo.live = fsFileExists(checkFile);
-    osFreeMem(checkFile);
-
-    FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
-    if (file)
-    {
-        uint8_t headerBuffer[TAF_HEADER_SIZE];
-        size_t read_length;
-        fsReadFile(file, headerBuffer, 4, &read_length);
-        if (read_length == 4)
-        {
-            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
-            if (protobufSize <= TAF_HEADER_SIZE)
-            {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length);
-                if (read_length == protobufSize)
-                {
-                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                    if (tonieInfo.tafHeader)
-                        tonieInfo.valid = true;
-                }
-                else
-                {
-                    TRACE_WARNING("Invalid TAF-header, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", read_length, protobufSize);
-                }
-            }
-            else
-            {
-                TRACE_WARNING("Invalid TAF-header, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", protobufSize, TAF_HEADER_SIZE);
-            }
-        }
-        else
-        {
-            TRACE_WARNING("Invalid TAF-header, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", read_length);
-        }
-        fsCloseFile(file);
-    }
-    return tonieInfo;
-}
-
-void freeTonieInfo(tonie_info_t *tonieInfo)
-{
-    toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
-    free(tonieInfo->contentPath);
-    tonieInfo->contentPath = NULL;
-    tonieInfo->tafHeader = NULL;
-}
-
-void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)
-{
-    httpInitResponseHeader(connection);
-    connection->response.keepAlive = true;
-    connection->response.chunkedEncoding = false;
-    connection->response.contentType = contentType;
-    connection->response.contentLength = contentLength;
-}
 
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -324,7 +41,7 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     error_t ret = NO_ERROR;
-    char *query = strdup(connection->request.queryString);
+    char *query = strdup(queryString);
     char *localUri = strdup(uri);
     char *savelocalUri = localUri;
     char *filename = strtok_r(&localUri[8], "?", &savelocalUri);
@@ -429,37 +146,46 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
-    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
+    char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
+    char buffer[4];
+
+    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
+    {
+        osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
+        osStrcat(msg, buffer);
+    }
+    TRACE_INFO(" >> client requested rUID %s, auth %s\r\n", ruid, msg);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!tonieInfo.nocloud && checkCustomTonie(ruid, token, client_ctx->settings))
+    if (!tonieInfo.nocloud)
     {
-        tonieInfo.nocloud = true;
-        markCustomTonie(&tonieInfo);
+        if (checkCustomTonie(ruid, token, client_ctx->settings))
+        {
+            TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
+            tonieInfo.nocloud = true;
+            markCustomTonie(&tonieInfo);
+        }
+        else if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Claim"))
+        {
+            cbr_ctx_t ctx;
+            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx, client_ctx);
+            cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+        }
+        else
+        {
+            TRACE_INFO(" >> cloud claim disabled\r\n");
+        }
     }
-
-    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Claim") && !tonieInfo.nocloud)
+    else
     {
-        cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx, client_ctx);
-        cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+        TRACE_INFO(" >> nocloud content, nothing forwarded\r\n");
     }
     freeTonieInfo(&tonieInfo);
 
     return NO_ERROR;
-}
-
-char *strupr(char input[])
-{
-    for (uint16_t i = 0; input[i]; i++)
-    {
-        input[i] = toupper(input[i]);
-    }
-    return input;
 }
 
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
@@ -480,8 +206,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
-    TRACE_INFO(" >> client requested rUID %s\r\n", ruid);
-    TRACE_INFO(" >> client authenticated with %02X%02X%02X%02X...\r\n", token[0], token[1], token[2], token[3]);
+    char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
+    char buffer[4];
+
+    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
+    {
+        osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
+        osStrcat(msg, buffer);
+    }
+    TRACE_INFO(" >> client requested rUID %s, auth %s\r\n", ruid, msg);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
@@ -489,14 +222,66 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
     {
+        TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
         tonieInfo.nocloud = true;
         markCustomTonie(&tonieInfo);
     }
 
-    if (tonieInfo.exists)
+    settings_t *settings = get_settings();
+    if (!tonieInfo.exists && osStrlen(settings->internal.assign_unknown) > 0)
     {
+        char *path = settings->internal.assign_unknown;
+        if (fsFileExists(path))
+        {
+            tonie_info_t tonieInfoAssign = getTonieInfo(path);
+            if (tonieInfoAssign.valid)
+            {
+                char *dir = strdup(tonieInfo.contentPath);
+                dir[osStrlen(dir) - 8] = '\0';
+                fsCreateDir(dir);
+                osFreeMem(dir);
+
+                if ((error = fsCopyFile(path, tonieInfo.contentPath, false)) == NO_ERROR)
+                {
+                    char *oldFile = strdup(tonieInfo.contentPath);
+                    freeTonieInfo(&tonieInfo);
+                    tonieInfo = getTonieInfo(oldFile);
+                    free(oldFile);
+                    if (tonieInfo.valid)
+                    {
+                        TRACE_INFO("Assigned unknown set to %s\r\n", path);
+                        settings_set_string("internal.assign_unknown", "");
+                    }
+                    else
+                    {
+                        TRACE_ERROR("TAF header of assign unknown invalid, delete it again: %s\r\n", tonieInfo.contentPath)
+                        fsDeleteFile(tonieInfo.contentPath);
+                    }
+                }
+                else
+                {
+                    freeTonieInfo(&tonieInfoAssign);
+                    TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error)
+                }
+            }
+            else
+            {
+                freeTonieInfo(&tonieInfoAssign);
+                TRACE_ERROR("TAF header of assign unknown invalid: %s\r\n", path)
+            }
+        }
+        else
+        {
+            TRACE_ERROR("Assign unknown path not available: %s\r\n", path)
+        }
+        error = NO_ERROR;
+    }
+
+    if (tonieInfo.exists && tonieInfo.valid)
+    {
+        TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
-        error_t error = httpSendResponse(connection, tonieInfo.contentPath);
+        error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
@@ -520,19 +305,23 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         else
         {
+            TRACE_INFO("Serve cloud content from %s\r\n", uri);
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+            error = NO_ERROR;
         }
     }
     freeTonieInfo(&tonieInfo);
     return error;
 }
+
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     return handleCloudContent(connection, uri, queryString, client_ctx, TRUE);
 }
+
 error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
@@ -544,6 +333,37 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
         TRACE_WARNING("Missing auth for content v2: %s", uri);
     }
     return NO_ERROR;
+}
+
+#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
+void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId);
+void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId)
+{
+    struct tm tm_info;
+    time_t unix_time = audioId;
+
+    *isCustom = false;
+    if (unix_time < 0x0e000000)
+    {
+        osSprintf(date_buffer, "special");
+    }
+    else
+    {
+        /* custom tonies from TeddyBench have the audio id reduced by a constant */
+        if (unix_time < TEDDY_BENCH_AUDIO_ID_DEDUCT)
+        {
+            unix_time += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+            *isCustom = true;
+        }
+        if (localtime_r(&unix_time, &tm_info) == 0)
+        {
+            osSprintf(date_buffer, "(localtime failed)");
+        }
+        else
+        {
+            strftime(date_buffer, 32, "%Y-%m-%d %H:%M:%S", &tm_info);
+        }
+    }
 }
 
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -581,52 +401,65 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
-                struct tm tm_info;
-                char date_buffer[32];
-                bool_t custom = false;
-                time_t unix_time = freshReq->tonie_infos[i]->audio_id;
-
-                if (unix_time < 0x0e000000)
-                {
-                    osSprintf(date_buffer, "special");
-                }
-                else
-                {
-                    /* custom tonies from TeddyBench have the audio id reduced by a constant */
-                    if (unix_time < 0x50000000)
-                    {
-                        unix_time += 0x50000000;
-                        custom = true;
-                    }
-                    if (localtime_r(&unix_time, &tm_info) == 0)
-                    {
-                        osSprintf(date_buffer, "(localtime failed)");
-                    }
-                    else
-                    {
-                        strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
-                    }
-                }
                 tonie_info_t tonieInfo;
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath, client_ctx->settings);
                 tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-                tonieInfo.updated = tonieInfo.valid && (freshReq->tonie_infos[i]->audio_id < tonieInfo.tafHeader->audio_id);
+                char date_buffer_box[32];
+                bool_t custom_box;
+                char date_buffer_server[32];
+                bool_t custom_server = FALSE;
+
+                checkAudioIdForCustom(&custom_box, date_buffer_box, freshReq->tonie_infos[i]->audio_id);
+
+                uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
+                if (custom_box)
+                    boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+                if (tonieInfo.valid)
+                {
+                    uint32_t serverAudioId = tonieInfo.tafHeader->audio_id;
+                    checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
+
+                    if (custom_server)
+                        serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+                    tonieInfo.updated = boxAudioId < serverAudioId;
+                    if (client_ctx->settings->cloud.prioCustomContent)
+                    {
+                        if (custom_box && !custom_server)
+                            tonieInfo.updated = false;
+                        if (!custom_box && custom_server)
+                            tonieInfo.updated = true;
+                    }
+                }
 
                 if (!tonieInfo.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
-                (void)custom;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)\n",
+                (void)custom_box;
+                (void)custom_server;
+                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
                            tonieInfo.live,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
-                           date_buffer,
-                           custom ? ", custom" : "");
+                           date_buffer_box,
+                           custom_box ? ", custom" : "");
+
+                if (tonieInfo.valid)
+                {
+                    TRACE_INFO_RESUME(", audioid-server: %08X (%s%s)",
+                                      tonieInfo.tafHeader->audio_id,
+                                      date_buffer_server,
+                                      custom_server ? ", custom" : "");
+                }
+
+                TRACE_INFO_RESUME("\r\n");
+
                 if (tonieInfo.live || tonieInfo.updated)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
@@ -683,7 +516,7 @@ error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const ch
     else
     {
         httpPrepareHeader(connection, "application/json; charset=utf-8", 2);
-        connection->response.keepAlive = false;
+        connection->response.keepAlive = true;
         return httpWriteResponseString(connection, "{}", false);
     }
     return NO_ERROR;

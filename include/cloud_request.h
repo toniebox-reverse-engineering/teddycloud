@@ -3,15 +3,17 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "http/http_client.h"
 
-typedef struct
+typedef struct req_cbr_t req_cbr_t;
+struct req_cbr_t
 {
     void *ctx;
-    void (*response)(void *src_ctx, void *cloud_ctx);
-    void (*header)(void *src_ctx, void *cloud_ctx, const char *header, const char *value);
-    void (*body)(void *src_ctx, void *cloud_ctx, const char *payload, size_t length, error_t error);
-    void (*disconnect)(void *src_ctx, void *cloud_ctx);
-} req_cbr_t;
+    void (*response)(void *ctx, HttpClientContext *cloud_ctx);
+    void (*header)(void *ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
+    void (*body)(void *ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error);
+    void (*disconnect)(void *ctx, HttpClientContext *cloud_ctx);
+};
 
 int_t cloud_request_get(const char *server, int port, const char *uri, const char *queryString, const uint8_t *hash, req_cbr_t *cbr);
 int_t cloud_request_post(const char *server, int port, const char *uri, const char *queryString, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr);

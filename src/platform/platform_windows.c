@@ -261,6 +261,11 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     int_t n;
     error_t error;
 
+    /* this is meant as a flush. not needed/possible? */
+    if (!length)
+    {
+        return NO_ERROR;
+    }
     // Send data
     n = send(sock->sockfd, data, length, 0);
 
@@ -294,6 +299,10 @@ error_t socketReceive(Socket *socket, void *data_in,
     socket_info_t *sock = (socket_info_t *)socket;
 
     *received = 0;
+    if (!size)
+    {
+        return NO_ERROR;
+    }
 
     /* annoying part. the lib shall implement CRLF-breaking read. so we have to buffer data */
     if (!sock->buffer)
@@ -315,6 +324,7 @@ error_t socketReceive(Socket *socket, void *data_in,
 
         if ((flags & SOCKET_FLAG_BREAK_CHAR) && sock->buffer_used)
         {
+            /* warning: searches outside buffer if binary */
             const char *ptr = strchr(sock->buffer, flags & 0xFF);
 
             if (ptr)

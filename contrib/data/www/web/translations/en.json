@@ -1,0 +1,32 @@
+{
+  "home": {
+    "navigationTitle": "Home",
+    "title": "Welcome!",
+    "stats": {
+      "navigationTitle": "Stats",
+      "title": "Stats",
+      "connections": "Connections made to this server",
+      "reverse_requests": "Reverse proxy calls made by clients",
+      "cloud_requests": "Cloud requests executed",
+      "cloud_blocked": "Blocked cloud requests",
+      "cloud_failed": "Failed cloud requests"
+    }
+  },
+  "settings": {
+    "navigationTitle": "Settings",
+    "title": "Settings",
+    "general": {
+      "navigationTitle": "General",
+      "title": "General settings"
+    },
+    "certificates": {
+      "navigationTitle": "Certificates",
+      "title": "Certificates"
+    }
+  },
+  "language": {
+    "change": "Change language",
+    "english": "EN",
+    "german": "DE"
+  }
+}

@@ -14,11 +14,15 @@
 #include "error.h"
 #include "debug.h"
 #include "cJSON.h"
+#include "esp32.h"
+
+#include "version.h"
 
 #include "tls_adapter.h"
 #include "cloud_request.h"
 
 #include "settings.h"
+#include "esp32.h"
 
 void platform_init(void);
 void platform_deinit(void);
@@ -110,6 +114,8 @@ bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Pro
 
 int_t main(int argc, char *argv[])
 {
+    TRACE_PRINTF(BUILD_FULL_NAME_LONG "\r\n\r\n");
+
     error_t error = 0;
 
     char cwd[256];
@@ -212,6 +218,32 @@ int_t main(int argc, char *argv[])
 
             error = cloud_request_get(NULL, 0, request, "", hash, NULL);
         }
+        else if (!strcasecmp(type, "ESP32CERT"))
+        {
+            if (argc < 5)
+            {
+                TRACE_ERROR("Usage: %s ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n", argv[0]);
+                return -1;
+            }
+            const char *cmd = argv[2];
+            if (!strcasecmp(cmd, "inject"))
+            {
+                esp32_fat_inject((const char *)argv[3], "CERT", (const char *)argv[4]);
+            }
+            else if (!strcasecmp(cmd, "extract"))
+            {
+                esp32_fat_extract((const char *)argv[3], "CERT", (const char *)argv[4]);
+            }
+        }
+        else if (!strcasecmp(type, "ESP32FIXUP"))
+        {
+            if (argc < 3)
+            {
+                TRACE_ERROR("Usage: %s ESP32FIXUP <esp32-image-bin>\r\n", argv[0]);
+                return -1;
+            }
+            esp32_fixup((const char *)argv[2], true);
+        }
     }
     else
     {
@@ -220,7 +252,7 @@ int_t main(int argc, char *argv[])
 
     tls_adapter_deinit();
     platform_deinit();
-    settings_deinit();
+    settings_deinit_all();
 
     return error;
 }

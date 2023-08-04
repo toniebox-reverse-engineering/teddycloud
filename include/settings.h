@@ -34,6 +34,7 @@ typedef struct
     bool cacheContent;
     bool markCustomTagByPass;
     bool markCustomTagByUid;
+    bool prioCustomContent;
 } settings_cloud_t;
 
 typedef struct
@@ -64,6 +65,18 @@ typedef struct
 
 typedef struct
 {
+    char *id;
+    char *git_sha_short;
+    char *git_sha;
+    bool dirty;
+    char *datetime;
+    char *v_short;
+    char *v_long;
+    char *v_full;
+} settings_version_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -72,11 +85,16 @@ typedef struct
     bool config_changed;
 
     char *cwd;
+    char *contentdirrel;
     char *contentdirfull;
+    char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
 
     char *overlayName;
+    char *assign_unknown;
+
+    settings_version_t version;
 } settings_internal_t;
 
 typedef struct
@@ -91,6 +109,7 @@ typedef struct
     uint32_t https_port;
     char *certdir;
     char *contentdir;
+    char *librarydir;
     char *datadir;
     char *wwwdir;
     settings_cert_opt_t server_cert;
@@ -226,6 +245,7 @@ uint8_t get_overlay_id(const char *overlay);
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
+void settings_loop();
 
 /**
  * @brief Initializes the settings subsystem.
@@ -239,7 +259,8 @@ void settings_init(char *cwd);
  *
  * This function should be called to clean up all allocated memory.
  */
-void settings_deinit();
+void settings_deinit(uint8_t overlayId);
+void settings_deinit_all();
 
 /**
  * @brief Saves the current settings to a persistent storage (like a file or database).

@@ -5,19 +5,42 @@ OBJ_DIR        = obj
 SRC_DIR        = src
 CONTRIB_DIR    = contrib
 INSTALL_DIR    = install
-PREINSTALL_DIR = install/pre
+PREINSTALL_DIR = $(INSTALL_DIR)/pre
+WEB_SRC_DIR    = teddycloud_web
+WEB_BUILD_DIR  = build
+WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
 
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
+ifeq ($(OS),Windows_NT)
+build_rawDateTime:="${shell date /t} ${shell time /t}"
+else
+build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
+endif
+
+build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
+build_gitDateTime:="${shell git log -1 --format=%ai}"
+build_gitShortSha:=${shell git rev-parse --short HEAD}
+build_gitSha:=${shell git rev-parse HEAD}
+build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+
+CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
+
+build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
+ifeq ($(build_gitTagPrefix),tc)
+	build_version:=$(subst ${build_gitTagPrefix}_,,${build_gitTag})
+	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
+endif
 
 ifeq ($(OS),Windows_NT)
 	SHELL       = cmd.exe
 	ECHO        = echo
 	MKDIR       = mkdir 
 	RM          = del
+	RM_R        = rd /S /Q
 	CP          = copy
 	CP_R        = xcopy /E /I 
 	TO_TRASH    = >NUL 2>NUL
@@ -27,6 +50,7 @@ else
 	MKDIR       = mkdir -p
 	ECHO        = echo -e
 	RM          = rm -f
+	RM_R        = rm -rf
 	CP          = cp
 	CP_R        = cp -r
 	TO_TRASH    = >/dev/null 2>&1
@@ -73,19 +97,21 @@ HEADERS_linux =
 INCLUDES_linux = 
 SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
-	cyclone/common/os_port_posix.c \
+	src/cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-LFLAGS_linux = 
 CFLAGS_linux += -Wall -Werror
-CFLAGS_linux += -ggdb -O3
-#CFLAGS += -fsanitize=address -static-libasan -Og
+CFLAGS_linux += -ggdb
+
+# for now enable extensive error checking
+CFLAGS_linux += -fsanitize=undefined -fsanitize=address -Og
+LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 
 ## win32 specific headers/sources
 HEADERS_windows = 
 INCLUDES_windows = 
 SOURCES_windows = \
 	src/platform/platform_$(PLATFORM).c\
-	cyclone/common/os_port_windows.c \
+	src/cyclone/common/os_port_windows.c \
 	src/cyclone/common/fs_port_windows.c 
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
@@ -103,20 +129,25 @@ INCLUDES = \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
-	-IcJSON
+	-IcJSON \
+	-Ifat/source
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
 	cJSON/cJSON.c \
-	cJSON/cJSON_Utils.c
+	cJSON/cJSON_Utils.c \
+	fat/source/ff.c \
+	fat/source/ffsystem.c \
+	fat/source/ffunicode.c
 
 HEADERS = \
 	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h) \
 	cJSON/cJSON.h \
-	cJSON/cJSON_Utils.h
+	cJSON/cJSON_Utils.h \
+	fat/source/ff.h
 
 
 #
@@ -190,16 +221,21 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/encoding/oid.c \
 	cyclone/cyclone_crypto/pkix/pem_import.c \
 	cyclone/cyclone_crypto/pkix/pem_export.c \
+	cyclone/cyclone_crypto/pkix/pem_common.c \
+	cyclone/cyclone_crypto/pkix/pem_decrypt.c \
 	cyclone/cyclone_crypto/pkix/pkcs8_key_parse.c \
 	cyclone/cyclone_crypto/pkix/pkcs8_key_format.c \
 	cyclone/cyclone_crypto/pkix/x509_key_format.c \
 	cyclone/cyclone_crypto/pkix/x509_key_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_parse.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_validate.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_validate.c \
+	cyclone/cyclone_crypto/pkix/x509_crl_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_common.c \
-	cyclone/cyclone_crypto/pkix/x509_signature.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_verify.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_parse.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
 	cyclone/cyclone_crypto/rng/yarrow.c
 
@@ -208,16 +244,19 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/common/debug.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
+	cyclone/cyclone_ssl/tls_certificate.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
-	src/cyclone/cyclone_tcp/http/http_server_misc.c
+	src/cyclone/cyclone_tcp/http/http_server_misc.c \
+	src/cyclone/cyclone_ssl/tls_certificate.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
+CFLAGS += ${CFLAGS_VERSION}
 CFLAGS += $(INCLUDES)
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
@@ -236,7 +275,7 @@ PROTO_H_FILES := $(patsubst $(PROTO_DIR)/%.proto, $(PROTO_GEN_DIR)/$(PROTO_DIR)/
 # Rule to build .c files from .proto files
 $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $(PROTO_DIR)/%.proto
 	$(QUIET)$(ECHO) '[${GREEN}PROTO${NC} ] ${CYAN}$<${NC}'
-	$(QUIET)protoc-c --c_out=$(PROTO_GEN_DIR) $< || ($(ECHO) '[ ${YELLOW}LD${NC} ] Failed: ${RED}protoc-c --c_out=$(PROTO_GEN_DIR) $<${NC}'; false)
+	$(QUIET)protoc-c --c_out=$(PROTO_GEN_DIR) $<
 
 SOURCES += $(PROTO_C_FILES)
 HEADERS += $(PROTO_H_FILES)
@@ -267,7 +306,7 @@ else
 endif
 
 
-all: check_dependencies build
+all: check_dependencies submodules web build 
 
 build: $(EXECUTABLE)
 
@@ -289,6 +328,9 @@ check_dependencies:
 	@which faketime >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime' && \
 	$(ECHO) '  ${CYAN}Alpine:${NC} apk add faketime')
+	@which npm >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} npm not found, required for building the teddycloud_web. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install npm' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add npm')
 endif
 
 .PRECIOUS: %/
@@ -300,19 +342,19 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
-workdirs: certs/server/ certs/client/ config/ data/www/ data/content/
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
 
 .SECONDEXPANSION:
 $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs | $$(dir $$@)
 	$(QUIET)$(ECHO) '[ ${YELLOW}LINK${NC} ] ${CYAN}$@${NC}'
-	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT) || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)${NC}'; false)
+	$(QUIET)$(LD) $(LFLAGS) $(LINK_LO_OPT) $(LINK_OUT_OPT)
 
 .SECONDEXPANSION:
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
 	$(QUIET)$(ECHO) '[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}'
-	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@ || ($(ECHO) '[ ${GREEN}CC${NC} ] Failed: ${RED}$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@${NC}'; false)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@
 
 clean:
 	$(QUIET)$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
@@ -324,7 +366,7 @@ submodules:
 	$(QUIET)git submodule init
 	$(QUIET)git submodule update
 
-preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+preinstall: clean build web_copy $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
@@ -332,8 +374,27 @@ preinstall: clean build $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -
 
+web_clean: 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Clean TeddyCloud React Webinterface'
+	$(RM_R) $(CONTRIB_DIR)/$(WEB_DIR)
+		
+web: web_clean 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud React Webinterface'
+	$(QUIET) $(MKDIR) $(CONTRIB_DIR)/$(WEB_DIR)/
+	$(QUIET)cd $(WEB_SRC_DIR) \
+		&& npm install \
+		&& npm run build \
+		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(CONTRIB_DIR)/$(WEB_DIR)/ \
+		&& cd -
+
+web_copy: 
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Copy TeddyCloud React Webinterface'
+	$(QUIET) $(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
+	$(QUIET) $(CP_R) $(CONTRIB_DIR)/$(WEB_DIR)/* $(PREINSTALL_DIR)/$(WEB_DIR)/ 
+
 zip: preinstall
-	mkdir $(ZIP_DIR)/
+	$(QUIET)$(ECHO) '[ ${GREEN}ZIP${NC}  ] Create release zip'
+	$(QUIET) $(MKDIR) $(ZIP_DIR)/
 	cd $(PREINSTALL_DIR)/ \
 		&& zip -r ../../$(ZIP_DIR)/release.zip * \
 		&& cd -

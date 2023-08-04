@@ -110,7 +110,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
     if (!settings->cloud.enabled)
     {
-        TRACE_ERROR("Cloud requests generally blocked in settings\r\n");
+        TRACE_INFO("Cloud requests generally blocked in settings\r\n");
         stats_update("cloud_blocked", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
@@ -143,7 +143,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         }
     }
 
-    error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_0);
+    error = httpClientSetVersion(&httpClientContext, HTTP_VERSION_1_1);
     if (error)
     {
         return error;
@@ -268,15 +268,16 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             // Retrieve HTTP status code
             uint_t status = httpClientGetStatus(&httpClientContext);
 
+            if (status)
+            {
+                TRACE_INFO("HTTP code from cloud: %u\r\n", status);
+            }
+
             if (cbr && cbr->response)
             {
                 cbr->response(cbr->ctx, &httpClientContext);
             }
 
-            if (status)
-            {
-                TRACE_INFO("HTTP code: %u\r\n", status);
-            }
             char content_type[64];
 
             strcpy(content_type, "");
@@ -345,7 +346,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                     if (!binary)
                     {
                         // Properly terminate the string with a NULL character
-                        buffer[maxSize] = '\0';
+                        buffer[length] = '\0';
                         // Dump HTTP response body
                         TRACE_INFO("Response: '%s'\r\n", buffer);
                     }

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "path.h"
 #include "fs_port.h"
 #include "handler.h"
 #include "handler_api.h"
@@ -26,6 +27,69 @@ typedef enum
 #define DATA_SIZE 1024
 #define SAVE_SIZE 80
 #define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
+
+bool queryGet(const char *query, const char *key, char *data, size_t data_len);
+
+error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char *response = "OK";
+    error_t ret = NO_ERROR;
+
+    TRACE_INFO("Query: '%s'\r\n", queryString);
+
+    char path[256];
+    char overlay[16];
+    char special[16];
+
+    osStrcpy(path, "");
+    osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "path", path, sizeof(path)))
+    {
+        TRACE_INFO("got path '%s'\r\n", path);
+    }
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                response = "FAIL";
+                ret = ERROR_FAILURE;
+            }
+        }
+    }
+
+    if (ret == NO_ERROR)
+    {
+        pathCanonicalize(path);
+        char *pathAbsolute = osAllocMem(strlen(rootPath) + osStrlen(path) + 2);
+
+        osSprintf(pathAbsolute, "%s/%s", rootPath, path);
+        pathCanonicalize(pathAbsolute);
+
+        TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
+
+        settings_set_string("internal.assign_unknown", pathAbsolute);
+        osFreeMem(pathAbsolute);
+    }
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/plain";
+    connection->response.contentLength = osStrlen(response);
+
+    return httpWriteResponseString(connection, response, false);
+}
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -94,30 +158,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -158,28 +199,7 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     connection->response.contentType = "text/plain";
     connection->response.contentLength = osStrlen(response);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, response, connection->response.contentLength, false);
 }
 
 error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -221,28 +241,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     connection->response.contentType = "text/plain";
     connection->response.contentLength = osStrlen(response_ptr);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, response_ptr, connection->response.contentLength);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
 error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -422,116 +421,124 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
 
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *query = connection->request.queryString;
-
+    char *jsonString = strdup("{\"files\":[]}");
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
-    if (rootPath == NULL || !fsDirExists(rootPath))
+    do
     {
-        TRACE_ERROR("core.certdir not set to a valid path\r\n");
-        return ERROR_FAILURE;
-    }
-    TRACE_INFO("Query: '%s'\r\n", query);
-
-    char path[128];
-    char pathAbsolute[256];
-
-    if (!queryGet(connection->request.queryString, "path", path, sizeof(path)))
-    {
-        osStrcpy(path, "/");
-    }
-
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
-
-    int pos = 0;
-    FsDir *dir = fsOpenDir(pathAbsolute);
-
-    cJSON *json = cJSON_CreateObject();
-    cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
-
-    while (true)
-    {
-        FsDirEntry entry;
-
-        if (fsReadDir(dir, &entry) != NO_ERROR)
+        if (rootPath == NULL || !fsDirExists(rootPath))
         {
-            fsCloseDir(dir);
+            TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
             break;
         }
 
-        if (!osStrcmp(entry.name, ".") || !osStrcmp(entry.name, ".."))
+        char overlay[16];
+        char special[16];
+        osStrcpy(overlay, "");
+        osStrcpy(special, "");
+
+        if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
         {
-            continue;
+            TRACE_INFO("requested index using overlay '%s'\r\n", overlay);
         }
 
-        char dateString[64];
-
-        osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
-                  entry.modified.year, entry.modified.month, entry.modified.day,
-                  entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
-
-        char filePathAbsolute[384];
-        snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
-
-        char desc[64];
-        desc[0] = 0;
-        tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
-        if (tafInfo.valid)
+        if (queryGet(queryString, "special", special, sizeof(special)))
         {
-            snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
-            for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+            TRACE_INFO("requested index for '%s'\r\n", special);
+            if (!osStrcmp(special, "library"))
             {
-                char tmp[3];
-                sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
-                osStrcat(desc, tmp);
+                rootPath = settings_get_string("internal.librarydirfull");
+
+                if (rootPath == NULL || !fsDirExists(rootPath))
+                {
+                    TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                    break;
+                }
             }
         }
-        freeTonieInfo(&tafInfo);
 
-        cJSON *jsonEntry = cJSON_CreateObject();
-        cJSON_AddStringToObject(jsonEntry, "name", entry.name);
-        cJSON_AddStringToObject(jsonEntry, "date", dateString);
-        cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
-        cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
-        cJSON_AddStringToObject(jsonEntry, "desc", desc);
+        char path[128];
+        char pathAbsolute[256];
 
-        cJSON_AddItemToArray(jsonArray, jsonEntry);
+        if (!queryGet(queryString, "path", path, sizeof(path)))
+        {
+            osStrcpy(path, "/");
+        }
 
-        pos++;
-    }
+        snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+        pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
-    char *jsonString = cJSON_PrintUnformatted(json);
+        int pos = 0;
+        FsDir *dir = fsOpenDir(pathAbsolute);
+        if (dir == NULL)
+        {
+            TRACE_ERROR("Failed to open dir '%s'\r\n", pathAbsolute);
+            break;
+        }
 
-    cJSON_Delete(json);
+        cJSON *json = cJSON_CreateObject();
+        cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
+
+        while (true)
+        {
+            FsDirEntry entry;
+
+            if (fsReadDir(dir, &entry) != NO_ERROR)
+            {
+                fsCloseDir(dir);
+                break;
+            }
+
+            if (!osStrcmp(entry.name, ".") || !osStrcmp(entry.name, ".."))
+            {
+                continue;
+            }
+
+            char dateString[64];
+
+            osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
+                      entry.modified.year, entry.modified.month, entry.modified.day,
+                      entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
+
+            char filePathAbsolute[384];
+            snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
+
+            char desc[64];
+            desc[0] = 0;
+            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
+            if (tafInfo.valid)
+            {
+                snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
+                for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+                {
+                    char tmp[3];
+                    sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                    osStrcat(desc, tmp);
+                }
+            }
+            freeTonieInfo(&tafInfo);
+
+            cJSON *jsonEntry = cJSON_CreateObject();
+            cJSON_AddStringToObject(jsonEntry, "name", entry.name);
+            cJSON_AddStringToObject(jsonEntry, "date", dateString);
+            cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
+            cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
+            cJSON_AddStringToObject(jsonEntry, "desc", desc);
+
+            cJSON_AddItemToArray(jsonArray, jsonEntry);
+
+            pos++;
+        }
+
+        jsonString = cJSON_PrintUnformatted(json);
+        cJSON_Delete(json);
+    } while (0);
+
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -564,30 +571,7 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char
     connection->response.contentType = "text/json";
     connection->response.contentLength = osStrlen(jsonString);
 
-    error_t error = httpWriteHeader(connection);
-    if (error != NO_ERROR)
-    {
-        osFreeMem(jsonString);
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpWriteStream(connection, jsonString, connection->response.contentLength);
-    osFreeMem(jsonString);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to send header\r\n");
-        return error;
-    }
-
-    error = httpCloseStream(connection);
-    if (error != NO_ERROR)
-    {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
-        return error;
-    }
-
-    return NO_ERROR;
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
 FsFile *multipartStart(const char *rootPath, const char *filename, char *message, size_t message_max)

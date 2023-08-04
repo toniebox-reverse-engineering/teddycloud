@@ -27,6 +27,7 @@
 #include "debug.h"
 #include "os_port.h"
 
+#include "mutex_manager.h"
 #include "cloud_request.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
@@ -58,26 +59,51 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *prefix = settings_get_string("internal.contentdirfull");
-    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(prefix) + 1);
+    const char *rootPath = settings_get_string("internal.contentdirfull");
 
-    if (new_uri == NULL)
-    {
-        return ERROR_OUT_OF_MEMORY;
-    }
-
-    TRACE_INFO("Query: '%s'\r\n", query);
+    TRACE_INFO("Query: '%s'\r\n", queryString);
 
     char ogg[16];
-    if (!queryGet(connection->request.queryString, "ogg", ogg, sizeof(ogg)))
+    char overlay[16];
+    char special[16];
+
+    osStrcpy(ogg, "");
+    osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
+    if (!queryGet(queryString, "ogg", ogg, sizeof(ogg)))
     {
         strcpy(ogg, "false");
+    }
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
     }
 
     bool skipFileHeader = !strcmp(ogg, "true");
     size_t startOffset = skipFileHeader ? 4096 : 0;
 
-    osStrcpy(new_uri, prefix);
+    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(rootPath) + 1);
+    if (new_uri == NULL)
+    {
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    osStrcpy(new_uri, rootPath);
     osStrcat(new_uri, &uri[8]);
     TRACE_INFO("Request for '%s', ogg: %s\r\n", new_uri, ogg);
 
@@ -95,6 +121,9 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         return ERROR_NOT_FOUND;
     }
 
+    /* in case of skipped headers, also reduce the file length */
+    length -= startOffset;
+
     // Open the file for reading
     file = fsOpenFile(new_uri, FS_FILE_MODE_READ);
     // Failed to open the file?
@@ -105,7 +134,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     // TODO add status 416 on invalid ranges
     if (connection->request.Range.start > 0)
     {
-        connection->request.Range.size = length - startOffset;
+        connection->request.Range.size = length;
         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
             connection->request.Range.end = connection->request.Range.size - 1;
 
@@ -124,7 +153,6 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     }
     connection->response.contentType = "audio/ogg";
     connection->response.chunkedEncoding = FALSE;
-    length = connection->response.contentLength;
 
     // Send the header to the client
     error = httpWriteHeader(connection);
@@ -140,7 +168,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
     {
         TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, connection->request.Range.start + startOffset, FS_SEEK_SET);
+        fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
     }
     else
     {
@@ -179,7 +207,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         if (length == 0)
         {
             // Properly close the output stream
-            error = httpCloseStream(connection);
+            error = httpFlushStream(connection);
         }
     }
 
@@ -207,10 +235,10 @@ request_type_t request_paths[] = {
 
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
-    {REQ_GET, "/api/sse/sub", &handleApiSseSub},
-    {REQ_GET, "/api/sse/con", &handleApiSseCon},
+    {REQ_GET, "/api/sse", &handleApiSse},
     /* official boxine API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
@@ -368,38 +396,43 @@ httpServerRequestCallback(HttpConnection *connection,
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     client_ctx_t client_ctx;
-    char_t *commonName = NULL;
-    char_t *subject = connection->tlsContext->client_cert_subject;
-    if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+    client_ctx.settings = get_settings();
+
+    if (connection->tlsContext)
     {
-        commonName = strdup(&subject[2]);
-        commonName[osStrlen(commonName) - 1] = '\0';
-        client_ctx.settings = get_settings_cn(commonName);
-        free(commonName);
+        char_t *subject = connection->tlsContext->client_cert_subject;
+        if (connection->tlsContext != NULL && osStrlen(subject) == 15)
+        {
+            char_t *commonName = strdup(&subject[2]);
+            commonName[osStrlen(commonName) - 1] = '\0';
+            client_ctx.settings = get_settings_cn(commonName);
+            free(commonName);
+        }
     }
-    else
-    {
-        client_ctx.settings = get_settings();
-    }
+
+    connection->response.keepAlive = connection->request.keepAlive;
 
     for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-
             return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
         }
     }
 
     if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
     {
-        uri = "index.html";
+        uri = "/index.html";
+    }
+    if (!strcmp(uri, "/web") || !strcmp(uri, "/web/"))
+    {
+        uri = "/web/index.html";
     }
 
-    char_t *newUri = osAllocMem(osStrlen(uri) + osStrlen(client_ctx.settings->core.wwwdir) + 2);
+    char_t *newUri = osAllocMem(osStrlen(client_ctx.settings->core.wwwdir) + osStrlen(uri) + 1);
     osStrcpy(newUri, client_ctx.settings->core.wwwdir);
-    osStrcat(newUri, "/");
+    // osStrcat(newUri, "/");
     osStrcat(newUri, uri);
 
     error = httpSendResponse(connection, newUri);
@@ -565,11 +598,13 @@ bool sanityChecks()
 
 void server_init()
 {
+    mutex_manager_init();
     if (!sanityChecks())
     {
         return;
     }
     settings_set_bool("internal.exit", FALSE);
+    sse_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;
@@ -581,22 +616,22 @@ void server_init()
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
-    strcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
-    strcpy(http_settings.defaultDocument, "index.shtm");
+    osStrcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
+    osStrcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;
     http_settings.requestCallback = httpServerRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
-    http_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
+    http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
 
     /* use them for HTTPS */
     https_settings = http_settings;
     https_settings.connections = httpsConnections;
     https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_settings.allowOrigin = (char_t *)settings_get_string("core.allowOrigin");
+    https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
@@ -623,13 +658,16 @@ void server_init()
     while (!settings_get_bool("internal.exit"))
     {
         osDelayTask(250);
+        settings_loop();
         systime_t now = osGetSystemTime();
         if ((now - last) / 1000 > 5)
         {
             last = now;
             sanityChecks();
         }
+        mutex_manager_loop();
     }
+    mutex_manager_deinit();
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);

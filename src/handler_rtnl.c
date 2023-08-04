@@ -8,32 +8,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "mutex_manager.h"
 #include "handler_sse.h"
 #include "handler_rtnl.h"
 #include "settings.h"
 #include "stats.h"
+#include "fs_ext.h"
 #include "cloud_request.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
-
-FsFile *fsOpenFile2(const char_t *path, char *mode);
-FsFile *fsOpenFile2(const char_t *path, char *mode)
-{
-    // Workaround due to missing append in cyclone framwwork.
-
-    // File pointer
-    FILE *fp = NULL;
-
-    // Make sure the pathname is valid
-    if (path == NULL)
-        return NULL;
-
-    // Open the specified file
-    fp = fopen(path, mode);
-
-    // Return a handle to the file
-    return fp;
-}
 
 static void escapeString(const char_t *input, size_t size, char_t *output);
 static void escapeString(const char_t *input, size_t size, char_t *output)
@@ -81,7 +64,14 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
         if (!replaced)
         {
-            output[j++] = input[i];
+            if (isalnum(input[i]))
+            {
+                output[j++] = input[i];
+            }
+            else
+            {
+                output[j++] = '.';
+            }
         }
     }
 
@@ -91,35 +81,49 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char_t *data = connection->buffer;
+    char_t *buffer = connection->buffer;
     size_t size = connection->response.contentLength;
 
-    if (client_ctx->settings->rtnl.logRaw)
-    {
-        FsFile *file = fsOpenFile2(client_ctx->settings->rtnl.logRawFile, "ab");
-        fsWriteFile(file, &data[connection->response.byteCount], size);
-        fsCloseFile(file);
-    }
-
     size_t pos = 0;
-    while (size > 4 && pos < (size - 4))
+    do
     {
-        data = &connection->buffer[pos];
-        uint32_t protoLength = (uint32_t)((data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]);
-        char_t *protoData = &data[4];
-        if (protoLength > (size - 4 - pos))
+        /* check for enough data for the length header */
+        if (pos + 4 > size)
         {
             break;
         }
-        if (protoLength == 0 || (protoLength + 4 > HTTP_SERVER_BUFFER_SIZE)) // find apropiate size
+        uint32_t protoLength = (uint32_t)((buffer[pos] << 24) | (buffer[pos + 1] << 16) | (buffer[pos + 2] << 8) | buffer[pos + 3]);
+
+        if (pos + 4 + protoLength > size)
+        {
+            break;
+        }
+
+        /* check if we have enough data but not too much for the packet we seem to have there.
+           do some safety checks */
+        if (protoLength == 0 || buffer[pos] != 0 || buffer[pos + 1] != 0)
         {
             TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
-            pos++;
-            continue;
+            return ERROR_FAILURE;
         }
-        TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)protoData);
 
-        pos += protoLength + 4;
+        /* there is enough bytes for that packet */
+        if (client_ctx->settings->rtnl.logRaw)
+        {
+            mutex_lock(MUTEX_RTNL_FILE);
+            FsFile *file = fsOpenFileEx(client_ctx->settings->rtnl.logRawFile, "ab");
+            if (file)
+            {
+                fsWriteFile(file, &buffer[pos], 4 + protoLength);
+                fsCloseFile(file);
+            }
+            mutex_unlock(MUTEX_RTNL_FILE);
+        }
+
+        pos += 4;
+        TonieRtnlRPC *rpc = tonie_rtnl_rpc__unpack(NULL, protoLength, (const uint8_t *)&buffer[pos]);
+
+        pos += protoLength;
         if (rpc && (rpc->log2 || rpc->log3))
         {
             rtnlEvent(rpc);
@@ -127,10 +131,11 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
             rtnlEventDump(rpc, client_ctx->settings);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
-    }
+    } while (true);
 
-    osMemcpy(connection->buffer, data, size - pos);
+    /* move left-over data to the start of the buffer */
     connection->response.byteCount = size - pos;
+    osMemmove(buffer, &buffer[pos], connection->response.byteCount);
 
     return NO_ERROR;
 }
@@ -141,7 +146,7 @@ void rtnlEvent(TonieRtnlRPC *rpc)
     if (rpc->log2)
     {
         sse_startEventRaw("rtnl-raw-log2");
-        osSprintf(buffer, "\"uptime\": %" PRIu64 ", "
+        osSprintf(buffer, "{\"uptime\": %" PRIu64 ", "
                           "\"sequence\": %" PRIu32 ", "
                           "\"field3\": %" PRIu32 ", "
                           "\"function_group\": %" PRIu32 ", "
@@ -177,7 +182,7 @@ void rtnlEvent(TonieRtnlRPC *rpc)
             }
             sse_rawData(buffer);
         }
-        sse_rawData("\"");
+        sse_rawData("\"}");
 
         sse_endEventRaw();
     }
@@ -185,8 +190,8 @@ void rtnlEvent(TonieRtnlRPC *rpc)
     if (rpc->log3)
     {
         sse_startEventRaw("rtnl-raw-log3");
-        osSprintf(buffer, "\"datetime\": %" PRIu32 ", "
-                          "\"field2\": %" PRIu32,
+        osSprintf(buffer, "{\"datetime\": %" PRIu32 ", "
+                          "\"field2\": %" PRIu32 "}",
                   rpc->log3->datetime,
                   rpc->log3->field2);
         sse_rawData(buffer);
@@ -242,12 +247,13 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
         TRACE_DEBUG("  2=%" PRIu32 "\r\n", rpc->log3->field2);
     }
 }
+
 void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
 {
     if (settings->rtnl.logHuman)
     {
         bool_t addHeader = !fsFileExists(settings->rtnl.logHumanFile);
-        FsFile *file = fsOpenFile2(settings->rtnl.logHumanFile, "ab");
+        FsFile *file = fsOpenFileEx(settings->rtnl.logHumanFile, "ab");
         if (addHeader)
         {
             char_t *header = "timestamp;log2;uptime;sequence;3;group;function;6(len);6(bytes);6(string);8;9(len);9(bytes);9(string);log3;datetime;2\r\n";

@@ -1,52 +1,51 @@
 #include "handler.h"
 
+#include "mutex_manager.h"
 #include "handler_sse.h"
 
 static SseSubscriptionContext sseSubs[SSE_MAX_CHANNELS];
 static uint8_t sseSubscriptionCount = 0;
 
-error_t handleApiSseSub(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
+error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
 {
-    uint8_t channel;
+    mutex_lock(MUTEX_SSE_CTX);
+
     SseSubscriptionContext *sseCtx = NULL;
-    for (channel = 0; channel < SSE_MAX_CHANNELS; channel++)
+    for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     { // Find first free slot
         sseCtx = &sseSubs[channel];
-        if (sseCtx->connection != NULL && sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
-        {
-            httpCloseStream(connection);
-            sseCtx->connection = NULL;
-            sseCtx->lastConnection = 0;
-            sseSubscriptionCount--;
-        }
-
-        if (sseCtx->lastConnection == 0 && sseCtx->connection == NULL)
+        if (!sseCtx->active)
         {
             break;
         }
+        else
+        {
+            sseCtx = NULL;
+        }
     }
     if (sseCtx == NULL)
-        return NO_ERROR;
+    {
+        mutex_unlock(MUTEX_SSE_CTX);
+        TRACE_ERROR("All slots full, in total %" PRIu8 " clients\r\n", sseSubscriptionCount);
+        httpInitResponseHeader(connection);
+        connection->response.contentLength = 0;
+        connection->response.statusCode = 503; // Service Unavailable
+        connection->response.keepAlive = FALSE;
+        return httpWriteHeader(connection);
+    }
 
     sseCtx->lastConnection = time(NULL);
+    sseCtx->connection = connection;
+    sseCtx->active = TRUE;
+    sseCtx->error = NO_ERROR;
     sseSubscriptionCount++;
 
-    char_t *urlPrintf = SSE_BASE_URL "%" PRIu8;
-    char_t *url = osAllocMem(osStrlen(urlPrintf));
+    mutex_unlock(MUTEX_SSE_CTX);
 
-    osSprintf(url, urlPrintf, channel);
-    TRACE_INFO("Allocated channel %" PRIu8 ", on uri %s\r\n", channel, url);
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
-    return httpWriteResponseString(connection, url, true);
-}
-error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t* ctx)
-{
-    uint8_t channel = atoi(&uri[osStrlen(SSE_BASE_URL)]);
-    SseSubscriptionContext *sseCtx = &sseSubs[channel];
+    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", sseCtx->channel, sseSubscriptionCount);
 
     httpInitResponseHeader(connection);
-    connection->response.contentType = "application/json";
+    connection->response.contentType = "text/event-stream";
     connection->response.contentLength = CONTENT_LENGTH_UNKNOWN;
 
     error_t error = httpWriteHeader(connection);
@@ -55,29 +54,76 @@ error_t handleApiSseCon(HttpConnection *connection, const char_t *uri, const cha
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
-    sseCtx->connection = connection;
-    sseCtx->lastConnection = time(NULL);
 
-    httpWriteString(connection, "data: { \"type\":\"keep-alive\", \"data\":\"\" }\r\n");
-
-    while (sseCtx->connection != NULL)
+    time_t last = 0;
+    while (true)
     {
-        if (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL))
+        mutex_lock(MUTEX_SSE_CTX);
+        //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
+        //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
+        if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
-            httpCloseStream(sseCtx->connection);
-            sseCtx->connection = NULL;
-            sseCtx->lastConnection = 0;
+            httpFlushStream(connection);
+            sseCtx->active = FALSE;
+            error = sseCtx->error;
             sseSubscriptionCount--;
+            TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", sseCtx->channel, sseSubscriptionCount);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("SSE Client with error %" PRIu32 "\r\n", error);
+            }
+            mutex_unlock(MUTEX_SSE_CTX);
+            break;
         }
+
+        time_t now = time(NULL);
+        if (now - last > SSE_KEEPALIVE_S)
+        {
+            mutex_lock(MUTEX_SSE_EVENT);
+            sseCtx->error = httpWriteString(connection, "event: keep-alive\ndata: { \"type\":\"keep-alive\", \"data\":\"\" }\n\n");
+            mutex_unlock(MUTEX_SSE_EVENT);
+            last = now;
+            if (sseCtx->error != NO_ERROR)
+            {
+                mutex_unlock(MUTEX_SSE_CTX);
+                continue;
+            }
+            sseCtx->lastConnection = now;
+        }
+
+        mutex_unlock(MUTEX_SSE_CTX);
+        osDelayTask(100);
     }
 
     return error;
 }
+
+void sse_init()
+{
+    SseSubscriptionContext *sseCtx = NULL;
+    for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
+    {
+        sseCtx = &sseSubs[channel];
+        sseCtx->channel = channel;
+        sseCtx->active = FALSE;
+    }
+}
+
 error_t sse_startEventRaw(const char *eventname)
 {
+    mutex_lock(MUTEX_SSE_EVENT);
+
     error_t error = NO_ERROR;
 
-    error = sse_rawData("data: { \"type\":\"");
+    error = sse_rawData("event: ");
+    if (error != NO_ERROR)
+        return error;
+
+    error = sse_rawData(eventname);
+    if (error != NO_ERROR)
+        return error;
+
+    error = sse_rawData("\ndata: { \"type\":\"");
     if (error != NO_ERROR)
         return error;
 
@@ -88,52 +134,73 @@ error_t sse_startEventRaw(const char *eventname)
     error = sse_rawData("\", \"data\":");
     return error;
 }
+
 error_t sse_rawData(const char *content)
 {
     error_t error = NO_ERROR;
+
+    mutex_lock(MUTEX_SSE_CTX);
     for (uint8_t channel = 0; channel < SSE_MAX_CHANNELS; channel++)
     {
         SseSubscriptionContext *sseCtx = &sseSubs[channel];
-        sseCtx->lastConnection = time(NULL);
-        HttpConnection *conn = sseCtx->connection;
-        if (sseCtx->connection == NULL)
+        if (!sseCtx->active)
+        {
             continue;
-
-        error = httpWriteString(conn, content);
-        if (error != NO_ERROR)
-            return error;
+        }
+        sseCtx->error = httpWriteString(sseCtx->connection, content);
+        if (sseCtx->error == NO_ERROR)
+        {
+            sseCtx->lastConnection = time(NULL);
+        }
     }
+    mutex_unlock(MUTEX_SSE_CTX);
+
     return error;
 }
+
 error_t sse_endEventRaw(void)
 {
     error_t error = NO_ERROR;
-    error = sse_rawData(" }\r\n");
+    error = sse_rawData(" }\n\n");
+    mutex_unlock(MUTEX_SSE_EVENT);
     return error;
 }
 
 error_t sse_sendEvent(const char *eventname, const char *content, bool escapeData)
 {
     error_t error = NO_ERROR;
-
     error = sse_startEventRaw(eventname);
-    if (error != NO_ERROR)
-        return error;
-    if (escapeData)
+
+    do
     {
-        error = sse_rawData("\"");
         if (error != NO_ERROR)
-            return error;
-    }
-    error = sse_rawData(content);
-    if (error != NO_ERROR)
-        return error;
-    if (escapeData)
-    {
-        error = sse_rawData("\"");
+            break;
+
+        if (escapeData)
+        {
+            error = sse_rawData("\"");
+            if (error != NO_ERROR)
+            {
+                break;
+            }
+        }
+
+        error = sse_rawData(content);
         if (error != NO_ERROR)
-            return error;
-    }
+        {
+            break;
+        }
+
+        if (escapeData)
+        {
+            error = sse_rawData("\"");
+            if (error != NO_ERROR)
+            {
+                break;
+            }
+        }
+    } while (0);
+
     error = sse_endEventRaw();
     return error;
 }

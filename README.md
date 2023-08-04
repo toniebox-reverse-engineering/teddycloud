@@ -16,13 +16,14 @@ Currently implemented are:
 * Configure LED
 * Configure slapping
 * Customize original box sounds (ex. jingle) over the air
+* Extract/Inject certitifcates on a esp32 firmware dump
 
 ## Planned
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (ideas welcome)
 * TeddyBench integration
-* Web frontend (full stack developers welcome)
+* [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
 
 ## Preparation
 ### Generate certificates
@@ -31,7 +32,7 @@ This also generates the replacement CA for the toniebox ```certs/server/ca.der``
 If you are using docker, this will happen automatically.
 
 ### Dump certificates of your toniebox
-You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/*```
+You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/client/*```
 #### CC3200
 You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
@@ -41,7 +42,18 @@ python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.
 You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. 
 
 #### ESP32
-You can extract the flash memory either with a SOP8 clamp or via the debug port of the box. 
+You can extract the flash memory via the debug port of the box and the esptool. Keep your backup!
+Please connect the jumper J100 (Boot) and reset the box to put it into the required mode. Connect your 3.3V UART to J103 (TxD, RxD, GND).
+
+```
+esptool.py -b 921600 read_flash 0x0 0x800000 tb.esp32.bin
+mkdir certs/client/esp32
+bin/teddycloud ESP32CERT extract tb.esp32.bin certs/client/esp32
+mkdir certs/client/esp32-fakeca
+cp certs/client/esp32/CLIENT.DER certs/client/esp32-fakeca/
+cp certs/client/esp32/PRIVATE.DER certs/client/esp32-fakeca/
+cp certs/server/ca.der certs/client/esp32-fakeca/CA.DER
+```
 
 ### Flash the replacement CA
 #### CC3200
@@ -49,11 +61,20 @@ It is recommended to flash the replacement CA to /cert/c2.der and use the hackie
 ```
 python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
-**Beware** The ```blockCheckRemove.310``` patch is breaks the content passthrough to Boxine. Please disable it, if your are using it.
+**Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
 
-#### CC3235 / ESP32
+#### CC3235
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
 (no manual or tool available yet)
+
+#### ESP32
+Replace the original CA within your flash dump with esptool.
+
+```
+cp tb.esp32.bin tb.esp32.fakeca.bin
+bin/teddycloud ESP32CERT inject tb.esp32.fakeca.bin certs/client/esp32-fakeca
+esptool.py -b 921600 write_flash 0x0 tb.esp32.fakeca.bin
+```
 
 ### DNS
 #### CC3200 with altUrl patch
