@@ -146,7 +146,7 @@ void rtnlEvent(TonieRtnlRPC *rpc)
     if (rpc->log2)
     {
         sse_startEventRaw("rtnl-raw-log2");
-        osSprintf(buffer, "\"uptime\": %" PRIu64 ", "
+        osSprintf(buffer, "{\"uptime\": %" PRIu64 ", "
                           "\"sequence\": %" PRIu32 ", "
                           "\"field3\": %" PRIu32 ", "
                           "\"function_group\": %" PRIu32 ", "
@@ -182,7 +182,7 @@ void rtnlEvent(TonieRtnlRPC *rpc)
             }
             sse_rawData(buffer);
         }
-        sse_rawData("\"");
+        sse_rawData("\"}");
 
         sse_endEventRaw();
     }
@@ -190,8 +190,8 @@ void rtnlEvent(TonieRtnlRPC *rpc)
     if (rpc->log3)
     {
         sse_startEventRaw("rtnl-raw-log3");
-        osSprintf(buffer, "\"datetime\": %" PRIu32 ", "
-                          "\"field2\": %" PRIu32,
+        osSprintf(buffer, "{\"datetime\": %" PRIu32 ", "
+                          "\"field2\": %" PRIu32 "}",
                   rpc->log3->datetime,
                   rpc->log3->field2);
         sse_rawData(buffer);
