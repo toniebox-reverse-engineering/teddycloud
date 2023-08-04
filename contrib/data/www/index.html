@@ -29,12 +29,16 @@
             height: 300px;
             border: 1px solid #ccc;
             overflow-y: auto;
+            overflow-x: auto;
             padding: 5px;
-            white-space: pre-wrap;
-            white-space: -moz-pre-wrap;
-            white-space: -pre-wrap;
-            white-space: -o-pre-wrap;
+            white-space: nowrap;
+            line-height: 1.2;
             word-wrap: break-word;
+            line-height: 0.8;
+        }
+        .sse-content .message {
+            margin: 1px;
+            line-height: 0.8;
         }
 
         .small-round-button {
@@ -1178,7 +1182,8 @@
                 );
             }
         }
-        class SSE extends React.Component {
+
+        class RTNLDump extends React.Component {
             constructor(props) {
                 super(props);
                 this.state = {
@@ -1186,9 +1191,55 @@
                 };
             }
             componentDidMount() {
+                console.log("componentDidMount started");
+
                 const eventSource = new EventSource('/api/sse');
 
+                eventSource.onopen = e => {
+                    console.log("Connection to server opened", e);
+                };
+
+                eventSource.addEventListener('keep-alive', e => {
+                    console.log("keep-alive event received:", e);
+                });
+
+
+                eventSource.addEventListener('pressed', e => {
+                    const data = JSON.parse(e.data);
+
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages, "Pressed: " + data.data]
+                    }));
+                });
+
+                eventSource.addEventListener('rtnl-raw-log2', e => {
+                    const data = JSON.parse(e.data);
+
+                    console.log("raw", data);
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages,
+                        "Raw2 |" +
+                        " #" + data.data.sequence +
+                        " Uptime: " + data.data.uptime +
+                        " Func: " + data.data.function_group + "-" + data.data.function +
+                        " Payload: " + data.data.field6]
+                    }));
+                });
+
+                eventSource.addEventListener('rtnl-raw-log3', e => {
+                    const data = JSON.parse(e.data);
+
+                    console.log("raw", data);
+                    this.setState(prevState => ({
+                        messages: [...prevState.messages,
+                        "Raw3 |" +
+                        " Datetime: " + data.data.datetime +
+                        " Unknown: " + data.data.field2]
+                    }));
+                });
+
                 eventSource.onmessage = e => {
+                    console.log("EventSource:", e);
                     try {
                         const data = JSON.parse(e.data);
 
@@ -1211,13 +1262,15 @@
                 }
             }
 
+
+            // React component
             render() {
                 return (
                     <div className="tile sse-tile">
-                        <h2>Server-Sent Events</h2>
-                        <div className="sse-content" style={{ overflowY: 'scroll', maxHeight: '300px' }}>
+                        <h2>RTNL-Log</h2>
+                        <div className="sse-content" style={{ overflowY: 'scroll', overflowX: 'scroll', maxHeight: '300px' }}>
                             {this.state.messages.map((message, index) => (
-                                <pre key={index}>
+                                <pre key={index} className="message">
                                     {message}
                                 </pre>
                             ))}
@@ -1226,7 +1279,6 @@
                 );
             }
         }
-
 
         class App extends React.Component {
             constructor(props) {
@@ -1348,6 +1400,7 @@
                             <FileViewerTile />
                             <SettingsTile />
                             <ActionsTile />
+                            <RTNLDump />
                         </div>
                         <h4>{this.state.version}</h4>
                     </div>
