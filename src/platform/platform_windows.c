@@ -477,3 +477,41 @@ struct tm *localtime_r(const time_t *timer, struct tm *result)
     else
         return NULL;
 }
+
+/**
+ * @brief Wait for a particular TCP event
+ * @param[in] socket Handle referencing the socket
+ * @param[in] eventMask Logic OR of all the TCP events that will complete the wait
+ * @param[in] timeout Maximum time to wait
+ * @return Logic OR of all the TCP events that satisfied the wait
+ **/
+
+uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
+{
+    fd_set read_fds;
+    struct timeval tv;
+
+    if (socket == NULL)
+        return 0;
+
+    socket_info_t *sock = (socket_info_t *)socket;
+
+    // Initialize the file descriptor set.
+    FD_ZERO(&read_fds);
+    FD_SET(sock->sockfd, &read_fds);
+
+    // Set timeout.
+    tv.tv_sec = timeout;
+    tv.tv_usec = 0;
+
+    // Wait for the event.
+    int result = select(sock->sockfd + 1, &read_fds, NULL, NULL, &tv);
+
+    // Check if socket is ready for reading.
+    if (result > 0 && FD_ISSET(sock->sockfd, &read_fds))
+    {
+        return eventMask;
+    }
+
+    return 0;
+}
