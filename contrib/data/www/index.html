@@ -1209,7 +1209,7 @@
                 }
             }
 
-            hexToStr (hex) {
+            hexToStr(hex) {
                 let str = '';
                 for (let i = 0; i < hex.length; i += 2) {
                     let pair = hex.substr(i, 2);
@@ -1244,7 +1244,31 @@
 
                 eventSource.addEventListener('rtnl-raw-log2', e => {
                     const data = JSON.parse(e.data);
-
+                    const functionHandlers = {
+                        "15-15452": (payload) => {
+                            if (payload.length === 16) {
+                                const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UnknownTag | ${rearrangedPayload}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                        "15-16065": (payload) => {
+                            if (payload.length === 16) {
+                                const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `KnownTag | ${rearrangedPayload}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                    };
+                    
                     console.log("raw", data);
                     this.setState(prevState => ({
                         messages: [...prevState.messages,
@@ -1255,6 +1279,11 @@
                         " Payload: '" + data.data.field6 + "'" +
                         " ASCII: '" + this.hexToStr(data.data.field6) + "'"]
                     }));
+
+                    const funcKey = `${data.data.function_group}-${data.data.function}`;
+                    if (functionHandlers[funcKey]) {
+                        functionHandlers[funcKey](data.data.field6);
+                    }
                 });
 
                 eventSource.addEventListener('rtnl-raw-log3', e => {
