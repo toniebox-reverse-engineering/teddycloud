@@ -1194,6 +1194,7 @@
                 this.handleModeChange = this.handleModeChange.bind(this);
                 this.hexToStr = this.hexToStr.bind(this);
                 this.littleEndianToNum = this.littleEndianToNum.bind(this);
+                this.messagesEnd = React.createRef();
             }
 
             componentDidMount() {
@@ -1208,6 +1209,15 @@
                         this.deinitSSE();
                     }
                 }
+                if (this.state.enabled && this.state.messages !== prevState.messages) {
+                    this.messagesEnd.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            appendMessage = (text) => {
+                this.setState(prevState => ({
+                    messages: [...prevState.messages, text]
+                }));
             }
 
             hexToStr(hex) {
@@ -1242,11 +1252,8 @@
             initSSE = () => {
                 const eventSource = new EventSource('/api/sse');
 
-                eventSource.onopen = e => {
-                    console.log("Connection to server opened", e);
-                };
-
                 eventSource.addEventListener('keep-alive', e => {
+                    /* maybe later we have the box's ID from the certificate so we could show online states */
                     console.log("keep-alive event received:", e);
                 });
 
@@ -1258,7 +1265,6 @@
                     }));
                 });
 
-
                 eventSource.addEventListener('rtnl-raw-log2', e => {
                     const data = JSON.parse(e.data);
                     const functionHandlers = {
@@ -1266,10 +1272,7 @@
                         "15-15452": (payload) => {
                             if (payload.length === 16) {
                                 const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
-                                this.setState(prevState => ({
-                                    messages: [...prevState.messages,
-                                    `UnknownTag | ${rearrangedPayload}`]
-                                }));
+                                this.appendMessage(`UnknownTag | ${rearrangedPayload}`);
                             } else {
                                 console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
                             }
@@ -1277,10 +1280,7 @@
                         "15-16065": (payload) => {
                             if (payload.length === 16) {
                                 const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
-                                this.setState(prevState => ({
-                                    messages: [...prevState.messages,
-                                    `KnownTag | ${rearrangedPayload}`]
-                                }));
+                                this.appendMessage(`KnownTag | ${rearrangedPayload}`);
                             } else {
                                 console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
                             }
@@ -1288,10 +1288,7 @@
                         "12-15427": (payload) => {
                             if (payload.length === 8) {
                                 const value = this.littleEndianToNum(payload);
-                                this.setState(prevState => ({
-                                    messages: [...prevState.messages,
-                                    `UpsideState | ${value}`]
-                                }));
+                                this.appendMessage(`UpsideState | ${value}`);
                             } else {
                                 console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
                             }
@@ -1299,29 +1296,22 @@
                         "12-15426": (payload) => {
                             if (payload.length === 8) {
                                 const value = this.littleEndianToNum(payload);
-                                this.setState(prevState => ({
-                                    messages: [...prevState.messages,
-                                    `UprightState | ${value}`]
-                                }));
+                                this.appendMessage(`UprightState | ${value}`);
                             } else {
                                 console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
                             }
                         },
                     };
 
-
-                    console.log("raw", data);
-                    this.setState(prevState => ({
-                        messages: [...prevState.messages,
+                    this.appendMessage(
                         "Raw2 |" +
                         " #" + data.data.sequence +
                         " Uptime: " + data.data.uptime +
-                        " Func: " + data.data.function_group + "-" + data.data.function +
+                        " Func: " + data.data.function_group.toString().padStart(2, ' ') + "-" + data.data.function +
                         " Payload: '" + data.data.field6 + "'" +
-                        " ASCII: '" + this.hexToStr(data.data.field6) + "'"]
-                    }));
+                        " ASCII: '" + this.hexToStr(data.data.field6) + "'");
 
-                    const funcKey = `${data.data.function_group}-${data.data.function}`;
+                    const funcKey = `${data.data.function_group.toString().padStart(2, ' ')}-${data.data.function}`;
                     if (functionHandlers[funcKey]) {
                         functionHandlers[funcKey](data.data.field6);
                     }
@@ -1331,12 +1321,10 @@
                     const data = JSON.parse(e.data);
 
                     console.log("raw", data);
-                    this.setState(prevState => ({
-                        messages: [...prevState.messages,
+                    this.appendMessage(
                         "Raw3 |" +
                         " Datetime: " + data.data.datetime +
-                        " Unknown: " + data.data.field2]
-                    }));
+                        " Unknown: " + data.data.field2);
                 });
 
                 eventSource.onerror = e => {
@@ -1358,7 +1346,8 @@
 
             handleModeChange = () => {
                 this.setState(prevState => ({
-                    enabled: !prevState.enabled
+                    enabled: !prevState.enabled,
+                    messages: []
                 }));
             };
 
@@ -1383,6 +1372,7 @@
                                         {message}
                                     </pre>
                                 ))}
+                                <div ref={this.messagesEnd}></div>
                             </div>
                         )}
                     </div>
