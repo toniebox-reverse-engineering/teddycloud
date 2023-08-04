@@ -1183,7 +1183,7 @@
                 );
             }
         }
-        
+
         class RTNLDump extends React.Component {
             constructor(props) {
                 super(props);
@@ -1192,6 +1192,7 @@
                     enabled: false
                 };
                 this.handleModeChange = this.handleModeChange.bind(this);
+                this.hexToStr = this.hexToStr.bind(this);
             }
 
             componentDidMount() {
@@ -1206,6 +1207,20 @@
                         this.deinitSSE();
                     }
                 }
+            }
+
+            hexToStr (hex) {
+                let str = '';
+                for (let i = 0; i < hex.length; i += 2) {
+                    let pair = hex.substr(i, 2);
+                    let charCode = parseInt(pair, 16);
+                    if (charCode >= 32 && charCode <= 126) {
+                        str += String.fromCharCode(charCode);
+                    } else {
+                        str += '.';
+                    }
+                }
+                return str;
             }
 
             initSSE = () => {
@@ -1237,7 +1252,8 @@
                         " #" + data.data.sequence +
                         " Uptime: " + data.data.uptime +
                         " Func: " + data.data.function_group + "-" + data.data.function +
-                        " Payload: " + data.data.field6]
+                        " Payload: '" + data.data.field6 + "'" +
+                        " ASCII: '" + this.hexToStr(data.data.field6) + "'"]
                     }));
                 });
 
