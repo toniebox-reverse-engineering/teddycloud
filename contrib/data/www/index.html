@@ -36,6 +36,7 @@
             word-wrap: break-word;
             line-height: 0.8;
         }
+
         .sse-content .message {
             margin: 1px;
             line-height: 0.8;
@@ -1182,17 +1183,32 @@
                 );
             }
         }
-
+        
         class RTNLDump extends React.Component {
             constructor(props) {
                 super(props);
                 this.state = {
                     messages: [],
+                    enabled: false
                 };
+                this.handleModeChange = this.handleModeChange.bind(this);
             }
+
             componentDidMount() {
                 console.log("componentDidMount started");
+            }
 
+            componentDidUpdate(prevProps, prevState) {
+                if (this.state.enabled !== prevState.enabled) {
+                    if (this.state.enabled) {
+                        this.initSSE();
+                    } else {
+                        this.deinitSSE();
+                    }
+                }
+            }
+
+            initSSE = () => {
                 const eventSource = new EventSource('/api/sse');
 
                 eventSource.onopen = e => {
@@ -1202,7 +1218,6 @@
                 eventSource.addEventListener('keep-alive', e => {
                     console.log("keep-alive event received:", e);
                 });
-
 
                 eventSource.addEventListener('pressed', e => {
                     const data = JSON.parse(e.data);
@@ -1238,43 +1253,52 @@
                     }));
                 });
 
-                eventSource.onmessage = e => {
-                    console.log("EventSource:", e);
-                    try {
-                        const data = JSON.parse(e.data);
-
-                        this.setState(prevState => ({
-                            messages: [...prevState.messages, data]
-                        }));
-                    } catch (error) {
-                        console.error("Error parsing event data: ", error);
-                    }
-                };
                 eventSource.onerror = e => {
                     console.error("EventSource failed:", e);
                 };
                 this._sseEventSource = eventSource;
-            }
+            };
 
-            componentWillUnmount() {
+            deinitSSE = () => {
                 if (this._sseEventSource) {
                     this._sseEventSource.close();
+                    this._sseEventSource = null;
                 }
+            };
+
+            componentWillUnmount() {
+                this.deinitSSE();
             }
 
+            handleModeChange = () => {
+                this.setState(prevState => ({
+                    enabled: !prevState.enabled
+                }));
+            };
 
-            // React component
             render() {
                 return (
                     <div className="tile sse-tile">
                         <h2>RTNL-Log</h2>
-                        <div className="sse-content" style={{ overflowY: 'scroll', overflowX: 'scroll', maxHeight: '300px' }}>
-                            {this.state.messages.map((message, index) => (
-                                <pre key={index} className="message">
-                                    {message}
-                                </pre>
-                            ))}
-                        </div>
+                        <span>Enabled </span>
+                        <label className="switch">
+                            <input
+                                type="checkbox"
+                                checked={this.state.enabled == true}
+                                onChange={this.handleModeChange}
+                            />
+                            <span className="slider round"></span>
+                        </label>
+
+                        {this.state.enabled && (
+                            <div className="sse-content" style={{ overflowY: 'scroll', overflowX: 'scroll', maxHeight: '300px' }}>
+                                {this.state.messages.map((message, index) => (
+                                    <pre key={index} className="message">
+                                        {message}
+                                    </pre>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 );
             }
