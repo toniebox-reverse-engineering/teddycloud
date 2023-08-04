@@ -1193,6 +1193,7 @@
                 };
                 this.handleModeChange = this.handleModeChange.bind(this);
                 this.hexToStr = this.hexToStr.bind(this);
+                this.littleEndianToNum = this.littleEndianToNum.bind(this);
             }
 
             componentDidMount() {
@@ -1223,6 +1224,21 @@
                 return str;
             }
 
+            littleEndianToNum(hexString) {
+                let bigEndianHex = "";
+                for (let i = 0; i < hexString.length; i += 2) {
+                    bigEndianHex = hexString.substring(i, i + 2) + bigEndianHex;
+                }
+
+                let num = parseInt(bigEndianHex, 16);
+                let maxVal = 2 ** 31;
+
+                if (num >= maxVal) {
+                    num = num - 2 * maxVal;
+                }
+                return num;
+            }
+
             initSSE = () => {
                 const eventSource = new EventSource('/api/sse');
 
@@ -1242,9 +1258,11 @@
                     }));
                 });
 
+
                 eventSource.addEventListener('rtnl-raw-log2', e => {
                     const data = JSON.parse(e.data);
                     const functionHandlers = {
+                        /* ESP32 box events */
                         "15-15452": (payload) => {
                             if (payload.length === 16) {
                                 const rearrangedPayload = payload.slice(8) + payload.slice(0, 8);
@@ -1267,8 +1285,31 @@
                                 console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
                             }
                         },
+                        "12-15427": (payload) => {
+                            if (payload.length === 8) {
+                                const value = this.littleEndianToNum(payload);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UpsideState | ${value}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
+                        "12-15426": (payload) => {
+                            if (payload.length === 8) {
+                                const value = this.littleEndianToNum(payload);
+                                this.setState(prevState => ({
+                                    messages: [...prevState.messages,
+                                    `UprightState | ${value}`]
+                                }));
+                            } else {
+                                console.log(`Incorrect payload length for '${payload}'. Unable to rearrange.`);
+                            }
+                        },
                     };
-                    
+
+
                     console.log("raw", data);
                     this.setState(prevState => ({
                         messages: [...prevState.messages,
