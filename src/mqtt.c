@@ -146,11 +146,10 @@ void mqtt_thread()
 
         if (!mqttConnected)
         {
-            TRACE_WARNING("Connecting\r\n");
             error = mqttConnect(&mqtt_context);
             if (!error)
             {
-                TRACE_WARNING("Connected\r\n");
+                TRACE_INFO("Connected\r\n");
                 mqttConnected = TRUE;
                 mqtt_fail = false;
                 ha_connected();
