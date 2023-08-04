@@ -326,6 +326,9 @@ check_dependencies:
 	@which faketime >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} faketime not found, required for generating certificates. Install it using:' && \
 	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install faketime' && \
 	$(ECHO) '  ${CYAN}Alpine:${NC} apk add faketime')
+	@which npm >/dev/null || ($(ECHO) '${YELLOW}Warning:${NC} npm not found, required for building the teddycloud_web. Install it using:' && \
+	$(ECHO) '  ${CYAN}Ubuntu/Debian:${NC} sudo apt-get install npm' && \
+	$(ECHO) '  ${CYAN}Alpine:${NC} apk add npm')
 endif
 
 .PRECIOUS: %/
