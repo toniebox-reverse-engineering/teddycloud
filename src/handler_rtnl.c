@@ -291,7 +291,7 @@ void rtnlEvent(TonieRtnlRPC *rpc)
             mqtt_sendEvent("TagValid", buffer);
             mqtt_sendEvent("TagInvalid", "");
         }
-        /* CC also. this is for valid tags */
+        /* CC also sends messages */
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8646)
         {
             if (rpc->log2->field6.len == 8)
