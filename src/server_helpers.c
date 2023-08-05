@@ -73,3 +73,123 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
     }
     return false; // Key not found
 }
+
+char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str)
+{
+    uint8_t *p;
+    static char_t buffer[16];
+
+    // If the NULL pointer is given as parameter, then the internal buffer is used
+    if (str == NULL)
+        str = buffer;
+
+    // Cast the address to byte array
+    p = (uint8_t *)&ipAddr;
+    // Format IPv4 address
+    osSprintf(str, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "", p[0], p[1], p[2], p[3]);
+
+    // Return a pointer to the formatted string
+    return str;
+}
+
+char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
+{
+    static char_t buffer[40];
+    uint_t i;
+    uint_t j;
+    char_t *p;
+
+    // Best run of zeroes
+    uint_t zeroRunStart = 0;
+    uint_t zeroRunEnd = 0;
+
+    // If the NULL pointer is given as parameter, then the internal buffer is used
+    if (str == NULL)
+        str = buffer;
+
+    // Find the longest run of zeros for "::" short-handing
+    for (i = 0; i < 8; i++)
+    {
+        // Compute the length of the current sequence of zeroes
+        for (j = i; j < 8 && !ipAddr->w[j]; j++)
+            ;
+
+        // Keep track of the longest one
+        if ((j - i) > 1 && (j - i) > (zeroRunEnd - zeroRunStart))
+        {
+            // The symbol "::" should not be used to shorten just one zero field
+            zeroRunStart = i;
+            zeroRunEnd = j;
+        }
+    }
+
+    // Format IPv6 address
+    for (p = str, i = 0; i < 8; i++)
+    {
+        // Are we inside the best run of zeroes?
+        if (i >= zeroRunStart && i < zeroRunEnd)
+        {
+            // Append a separator
+            *(p++) = ':';
+            // Skip the sequence of zeroes
+            i = zeroRunEnd - 1;
+        }
+        else
+        {
+            // Add a separator between each 16-bit word
+            if (i > 0)
+                *(p++) = ':';
+
+            // Convert the current 16-bit word to string
+            p += osSprintf(p, "%" PRIx16, ntohs(ipAddr->w[i]));
+        }
+    }
+
+    // A trailing run of zeroes has been found?
+    if (zeroRunEnd == 8)
+        *(p++) = ':';
+
+    // Properly terminate the string
+    *p = '\0';
+
+    // Return a pointer to the formatted string
+    return str;
+}
+
+char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
+{
+#if (IPV4_SUPPORT == ENABLED)
+    // IPv4 address?
+    if (ipAddr->length == sizeof(Ipv4Addr))
+    {
+        // Convert IPv4 address to string representation
+        return ipv4AddrToString(ipAddr->ipv4Addr, str);
+    }
+    else
+#endif
+#if (IPV6_SUPPORT == ENABLED)
+        // IPv6 address?
+        if (ipAddr->length == sizeof(Ipv6Addr))
+        {
+            // Convert IPv6 address to string representation
+            return ipv6AddrToString(&ipAddr->ipv6Addr, str);
+        }
+        else
+#endif
+        // Invalid IP address?
+        {
+            static char_t c;
+
+            // The last parameter is optional
+            if (str == NULL)
+            {
+                str = &c;
+            }
+
+            // Properly terminate the string
+            str[0] = '\0';
+
+            // Return an empty string
+            return str;
+        }
+}

@@ -56,6 +56,39 @@ typedef struct
     error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
 
+/* const for now. later maybe dynamic? */
+request_type_t request_paths[] = {
+    /*binary handler (rtnl)*/
+    {REQ_ANY, "*binary", &handleRtnl},
+    /* reverse proxy handler */
+    {REQ_ANY, "/reverse", &handleReverse},
+    /* web interface directory */
+    {REQ_GET, "/content/", &handleContent},
+    /* custom API */
+    {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
+    {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
+    {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
+    {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
+    {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
+    {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
+    {REQ_GET, "/api/stats", &handleApiStats},
+
+    {REQ_GET, "/api/trigger", &handleApiTrigger},
+    {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
+    {REQ_GET, "/api/get/", &handleApiGet},
+    {REQ_POST, "/api/set/", &handleApiSet},
+    {REQ_GET, "/api/sse", &handleApiSse},
+    /* official boxine API */
+    {REQ_GET, "/v1/time", &handleCloudTime},
+    {REQ_GET, "/v1/ota", &handleCloudOTA},
+    {REQ_GET, "/v1/claim", &handleCloudClaim},
+    {REQ_GET, "/v1/content", &handleCloudContentV1},
+    {REQ_GET, "/v2/content", &handleCloudContentV2},
+    {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
+    {REQ_POST, "/v1/log", &handleCloudLog},
+    {REQ_POST, "/v1/cloud-reset", &handleCloudReset}};
+
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
@@ -215,157 +248,6 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     return error;
 }
 
-/* const for now. later maybe dynamic? */
-request_type_t request_paths[] = {
-    /*binary handler (rtnl)*/
-    {REQ_ANY, "*binary", &handleRtnl},
-    /* reverse proxy handler */
-    {REQ_ANY, "/reverse", &handleReverse},
-    /* web interface directory */
-    {REQ_GET, "/content/", &handleContent},
-    /* custom API */
-    {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
-    {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
-    {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
-    {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
-    {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
-    {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
-    {REQ_GET, "/api/stats", &handleApiStats},
-
-    {REQ_GET, "/api/trigger", &handleApiTrigger},
-    {REQ_GET, "/api/getIndex", &handleApiGetIndex},
-    {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
-    {REQ_GET, "/api/get/", &handleApiGet},
-    {REQ_POST, "/api/set/", &handleApiSet},
-    {REQ_GET, "/api/sse", &handleApiSse},
-    /* official boxine API */
-    {REQ_GET, "/v1/time", &handleCloudTime},
-    {REQ_GET, "/v1/ota", &handleCloudOTA},
-    {REQ_GET, "/v1/claim", &handleCloudClaim},
-    {REQ_GET, "/v1/content", &handleCloudContentV1},
-    {REQ_GET, "/v2/content", &handleCloudContentV2},
-    {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
-    {REQ_POST, "/v1/log", &handleCloudLog},
-    {REQ_POST, "/v1/cloud-reset", &handleCloudReset}};
-
-char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str)
-{
-    uint8_t *p;
-    static char_t buffer[16];
-
-    // If the NULL pointer is given as parameter, then the internal buffer is used
-    if (str == NULL)
-        str = buffer;
-
-    // Cast the address to byte array
-    p = (uint8_t *)&ipAddr;
-    // Format IPv4 address
-    osSprintf(str, "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8 "", p[0], p[1], p[2], p[3]);
-
-    // Return a pointer to the formatted string
-    return str;
-}
-char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str)
-{
-    static char_t buffer[40];
-    uint_t i;
-    uint_t j;
-    char_t *p;
-
-    // Best run of zeroes
-    uint_t zeroRunStart = 0;
-    uint_t zeroRunEnd = 0;
-
-    // If the NULL pointer is given as parameter, then the internal buffer is used
-    if (str == NULL)
-        str = buffer;
-
-    // Find the longest run of zeros for "::" short-handing
-    for (i = 0; i < 8; i++)
-    {
-        // Compute the length of the current sequence of zeroes
-        for (j = i; j < 8 && !ipAddr->w[j]; j++)
-            ;
-
-        // Keep track of the longest one
-        if ((j - i) > 1 && (j - i) > (zeroRunEnd - zeroRunStart))
-        {
-            // The symbol "::" should not be used to shorten just one zero field
-            zeroRunStart = i;
-            zeroRunEnd = j;
-        }
-    }
-
-    // Format IPv6 address
-    for (p = str, i = 0; i < 8; i++)
-    {
-        // Are we inside the best run of zeroes?
-        if (i >= zeroRunStart && i < zeroRunEnd)
-        {
-            // Append a separator
-            *(p++) = ':';
-            // Skip the sequence of zeroes
-            i = zeroRunEnd - 1;
-        }
-        else
-        {
-            // Add a separator between each 16-bit word
-            if (i > 0)
-                *(p++) = ':';
-
-            // Convert the current 16-bit word to string
-            p += osSprintf(p, "%" PRIx16, ntohs(ipAddr->w[i]));
-        }
-    }
-
-    // A trailing run of zeroes has been found?
-    if (zeroRunEnd == 8)
-        *(p++) = ':';
-
-    // Properly terminate the string
-    *p = '\0';
-
-    // Return a pointer to the formatted string
-    return str;
-}
-char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
-{
-#if (IPV4_SUPPORT == ENABLED)
-    // IPv4 address?
-    if (ipAddr->length == sizeof(Ipv4Addr))
-    {
-        // Convert IPv4 address to string representation
-        return ipv4AddrToString(ipAddr->ipv4Addr, str);
-    }
-    else
-#endif
-#if (IPV6_SUPPORT == ENABLED)
-        // IPv6 address?
-        if (ipAddr->length == sizeof(Ipv6Addr))
-        {
-            // Convert IPv6 address to string representation
-            return ipv6AddrToString(&ipAddr->ipv6Addr, str);
-        }
-        else
-#endif
-        // Invalid IP address?
-        {
-            static char_t c;
-
-            // The last parameter is optional
-            if (str == NULL)
-            {
-                str = &c;
-            }
-
-            // Properly terminate the string
-            str[0] = '\0';
-
-            // Return an empty string
-            return str;
-        }
-}
-
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 {
     TRACE_INFO("resGetData: %s (static response)\n", path);
@@ -376,9 +258,7 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
     return NO_ERROR;
 }
 
-error_t
-httpServerRequestCallback(HttpConnection *connection,
-                          const char_t *uri)
+error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 {
     error_t error = NO_ERROR;
 
@@ -439,8 +319,7 @@ httpServerRequestCallback(HttpConnection *connection,
     return error;
 }
 
-error_t httpServerUriNotFoundCallback(HttpConnection *connection,
-                                      const char_t *uri)
+error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
 {
     error_t error = NO_ERROR;
     char *fnf = "404.html";
