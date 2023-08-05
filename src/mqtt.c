@@ -160,7 +160,7 @@ void mqtt_thread()
             }
         }
         error = NO_ERROR;
-        error = mqttClientTask(&mqtt_context, 100);
+        error = mqttClientTask(&mqtt_context, 500);
 
         if (error || mqtt_fail)
         {
