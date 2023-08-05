@@ -23,6 +23,8 @@
 #include "settings.h"
 #include "returncodes.h"
 
+#include "server_helpers.h"
+
 #include "path.h"
 #include "debug.h"
 #include "os_port.h"
@@ -53,9 +55,6 @@ typedef struct
     char *path;
     error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
-
-/* ToDo: a bit diry */
-bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
 error_t handleContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
