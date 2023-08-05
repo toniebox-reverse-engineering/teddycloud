@@ -332,6 +332,18 @@ void rtnlEvent(TonieRtnlRPC *rpc)
             sse_sendEvent("BoxTilt", buffer, true);
             mqtt_sendEvent("BoxTilt", buffer);
         }
+        else if (rpc->log2->function_group == 27 && rpc->log2->function == 15524)
+        {
+            /* 963C0000 D8FFFFFF 00000000 */
+            int32_t volumedB = read_little_endian(&rpc->log2->field6.data[4]);
+            int32_t volumeLevel = read_little_endian(&rpc->log2->field6.data[8]);
+            osSprintf(buffer, "%d", volumeLevel);
+            sse_sendEvent("VolumeLevel", buffer, true);
+            mqtt_sendEvent("VolumeLevel", buffer);
+            osSprintf(buffer, "%d", volumedB);
+            sse_sendEvent("VolumedB", buffer, true);
+            mqtt_sendEvent("VolumedB", buffer);
+        }
     }
 }
 

@@ -300,4 +300,19 @@ void mqtt_init()
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/Playback";
     ha_add(&entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "VolumeLevel";
+    entity.name = "Volume Level";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/event/VolumeLevel";
+    ha_add(&entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "VolumedB";
+    entity.name = "Volume dB";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/event/VolumedB";
+    entity.unit_of_meas = "dB";
+    ha_add(&entity);
 }
