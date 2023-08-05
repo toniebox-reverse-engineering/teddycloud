@@ -262,13 +262,11 @@ void rtnlEvent(TonieRtnlRPC *rpc)
 
     if (rpc->log2)
     {
-        const char *eventname = NULL;
         char buffer[33];
 
         /* ESP32 sends tag IDs, even if unknown */
         if (rpc->log2->function_group == 15 && rpc->log2->function == 15452)
         {
-            eventname = "TagInvalid";
             if (rpc->log2->field6.len == 8)
             {
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
@@ -276,10 +274,12 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
                 }
             }
+            sse_sendEvent("TagInvalid", buffer, true);
+            mqtt_sendEvent("TagInvalid", buffer);
+            mqtt_sendEvent("TagValid", "");
         }
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 16065)
         {
-            eventname = "TagValid";
             if (rpc->log2->field6.len == 8)
             {
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
@@ -287,11 +287,13 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
                 }
             }
+            sse_sendEvent("TagValid", buffer, true);
+            mqtt_sendEvent("TagValid", buffer);
+            mqtt_sendEvent("TagInvalid", "");
         }
         /* CC also. this is for valid tags */
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8646)
         {
-            eventname = "TagInvalid";
             if (rpc->log2->field6.len == 8)
             {
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
@@ -299,10 +301,12 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
                 }
             }
+            sse_sendEvent("TagInvalid", buffer, true);
+            mqtt_sendEvent("TagInvalid", buffer);
+            mqtt_sendEvent("TagValid", "");
         }
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8627)
         {
-            eventname = "TagValid";
             if (rpc->log2->field6.len == 8)
             {
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
@@ -310,24 +314,23 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
                 }
             }
+            sse_sendEvent("TagValid", buffer, true);
+            mqtt_sendEvent("TagValid", buffer);
+            mqtt_sendEvent("TagInvalid", "");
         }
         else if (rpc->log2->function_group == 12 && rpc->log2->function == 15427)
         {
-            eventname = "BoxTilt";
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
+            sse_sendEvent("BoxTilt", buffer, true);
+            mqtt_sendEvent("BoxTilt", buffer);
         }
         else if (rpc->log2->function_group == 12 && rpc->log2->function == 15426)
         {
-            eventname = "BoxTilt";
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
-        }
-
-        if (eventname)
-        {
-            sse_sendEvent(eventname, buffer, true);
-            mqtt_sendEvent(eventname, buffer);
+            sse_sendEvent("BoxTilt", buffer, true);
+            mqtt_sendEvent("BoxTilt", buffer);
         }
     }
 }
