@@ -291,6 +291,17 @@ void rtnlEvent(TonieRtnlRPC *rpc)
         /* CC also. this is for valid tags */
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8646)
         {
+            eventname = "TagInvalid";
+            if (rpc->log2->field6.len == 8)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                }
+            }
+        }
+        else if (rpc->log2->function_group == 15 && rpc->log2->function == 8627)
+        {
             eventname = "TagValid";
             if (rpc->log2->field6.len == 8)
             {
