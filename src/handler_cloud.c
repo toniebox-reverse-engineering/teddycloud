@@ -436,6 +436,9 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 {
     uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
+
+    settings_t *settings = get_settings();
+
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
         TRACE_ERROR("Body size %zu bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
@@ -505,12 +508,21 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
 
+                bool isFlex = false;
+
+                char uid[17];
+                osSprintf(uid, "%016" PRIX64, freshReq->tonie_infos[i]->uid);
+
+                if (settings->core.flex_enabled && !osStrcasecmp(settings->core.flex_uid, uid))
+                {
+                    isFlex = true;
+                }
                 (void)custom_box;
                 (void)custom_server;
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
-                           tonieInfo.live,
+                           tonieInfo.live || isFlex,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -526,7 +538,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 TRACE_INFO_RESUME("\r\n");
 
-                if (tonieInfo.live || tonieInfo.updated)
+                if (tonieInfo.live || tonieInfo.updated || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
