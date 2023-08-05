@@ -17,8 +17,28 @@
 bool_t mqttConnected = FALSE;
 error_t error;
 MqttClientContext mqtt_context;
-static const char *mqtt_client = "teddyCloud";
 bool mqtt_fail = false;
+
+#define MQTT_TOPIC_STRING_LENGTH 128
+
+char *mqtt_prefix(const char *path)
+{
+    static char buffer[MQTT_TOPIC_STRING_LENGTH];
+
+    osSnprintf(buffer, sizeof(buffer), "%s/%s", settings_get_string("mqtt.topic"), path);
+
+    return buffer;
+}
+
+error_t mqtt_sendEvent(const char *eventname, const char *content)
+{
+    char topic[MQTT_TOPIC_STRING_LENGTH];
+
+    osSnprintf(topic, sizeof(topic), "%s/event/%s", settings_get_string("mqtt.topic"), eventname);
+    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), MQTT_QOS_LEVEL_0, false, NULL);
+
+    return NO_ERROR;
+}
 
 void mqttTestPublishCallback(MqttClientContext *context,
                              const char_t *topic, const uint8_t *message, size_t length,
@@ -35,16 +55,6 @@ void mqttTestPublishCallback(MqttClientContext *context,
     TRACE_INFO_ARRAY("    ", message, length);
 
     ha_received((char *)topic, (const char *)message);
-}
-
-error_t mqtt_sendEvent(const char *eventname, const char *content)
-{
-    char topic[128];
-
-    osSnprintf(topic, sizeof(topic), "%s/event/%s", mqtt_client, eventname);
-    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), MQTT_QOS_LEVEL_0, false, NULL);
-
-    return NO_ERROR;
 }
 
 bool mqtt_publish(const char *item_topic, const char *content)
@@ -78,8 +88,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
     mqttClientSetIdentifier(mqtt_context, settings_get_string("mqtt.identification"));
     mqttClientSetAuthInfo(mqtt_context, settings_get_string("mqtt.username"), settings_get_string("mqtt.password"));
-    mqttClientSetWillMessage(mqtt_context, "teddyCloud/status",
-                             "offline", 7, MQTT_QOS_LEVEL_1, FALSE);
+    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_1, FALSE);
 
     do
     {
@@ -110,17 +119,15 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
         if (error)
         {
-            TRACE_ERROR("Failed to connect to ipv4 address %d\r\n", error);
+            TRACE_ERROR("Failed to connect to MQTT: %d\r\n", error);
             break;
         }
 
-        error = mqttClientSubscribe(mqtt_context,
-                                    "teddyCloud/*", MQTT_QOS_LEVEL_1, NULL);
+        error = mqttClientSubscribe(mqtt_context, mqtt_prefix("*"), MQTT_QOS_LEVEL_1, NULL);
         if (error)
             break;
 
-        error = mqttClientPublish(mqtt_context, "teddyCloud/status",
-                                  "online", 6, MQTT_QOS_LEVEL_1, TRUE, NULL);
+        error = mqttClientPublish(mqtt_context, mqtt_prefix("status"), "online", 6, MQTT_QOS_LEVEL_1, TRUE, NULL);
         if (error)
             break;
 
@@ -176,7 +183,7 @@ void mqtt_publish_string(const char *name, const char *value)
 {
     char path_buffer[128];
 
-    sprintf(path_buffer, name, mqtt_client);
+    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
 
     if (!mqtt_publish(path_buffer, value))
     {
@@ -189,7 +196,7 @@ void mqtt_publish_float(const char *name, float value)
     char path_buffer[128];
     char buffer[32];
 
-    sprintf(path_buffer, name, mqtt_client);
+    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
     sprintf(buffer, "%0.4f", value);
 
     if (!mqtt_publish(path_buffer, buffer))
@@ -207,7 +214,7 @@ void mqtt_publish_int(const char *name, uint32_t value)
     {
         return;
     }
-    sprintf(path_buffer, name, mqtt_client);
+    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
     sprintf(buffer, "%d", value);
 
     if (!mqtt_publish(path_buffer, buffer))

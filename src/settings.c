@@ -113,10 +113,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("mqtt.enabled", &settings->mqtt.enabled, FALSE, "Enable MQTT service")
     OPTION_STRING("mqtt.hostname", &settings->mqtt.hostname, "", "MQTT hostname")
     OPTION_UNSIGNED("mqtt.port", &settings->mqtt.port, 1833, 1, 65535, "Port of MQTT server")
-
     OPTION_STRING("mqtt.username", &settings->mqtt.username, "", "Username")
     OPTION_STRING("mqtt.password", &settings->mqtt.password, "", "Password")
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification")
+    OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix")
+    OPTION_STRING("mqtt.host_url", &settings->mqtt.host_url, "http://localhost/", "URL to teddyCloud server")
     OPTION_END()
 
     if (Option_Map_Overlay[settingsId] == NULL)

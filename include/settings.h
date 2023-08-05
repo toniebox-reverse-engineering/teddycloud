@@ -45,6 +45,8 @@ typedef struct
     char *username;
     char *password;
     char *identification;
+    char *topic;
+    char *host_url;
 } settings_mqtt_t;
 
 typedef struct
