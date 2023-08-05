@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#include "platform.h"
 #include "debug.h"
 #include "stats.h"
 #include "home_assistant.h"
@@ -49,7 +50,7 @@ void ha_addstrarray(char *json_str, const char *name, const char *value, bool la
         values_buf[out_pos++] = '\000';
 
         osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": [%s]%c ", name, values_buf, (last ? ' ' : ','));
-        strcat(json_str, tmp_buf);
+        osStrcat(json_str, tmp_buf);
     }
 }
 
@@ -60,7 +61,7 @@ void ha_addstr(char *json_str, const char *name, const char *value, bool last)
     if (value && strlen(value) > 0)
     {
         osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, value, (last ? ' ' : ','));
-        strcat(json_str, tmp_buf);
+        osStrcat(json_str, tmp_buf);
     }
 }
 
@@ -90,7 +91,7 @@ void ha_addfloat(char *json_str, const char *name, float value, bool last)
     char tmp_buf[64];
 
     osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%f\"%c ", name, value, (last ? ' ' : ','));
-    strcat(json_str, tmp_buf);
+    osStrcat(json_str, tmp_buf);
 }
 
 void ha_addint(char *json_str, const char *name, int value, bool last)
@@ -98,12 +99,12 @@ void ha_addint(char *json_str, const char *name, int value, bool last)
     char tmp_buf[64];
 
     osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%d\"%c ", name, value, (last ? ' ' : ','));
-    strcat(json_str, tmp_buf);
+    osStrcat(json_str, tmp_buf);
 }
 
 void ha_publish()
 {
-    char *json_str = (char *)malloc(1024);
+    char *json_str = (char *)osAllocMem(1024);
     char mqtt_path[128];
     char uniq_id[128];
 
@@ -152,7 +153,7 @@ void ha_publish()
 
         // TRACE_INFO("[HA]   mqtt_path %s\n", mqtt_path);
 
-        strcpy(json_str, "{");
+        osStrcpy(json_str, "{");
         ha_addstr(json_str, "name", ha_info.entities[pos].name, false);
         ha_addstr(json_str, "uniq_id", uniq_id, false);
         ha_addstr(json_str, "dev_cla", ha_info.entities[pos].dev_class, false);
@@ -181,14 +182,14 @@ void ha_publish()
             break;
         }
 
-        strcat(json_str, "\"dev\": {");
+        osStrcat(json_str, "\"dev\": {");
         ha_addstr(json_str, "name", ha_info.name, false);
         ha_addstr(json_str, "ids", ha_info.id, false);
         ha_addstr(json_str, "cu", ha_info.cu, false);
         ha_addstr(json_str, "mf", ha_info.mf, false);
         ha_addstr(json_str, "mdl", ha_info.mdl, false);
         ha_addstr(json_str, "sw", ha_info.sw, true);
-        strcat(json_str, "}}");
+        osStrcat(json_str, "}}");
 
         // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
         // TRACE_INFO("[HA]    content '%s'\n", json_str);
@@ -199,8 +200,7 @@ void ha_publish()
         }
     }
 
-    TRACE_INFO("[HA] done\n");
-    free(json_str);
+    osFreeMem(json_str);
 }
 
 void ha_received(char *topic, const char *payload)
@@ -212,7 +212,7 @@ void ha_received(char *topic, const char *payload)
         if (ha_info.entities[pos].cmd_t && ha_info.entities[pos].received)
         {
             osSprintf(item_topic, ha_info.entities[pos].cmd_t, settings_get_string("mqtt.topic"));
-            if (!strcmp(topic, item_topic))
+            if (!osStrcmp(topic, item_topic))
             {
                 ha_info.entities[pos].received(&ha_info.entities[pos], ha_info.entities[pos].received_ctx, payload);
 
@@ -226,7 +226,7 @@ void ha_received(char *topic, const char *payload)
         if (ha_info.entities[pos].rgb_t && ha_info.entities[pos].rgb_received)
         {
             osSprintf(item_topic, ha_info.entities[pos].rgb_t, settings_get_string("mqtt.topic"));
-            if (!strcmp(topic, item_topic))
+            if (!osStrcmp(topic, item_topic))
             {
                 ha_info.entities[pos].rgb_received(&ha_info.entities[pos], ha_info.entities[pos].rgb_received_ctx, payload);
 
@@ -240,7 +240,7 @@ void ha_received(char *topic, const char *payload)
         if (ha_info.entities[pos].fx_cmd_t && ha_info.entities[pos].fx_received)
         {
             osSprintf(item_topic, ha_info.entities[pos].fx_cmd_t, settings_get_string("mqtt.topic"));
-            if (!strcmp(topic, item_topic))
+            if (!osStrcmp(topic, item_topic))
             {
                 ha_info.entities[pos].fx_received(&ha_info.entities[pos], ha_info.entities[pos].fx_received_ctx, payload);
 
@@ -302,7 +302,7 @@ void ha_transmit_all()
 
 void ha_setup()
 {
-    memset(&ha_info, 0x00, sizeof(ha_info));
+    osMemset(&ha_info, 0x00, sizeof(ha_info));
 
     osSprintf(ha_info.name, "%s", settings_get_string("mqtt.topic"));
     osSprintf(ha_info.id, "%s", "teddyCloud");
@@ -364,7 +364,7 @@ void ha_add(t_ha_entity *entity)
     {
         return;
     }
-    memcpy(&ha_info.entities[ha_info.entitiy_count++], entity, sizeof(t_ha_entity));
+    osMemcpy(&ha_info.entities[ha_info.entitiy_count++], entity, sizeof(t_ha_entity));
 }
 
 int ha_parse_index(const char *options, const char *message)
@@ -378,7 +378,7 @@ int ha_parse_index(const char *options, const char *message)
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    strncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
 
     while (true)
     {
@@ -387,7 +387,7 @@ int ha_parse_index(const char *options, const char *message)
         {
             *next_elem = '\000';
         }
-        if (!strcmp(cur_elem, message))
+        if (!osStrcmp(cur_elem, message))
         {
             return pos;
         }
@@ -413,7 +413,7 @@ void ha_get_index(const char *options, int index, char *text)
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    strncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
 
     while (true)
     {
@@ -424,7 +424,7 @@ void ha_get_index(const char *options, int index, char *text)
         }
         if (pos == index)
         {
-            strcpy(text, cur_elem);
+            osStrcpy(text, cur_elem);
             return;
         }
 
