@@ -28,6 +28,24 @@ typedef enum
 #define SAVE_SIZE 80
 #define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
 
+void pathSafeCanonicalize(char *path)
+{
+    if (!path || osStrlen(path) == 0)
+    {
+        return;
+    }
+
+    pathCanonicalize(path);
+
+    const char *pattern = "../";
+    const size_t pattern_len = osStrlen(pattern);
+
+    while (osStrncmp(path, pattern, pattern_len) == 0)
+    {
+        osMemmove(path, path + pattern_len, 1 + osStrlen(path + pattern_len));
+    }
+}
+
 bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -72,11 +90,11 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
     if (ret == NO_ERROR)
     {
-        pathCanonicalize(path);
-        char *pathAbsolute = osAllocMem(strlen(rootPath) + osStrlen(path) + 2);
+        pathSafeCanonicalize(path);
+        char *pathAbsolute = osAllocMem(osStrlen(rootPath) + osStrlen(path) + 2);
 
         osSprintf(pathAbsolute, "%s/%s", rootPath, path);
-        pathCanonicalize(pathAbsolute);
+        pathSafeCanonicalize(pathAbsolute);
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
@@ -166,32 +184,32 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     const char *item = &uri[5];
     char response[256];
 
-    sprintf(response, "FAILED");
+    osSprintf(response, "FAILED");
 
     if (!strcmp(item, "triggerExit"))
     {
         TRACE_INFO("Triggered Exit\r\n");
         settings_set_bool("internal.exit", TRUE);
         settings_set_signed("internal.returncode", RETURNCODE_USER_QUIT);
-        sprintf(response, "OK");
+        osSprintf(response, "OK");
     }
     else if (!strcmp(item, "triggerRestart"))
     {
         TRACE_INFO("Triggered Restart\r\n");
         settings_set_bool("internal.exit", TRUE);
         settings_set_signed("internal.returncode", RETURNCODE_USER_RESTART);
-        sprintf(response, "OK");
+        osSprintf(response, "OK");
     }
     else if (!strcmp(item, "triggerReloadConfig"))
     {
         TRACE_INFO("Triggered ReloadConfig\r\n");
-        sprintf(response, "OK");
+        osSprintf(response, "OK");
         settings_load();
     }
     else if (!strcmp(item, "triggerWriteConfig"))
     {
         TRACE_INFO("Triggered WriteConfig\r\n");
-        sprintf(response, "OK");
+        osSprintf(response, "OK");
         settings_save();
     }
 
@@ -217,20 +235,20 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
         switch (opt->type)
         {
         case TYPE_BOOL:
-            sprintf(response, "%s", settings_get_bool(item) ? "true" : "false");
+            osSprintf(response, "%s", settings_get_bool(item) ? "true" : "false");
             break;
         case TYPE_HEX:
         case TYPE_UNSIGNED:
-            sprintf(response, "%d", settings_get_unsigned(item));
+            osSprintf(response, "%d", settings_get_unsigned(item));
             break;
         case TYPE_SIGNED:
-            sprintf(response, "%d", settings_get_signed(item));
+            osSprintf(response, "%d", settings_get_signed(item));
             break;
         case TYPE_STRING:
             response_ptr = settings_get_string(item);
             break;
         case TYPE_FLOAT:
-            sprintf(response, "%f", settings_get_float(item));
+            osSprintf(response, "%f", settings_get_float(item));
             break;
         default:
             break;
@@ -247,7 +265,7 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
 error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
-    sprintf(response, "ERROR");
+    osSprintf(response, "ERROR");
     const char *item = &uri[9];
 
     char_t data[BODY_BUFFER_SIZE];
@@ -269,67 +287,47 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
         TRACE_INFO("Setting: '%s' to '%s'\r\n", item, data);
 
         setting_item_t *opt = settings_get_by_name(item);
+        bool success = false;
+
         if (opt)
         {
             switch (opt->type)
             {
             case TYPE_BOOL:
             {
-                if (settings_set_bool(item, !strcasecmp(data, "true")))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_bool(item, !strcasecmp(data, "true"));
                 break;
             }
             case TYPE_STRING:
             {
-                if (settings_set_string(item, data))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_string(item, data);
                 break;
             }
             case TYPE_HEX:
             {
                 uint32_t value = strtoul(data, NULL, 16);
-
-                if (settings_set_unsigned(item, value))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_unsigned(item, value);
                 break;
             }
 
             case TYPE_UNSIGNED:
             {
                 uint32_t value = strtoul(data, NULL, 10);
-
-                if (settings_set_unsigned(item, value))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_unsigned(item, value);
                 break;
             }
 
             case TYPE_SIGNED:
             {
                 int32_t value = strtol(data, NULL, 10);
-
-                if (settings_set_signed(item, value))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_signed(item, value);
                 break;
             }
 
             case TYPE_FLOAT:
             {
                 float value = strtof(data, NULL);
-
-                if (settings_set_float(item, value))
-                {
-                    osStrcpy(response, "OK");
-                }
+                success = settings_set_float(item, value);
                 break;
             }
 
@@ -339,8 +337,12 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
         }
         else
         {
-
             TRACE_ERROR("Setting '%s' is unknown", item);
+        }
+
+        if (success)
+        {
+            osStrcpy(response, "OK");
         }
     }
 
@@ -465,8 +467,12 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             osStrcpy(path, "/");
         }
 
-        snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+        pathSafeCanonicalize(path);
+
+        osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
         pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+
+        pathSafeCanonicalize(pathAbsolute);
 
         int pos = 0;
         FsDir *dir = fsOpenDir(pathAbsolute);
@@ -496,23 +502,23 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char dateString[64];
 
-            osSprintf(dateString, " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
-                      entry.modified.year, entry.modified.month, entry.modified.day,
-                      entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
+            osSnprintf(dateString, sizeof(dateString), " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
+                       entry.modified.year, entry.modified.month, entry.modified.day,
+                       entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
 
             char filePathAbsolute[384];
-            snprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
+            osSnprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
 
             char desc[64];
             desc[0] = 0;
             tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
             if (tafInfo.valid)
             {
-                snprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
+                osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
                 for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
                 {
                     char tmp[3];
-                    sprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                    osSprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
             }
@@ -579,13 +585,13 @@ FsFile *multipartStart(const char *rootPath, const char *filename, char *message
     // Ensure filename does not contain any directory separators
     if (strchr(filename, '\\') || strchr(filename, '/'))
     {
-        snprintf(message, message_max, "Filename '%s' contains directory separators!", filename);
+        osSnprintf(message, message_max, "Filename '%s' contains directory separators!", filename);
         TRACE_ERROR("Filename '%s' contains directory separators!\r\n", filename);
         return NULL;
     }
 
     char fullPath[1024]; // or a sufficiently large size for your paths
-    snprintf(fullPath, sizeof(fullPath), "%s/%s", rootPath, filename);
+    osSnprintf(fullPath, sizeof(fullPath), "%s/%s", rootPath, filename);
 
     if (fsFileExists(fullPath))
     {
@@ -626,7 +632,7 @@ int find_string(const void *haystack, size_t haystack_len, size_t haystack_start
 
     for (size_t i = haystack_start; i <= haystack_len - str_len; i++)
     {
-        if (memcmp((uint8_t *)haystack + i, str, str_len) == 0)
+        if (osMemcmp((uint8_t *)haystack + i, str, str_len) == 0)
         {
             return i;
         }
@@ -717,12 +723,12 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
             }
 
             /* when the payload starts with --, then leave */
-            if (!memcmp(buffer, "--", 2))
+            if (!osMemcmp(buffer, "--", 2))
             {
                 TRACE_DEBUG("Received multipart end\r\n");
                 return NO_ERROR;
             }
-            if (memcmp(buffer, "\r\n", 2))
+            if (osMemcmp(buffer, "\r\n", 2))
             {
                 TRACE_DEBUG("No valid multipart\r\n");
                 return NO_ERROR;
@@ -762,7 +768,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
             int inLen = fn_end - fn_start;
             int len = (inLen < sizeof(filename)) ? inLen : (sizeof(filename) - 1);
             TRACE_INFO("FN length %d %d %d %d\r\n", inLen, len, fn_start, fn_end);
-            strncpy(filename, &buffer[fn_start], len);
+            osStrncpy(filename, &buffer[fn_start], len);
             filename[len] = '\0';
 
             file = multipartStart(rootPath, filename, message, message_max);
@@ -881,7 +887,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
         statusCode = 500;
-        snprintf(message, sizeof(message), "core.certdir not set to a valid path");
+        osSnprintf(message, sizeof(message), "core.certdir not set to a valid path");
         TRACE_ERROR("core.certdir not set to a valid path\r\n");
     }
     else
@@ -890,7 +896,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         {
         case NO_ERROR:
             statusCode = 200;
-            snprintf(message, sizeof(message), "OK");
+            osSnprintf(message, sizeof(message), "OK");
             break;
         default:
             statusCode = 500;
@@ -976,18 +982,18 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     sanitizePath(path, true);
 
     char pathAbsolute[256];
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 500;
     char message[256];
 
-    snprintf(message, sizeof(message), "OK");
+    osSnprintf(message, sizeof(message), "OK");
 
     if (!fsDirExists(pathAbsolute))
     {
         statusCode = 500;
-        snprintf(message, sizeof(message), "invalid path: '%s'", path);
+        osSnprintf(message, sizeof(message), "invalid path: '%s'", path);
         TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
@@ -1034,20 +1040,20 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     sanitizePath(path, true);
 
     char pathAbsolute[256 + 2];
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 200;
     char message[256 + 64];
 
-    snprintf(message, sizeof(message), "OK");
+    osSnprintf(message, sizeof(message), "OK");
 
     error_t err = fsCreateDir(pathAbsolute);
 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        snprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
+        osSnprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
         TRACE_ERROR("Error creating directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
@@ -1081,20 +1087,20 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     sanitizePath(path, true);
 
     char pathAbsolute[256 + 2];
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 200;
     char message[256 + 64];
 
-    snprintf(message, sizeof(message), "OK");
+    osSnprintf(message, sizeof(message), "OK");
 
     error_t err = fsRemoveDir(pathAbsolute);
 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        snprintf(message, sizeof(message), "Error deleting directory '%s', error %d", path, err);
+        osSnprintf(message, sizeof(message), "Error deleting directory '%s', error %d", path, err);
         TRACE_ERROR("Error deleting directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
@@ -1128,20 +1134,20 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     sanitizePath(path, false);
 
     char pathAbsolute[256 + 2];
-    snprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
+    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
     pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
 
     uint_t statusCode = 200;
     char message[256 + 64];
 
-    snprintf(message, sizeof(message), "OK");
+    osSnprintf(message, sizeof(message), "OK");
 
     error_t err = fsDeleteFile(pathAbsolute);
 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        snprintf(message, sizeof(message), "Error deleting file '%s', error %d", path, err);
+        osSnprintf(message, sizeof(message), "Error deleting file '%s', error %d", path, err);
         TRACE_ERROR("Error deleting file '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
