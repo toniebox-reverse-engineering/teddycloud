@@ -446,8 +446,8 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
     FD_SET(sock->sockfd, &read_fds);
 
     // Set timeout.
-    tv.tv_sec = 0;
-    tv.tv_usec = timeout * 1000;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = (timeout % 1000) * 1000;
 
     // Wait for the event.
     int result = select(sock->sockfd + 1, &read_fds, NULL, NULL, &tv);

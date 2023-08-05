@@ -136,6 +136,7 @@ error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char
 
 error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    error_t ret = NO_ERROR;
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
 
@@ -160,6 +161,11 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
+    /* allow to override HTTP status code if needed */
+    bool served = false;
+    httpPrepareHeader(connection, NULL, 0);
+    connection->response.statusCode = 200;
+
     if (!tonieInfo.nocloud)
     {
         if (checkCustomTonie(ruid, token, client_ctx->settings))
@@ -173,6 +179,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+            served = true;
         }
         else
         {
@@ -183,9 +190,15 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         TRACE_INFO(" >> nocloud content, nothing forwarded\r\n");
     }
+
     freeTonieInfo(&tonieInfo);
 
-    return NO_ERROR;
+    if (!served)
+    {
+        ret = httpWriteResponse(connection, NULL, 0, false);
+    }
+
+    return ret;
 }
 
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
