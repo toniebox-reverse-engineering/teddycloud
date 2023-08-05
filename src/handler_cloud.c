@@ -107,6 +107,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token, settings_t *settings)
     }
     return false;
 }
+
 void markCustomTonie(tonie_info_t *tonieInfo)
 {
     int maxLen = 255;
@@ -117,6 +118,22 @@ void markCustomTonie(tonie_info_t *tonieInfo)
     subDir[osStrlen(subDir) - 9] = '\0';
     fsCreateDir(subDir);
     snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
+
+    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
+    fsCloseFile(file);
+    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+}
+
+void markLiveTonie(tonie_info_t *tonieInfo)
+{
+    int maxLen = 255;
+    char subDir[256];
+    char contentPathDot[256];
+
+    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
+    subDir[osStrlen(subDir) - 9] = '\0';
+    fsCreateDir(subDir);
+    snprintf(contentPathDot, maxLen, "%s.live", tonieInfo->contentPath);
 
     FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
     fsCloseFile(file);
@@ -241,52 +258,88 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     settings_t *settings = get_settings();
-    if (!tonieInfo.exists && osStrlen(settings->internal.assign_unknown) > 0)
-    {
-        char *path = settings->internal.assign_unknown;
-        if (fsFileExists(path))
-        {
-            tonie_info_t tonieInfoAssign = getTonieInfo(path);
-            if (tonieInfoAssign.valid)
-            {
-                char *dir = strdup(tonieInfo.contentPath);
-                dir[osStrlen(dir) - 8] = '\0';
-                fsCreateDir(dir);
-                osFreeMem(dir);
 
-                if ((error = fsCopyFile(path, tonieInfo.contentPath, false)) == NO_ERROR)
-                {
-                    char *oldFile = strdup(tonieInfo.contentPath);
-                    freeTonieInfo(&tonieInfo);
-                    tonieInfo = getTonieInfo(oldFile);
-                    free(oldFile);
-                    if (tonieInfo.valid)
-                    {
-                        TRACE_INFO("Assigned unknown set to %s\r\n", path);
-                        settings_set_string("internal.assign_unknown", "");
-                    }
-                    else
-                    {
-                        TRACE_ERROR("TAF header of assign unknown invalid, delete it again: %s\r\n", tonieInfo.contentPath)
-                        fsDeleteFile(tonieInfo.contentPath);
-                    }
-                }
-                else
-                {
-                    freeTonieInfo(&tonieInfoAssign);
-                    TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error)
-                }
+    bool assignFile = false;
+    bool setLive = false;
+
+    if (osStrlen(settings->internal.assign_unknown) > 0)
+    {
+        if (!tonieInfo.exists)
+        {
+            assignFile = true;
+        }
+
+        if (settings->core.flex_enabled)
+        {
+            char uid[17];
+            for (int pos = 0; pos < 16; pos += 2)
+            {
+                osStrncpy(&uid[pos], &ruid[14 - pos], 2);
             }
-            else
+            uid[16] = 0;
+            if (!osStrcasecmp(uid, settings->core.flex_uid))
+            {
+                TRACE_INFO(" >> this is a flex tonie\r\n");
+                assignFile = true;
+                setLive = true;
+            }
+        }
+    }
+
+    if (assignFile)
+    {
+        do
+        {
+            char *path = settings->internal.assign_unknown;
+            if (!fsFileExists(path))
+            {
+                TRACE_ERROR("Path to assign not available: %s\r\n", path);
+                break;
+            }
+
+            tonie_info_t tonieInfoAssign = getTonieInfo(path);
+            if (!tonieInfoAssign.valid)
             {
                 freeTonieInfo(&tonieInfoAssign);
-                TRACE_ERROR("TAF header of assign unknown invalid: %s\r\n", path)
+                TRACE_ERROR("TAF header invalid: %s\r\n", path);
+                break;
             }
-        }
-        else
-        {
-            TRACE_ERROR("Assign unknown path not available: %s\r\n", path)
-        }
+
+            char *dir = strdup(tonieInfo.contentPath);
+            dir[osStrlen(dir) - 8] = '\0';
+            fsCreateDir(dir);
+            osFreeMem(dir);
+
+            error = fsCopyFile(path, tonieInfo.contentPath, true);
+            if (error != NO_ERROR)
+            {
+                freeTonieInfo(&tonieInfoAssign);
+                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error);
+                break;
+            }
+
+            char *oldFile = strdup(tonieInfo.contentPath);
+            freeTonieInfo(&tonieInfo);
+            tonieInfo = getTonieInfo(oldFile);
+            free(oldFile);
+
+            if (!tonieInfo.valid)
+            {
+                TRACE_ERROR("TAF headerinvalid, delete it again: %s\r\n", tonieInfo.contentPath);
+                fsDeleteFile(tonieInfo.contentPath);
+                break;
+            }
+
+            TRACE_INFO("Assigned to %s\r\n", path);
+
+            if (setLive)
+            {
+                markLiveTonie(&tonieInfo);
+            }
+
+        } while (0);
+
+        settings_set_string("internal.assign_unknown", "");
         error = NO_ERROR;
     }
 

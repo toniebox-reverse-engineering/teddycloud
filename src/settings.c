@@ -54,6 +54,9 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "Set CORS Access-Control-Allow-Origin header")
 
+    OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "When enabled this UID always gets assigned the audio assigned from web interface")
+    OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "UID which shall get selected audio files assigned")
+
     OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "Server CA data")
     OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
     OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
