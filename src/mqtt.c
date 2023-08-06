@@ -202,8 +202,25 @@ void mqttTestPublishCallback(MqttClientContext *context,
     osFreeMem(payload);
 }
 
+/**
+ * @brief Publishes an MQTT message by placing it into a transmission buffer.
+ *
+ * This function attempts to queue an MQTT message for transmission based on the topic and content provided.
+ * The function looks for an available slot in the transmission buffer or tries to find an existing message
+ * with the same topic. If a message with the same topic is found:
+ *  - If the content matches and it is the last message in queue, the message is considered already queued.
+ *  - If the content does not match and the topic has been seen more than twice, the existing message's content
+ *    is replaced to reduce traffic.
+ *
+ * Note: The function ensures thread-safety by acquiring and releasing a mutex during the buffer operations.
+ *
+ * @param item_topic The topic of the MQTT message.
+ * @param content The content (payload) of the MQTT message.
+ * @return Returns true if the message was successfully queued or is already in the queue, otherwise false.
+ */
 bool mqtt_publish(const char *item_topic, const char *content)
 {
+    int entries = 0;
     bool success = false;
     osAcquireMutex(&mqtt_tx_buffer_mutex);
 
@@ -211,11 +228,38 @@ bool mqtt_publish(const char *item_topic, const char *content)
     {
         if (!mqtt_tx_buffers[pos].used)
         {
+            /* found the first empty slot */
+            if (success)
+            {
+                /* was the content already queued before? */
+                break;
+            }
+            /* new content to send */
             mqtt_tx_buffers[pos].topic = strdup(item_topic);
             mqtt_tx_buffers[pos].payload = strdup(content);
             mqtt_tx_buffers[pos].used = true;
             success = true;
             break;
+        }
+        else if (!osStrcmp(mqtt_tx_buffers[pos].topic, item_topic))
+        {
+            /* topic matches, assume content differs */
+            success = false;
+
+            if (!osStrcmp(mqtt_tx_buffers[pos].payload, content))
+            {
+                /* content matched */
+                success = true;
+            }
+            else if (++entries > 2)
+            {
+                /* when seen more than twice, replace the last one to reduce traffic */
+                osFreeMem(mqtt_tx_buffers[pos].payload);
+                mqtt_tx_buffers[pos].payload = strdup(content);
+                mqtt_tx_buffers[pos].used = true;
+                success = true;
+                break;
+            }
         }
     }
     osReleaseMutex(&mqtt_tx_buffer_mutex);
