@@ -161,6 +161,10 @@ error_t mqtt_sendEvent(const char *eventname, const char *content)
 error_t mqtt_sendBoxEvent(const char *box_id, const char *eventname, const char *content)
 {
     t_ha_info *ha_info = mqtt_get_box(box_id);
+    if (!ha_info)
+    {
+        return ERROR_FAILURE;
+    }
     char *topic = mqtt_fmt_create("%%s/%s", eventname);
     ha_transmit_topic(ha_info, topic, content);
     osFreeMem(topic);
@@ -636,11 +640,23 @@ void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
     entity.stat_t = "%s/Charger";
     ha_add(ha_box_instance, &entity);
 
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastSeen";
+    entity.name = "LastSeen";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastSeen";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
     osFreeMem(box_id);
 }
 
 t_ha_info *mqtt_get_box(const char *box_id)
 {
+    if (!box_id)
+    {
+        return NULL;
+    }
     t_ha_info *ret = NULL;
     char *name = mqtt_fmt_create("teddyCloud_Box_%s", box_id);
 

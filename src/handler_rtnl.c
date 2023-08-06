@@ -80,10 +80,33 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
     output[j] = '\0';
 }
 
+static void time_format(time_t time, char_t *buffer)
+{
+    DateTime dateTime;
+
+    convertUnixTimeToDate(time, &dateTime);
+
+    osSprintf(buffer, "%04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 "T%02" PRIu8 ":%02" PRIu8 ":%02" PRIu8 "Z",
+              dateTime.year, dateTime.month, dateTime.day, dateTime.hours, dateTime.minutes,
+              dateTime.seconds);
+}
+
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char_t *buffer = connection->buffer;
     size_t size = connection->response.contentLength;
+    const char *box_id = NULL;
+
+    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
+    {
+        box_id = connection->tlsContext->client_cert_subject;
+    }
+
+    time_t time = getCurrentUnixTime();
+    char current_time[64];
+    time_format(time, current_time);
+
+    mqtt_sendBoxEvent(box_id, "LastSeen", current_time);
 
     size_t pos = 0;
     do

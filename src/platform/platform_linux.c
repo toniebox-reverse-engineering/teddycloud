@@ -460,3 +460,13 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 
     return 0;
 }
+
+/**
+ * @brief Get current time
+ * @return Unix timestamp
+ **/
+
+time_t getCurrentUnixTime(void)
+{
+    return time(NULL);
+}
