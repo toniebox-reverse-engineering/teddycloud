@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "core/net.h"
 #include "core/ip.h"
@@ -13,6 +14,11 @@
 
 #include "home_assistant.h"
 #include "debug.h"
+#include "mqtt.h"
+
+/* need one per box in future */
+t_ha_info ha_box_instance;
+t_ha_info ha_server_instance;
 
 bool_t mqttConnected = FALSE;
 error_t error;
@@ -20,6 +26,18 @@ MqttClientContext mqtt_context;
 bool mqtt_fail = false;
 
 #define MQTT_TOPIC_STRING_LENGTH 128
+
+typedef struct
+{
+    bool used;
+    char *topic;
+    char *payload;
+} mqtt_tx_buffer;
+
+OsMutex mqtt_tx_buffer_mutex;
+
+#define MQTT_TX_BUFFERS 512
+mqtt_tx_buffer mqtt_tx_buffers[MQTT_TX_BUFFERS];
 
 char *mqtt_prefix(const char *path)
 {
@@ -45,23 +63,43 @@ void mqttTestPublishCallback(MqttClientContext *context,
                              bool_t dup, MqttQosLevel qos, bool_t retain, uint16_t packetId)
 {
     // Debug message
-    TRACE_INFO("PUBLISH packet received...\r\n");
+    TRACE_INFO("packet received...\r\n");
     TRACE_INFO("  Dup: %u\r\n", dup);
     TRACE_INFO("  QoS: %u\r\n", qos);
     TRACE_INFO("  Retain: %u\r\n", retain);
     TRACE_INFO("  Packet Identifier: %u\r\n", packetId);
     TRACE_INFO("  Topic: %s\r\n", topic);
-    TRACE_INFO("  Message (%" PRIuSIZE " bytes):\r\n", length);
-    TRACE_INFO_ARRAY("    ", message, length);
+    TRACE_INFO("  Message (%" PRIuSIZE " bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
 
-    ha_received((char *)topic, (const char *)message);
+    char *payload = osAllocMem(length + 1);
+    osMemcpy(payload, message, length);
+    payload[length] = 0;
+
+    ha_received(&ha_box_instance, (char *)topic, (const char *)payload);
+    ha_received(&ha_server_instance, (char *)topic, (const char *)payload);
+
+    osFreeMem(payload);
 }
 
 bool mqtt_publish(const char *item_topic, const char *content)
 {
-    mqttClientPublish(&mqtt_context, item_topic, content, osStrlen(content), MQTT_QOS_LEVEL_0, false, NULL);
+    bool success = false;
+    osAcquireMutex(&mqtt_tx_buffer_mutex);
 
-    return true;
+    for (int pos = 0; pos < MQTT_TX_BUFFERS; pos++)
+    {
+        if (!mqtt_tx_buffers[pos].used)
+        {
+            mqtt_tx_buffers[pos].topic = strdup(item_topic);
+            mqtt_tx_buffers[pos].payload = strdup(content);
+            mqtt_tx_buffers[pos].used = true;
+            success = true;
+            break;
+        }
+    }
+    osReleaseMutex(&mqtt_tx_buffer_mutex);
+
+    return success;
 }
 
 bool mqtt_subscribe(const char *item_topic)
@@ -159,7 +197,8 @@ void mqtt_thread()
                 TRACE_INFO("Connected\r\n");
                 mqttConnected = TRUE;
                 mqtt_fail = false;
-                ha_connected();
+                ha_connected(&ha_box_instance);
+                ha_connected(&ha_server_instance);
             }
             else
             {
@@ -175,7 +214,23 @@ void mqtt_thread()
             mqttConnected = FALSE;
             osDelayTask(2000);
         }
-        ha_loop();
+
+        /* process buffered Tx actions */
+        osAcquireMutex(&mqtt_tx_buffer_mutex);
+        for (int pos = 0; pos < MQTT_TX_BUFFERS; pos++)
+        {
+            if (mqtt_tx_buffers[pos].used)
+            {
+                mqttClientPublish(&mqtt_context, mqtt_tx_buffers[pos].topic, mqtt_tx_buffers[pos].payload, osStrlen(mqtt_tx_buffers[pos].payload), MQTT_QOS_LEVEL_0, false, NULL);
+                osFreeMem(mqtt_tx_buffers[pos].topic);
+                osFreeMem(mqtt_tx_buffers[pos].payload);
+                mqtt_tx_buffers[pos].used = false;
+            }
+        }
+        osReleaseMutex(&mqtt_tx_buffer_mutex);
+
+        ha_loop(&ha_box_instance);
+        ha_loop(&ha_server_instance);
     }
 }
 
@@ -223,90 +278,363 @@ void mqtt_publish_int(const char *name, uint32_t value)
     }
 }
 
+char *mqtt_settingname_clean(const char *str)
+{
+    int length = osStrlen(str) + 1;
+
+    char *new_str = osAllocMem(length);
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+    osStrcpy(new_str, str);
+
+    for (int pos = 0; pos < osStrlen(new_str); pos++)
+    {
+        if (new_str[pos] == '.')
+        {
+            new_str[pos] = '-';
+        }
+    }
+
+    return new_str;
+}
+
+char *mqtt_fmt_create(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    // Calculate the length of the final string
+    va_list tmp_args;
+    va_copy(tmp_args, args);
+    int length = osVsnprintf(NULL, 0, fmt, tmp_args);
+    va_end(tmp_args);
+
+    if (length < 0)
+    {
+        return NULL;
+    }
+
+    // Allocate memory for the new string
+    char *new_str = osAllocMem(length + 1); // Add 1 for the null terminator
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+
+    // Format the new string
+    osVsnprintf(new_str, length + 1, fmt, args);
+
+    va_end(args);
+
+    return new_str;
+}
+
+char *mqtt_topic_str(const char *fmt, char *param)
+{
+    char *first_s = osStrstr(fmt, "%s");
+    if (first_s == NULL)
+    {
+        return "none";
+    }
+
+    int length = osStrlen(fmt) + osStrlen(param) - 2;
+
+    char *new_str = osAllocMem(length + 1);
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+    osStrcpy(new_str, "%s");
+
+    osSprintf(&new_str[2], &fmt[2], param);
+
+    return new_str;
+}
+
+void mqtt_publish_settings()
+{
+    int index = 0;
+    do
+    {
+        setting_item_t *s = settings_get(index);
+        if (!s)
+        {
+            break;
+        }
+        if (s->internal)
+        {
+            index++;
+            continue;
+        }
+
+        char *name = mqtt_settingname_clean(s->option_name);
+        char *status_topic = mqtt_topic_str("%s/%s/status", name);
+
+        switch (s->type)
+        {
+        case TYPE_BOOL:
+            mqtt_publish_string(status_topic, (*(bool *)s->ptr) ? "TRUE" : "FALSE");
+            break;
+        case TYPE_FLOAT:
+            mqtt_publish_float(status_topic, *(float *)s->ptr);
+            break;
+        case TYPE_HEX:
+        case TYPE_UNSIGNED:
+            mqtt_publish_int(status_topic, *(uint32_t *)s->ptr);
+            break;
+        case TYPE_SIGNED:
+            mqtt_publish_int(status_topic, *(uint32_t *)s->ptr);
+            break;
+        case TYPE_STRING:
+            mqtt_publish_string(status_topic, *(char **)s->ptr);
+            break;
+        default:
+            break;
+        }
+        index++;
+
+        osFreeMem(name);
+        osFreeMem(status_topic);
+    } while (1);
+}
+
+void mqtt_settings_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    setting_item_t *s = ctx;
+    const char *status_topic = entity->stat_t;
+
+    if (!s || !status_topic)
+    {
+        return;
+    }
+
+    switch (s->type)
+    {
+    case TYPE_BOOL:
+        mqtt_publish_string(status_topic, (*(bool *)s->ptr) ? "TRUE" : "FALSE");
+        break;
+    case TYPE_FLOAT:
+        mqtt_publish_float(status_topic, *(float *)s->ptr);
+        break;
+    case TYPE_HEX:
+    case TYPE_UNSIGNED:
+        mqtt_publish_int(status_topic, *(uint32_t *)s->ptr);
+        break;
+    case TYPE_SIGNED:
+        mqtt_publish_int(status_topic, *(uint32_t *)s->ptr);
+        break;
+    case TYPE_STRING:
+        mqtt_publish_string(status_topic, *(char **)s->ptr);
+        break;
+    default:
+        break;
+    }
+}
+
+void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    setting_item_t *s = ctx;
+    if (!s)
+    {
+        return;
+    }
+
+    switch (s->type)
+    {
+    case TYPE_BOOL:
+        settings_set_bool(s->option_name, !osStrcasecmp(payload, "TRUE"));
+        break;
+    case TYPE_FLOAT:
+    {
+        float val;
+        sscanf(payload, "%f", &val);
+        settings_set_float(s->option_name, val);
+        break;
+    }
+    case TYPE_HEX:
+    {
+        uint32_t val = strtoul(payload, NULL, 16);
+        settings_set_unsigned(s->option_name, val);
+        break;
+    }
+    case TYPE_UNSIGNED:
+    {
+        uint32_t val;
+        sscanf(payload, "%u", &val);
+        settings_set_unsigned(s->option_name, val);
+        break;
+    }
+    case TYPE_SIGNED:
+    {
+        int32_t val;
+        sscanf(payload, "%d", &val);
+        settings_set_signed(s->option_name, val);
+        break;
+    }
+    case TYPE_STRING:
+    {
+        settings_set_string(s->option_name, payload);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void mqtt_init()
 {
+    osCreateMutex(&mqtt_tx_buffer_mutex);
     osCreateTask("MQTT", &mqtt_thread, NULL, 1024, 0);
 
-    ha_setup();
-
     t_ha_entity entity;
+
+    ha_setup(&ha_server_instance);
+    osSprintf(ha_server_instance.name, "%s - Server", settings_get_string("mqtt.topic"));
+    osStrcpy(ha_server_instance.id, "teddyCloudSettings");
+
+    int index = 0;
+    do
+    {
+        setting_item_t *s = settings_get(index);
+        if (!s)
+        {
+            break;
+        }
+        if (s->internal)
+        {
+            index++;
+            continue;
+        }
+        memset(&entity, 0x00, sizeof(entity));
+
+        char *name = mqtt_settingname_clean(s->option_name);
+        entity.id = name;
+        entity.name = mqtt_fmt_create("%s - %s", s->option_name, s->description);
+
+        entity.stat_t = mqtt_topic_str("%s/%s/status", name);
+        entity.cmd_t = mqtt_topic_str("%s/%s/command", name);
+        entity.transmit = &mqtt_settings_tx;
+        entity.transmit_ctx = s;
+        entity.received = &mqtt_settings_rx;
+        entity.received_ctx = s;
+
+        entity.type = ha_unused;
+        switch (s->type)
+        {
+        case TYPE_BOOL:
+            entity.type = ha_switch;
+            break;
+        case TYPE_FLOAT:
+            entity.type = ha_number;
+            entity.min = s->min.float_value;
+            entity.max = s->max.float_value;
+            break;
+        case TYPE_HEX:
+        case TYPE_UNSIGNED:
+            entity.type = ha_number;
+            entity.min = s->min.unsigned_value;
+            entity.max = s->max.unsigned_value;
+            break;
+        case TYPE_SIGNED:
+            entity.type = ha_number;
+            entity.min = s->min.signed_value;
+            entity.max = s->max.signed_value;
+            break;
+        case TYPE_STRING:
+            entity.type = ha_text;
+            break;
+        default:
+            break;
+        }
+        if (entity.type != ha_unused)
+        {
+            ha_add(&ha_server_instance, &entity);
+        }
+        index++;
+    } while (1);
+
+    ha_setup(&ha_box_instance);
+    osSprintf(ha_box_instance.name, "%sBox", settings_get_string("mqtt.topic"));
+    osStrcpy(ha_box_instance.id, "teddyCloudBox");
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "status";
     entity.name = "Status message";
     entity.type = ha_sensor;
     entity.stat_t = "%s/status";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TagInvalid";
     entity.name = "Tag Invalid";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/TagInvalid";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TagValid";
     entity.name = "Tag Valid";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/TagValid";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolUp";
     entity.name = "Volume Up";
     entity.type = ha_binary_sensor;
     entity.stat_t = "%s/event/VolUp";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolDown";
     entity.name = "Volume Down";
     entity.type = ha_binary_sensor;
     entity.stat_t = "%s/event/VolDown";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "CloudRequest";
     entity.name = "Cloud Request";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/CloudRequest";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "BoxTilt";
     entity.name = "Box Tilt";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/BoxTilt";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltForward";
     entity.name = "Tilt Forward";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/TiltForward";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltBackward";
     entity.name = "Tilt Backward";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/TiltBackward";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "Playback";
     entity.name = "Playback";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/Playback";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolumeLevel";
     entity.name = "Volume Level";
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/VolumeLevel";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolumedB";
@@ -314,5 +642,5 @@ void mqtt_init()
     entity.type = ha_sensor;
     entity.stat_t = "%s/event/VolumedB";
     entity.unit_of_meas = "dB";
-    ha_add(&entity);
+    ha_add(&ha_box_instance, &entity);
 }
