@@ -115,6 +115,7 @@ typedef struct
     char *librarydir;
     char *datadir;
     char *wwwdir;
+    char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;

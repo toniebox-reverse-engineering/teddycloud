@@ -12,4 +12,6 @@ extern TlsCache *tlsCache;
 
 extern YarrowContext yarrowContext;
 
+void tls_context_key_log_init(TlsContext *context);
+
 #endif

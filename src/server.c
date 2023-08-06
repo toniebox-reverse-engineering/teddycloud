@@ -403,6 +403,8 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     if (error)
         return error;
 
+    tls_context_key_log_init(tlsContext);
+
     // Session cache that will be used to save/resume TLS sessions
     error = tlsSetCache(tlsContext, tlsCache);
     // Any error to report?

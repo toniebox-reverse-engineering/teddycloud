@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "settings.h"
 #include "fs_port.h"
+#include "fs_ext.h"
 
 // tsl_certificate.c function Dependencies
 #include <string.h>
@@ -305,6 +306,41 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
 
     // Return status code
     return error;
+}
+
+static void keylog_write(TlsContext *context, const char_t *key)
+{
+    static bool failed = false;
+    const char *logfile = settings_get_string("core.sslkeylogfile");
+    if (!logfile || !osStrlen(logfile))
+        return;
+
+    FsFile *keyLogFile = fsOpenFileEx(logfile, "a");
+    if (keyLogFile == NULL)
+    {
+        if (!failed)
+        {
+            TRACE_ERROR("Failed to open ssl key log file \"%s\"\r\n", logfile);
+            failed = true;
+        }
+        return;
+    }
+
+    char buf[256]; // key is at most 194 chars. see tlsDumpSecret
+    size_t len = osStrlen(key);
+    if (len > sizeof(buf) - 2)
+        return;
+    osMemcpy(buf, key, len);
+    buf[len++] = '\n';
+    buf[len] = '\0';
+    fsWriteFile(keyLogFile, buf, len);
+    fsCloseFile(keyLogFile);
+    failed = false;
+}
+
+void tls_context_key_log_init(TlsContext *context)
+{
+    (void)tlsSetKeyLogCallback(context, keylog_write);
 }
 
 error_t tls_adapter_deinit()
