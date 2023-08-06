@@ -127,9 +127,9 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         pos += protoLength;
         if (rpc && (rpc->log2 || rpc->log3))
         {
-            rtnlEvent(rpc);
-            rtnlEventLog(rpc);
-            rtnlEventDump(rpc, client_ctx->settings);
+            rtnlEvent(connection, rpc);
+            rtnlEventLog(connection, rpc);
+            rtnlEventDump(connection, rpc, client_ctx->settings);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     } while (true);
@@ -146,9 +146,16 @@ int32_t read_little_endian(const uint8_t *buf)
     return (int32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
 }
 
-void rtnlEvent(TonieRtnlRPC *rpc)
+void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
 {
     char_t buffer[4096];
+    const char *box_id = NULL;
+
+    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
+    {
+        box_id = connection->tlsContext->client_cert_subject;
+    }
+
     if (rpc->log2)
     {
         sse_startEventRaw("rtnl-raw-log2");
@@ -210,49 +217,49 @@ void rtnlEvent(TonieRtnlRPC *rpc)
         {
         case 1:
             sse_sendEvent("pressed", "ear-big", true);
-            mqtt_sendEvent("VolUp", "ON");
-            mqtt_sendEvent("VolUp", "OFF");
+            mqtt_sendBoxEvent(box_id, "VolUp", "ON");
+            mqtt_sendBoxEvent(box_id, "VolUp", "OFF");
             break;
         case 2:
             sse_sendEvent("pressed", "ear-small", true);
-            mqtt_sendEvent("VolDown", "ON");
-            mqtt_sendEvent("VolDown", "OFF");
+            mqtt_sendBoxEvent(box_id, "VolDown", "ON");
+            mqtt_sendBoxEvent(box_id, "VolDown", "OFF");
             break;
         case 3:
             sse_sendEvent("knock", "forward", true);
-            mqtt_sendEvent("KnockForward", "ON");
-            mqtt_sendEvent("KnockForward", "OFF");
+            mqtt_sendBoxEvent(box_id, "KnockForward", "ON");
+            mqtt_sendBoxEvent(box_id, "KnockForward", "OFF");
             break;
         case 4:
             sse_sendEvent("knock", "backward", true);
-            mqtt_sendEvent("KnockBackward", "ON");
-            mqtt_sendEvent("KnockBackward", "OFF");
+            mqtt_sendBoxEvent(box_id, "KnockBackward", "ON");
+            mqtt_sendBoxEvent(box_id, "KnockBackward", "OFF");
             break;
         case 5:
             sse_sendEvent("tilt", "forward", true);
-            mqtt_sendEvent("TiltForward", "ON");
-            mqtt_sendEvent("TiltForward", "OFF");
+            mqtt_sendBoxEvent(box_id, "TiltForward", "ON");
+            mqtt_sendBoxEvent(box_id, "TiltForward", "OFF");
             break;
         case 6:
             sse_sendEvent("tilt", "backward", true);
-            mqtt_sendEvent("TiltBackward", "ON");
-            mqtt_sendEvent("TiltBackward", "OFF");
+            mqtt_sendBoxEvent(box_id, "TiltBackward", "ON");
+            mqtt_sendBoxEvent(box_id, "TiltBackward", "OFF");
             break;
         case 11:
             sse_sendEvent("playback", "starting", true);
-            mqtt_sendEvent("Playback", "ON");
-            mqtt_sendEvent("TagInvalid", "");
+            mqtt_sendBoxEvent(box_id, "Playback", "ON");
+            mqtt_sendBoxEvent(box_id, "TagInvalid", "");
             break;
         case 12:
             sse_sendEvent("playback", "started", true);
-            mqtt_sendEvent("Playback", "ON");
-            mqtt_sendEvent("TagInvalid", "");
+            mqtt_sendBoxEvent(box_id, "Playback", "ON");
+            mqtt_sendBoxEvent(box_id, "TagInvalid", "");
             break;
         case 13:
             sse_sendEvent("playback", "stopped", true);
-            mqtt_sendEvent("Playback", "OFF");
-            mqtt_sendEvent("TagValid", "");
-            mqtt_sendEvent("TagInvalid", "");
+            mqtt_sendBoxEvent(box_id, "Playback", "OFF");
+            mqtt_sendBoxEvent(box_id, "TagValid", "");
+            mqtt_sendBoxEvent(box_id, "TagInvalid", "");
             break;
         default:
             TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
@@ -275,8 +282,8 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                 }
             }
             sse_sendEvent("TagInvalid", buffer, true);
-            mqtt_sendEvent("TagInvalid", buffer);
-            mqtt_sendEvent("TagValid", "");
+            mqtt_sendBoxEvent(box_id, "TagInvalid", buffer);
+            mqtt_sendBoxEvent(box_id, "TagValid", "");
         }
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 16065)
         {
@@ -288,8 +295,8 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                 }
             }
             sse_sendEvent("TagValid", buffer, true);
-            mqtt_sendEvent("TagValid", buffer);
-            mqtt_sendEvent("TagInvalid", "");
+            mqtt_sendBoxEvent(box_id, "TagValid", buffer);
+            mqtt_sendBoxEvent(box_id, "TagInvalid", "");
         }
         /* CC also sends messages */
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8646)
@@ -302,8 +309,8 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                 }
             }
             sse_sendEvent("TagInvalid", buffer, true);
-            mqtt_sendEvent("TagInvalid", buffer);
-            mqtt_sendEvent("TagValid", "");
+            mqtt_sendBoxEvent(box_id, "TagInvalid", buffer);
+            mqtt_sendBoxEvent(box_id, "TagValid", "");
         }
         else if (rpc->log2->function_group == 15 && rpc->log2->function == 8627)
         {
@@ -315,22 +322,22 @@ void rtnlEvent(TonieRtnlRPC *rpc)
                 }
             }
             sse_sendEvent("TagValid", buffer, true);
-            mqtt_sendEvent("TagValid", buffer);
-            mqtt_sendEvent("TagInvalid", "");
+            mqtt_sendBoxEvent(box_id, "TagValid", buffer);
+            mqtt_sendBoxEvent(box_id, "TagInvalid", "");
         }
         else if (rpc->log2->function_group == 12 && rpc->log2->function == 15427)
         {
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
             sse_sendEvent("BoxTilt", buffer, true);
-            mqtt_sendEvent("BoxTilt", buffer);
+            mqtt_sendBoxEvent(box_id, "BoxTilt", buffer);
         }
         else if (rpc->log2->function_group == 12 && rpc->log2->function == 15426)
         {
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
             sse_sendEvent("BoxTilt", buffer, true);
-            mqtt_sendEvent("BoxTilt", buffer);
+            mqtt_sendBoxEvent(box_id, "BoxTilt", buffer);
         }
         else if (rpc->log2->function_group == 27 && rpc->log2->function == 15524)
         {
@@ -339,15 +346,15 @@ void rtnlEvent(TonieRtnlRPC *rpc)
             int32_t volumeLevel = read_little_endian(&rpc->log2->field6.data[8]);
             osSprintf(buffer, "%d", volumeLevel);
             sse_sendEvent("VolumeLevel", buffer, true);
-            mqtt_sendEvent("VolumeLevel", buffer);
+            mqtt_sendBoxEvent(box_id, "VolumeLevel", buffer);
             osSprintf(buffer, "%d", volumedB);
             sse_sendEvent("VolumedB", buffer, true);
-            mqtt_sendEvent("VolumedB", buffer);
+            mqtt_sendBoxEvent(box_id, "VolumedB", buffer);
         }
     }
 }
 
-void rtnlEventLog(TonieRtnlRPC *rpc)
+void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
 {
     TRACE_DEBUG("RTNL: \r\n");
     if (rpc->log2)
@@ -384,7 +391,7 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
     }
 }
 
-void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
+void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *settings)
 {
     if (settings->rtnl.logHuman)
     {

@@ -103,8 +103,8 @@ void ha_addint(char *json_str, const char *name, int value, bool last)
 void ha_publish(t_ha_info *ha_info)
 {
     char *json_str = (char *)osAllocMem(1024);
-    char mqtt_path[128];
-    char uniq_id[128];
+    char mqtt_path[2 * MAX_LEN + 1];
+    char uniq_id[2 * MAX_LEN + 1];
 
     TRACE_INFO("[HA] Publish\n");
 
@@ -319,6 +319,7 @@ void ha_setup(t_ha_info *ha_info)
     osSprintf(ha_info->mdl, "%s", "teddyCloud");
     osSprintf(ha_info->sw, "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
     ha_info->entitiy_count = 0;
+    ha_info->initialized = true;
 }
 
 void ha_connected(t_ha_info *ha_info)

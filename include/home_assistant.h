@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_LEN 32
+#define MAX_LEN 128
 #define MAX_ENTITIES (3 * 9 + 16 * 7 + 32)
 
 typedef enum
@@ -87,6 +87,7 @@ struct s_ha_entity
 
 struct s_ha_info
 {
+    bool initialized;
     char base_topic[MAX_LEN];
     char name[MAX_LEN];
     char id[MAX_LEN];

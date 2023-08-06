@@ -37,8 +37,8 @@ typedef enum
 } rtnl_function;
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx);
-void rtnlEvent(TonieRtnlRPC *rpc);
-void rtnlEventLog(TonieRtnlRPC *rpc);
-void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings);
+void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc);
+void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc);
+void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *settings);
 
 #endif
