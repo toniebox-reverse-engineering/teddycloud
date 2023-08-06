@@ -629,6 +629,13 @@ void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
     entity.unit_of_meas = "dB";
     ha_add(ha_box_instance, &entity);
 
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "Charger";
+    entity.name = "Charger";
+    entity.type = ha_binary_sensor;
+    entity.stat_t = "%s/Charger";
+    ha_add(ha_box_instance, &entity);
+
     osFreeMem(box_id);
 }
 

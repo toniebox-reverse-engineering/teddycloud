@@ -245,6 +245,14 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
             mqtt_sendBoxEvent(box_id, "TiltBackward", "ON");
             mqtt_sendBoxEvent(box_id, "TiltBackward", "OFF");
             break;
+        case 7:
+            sse_sendEvent("charger", "on", true);
+            mqtt_sendBoxEvent(box_id, "Charger", "ON");
+            break;
+        case 8:
+            sse_sendEvent("charger", "on", true);
+            mqtt_sendBoxEvent(box_id, "Charger", "OFF");
+            break;
         case 11:
             sse_sendEvent("playback", "starting", true);
             mqtt_sendBoxEvent(box_id, "Playback", "ON");
