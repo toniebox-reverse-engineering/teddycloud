@@ -238,55 +238,55 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
     {
         switch (rpc->log3->field2)
         {
-        case 1:
+        case RTNL3_TYPE_EAR_BIG:
             sse_sendEvent("pressed", "ear-big", true);
             mqtt_sendBoxEvent(box_id, "VolUp", "ON");
             mqtt_sendBoxEvent(box_id, "VolUp", "OFF");
             break;
-        case 2:
+        case RTNL3_TYPE_EAR_SMALL:
             sse_sendEvent("pressed", "ear-small", true);
             mqtt_sendBoxEvent(box_id, "VolDown", "ON");
             mqtt_sendBoxEvent(box_id, "VolDown", "OFF");
             break;
-        case 3:
+        case RTNL3_TYPE_KNOCK_FORWARD:
             sse_sendEvent("knock", "forward", true);
             mqtt_sendBoxEvent(box_id, "KnockForward", "ON");
             mqtt_sendBoxEvent(box_id, "KnockForward", "OFF");
             break;
-        case 4:
+        case RTNL3_TYPE_KNOCK_BACKWARD:
             sse_sendEvent("knock", "backward", true);
             mqtt_sendBoxEvent(box_id, "KnockBackward", "ON");
             mqtt_sendBoxEvent(box_id, "KnockBackward", "OFF");
             break;
-        case 5:
+        case RTNL3_TYPE_TILT_FORWARD:
             sse_sendEvent("tilt", "forward", true);
             mqtt_sendBoxEvent(box_id, "TiltForward", "ON");
             mqtt_sendBoxEvent(box_id, "TiltForward", "OFF");
             break;
-        case 6:
+        case RTNL3_TYPE_TILT_BACKWARD:
             sse_sendEvent("tilt", "backward", true);
             mqtt_sendBoxEvent(box_id, "TiltBackward", "ON");
             mqtt_sendBoxEvent(box_id, "TiltBackward", "OFF");
             break;
-        case 7:
+        case RTNL3_TYPE_CHARGER_ON:
             sse_sendEvent("charger", "on", true);
             mqtt_sendBoxEvent(box_id, "Charger", "ON");
             break;
-        case 8:
-            sse_sendEvent("charger", "on", true);
+        case RTNL3_TYPE_CHARGER_OFF:
+            sse_sendEvent("charger", "off", true);
             mqtt_sendBoxEvent(box_id, "Charger", "OFF");
             break;
-        case 11:
+        case RTNL3_TYPE_PLAYBACK_STARTING:
             sse_sendEvent("playback", "starting", true);
             mqtt_sendBoxEvent(box_id, "Playback", "ON");
             mqtt_sendBoxEvent(box_id, "TagInvalid", "");
             break;
-        case 12:
+        case RTNL3_TYPE_PLAYBACK_STARTED:
             sse_sendEvent("playback", "started", true);
             mqtt_sendBoxEvent(box_id, "Playback", "ON");
             mqtt_sendBoxEvent(box_id, "TagInvalid", "");
             break;
-        case 13:
+        case RTNL3_TYPE_PLAYBACK_STOPPED:
             sse_sendEvent("playback", "stopped", true);
             mqtt_sendBoxEvent(box_id, "Playback", "OFF");
             mqtt_sendBoxEvent(box_id, "TagValid", "");
