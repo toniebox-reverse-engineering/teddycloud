@@ -270,7 +270,7 @@ bool mqtt_publish(const char *item_topic, const char *content)
 
 bool mqtt_subscribe(const char *item_topic)
 {
-    mqttClientSubscribe(&mqtt_context, item_topic, MQTT_QOS_LEVEL_1, NULL);
+    mqttClientSubscribe(&mqtt_context, item_topic, MQTT_QOS_LEVEL_2, NULL);
 
     return true;
 }
@@ -292,7 +292,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
     mqttClientSetIdentifier(mqtt_context, settings_get_string("mqtt.identification"));
     mqttClientSetAuthInfo(mqtt_context, settings_get_string("mqtt.username"), settings_get_string("mqtt.password"));
-    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_1, FALSE);
+    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_2, FALSE);
 
     do
     {
@@ -327,11 +327,11 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
             break;
         }
 
-        error = mqttClientSubscribe(mqtt_context, mqtt_prefix("*"), MQTT_QOS_LEVEL_1, NULL);
+        error = mqttClientSubscribe(mqtt_context, mqtt_prefix("*"), MQTT_QOS_LEVEL_2, NULL);
         if (error)
             break;
 
-        error = mqttClientPublish(mqtt_context, mqtt_prefix("status"), "online", 6, MQTT_QOS_LEVEL_1, TRUE, NULL);
+        error = mqttClientPublish(mqtt_context, mqtt_prefix("status"), "online", 6, MQTT_QOS_LEVEL_2, TRUE, NULL);
         if (error)
             break;
 
