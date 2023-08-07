@@ -193,3 +193,33 @@ char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str)
             return str;
         }
 }
+
+void time_format(time_t time, char_t *buffer)
+{
+    DateTime dateTime;
+
+    convertUnixTimeToDate(time, &dateTime);
+
+    osSprintf(buffer, "%04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 "T%02" PRIu8 ":%02" PRIu8 ":%02" PRIu8 "Z",
+              dateTime.year, dateTime.month, dateTime.day, dateTime.hours, dateTime.minutes,
+              dateTime.seconds);
+}
+
+void time_format_current(char_t *buffer)
+{
+    time_t time = getCurrentUnixTime();
+
+    time_format(time, buffer);
+}
+
+const char *get_box_id(HttpConnection *connection)
+{
+    const char *box_id = NULL;
+
+    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
+    {
+        box_id = connection->tlsContext->client_cert_subject;
+    }
+
+    return box_id;
+}

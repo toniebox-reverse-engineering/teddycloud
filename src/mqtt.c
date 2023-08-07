@@ -693,6 +693,54 @@ void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
     entity.dev_class = "timestamp";
     ha_add(ha_box_instance, &entity);
 
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudTime";
+    entity.name = "LastCloudTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudOtaTime";
+    entity.name = "LastCloudOtaTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudOtaTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudClaimTime";
+    entity.name = "LastCloudClaimTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudClaimTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudContentTime";
+    entity.name = "LastCloudContentTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudContentTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudFreshnessCheckTime";
+    entity.name = "LastCloudFreshnessCheckTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudFreshnessCheckTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "LastCloudResetTime";
+    entity.name = "LastCloudResetTime";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/LastCloudResetTime";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
     osFreeMem(box_id);
 }
 
