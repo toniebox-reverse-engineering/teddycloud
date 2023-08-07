@@ -192,12 +192,29 @@ settings_t *get_settings_ovl(const char *overlay)
 
 settings_t *get_settings_cn(const char *commonName)
 {
-    for (size_t i = 0; i < MAX_OVERLAYS; i++)
+    if (commonName != NULL && osStrcmp(commonName, "") != 0)
     {
-        if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
+
+        for (size_t i = 1; i < MAX_OVERLAYS; i++)
         {
-            return &Settings_Overlay[i];
+            if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
+            {
+                return &Settings_Overlay[i];
+            }
         }
+
+        for (size_t i = 1; i < MAX_OVERLAYS; i++)
+        {
+            if (osStrcmp(Settings_Overlay[i].commonName, "") == 0)
+            {
+                settings_set_string_id("commonName", commonName, i);
+                settings_set_string_id("internal.overlayName", commonName, i);
+                settings_save_ovl(true);
+                return &Settings_Overlay[i];
+            }
+        }
+
+        TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.", commonName);
     }
     return get_settings();
 }
@@ -734,6 +751,10 @@ bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_nam
 
     *((bool *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -787,6 +808,10 @@ bool settings_set_signed_ovl(const char *item, int32_t value, const char *overla
 
     *((int32_t *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -839,6 +864,10 @@ bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *ove
 
     *((uint32_t *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -891,6 +920,10 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 
     *((float *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -949,6 +982,10 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
 
     *ptr = strdup(value);
 
+    if (settingsId > 0)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
