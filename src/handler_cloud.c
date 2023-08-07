@@ -10,9 +10,16 @@
 #include "handler_cloud.h"
 #include "http/http_client.h"
 
+#include "mqtt.h"
+#include "server_helpers.h"
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_INFO(" >> respond with current time\r\n");
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudTime", current_time);
 
     char response[32];
 
@@ -60,6 +67,10 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     }
 
     TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudOtaTime", current_time);
 
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
     {
@@ -174,6 +185,10 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     }
     TRACE_INFO(" >> client requested rUID %s, auth %s\r\n", ruid, msg);
 
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudClaimTime", current_time);
+
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
@@ -231,6 +246,10 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     {
         TRACE_INFO(" >> client requested partial download\r\n");
     }
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudContentTime", current_time);
 
     if (osStrlen(ruid) != 16)
     {
@@ -437,6 +456,10 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
     uint8_t data[BODY_BUFFER_SIZE];
     size_t size;
 
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudFreshnessCheckTime", current_time);
+
     settings_t *settings = get_settings();
 
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
@@ -584,6 +607,11 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
 error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudResetTime", current_time);
+
     // EMPTY POST REQUEST?
     if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))
     {
