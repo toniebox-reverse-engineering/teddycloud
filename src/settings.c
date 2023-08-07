@@ -221,7 +221,7 @@ settings_t *get_settings_cn(const char *commonName)
 
 uint8_t get_overlay_id(const char *overlay)
 {
-    if (overlay == NULL)
+    if (overlay == NULL || osStrlen(overlay) == 0)
     {
         return 0;
     }
