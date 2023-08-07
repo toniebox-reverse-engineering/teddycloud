@@ -493,6 +493,21 @@ void settings_load_ovl(bool overlay)
         return;
     }
 
+    if (overlay)
+    {
+        for (size_t i = 1; i < MAX_OVERLAYS; i++)
+        {
+            int pos = 0;
+            setting_item_t *option_map = Option_Map_Overlay[i];
+            while (option_map[pos].type != TYPE_END)
+            {
+                setting_item_t *opt = &option_map[pos];
+                opt->overlayed = false;
+                pos++;
+            }
+        }
+    }
+
     // Buffer to hold the file content
     char buffer[256];
     size_t from_read;
