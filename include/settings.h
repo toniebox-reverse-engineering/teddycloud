@@ -327,6 +327,7 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
  * @param value The new value for the setting item.
  */
 bool settings_set_bool(const char *item, bool value);
+bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name);
 
 /**
  * @brief Gets the value of a boolean setting item.
@@ -353,6 +354,7 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_signed(const char *item, int32_t value);
+bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name);
 
 /**
  * @brief Gets the value of an unsigned integer setting item.
@@ -370,6 +372,7 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
+bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
 
 /**
  * @brief Retrieves a setting item by its name.
@@ -396,6 +399,7 @@ const char *settings_get_string_ovl(const char *item, const char *overlay_name);
  * @param value The new string value for the setting item.
  */
 bool settings_set_string(const char *item, const char *value);
+bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name);
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId);
 
 /**
@@ -414,5 +418,6 @@ float settings_get_float_ovl(const char *item, const char *overlay_name);
  * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
  */
 bool settings_set_float(const char *item, float value);
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 #endif

@@ -720,12 +720,16 @@ bool settings_get_bool_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_bool(const char *item, bool value)
 {
+    return settings_set_bool_ovl(item, value, NULL);
+}
+bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_BOOL)
     {
         return false;
@@ -763,12 +767,16 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_signed(const char *item, int32_t value)
 {
+    return settings_set_signed_ovl(item, value, NULL);
+}
+bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_SIGNED)
     {
         return false;
@@ -811,12 +819,16 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_unsigned(const char *item, uint32_t value)
 {
+    return settings_set_unsigned_ovl(item, value, NULL);
+}
+bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_UNSIGNED)
     {
         return false;
@@ -859,12 +871,16 @@ float settings_get_float_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_float(const char *item, float value)
 {
+    return settings_set_float_ovl(item, value, NULL);
+}
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_FLOAT)
     {
         return false;
@@ -910,7 +926,10 @@ bool settings_set_string(const char *item, const char *value)
 {
     return settings_set_string_id(item, value, 0);
 }
-
+bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name)
+{
+    return settings_set_string_id(item, value, get_overlay_id(overlay_name));
+}
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId)
 {
     if (!item || !value)
