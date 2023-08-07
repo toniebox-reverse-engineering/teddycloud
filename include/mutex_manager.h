@@ -8,6 +8,8 @@ typedef enum
     MUTEX_SSE_CTX,
     MUTEX_SSE_EVENT,
     MUTEX_RTNL_FILE,
+    MUTEX_MQTT_TX_BUFFER,
+    MUTEX_MQTT_BOX,
     MUTEX_LAST
 } mutex_id_t;
 
