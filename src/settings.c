@@ -67,7 +67,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server")
     OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
-    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, TRUE, "Config initialized?")
+    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
@@ -130,6 +130,7 @@ static void option_map_init(uint8_t settingsId)
     }
 
     osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
+    Settings_Overlay[settingsId].internal.config_init = true;
 }
 
 static setting_item_t *get_option_map(const char *overlay)
@@ -176,7 +177,6 @@ void overlay_settings_init()
             }
             pos++;
         }
-        Settings_Overlay[i].internal.config_init = true;
     }
 }
 
@@ -265,7 +265,6 @@ void settings_changed()
 {
     Settings_Overlay[0].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings());
-    overlay_settings_init();
     settings_load_ovl(true);
 }
 
@@ -296,7 +295,7 @@ void settings_deinit(uint8_t overlayId)
         }
         pos++;
     }
-    Settings_Overlay[overlayId].internal.config_init = FALSE;
+    Settings_Overlay[overlayId].internal.config_init = false;
 
     osFreeMem(Option_Map_Overlay[overlayId]);
     Option_Map_Overlay[overlayId] = NULL;
@@ -349,10 +348,6 @@ void settings_init(char *cwd)
             break;
         }
         pos++;
-    }
-    for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
-    {
-        Settings_Overlay[i].internal.config_init = FALSE;
     }
     settings_set_string("internal.cwd", cwd);
 
@@ -495,17 +490,7 @@ void settings_load_ovl(bool overlay)
 
     if (overlay)
     {
-        for (size_t i = 1; i < MAX_OVERLAYS; i++)
-        {
-            int pos = 0;
-            setting_item_t *option_map = Option_Map_Overlay[i];
-            while (option_map[pos].type != TYPE_END)
-            {
-                setting_item_t *opt = &option_map[pos];
-                opt->overlayed = false;
-                pos++;
-            }
-        }
+        overlay_settings_init();
     }
 
     // Buffer to hold the file content
@@ -550,10 +535,7 @@ void settings_load_ovl(bool overlay)
                         {
                             if (osStrlen(Settings_Overlay[i].internal.overlayName) == 0)
                             {
-                                free(Settings_Overlay[i].internal.overlayName);
-                                Settings_Overlay[i].internal.overlayName = strdup(overlay_name);
-                                // setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
-                                //*((char **)opt->ptr) = strdup(*((char **)opt->ptr));
+                                settings_set_string_id("internal.overlayName", overlay_name, i);
                                 break;
                             }
                         }
