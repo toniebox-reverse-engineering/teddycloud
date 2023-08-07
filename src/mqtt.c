@@ -14,6 +14,7 @@
 
 #include "home_assistant.h"
 #include "debug.h"
+#include "mutex_manager.h"
 #include "mqtt.h"
 
 OsMutex mqtt_tx_buffer_mutex;
@@ -188,7 +189,7 @@ void mqttTestPublishCallback(MqttClientContext *context,
     osMemcpy(payload, message, length);
     payload[length] = 0;
 
-    osAcquireMutex(&mqtt_box_mutex);
+    mutex_lock(MUTEX_MQTT_BOX);
     for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
     {
         if (ha_box_instances[pos].initialized)
@@ -196,7 +197,7 @@ void mqttTestPublishCallback(MqttClientContext *context,
             ha_received(&ha_box_instances[pos], (char *)topic, (const char *)payload);
         }
     }
-    osReleaseMutex(&mqtt_box_mutex);
+    mutex_unlock(MUTEX_MQTT_BOX);
     ha_received(&ha_server_instance, (char *)topic, (const char *)payload);
 
     osFreeMem(payload);
@@ -222,8 +223,8 @@ bool mqtt_publish(const char *item_topic, const char *content)
 {
     int entries = 0;
     bool success = false;
-    osAcquireMutex(&mqtt_tx_buffer_mutex);
 
+    mutex_lock(MUTEX_MQTT_TX_BUFFER);
     for (int pos = 0; pos < MQTT_TX_BUFFERS; pos++)
     {
         if (!mqtt_tx_buffers[pos].used)
@@ -262,7 +263,7 @@ bool mqtt_publish(const char *item_topic, const char *content)
             }
         }
     }
-    osReleaseMutex(&mqtt_tx_buffer_mutex);
+    mutex_unlock(MUTEX_MQTT_TX_BUFFER);
 
     return success;
 }
@@ -362,7 +363,7 @@ void mqtt_thread()
                 TRACE_INFO("Connected\r\n");
                 mqttConnected = TRUE;
                 mqtt_fail = false;
-                osAcquireMutex(&mqtt_box_mutex);
+                mutex_lock(MUTEX_MQTT_BOX);
                 for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
                 {
                     if (ha_box_instances[pos].initialized)
@@ -370,7 +371,7 @@ void mqtt_thread()
                         ha_connected(&ha_box_instances[pos]);
                     }
                 }
-                osReleaseMutex(&mqtt_box_mutex);
+                mutex_unlock(MUTEX_MQTT_BOX);
                 ha_connected(&ha_server_instance);
             }
             else
@@ -389,7 +390,7 @@ void mqtt_thread()
         }
 
         /* process buffered Tx actions */
-        osAcquireMutex(&mqtt_tx_buffer_mutex);
+        mutex_lock(MUTEX_MQTT_TX_BUFFER);
         for (int pos = 0; pos < MQTT_TX_BUFFERS; pos++)
         {
             if (mqtt_tx_buffers[pos].used)
@@ -400,9 +401,9 @@ void mqtt_thread()
                 mqtt_tx_buffers[pos].used = false;
             }
         }
-        osReleaseMutex(&mqtt_tx_buffer_mutex);
+        mutex_unlock(MUTEX_MQTT_TX_BUFFER);
 
-        osAcquireMutex(&mqtt_box_mutex);
+        mutex_lock(MUTEX_MQTT_BOX);
         for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
         {
             if (ha_box_instances[pos].initialized)
@@ -410,7 +411,7 @@ void mqtt_thread()
                 ha_loop(&ha_box_instances[pos]);
             }
         }
-        osReleaseMutex(&mqtt_box_mutex);
+        mutex_unlock(MUTEX_MQTT_BOX);
         ha_loop(&ha_server_instance);
     }
 }
@@ -704,7 +705,7 @@ t_ha_info *mqtt_get_box(const char *box_id)
     t_ha_info *ret = NULL;
     char *name = mqtt_fmt_create("teddyCloud_Box_%s", box_id);
 
-    osAcquireMutex(&mqtt_box_mutex);
+    mutex_lock(MUTEX_MQTT_BOX);
     for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
     {
         if (ha_box_instances[pos].initialized && !osStrcasecmp(name, ha_box_instances[pos].id))
@@ -726,7 +727,7 @@ t_ha_info *mqtt_get_box(const char *box_id)
             }
         }
     }
-    osReleaseMutex(&mqtt_box_mutex);
+    mutex_unlock(MUTEX_MQTT_BOX);
     osFreeMem(name);
     return ret;
 }
