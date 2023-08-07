@@ -24,6 +24,10 @@
       "title": "Certificates"
     }
   },
+  "tonies": {
+    "navigationTitle": "Tonies",
+    "title": "Tonies"
+  },
   "language": {
     "change": "Change language",
     "english": "EN",

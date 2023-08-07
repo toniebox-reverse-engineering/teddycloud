@@ -24,6 +24,10 @@
       "title": "Zertifikate"
     }
   },
+  "tonies": {
+    "navigationTitle": "Tonies",
+    "title": "Tonies"
+  },
   "language": {
     "change": "Sprache ändern",
     "english": "EN",
