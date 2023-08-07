@@ -281,6 +281,7 @@ void settings_deinit(uint8_t overlayId)
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
+        opt->overlayed = false;
 
         switch (opt->type)
         {
@@ -509,6 +510,8 @@ void settings_load_ovl(bool overlay)
                             {
                                 free(Settings_Overlay[i].internal.overlayName);
                                 Settings_Overlay[i].internal.overlayName = strdup(overlay_name);
+                                setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
+                                opt->overlayed = true;
                                 // setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
                                 //*((char **)opt->ptr) = strdup(*((char **)opt->ptr));
                                 break;
@@ -524,6 +527,10 @@ void settings_load_ovl(bool overlay)
                     if (opt != NULL)
                     {
                         // Update the setting value based on the type
+                        if (overlay)
+                        {
+                            opt->overlayed = true;
+                        }
                         switch (opt->type)
                         {
                         case TYPE_BOOL:
@@ -555,6 +562,7 @@ void settings_load_ovl(bool overlay)
                             break;
 
                         default:
+                            opt->overlayed = false;
                             break;
                         }
                     }
