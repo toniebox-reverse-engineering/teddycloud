@@ -46,7 +46,6 @@ typedef struct
     char *password;
     char *identification;
     char *topic;
-    char *host_url;
 } settings_mqtt_t;
 
 typedef struct
@@ -110,6 +109,7 @@ typedef struct
 {
     uint32_t http_port;
     uint32_t https_port;
+    char *host_url;
     char *certdir;
     char *contentdir;
     char *librarydir;

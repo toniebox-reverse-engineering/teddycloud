@@ -314,7 +314,7 @@ void ha_setup(t_ha_info *ha_info)
     osSprintf(ha_info->base_topic, "%s", "teddyCloud");
     osSprintf(ha_info->name, "%s", ha_info->base_topic);
     osSprintf(ha_info->id, "%s", "teddyCloud");
-    osSprintf(ha_info->cu, "%s", settings_get_string("mqtt.host_url"));
+    osSprintf(ha_info->cu, "%s", settings_get_string("core.host_url"));
     osSprintf(ha_info->mf, "RevvoX");
     osSprintf(ha_info->mdl, "%s", "teddyCloud");
     osSprintf(ha_info->sw, "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
