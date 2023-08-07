@@ -371,7 +371,8 @@ void settings_init(char *cwd)
 
 void settings_save()
 {
-    settings_save_ovl(NULL);
+    settings_save_ovl(false);
+    settings_save_ovl(true);
 }
 
 void settings_save_ovl(bool overlay)
@@ -386,48 +387,74 @@ void settings_save_ovl(bool overlay)
         return;
     }
 
-    if (overlay)
+    for (size_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        fsCloseFile(file);
-        return;
-    }
+        int pos = 0;
+        char buffer[256]; // Buffer to hold the file content
 
-    Settings_Overlay[0].configVersion = CONFIG_VERSION;
-
-    int pos = 0;
-    char buffer[256]; // Buffer to hold the file content
-    while (get_option_map(NULL)[pos].type != TYPE_END)
-    {
-        if (!get_option_map(NULL)[pos].internal || !osStrcmp(get_option_map(NULL)[pos].option_name, "configVersion"))
+        if (i == 0 && overlay)
         {
-            setting_item_t *opt = &get_option_map(NULL)[pos];
-
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                sprintf(buffer, "%s=%s\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
-                break;
-            case TYPE_SIGNED:
-                sprintf(buffer, "%s=%d\n", opt->option_name, *((int32_t *)opt->ptr));
-                break;
-            case TYPE_UNSIGNED:
-            case TYPE_HEX:
-                sprintf(buffer, "%s=%u\n", opt->option_name, *((uint32_t *)opt->ptr));
-                break;
-            case TYPE_FLOAT:
-                sprintf(buffer, "%s=%f\n", opt->option_name, *((float *)opt->ptr));
-                break;
-            case TYPE_STRING:
-                sprintf(buffer, "%s=%s\n", opt->option_name, *((char **)opt->ptr));
-                break;
-            default:
-                buffer[0] = 0;
-                break;
-            }
-            if (osStrlen(buffer) > 0)
-                fsWriteFile(file, buffer, osStrlen(buffer));
+            i++;
         }
-        pos++;
+        else if (i > 0 && !overlay)
+        {
+            break;
+        }
+        Settings_Overlay[i].configVersion = CONFIG_VERSION;
+
+        setting_item_t *option_map = Option_Map_Overlay[i];
+        while (option_map[pos].type != TYPE_END)
+        {
+            setting_item_t *opt = &option_map[pos];
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && !osStrcmp(opt->option_name, "commonName")))
+            {
+                char *overlayPrefix;
+                if (overlay)
+                {
+                    if (!opt->overlayed)
+                    {
+                        pos++;
+                        continue; // Only write overlay settings if they were overlayed
+                    }
+                    overlayPrefix = osAllocMem(8 + osStrlen(Settings_Overlay[i].internal.overlayName) + 1 + 1); // overlay.[NAME].
+                    osStrcpy(overlayPrefix, "overlay.");
+                    osStrcat(overlayPrefix, Settings_Overlay[i].internal.overlayName);
+                    osStrcat(overlayPrefix, ".");
+                }
+                else
+                {
+                    overlayPrefix = osAllocMem(1);
+                    osStrcpy(overlayPrefix, "");
+                }
+
+                switch (opt->type)
+                {
+                case TYPE_BOOL:
+                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
+                    break;
+                case TYPE_SIGNED:
+                    sprintf(buffer, "%s%s=%d\n", overlayPrefix, opt->option_name, *((int32_t *)opt->ptr));
+                    break;
+                case TYPE_UNSIGNED:
+                case TYPE_HEX:
+                    sprintf(buffer, "%s%s=%u\n", overlayPrefix, opt->option_name, *((uint32_t *)opt->ptr));
+                    break;
+                case TYPE_FLOAT:
+                    sprintf(buffer, "%s%s=%f\n", overlayPrefix, opt->option_name, *((float *)opt->ptr));
+                    break;
+                case TYPE_STRING:
+                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((char **)opt->ptr));
+                    break;
+                default:
+                    buffer[0] = '\0';
+                    break;
+                }
+                if (osStrlen(buffer) > 0)
+                    fsWriteFile(file, buffer, osStrlen(buffer));
+                osFreeMem(overlayPrefix);
+            }
+            pos++;
+        }
     }
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
@@ -510,8 +537,6 @@ void settings_load_ovl(bool overlay)
                             {
                                 free(Settings_Overlay[i].internal.overlayName);
                                 Settings_Overlay[i].internal.overlayName = strdup(overlay_name);
-                                setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
-                                opt->overlayed = true;
                                 // setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
                                 //*((char **)opt->ptr) = strdup(*((char **)opt->ptr));
                                 break;
