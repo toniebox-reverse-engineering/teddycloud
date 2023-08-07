@@ -303,7 +303,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
         char buffer[33];
 
         /* ESP32 sends tag IDs, even if unknown */
-        if (rpc->log2->function_group == 15 && rpc->log2->function == 15452)
+        if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32)
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -316,7 +316,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
             mqtt_sendBoxEvent(box_id, "TagInvalid", buffer);
             mqtt_sendBoxEvent(box_id, "TagValid", "");
         }
-        else if (rpc->log2->function_group == 15 && rpc->log2->function == 16065)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_VALID_ESP32)
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -329,8 +329,8 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
             mqtt_sendBoxEvent(box_id, "TagValid", buffer);
             mqtt_sendBoxEvent(box_id, "TagInvalid", "");
         }
-        /* CC also sends messages */
-        else if (rpc->log2->function_group == 15 && rpc->log2->function == 8646)
+        /* CC3200 also sends messages */
+        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200)
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -343,7 +343,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
             mqtt_sendBoxEvent(box_id, "TagInvalid", buffer);
             mqtt_sendBoxEvent(box_id, "TagValid", "");
         }
-        else if (rpc->log2->function_group == 15 && rpc->log2->function == 8627)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_VALID_CC3200)
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -356,21 +356,21 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc)
             mqtt_sendBoxEvent(box_id, "TagValid", buffer);
             mqtt_sendBoxEvent(box_id, "TagInvalid", "");
         }
-        else if (rpc->log2->function_group == 12 && rpc->log2->function == 15427)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
         {
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
-            sse_sendEvent("BoxTilt", buffer, true);
+            sse_sendEvent("BoxTilt-A", buffer, true);
             mqtt_sendBoxEvent(box_id, "BoxTilt", buffer);
         }
-        else if (rpc->log2->function_group == 12 && rpc->log2->function == 15426)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_B_ESP32)
         {
             int32_t angle = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", angle);
-            sse_sendEvent("BoxTilt", buffer, true);
+            sse_sendEvent("BoxTilt-B", buffer, true);
             mqtt_sendBoxEvent(box_id, "BoxTilt", buffer);
         }
-        else if (rpc->log2->function_group == 27 && rpc->log2->function == 15524)
+        else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME && rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32)
         {
             /* 963C0000 D8FFFFFF 00000000 */
             int32_t volumedB = read_little_endian(&rpc->log2->field6.data[4]);
