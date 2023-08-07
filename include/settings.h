@@ -46,6 +46,7 @@ typedef struct
     char *password;
     char *identification;
     char *topic;
+    uint32_t qosLevel;
 } settings_mqtt_t;
 
 typedef struct

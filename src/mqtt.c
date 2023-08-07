@@ -154,7 +154,7 @@ error_t mqtt_sendEvent(const char *eventname, const char *content)
     char topic[MQTT_TOPIC_STRING_LENGTH];
 
     osSnprintf(topic, sizeof(topic), "%s/event/%s", settings_get_string("mqtt.topic"), eventname);
-    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), MQTT_QOS_LEVEL_0, false, NULL);
+    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), settings_get_unsigned("mqtt.qosLevel"), false, NULL);
 
     return NO_ERROR;
 }
@@ -395,7 +395,7 @@ void mqtt_thread()
         {
             if (mqtt_tx_buffers[pos].used)
             {
-                mqttClientPublish(&mqtt_context, mqtt_tx_buffers[pos].topic, mqtt_tx_buffers[pos].payload, osStrlen(mqtt_tx_buffers[pos].payload), MQTT_QOS_LEVEL_0, false, NULL);
+                mqttClientPublish(&mqtt_context, mqtt_tx_buffers[pos].topic, mqtt_tx_buffers[pos].payload, osStrlen(mqtt_tx_buffers[pos].payload), settings_get_unsigned("mqtt.qosLevel"), false, NULL);
                 osFreeMem(mqtt_tx_buffers[pos].topic);
                 osFreeMem(mqtt_tx_buffers[pos].payload);
                 mqtt_tx_buffers[pos].used = false;

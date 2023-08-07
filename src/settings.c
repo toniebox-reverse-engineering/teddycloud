@@ -121,6 +121,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("mqtt.password", &settings->mqtt.password, "", "Password")
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification")
     OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix")
+    OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level")
     OPTION_END()
 
     if (Option_Map_Overlay[settingsId] == NULL)
