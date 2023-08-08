@@ -24,7 +24,11 @@ typedef enum
     /* https://www.home-assistant.io/integrations/ha_light.mqtt/ */
     ha_light,
     /* https://www.home-assistant.io/integrations/switch.mqtt/ */
-    ha_switch
+    ha_switch,
+    /* https://www.home-assistant.io/integrations/event.mqtt/ */
+    ha_event,
+    /* https://www.home-assistant.io/integrations/device_trigger.mqtt/ */
+    ha_device_trigger
 } t_ha_device_type;
 
 typedef struct s_ha_entity t_ha_entity;
