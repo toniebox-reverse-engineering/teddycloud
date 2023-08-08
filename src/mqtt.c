@@ -1,4 +1,3 @@
-
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
@@ -599,6 +598,9 @@ void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
     osSprintf(ha_box_instance->name, "Toniebox: '%s'", box_id_in);
     osSprintf(ha_box_instance->id, "teddyCloud_Box_%s", box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
+
+    TRACE_INFO("Registered new box '%s' (cleaned: '%s')\r\n", box_id_in, box_id);
+    TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TagInvalid";
