@@ -180,10 +180,15 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 
     for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
     {
+        if (i > 3 && !client_ctx->settings->log.logFullAuth)
+        {
+            osStrcat(msg, "...");
+            break;
+        }
         osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
         osStrcat(msg, buffer);
     }
-    TRACE_INFO(" >> client requested rUID %s, auth %s\r\n", ruid, msg);
+    TRACE_INFO(" >> client claim requested rUID %s, auth %s\r\n", ruid, msg);
 
     char current_time[64];
     time_format_current(current_time);
@@ -260,10 +265,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
     {
+        if (i > 3 && !client_ctx->settings->log.logFullAuth)
+        {
+            osStrcat(msg, "...");
+            break;
+        }
         osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
         osStrcat(msg, buffer);
     }
-    TRACE_INFO(" >> client requested rUID %s, auth %s\r\n", ruid, msg);
+    TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);

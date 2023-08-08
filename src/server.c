@@ -75,6 +75,7 @@ request_type_t request_paths[] = {
 
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_GET, "/api/getBoxes", &handleApiGetBoxes},
     {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
@@ -402,6 +403,8 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     // Any error to report?
     if (error)
         return error;
+
+    tls_context_key_log_init(tlsContext);
 
     // Session cache that will be used to save/resume TLS sessions
     error = tlsSetCache(tlsContext, tlsCache);

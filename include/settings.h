@@ -7,6 +7,7 @@
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
 #define CONFIG_VERSION 4
+#define MAX_OVERLAYS 16 + 1
 
 typedef enum
 {
@@ -116,6 +117,7 @@ typedef struct
     char *librarydir;
     char *datadir;
     char *wwwdir;
+    char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
@@ -128,6 +130,7 @@ typedef struct
 {
     settings_loglevel level;
     bool color;
+    bool logFullAuth;
 } settings_log_t;
 
 typedef struct
@@ -159,6 +162,7 @@ typedef enum
     TYPE_HEX,
     TYPE_STRING,
     TYPE_FLOAT,
+    TYPE_TREE_DESC,
     TYPE_END
 } settings_type;
 
@@ -222,6 +226,7 @@ typedef struct
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i, .overlayed = ov},
 #define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i, .overlayed = ov},
 #define OPTION_ADV_STRING(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .internal = i, .overlayed = ov},
 
 #define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false, false)
 #define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false, false)
@@ -235,6 +240,8 @@ typedef struct
 #define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true, false)
 #define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true, false)
 
+#define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
+
 #define OPTION_END()     \
     {                    \
         .type = TYPE_END \
@@ -246,6 +253,7 @@ void overlay_settings_init();
 
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay);
+settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
 
 uint8_t get_overlay_id(const char *overlay);
@@ -327,6 +335,7 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
  * @param value The new value for the setting item.
  */
 bool settings_set_bool(const char *item, bool value);
+bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name);
 
 /**
  * @brief Gets the value of a boolean setting item.
@@ -353,6 +362,7 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_signed(const char *item, int32_t value);
+bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name);
 
 /**
  * @brief Gets the value of an unsigned integer setting item.
@@ -370,6 +380,7 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
+bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
 
 /**
  * @brief Retrieves a setting item by its name.
@@ -396,6 +407,7 @@ const char *settings_get_string_ovl(const char *item, const char *overlay_name);
  * @param value The new string value for the setting item.
  */
 bool settings_set_string(const char *item, const char *value);
+bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name);
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId);
 
 /**
@@ -414,5 +426,6 @@ float settings_get_float_ovl(const char *item, const char *overlay_name);
  * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
  */
 bool settings_set_float(const char *item, float value);
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 #endif

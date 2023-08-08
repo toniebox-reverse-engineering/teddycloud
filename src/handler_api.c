@@ -32,7 +32,7 @@ typedef enum
 
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
+    const char *rootPath;
     char *response = "OK";
     error_t ret = NO_ERROR;
 
@@ -50,6 +50,8 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
     }
+    rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
+
     if (queryGet(queryString, "path", path, sizeof(path)))
     {
         TRACE_INFO("got path '%s'\r\n", path);
@@ -59,7 +61,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
         TRACE_INFO("requested index for special '%s'\r\n", special);
         if (!osStrcmp(special, "library"))
         {
-            rootPath = settings_get_string("internal.librarydirfull");
+            rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
 
             if (rootPath == NULL || !fsDirExists(rootPath))
             {
@@ -80,7 +82,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-        settings_set_string("internal.assign_unknown", pathAbsolute);
+        settings_set_string_ovl("internal.assign_unknown", pathAbsolute, overlay);
         osFreeMem(pathAbsolute);
     }
 
@@ -97,15 +99,21 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "options");
     int pos = 0;
 
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
     while (true)
     {
-        setting_item_t *opt = settings_get(pos);
+        setting_item_t *opt = settings_get_ovl(pos, overlay);
 
         if (!opt)
         {
             break;
         }
-        if (opt->internal)
+        if (opt->internal || opt->type == TYPE_TREE_DESC)
         {
             pos++;
             continue;
@@ -120,27 +128,30 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         {
         case TYPE_BOOL:
             cJSON_AddStringToObject(jsonEntry, "type", "bool");
-            cJSON_AddBoolToObject(jsonEntry, "value", settings_get_bool(opt->option_name));
+            cJSON_AddBoolToObject(jsonEntry, "value", settings_get_bool_ovl(opt->option_name, overlay));
             break;
         case TYPE_UNSIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "uint");
-            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned(opt->option_name));
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
             break;
         case TYPE_SIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "int");
-            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed(opt->option_name));
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed_ovl(opt->option_name, overlay));
             break;
         case TYPE_HEX:
             cJSON_AddStringToObject(jsonEntry, "type", "hex");
-            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned(opt->option_name));
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
             break;
         case TYPE_STRING:
             cJSON_AddStringToObject(jsonEntry, "type", "string");
-            cJSON_AddStringToObject(jsonEntry, "value", settings_get_string(opt->option_name));
+            cJSON_AddStringToObject(jsonEntry, "value", settings_get_string_ovl(opt->option_name, overlay));
             break;
         case TYPE_FLOAT:
             cJSON_AddStringToObject(jsonEntry, "type", "float");
-            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float(opt->option_name));
+            cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float_ovl(opt->option_name, overlay));
+            break;
+        case TYPE_TREE_DESC:
+            cJSON_AddStringToObject(jsonEntry, "type", "desc");
             break;
         default:
             break;
@@ -149,6 +160,36 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddItemToArray(jsonArray, jsonEntry);
 
         pos++;
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+
+error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+{
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "boxes");
+
+    for (size_t i = 1; i < MAX_OVERLAYS; i++)
+    {
+        settings_t *settings = get_settings_id(i);
+        if (osStrcmp(settings->commonName, "") == 0)
+        {
+            continue;
+        }
+
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayName);
+        cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
+
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
     }
 
     char *jsonString = cJSON_PrintUnformatted(json);
@@ -210,27 +251,33 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     osStrcpy(response, "ERROR");
     const char *response_ptr = response;
 
-    setting_item_t *opt = settings_get_by_name(item);
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
     if (opt)
     {
         switch (opt->type)
         {
         case TYPE_BOOL:
-            osSprintf(response, "%s", settings_get_bool(item) ? "true" : "false");
+            osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
             break;
         case TYPE_HEX:
         case TYPE_UNSIGNED:
-            osSprintf(response, "%d", settings_get_unsigned(item));
+            osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
             break;
         case TYPE_SIGNED:
-            osSprintf(response, "%d", settings_get_signed(item));
+            osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
             break;
         case TYPE_STRING:
-            response_ptr = settings_get_string(item);
+            response_ptr = settings_get_string_ovl(item, overlay);
             break;
         case TYPE_FLOAT:
-            osSprintf(response, "%f", settings_get_float(item));
+            osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
             break;
         default:
             break;
@@ -268,7 +315,13 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 
         TRACE_INFO("Setting: '%s' to '%s'\r\n", item, data);
 
-        setting_item_t *opt = settings_get_by_name(item);
+        char overlay[16];
+        osStrcpy(overlay, "");
+        if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+        {
+            TRACE_INFO("got overlay '%s'\r\n", overlay);
+        }
+        setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
         bool success = false;
 
         if (opt)
@@ -277,39 +330,39 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
             {
             case TYPE_BOOL:
             {
-                success = settings_set_bool(item, !strcasecmp(data, "true"));
+                success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
                 break;
             }
             case TYPE_STRING:
             {
-                success = settings_set_string(item, data);
+                success = settings_set_string_ovl(item, data, overlay);
                 break;
             }
             case TYPE_HEX:
             {
                 uint32_t value = strtoul(data, NULL, 16);
-                success = settings_set_unsigned(item, value);
+                success = settings_set_unsigned_ovl(item, value, overlay);
                 break;
             }
 
             case TYPE_UNSIGNED:
             {
                 uint32_t value = strtoul(data, NULL, 10);
-                success = settings_set_unsigned(item, value);
+                success = settings_set_unsigned_ovl(item, value, overlay);
                 break;
             }
 
             case TYPE_SIGNED:
             {
                 int32_t value = strtol(data, NULL, 10);
-                success = settings_set_signed(item, value);
+                success = settings_set_signed_ovl(item, value, overlay);
                 break;
             }
 
             case TYPE_FLOAT:
             {
                 float value = strtof(data, NULL);
-                success = settings_set_float(item, value);
+                success = settings_set_float_ovl(item, value, overlay);
                 break;
             }
 
@@ -335,15 +388,9 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char *jsonString = strdup("{\"files\":[]}");
-    const char *rootPath = settings_get_string("internal.contentdirfull");
 
     do
     {
-        if (rootPath == NULL || !fsDirExists(rootPath))
-        {
-            TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
-            break;
-        }
 
         char overlay[16];
         char special[16];
@@ -354,13 +401,19 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         {
             TRACE_INFO("requested index using overlay '%s'\r\n", overlay);
         }
+        const char *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
+        if (rootPath == NULL || !fsDirExists(rootPath))
+        {
+            TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", rootPath);
+            break;
+        }
 
         if (queryGet(queryString, "special", special, sizeof(special)))
         {
             TRACE_INFO("requested index for '%s'\r\n", special);
             if (!osStrcmp(special, "library"))
             {
-                rootPath = settings_get_string("internal.librarydirfull");
+                rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
 
                 if (rootPath == NULL || !fsDirExists(rootPath))
                 {
@@ -552,7 +605,7 @@ int find_string(const void *haystack, size_t haystack_len, size_t haystack_start
     return -1;
 }
 
-error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, void (*fileCertUploaded)(const char *))
+error_t parse_multipart_content(HttpConnection *connection, const char *rootPath, char *message, size_t message_max, const char *overlay, void (*fileCertUploaded)(const char *, const char *))
 {
     char buffer[2 * BUFFER_SIZE];
     char filename[256];
@@ -719,7 +772,7 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
                 TRACE_INFO("Received file '%s'\r\n", filename);
                 if (fileCertUploaded)
                 {
-                    fileCertUploaded(filename);
+                    fileCertUploaded(filename, overlay);
                 }
 
                 /* Prepare for next file */
@@ -758,10 +811,10 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
     return NO_ERROR;
 }
 
-void fileCertUploaded(const char *filename)
+void fileCertUploaded(const char *filename, const char *overlay)
 {
     /* rootpath must be valid, which is ensured by upload handler */
-    const char *rootPath = settings_get_string("core.certdir");
+    const char *rootPath = settings_get_string_ovl("core.certdir", overlay);
 
     char *path = osAllocMem(osStrlen(rootPath) + osStrlen(filename) + 3);
     osSprintf(path, "%s/%s", rootPath, filename);
@@ -769,17 +822,17 @@ void fileCertUploaded(const char *filename)
     if (!osStrcasecmp(filename, "ca.der"))
     {
         TRACE_INFO("Set ca.der to %s\r\n", path);
-        settings_set_string("core.client_cert.file.ca", path);
+        settings_set_string_ovl("core.client_cert.file.ca", path, overlay);
     }
     else if (!osStrcasecmp(filename, "client.der"))
     {
         TRACE_INFO("Set client.der to %s\r\n", path);
-        settings_set_string("core.client_cert.file.crt", path);
+        settings_set_string_ovl("core.client_cert.file.crt", path, overlay);
     }
     else if (!osStrcasecmp(filename, "private.der"))
     {
         TRACE_INFO("Set private.der to %s\r\n", path);
-        settings_set_string("core.client_cert.file.key", path);
+        settings_set_string_ovl("core.client_cert.file.key", path, overlay);
     }
     else
     {
@@ -793,7 +846,13 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
 {
     uint_t statusCode = 500;
     char message[128];
-    const char *rootPath = settings_get_string("core.certdir");
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    const char *rootPath = settings_get_string_ovl("core.certdir", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -803,7 +862,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     }
     else
     {
-        switch (parse_multipart_content(connection, rootPath, message, sizeof(message), &fileCertUploaded))
+        switch (parse_multipart_content(connection, rootPath, message, sizeof(message), (const char *)overlay, &fileCertUploaded))
         {
         case NO_ERROR:
             statusCode = 200;
@@ -821,7 +880,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
-void fileUploaded(const char *filename)
+void fileUploaded(const char *filename, const char *overlay)
 {
     TRACE_INFO("Received new file '%s'\r\n", filename);
 }
@@ -875,7 +934,13 @@ void sanitizePath(char *path, bool isDir)
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    const char *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -909,7 +974,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     }
     else
     {
-        switch (parse_multipart_content(connection, pathAbsolute, message, sizeof(message), &fileUploaded))
+        switch (parse_multipart_content(connection, pathAbsolute, message, sizeof(message), (const char *)overlay, &fileUploaded))
         {
         case NO_ERROR:
             statusCode = 200;
@@ -928,7 +993,13 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    const char *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -975,7 +1046,13 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    const char *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
@@ -1022,7 +1099,13 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    const char *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {

@@ -87,6 +87,8 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    tls_context_key_log_init(tlsContext);
+
     TRACE_INFO("Initializing TLS done\r\n");
 
     // Successful processing
