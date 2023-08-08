@@ -160,6 +160,7 @@ typedef enum
     TYPE_HEX,
     TYPE_STRING,
     TYPE_FLOAT,
+    TYPE_TREE_DESC,
     TYPE_END
 } settings_type;
 
@@ -223,6 +224,7 @@ typedef struct
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i, .overlayed = ov},
 #define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i, .overlayed = ov},
 #define OPTION_ADV_STRING(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .internal = i, .overlayed = ov},
 
 #define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false, false)
 #define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false, false)
@@ -235,6 +237,8 @@ typedef struct
 #define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true, false)
 #define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true, false)
 #define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true, false)
+
+#define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
 
 #define OPTION_END()     \
     {                    \

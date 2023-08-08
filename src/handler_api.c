@@ -113,7 +113,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         {
             break;
         }
-        if (opt->internal)
+        if (opt->internal || opt->type == TYPE_TREE_DESC)
         {
             pos++;
             continue;
@@ -149,6 +149,9 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         case TYPE_FLOAT:
             cJSON_AddStringToObject(jsonEntry, "type", "float");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float_ovl(opt->option_name, overlay));
+            break;
+        case TYPE_TREE_DESC:
+            cJSON_AddStringToObject(jsonEntry, "type", "desc");
             break;
         default:
             break;
