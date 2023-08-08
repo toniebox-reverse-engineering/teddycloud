@@ -16,11 +16,8 @@
 #include "mutex_manager.h"
 #include "mqtt.h"
 
-OsMutex mqtt_tx_buffer_mutex;
-OsMutex mqtt_box_mutex;
-
 #define MQTT_BOX_INSTANCES 32
-t_ha_info *mqtt_get_box(const char *box_id);
+t_ha_info *mqtt_get_box(client_ctx_t *client_ctx);
 t_ha_info ha_box_instances[MQTT_BOX_INSTANCES];
 t_ha_info ha_server_instance;
 
@@ -148,19 +145,19 @@ char *mqtt_prefix(const char *path)
     return buffer;
 }
 
-error_t mqtt_sendEvent(const char *eventname, const char *content)
+error_t mqtt_sendEvent(const char *eventname, const char *content, client_ctx_t *client_ctx)
 {
     char topic[MQTT_TOPIC_STRING_LENGTH];
 
     osSnprintf(topic, sizeof(topic), "%s/event/%s", settings_get_string("mqtt.topic"), eventname);
-    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), settings_get_unsigned("mqtt.qosLevel"), false, NULL);
+    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), client_ctx->settings->mqtt.qosLevel, false, NULL);
 
     return NO_ERROR;
 }
 
-error_t mqtt_sendBoxEvent(const char *box_id, const char *eventname, const char *content)
+error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx_t *client_ctx)
 {
-    t_ha_info *ha_info = mqtt_get_box(box_id);
+    t_ha_info *ha_info = mqtt_get_box(client_ctx);
     if (!ha_info)
     {
         return ERROR_FAILURE;
@@ -516,6 +513,7 @@ void mqtt_settings_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
         return;
     }
 
+    // TODO allow overlays
     switch (s->type)
     {
     case TYPE_BOOL:
@@ -547,6 +545,7 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
         return;
     }
 
+    // TODO allow overlays
     switch (s->type)
     {
     case TYPE_BOOL:
@@ -589,17 +588,18 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
     }
 }
 
-void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
+void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
-    char *box_id = mqtt_sanitize_id(box_id_in);
+    char *box_id = client_ctx->settings->commonName;
+    char *box_name = client_ctx->settings->internal.overlayName;
 
     ha_setup(ha_box_instance);
-    osSprintf(ha_box_instance->name, "Toniebox: '%s'", box_id_in);
+    osSprintf(ha_box_instance->name, "%s", box_name);
     osSprintf(ha_box_instance->id, "teddyCloud_Box_%s", box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
 
-    TRACE_INFO("Registered new box '%s' (cleaned: '%s')\r\n", box_id_in, box_id);
+    TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
 
     memset(&entity, 0x00, sizeof(entity));
@@ -742,18 +742,13 @@ void mqtt_init_box(const char *box_id_in, t_ha_info *ha_box_instance)
     entity.stat_t = "%s/LastCloudResetTime";
     entity.dev_class = "timestamp";
     ha_add(ha_box_instance, &entity);
-
-    osFreeMem(box_id);
 }
 
-t_ha_info *mqtt_get_box(const char *box_id)
+t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 {
-    if (!box_id)
-    {
-        return NULL;
-    }
+
     t_ha_info *ret = NULL;
-    char *name = mqtt_fmt_create("teddyCloud_Box_%s", box_id);
+    char *name = mqtt_fmt_create("teddyCloud_Box_%s", client_ctx->settings->commonName);
 
     mutex_lock(MUTEX_MQTT_BOX);
     for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
@@ -771,7 +766,7 @@ t_ha_info *mqtt_get_box(const char *box_id)
             if (!ha_box_instances[pos].initialized)
             {
                 ret = &ha_box_instances[pos];
-                mqtt_init_box(box_id, ret);
+                mqtt_init_box(ret, client_ctx);
                 ha_connected(ret);
                 break;
             }
@@ -784,9 +779,6 @@ t_ha_info *mqtt_get_box(const char *box_id)
 
 void mqtt_init()
 {
-    osCreateMutex(&mqtt_tx_buffer_mutex);
-    osCreateMutex(&mqtt_box_mutex);
-
     osCreateTask("MQTT", &mqtt_thread, NULL, 1024, 0);
 
     t_ha_entity entity;

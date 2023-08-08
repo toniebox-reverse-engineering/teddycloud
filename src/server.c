@@ -272,11 +272,14 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         TRACE_INFO("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
         TRACE_INFO("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
     }
+    else
+    {
+        TRACE_INFO("No certificate authentication\r\n");
+    }
 
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     client_ctx_t client_ctx;
-    client_ctx.settings = get_settings();
 
     if (connection->tlsContext)
     {
@@ -288,6 +291,10 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             client_ctx.settings = get_settings_cn(commonName);
             free(commonName);
         }
+    }
+    else
+    {
+        client_ctx.settings = get_settings();
     }
 
     connection->response.keepAlive = connection->request.keepAlive;

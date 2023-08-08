@@ -19,11 +19,11 @@ error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const cha
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudTime", current_time);
+    mqtt_sendBoxEvent("LastCloudTime", current_time, client_ctx);
 
     char response[32];
 
-    if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV1Time"))
+    if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV1Time)
     {
         osSprintf(response, "%" PRIuTIME, time(NULL));
     }
@@ -70,9 +70,9 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudOtaTime", current_time);
+    mqtt_sendBoxEvent("LastCloudOtaTime", current_time, client_ctx);
 
-    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Ota"))
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Ota)
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_OTA, &ctx, client_ctx);
@@ -153,7 +153,7 @@ void markLiveTonie(tonie_info_t *tonieInfo)
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Log"))
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Log)
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_LOG, &ctx, client_ctx);
@@ -192,7 +192,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudClaimTime", current_time);
+    mqtt_sendBoxEvent("LastCloudClaimTime", current_time, client_ctx);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
@@ -211,7 +211,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
             tonieInfo.nocloud = true;
             markCustomTonie(&tonieInfo);
         }
-        else if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1Claim"))
+        else if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Claim)
         {
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx, client_ctx);
@@ -254,7 +254,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudContentTime", current_time);
+    mqtt_sendBoxEvent("LastCloudContentTime", current_time, client_ctx);
 
     if (osStrlen(ruid) != 16)
     {
@@ -286,7 +286,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         markCustomTonie(&tonieInfo);
     }
 
-    settings_t *settings = get_settings();
+    settings_t *settings = client_ctx->settings;
 
     bool assignFile = false;
     bool setLive = false;
@@ -384,7 +384,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!settings_get_bool("cloud.enabled") || !settings_get_bool("cloud.enableV2Content") || tonieInfo.nocloud)
+        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo.nocloud)
         {
             if (tonieInfo.nocloud)
             {
@@ -468,9 +468,9 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudFreshnessCheckTime", current_time);
+    mqtt_sendBoxEvent("LastCloudFreshnessCheckTime", current_time, client_ctx);
 
-    settings_t *settings = get_settings();
+    settings_t *settings = client_ctx->settings;
 
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
@@ -578,7 +578,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 freeTonieInfo(&tonieInfo);
             }
 
-            if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1FreshnessCheck"))
+            if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1FreshnessCheck)
             {
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
@@ -620,10 +620,10 @@ error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const ch
 
     char current_time[64];
     time_format_current(current_time);
-    mqtt_sendBoxEvent(get_box_id(connection), "LastCloudResetTime", current_time);
+    mqtt_sendBoxEvent("LastCloudResetTime", current_time, client_ctx);
 
     // EMPTY POST REQUEST?
-    if (settings_get_bool("cloud.enabled") && settings_get_bool("cloud.enableV1CloudReset"))
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1CloudReset)
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLOUDRESET, &ctx, client_ctx);

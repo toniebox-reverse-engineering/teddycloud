@@ -7,6 +7,7 @@
 #include "version.h"
 #include "debug.h"
 #include "settings.h"
+#include "mutex_manager.h"
 
 #include "fs_port.h"
 
@@ -89,6 +90,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
+    OPTION_INTERNAL_UNSIGNED("internal.overlayId", &settings->internal.overlayId, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
 
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
@@ -147,7 +149,6 @@ static void option_map_init(uint8_t settingsId)
     }
 
     osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
-    Settings_Overlay[settingsId].internal.config_init = true;
 }
 
 static setting_item_t *get_option_map(const char *overlay)
@@ -194,6 +195,8 @@ void overlay_settings_init()
             }
             pos++;
         }
+        Settings_Overlay[i].internal.overlayId = i;
+        Settings_Overlay[i].internal.config_init = true;
     }
 }
 
@@ -213,6 +216,7 @@ settings_t *get_settings_id(uint8_t settingsId)
 
 settings_t *get_settings_cn(const char *commonName)
 {
+    mutex_lock(MUTEX_SETTINGS_CN);
     if (commonName != NULL && osStrcmp(commonName, "") != 0)
     {
 
@@ -220,6 +224,7 @@ settings_t *get_settings_cn(const char *commonName)
         {
             if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
             {
+                mutex_unlock(MUTEX_SETTINGS_CN);
                 return &Settings_Overlay[i];
             }
         }
@@ -231,12 +236,14 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("commonName", commonName, i);
                 settings_set_string_id("internal.overlayName", commonName, i);
                 settings_save_ovl(true);
+                mutex_unlock(MUTEX_SETTINGS_CN);
                 return &Settings_Overlay[i];
             }
         }
 
         TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.", commonName);
     }
+    mutex_unlock(MUTEX_SETTINGS_CN);
     return get_settings();
 }
 
@@ -397,6 +404,8 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
+    Settings_Overlay[0].internal.config_init = true;
 
     settings_changed();
     settings_load();
