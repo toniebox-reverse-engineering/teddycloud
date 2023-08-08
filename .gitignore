@@ -15,3 +15,4 @@ contrib/certs/server/teddy-key.pem
 contrib/certs/client/teddy-cert.pem
 contrib/certs/client/teddy-key.csr
 contrib/certs/client/teddy-key.pem
+.vs/
