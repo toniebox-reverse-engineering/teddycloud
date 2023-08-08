@@ -596,7 +596,7 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 
     ha_setup(ha_box_instance);
     osSprintf(ha_box_instance->name, "%s", box_name);
-    osSprintf(ha_box_instance->id, "teddyCloud_Box_%s", box_id);
+    osSprintf(ha_box_instance->id, "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
 
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
@@ -748,7 +748,7 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 {
 
     t_ha_info *ret = NULL;
-    char *name = mqtt_fmt_create("teddyCloud_Box_%s", client_ctx->settings->commonName);
+    char *name = mqtt_fmt_create("%s_Box_%s", settings_get_string("mqtt.topic"), client_ctx->settings->commonName);
 
     mutex_lock(MUTEX_MQTT_BOX);
     for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
@@ -785,7 +785,7 @@ void mqtt_init()
 
     ha_setup(&ha_server_instance);
     osSprintf(ha_server_instance.name, "%s - Server", settings_get_string("mqtt.topic"));
-    osStrcpy(ha_server_instance.id, "teddyCloudSettings");
+    osSprintf(ha_server_instance.id, "%s_Settings", settings_get_string("mqtt.topic"));
     osStrcpy(ha_server_instance.base_topic, settings_get_string("mqtt.topic"));
 
     int index = 0;
