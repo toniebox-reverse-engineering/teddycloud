@@ -29,6 +29,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("log", "Logging")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "0=off - 6=verbose")
     OPTION_BOOL("log.color", &settings->log.color, TRUE, "Colored log")
+    OPTION_BOOL("log.logFullAuth", &settings->log.logFullAuth, FALSE, "Log full authentication of tags")
 
     /* settings for HTTPS server */
     OPTION_TREE_DESC("core.server", "Server ports")

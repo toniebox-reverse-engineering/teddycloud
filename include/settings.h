@@ -129,6 +129,7 @@ typedef struct
 {
     settings_loglevel level;
     bool color;
+    bool logFullAuth;
 } settings_log_t;
 
 typedef struct
