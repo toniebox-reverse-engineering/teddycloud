@@ -37,6 +37,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Directory wof the audio library")
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Base directory for contentdir/wwwdir when relative")
     OPTION_STRING("core.wwwdir", &settings->core.wwwdir, "www", "Directory where web content is placed")
+    OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL/TLS key log filename")
 
     OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
     OPTION_STRING("core.server_cert.file.crt", &settings->core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")

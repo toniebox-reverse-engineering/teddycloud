@@ -44,6 +44,9 @@
 // DTLS support
 #define DTLS_SUPPORT DISABLED
 
+//Key logging
+#define TLS_KEY_LOG_SUPPORT ENABLED
+
 // Client mode of operation
 #define TLS_CLIENT_SUPPORT ENABLED
 // Server mode of operation
