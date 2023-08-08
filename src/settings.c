@@ -10,7 +10,6 @@
 
 #include "fs_port.h"
 
-#define MAX_OVERLAYS 16 + 1
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
@@ -200,12 +199,16 @@ void overlay_settings_init()
 
 settings_t *get_settings()
 {
-    return &Settings_Overlay[0];
+    return get_settings_id(0);
 }
 
 settings_t *get_settings_ovl(const char *overlay)
 {
-    return &Settings_Overlay[get_overlay_id(overlay)];
+    return get_settings_id(get_overlay_id(overlay));
+}
+settings_t *get_settings_id(uint8_t settingsId)
+{
+    return &Settings_Overlay[settingsId];
 }
 
 settings_t *get_settings_cn(const char *commonName)

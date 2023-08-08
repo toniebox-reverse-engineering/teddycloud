@@ -7,6 +7,7 @@
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
 #define CONFIG_VERSION 4
+#define MAX_OVERLAYS 16 + 1
 
 typedef enum
 {
@@ -252,6 +253,7 @@ void overlay_settings_init();
 
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay);
+settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
 
 uint8_t get_overlay_id(const char *overlay);

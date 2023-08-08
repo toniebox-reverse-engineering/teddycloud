@@ -172,6 +172,36 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
+error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+{
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "boxes");
+
+    for (size_t i = 1; i < MAX_OVERLAYS; i++)
+    {
+        settings_t *settings = get_settings_id(i);
+        if (osStrcmp(settings->commonName, "") == 0)
+        {
+            continue;
+        }
+
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayName);
+        cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
+
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+
 error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *item = &uri[5];
