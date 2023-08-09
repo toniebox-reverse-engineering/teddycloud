@@ -288,7 +288,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
     mqttClientSetIdentifier(mqtt_context, settings_get_string("mqtt.identification"));
     mqttClientSetAuthInfo(mqtt_context, settings_get_string("mqtt.username"), settings_get_string("mqtt.password"));
-    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_2, FALSE);
+    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_2, TRUE);
 
     do
     {
