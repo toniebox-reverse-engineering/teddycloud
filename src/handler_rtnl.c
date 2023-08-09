@@ -17,6 +17,7 @@
 #include "fs_ext.h"
 #include "cloud_request.h"
 #include "server_helpers.h"
+#include "toniesJson.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
@@ -268,6 +269,8 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
             mqtt_sendBoxEvent("AudioId", "", client_ctx);
+            mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
+            mqtt_sendBoxEvent("ContentPicture", "", client_ctx);
             break;
         default:
             TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
@@ -307,10 +310,23 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32))
         {
-            int32_t audioId = read_little_endian(rpc->log2->field6.data);
+            uint32_t audioId = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", audioId);
+            toniesJson_item_t *item = tonies_byAudioId(audioId);
             sse_sendEvent("AudioId", buffer, true);
             mqtt_sendBoxEvent("AudioId", buffer, client_ctx);
+            if (item == NULL)
+            {
+                sse_sendEvent("ContentTitle", "Unknown", true);
+                mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
+            }
+            else
+            {
+                sse_sendEvent("ContentTitle", item->title, true);
+                mqtt_sendBoxEvent("ContentTitle", item->title, client_ctx);
+                sse_sendEvent("ContentPicture", item->picture, true);
+                mqtt_sendBoxEvent("ContentPicture", item->picture, client_ctx);
+            }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
         {

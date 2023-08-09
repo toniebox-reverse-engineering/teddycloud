@@ -24,6 +24,7 @@
 #include "returncodes.h"
 
 #include "server_helpers.h"
+#include "toniesJson.h"
 
 #include "path.h"
 #include "debug.h"
@@ -493,6 +494,7 @@ void server_init()
     }
     settings_set_bool("internal.exit", FALSE);
     sse_init();
+    tonies_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;
@@ -555,6 +557,7 @@ void server_init()
         }
         mutex_manager_loop();
     }
+    tonies_deinit();
     mutex_manager_deinit();
 
     int ret = settings_get_signed("internal.returncode");

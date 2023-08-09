@@ -645,6 +645,20 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
+    entity.id = "KnockForward";
+    entity.name = "Knock Forward";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/KnockForward";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "KnockBackward";
+    entity.name = "Knock Backward";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/KnockBackward";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltForward";
     entity.name = "Tilt Forward";
     entity.type = ha_sensor;
@@ -741,6 +755,28 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.type = ha_sensor;
     entity.stat_t = "%s/LastCloudResetTime";
     entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "ContentAudioId";
+    entity.name = "Content Audio Id";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/ContentAudioId";
+    entity.dev_class = "timestamp";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "ContentTitle";
+    entity.name = "Content Title";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/ContentTitle";
+    ha_add(ha_box_instance, &entity);
+
+    memset(&entity, 0x00, sizeof(entity));
+    entity.id = "ContentPicture";
+    entity.name = "Content Picture";
+    entity.type = ha_sensor;
+    entity.stat_t = "%s/ContentPicture";
     ha_add(ha_box_instance, &entity);
 }
 
