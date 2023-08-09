@@ -267,6 +267,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+            mqtt_sendBoxEvent("AudioId", "", client_ctx);
             break;
         default:
             TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
@@ -278,8 +279,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
     {
         char buffer[33];
 
-        /* ESP32 sends tag IDs, even if unknown */
-        if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32)
+        if (rpc->log2->function_group == RTNL2_FUGR_TAG && (rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32))
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -292,7 +292,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagInvalid", buffer, client_ctx);
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
         }
-        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_VALID_ESP32)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && (rpc->log2->function == RTNL2_FUNC_TAG_VALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_VALID_ESP32))
         {
             if (rpc->log2->field6.len == 8)
             {
@@ -305,32 +305,12 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagValid", buffer, client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
         }
-        /* CC3200 also sends messages */
-        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200)
+        else if (rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32))
         {
-            if (rpc->log2->field6.len == 8)
-            {
-                for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                {
-                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
-                }
-            }
-            sse_sendEvent("TagInvalid", buffer, true);
-            mqtt_sendBoxEvent("TagInvalid", buffer, client_ctx);
-            mqtt_sendBoxEvent("TagValid", "", client_ctx);
-        }
-        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->function == RTNL2_FUNC_TAG_VALID_CC3200)
-        {
-            if (rpc->log2->field6.len == 8)
-            {
-                for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                {
-                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
-                }
-            }
-            sse_sendEvent("TagValid", buffer, true);
-            mqtt_sendBoxEvent("TagValid", buffer, client_ctx);
-            mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+            int32_t audioId = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", audioId);
+            sse_sendEvent("AudioId", buffer, true);
+            mqtt_sendBoxEvent("AudioId", buffer, client_ctx);
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
         {
@@ -346,9 +326,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             sse_sendEvent("BoxTilt-B", buffer, true);
             mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
         }
-        else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME && rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32)
+        else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME && (rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_CC3200 || rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32))
         {
-            /* 963C0000 D8FFFFFF 00000000 */
+            /* DE210000 DBFFFFFF 01000000 */ /* 963C0000 D8FFFFFF 00000000 */
             int32_t volumedB = read_little_endian(&rpc->log2->field6.data[4]);
             int32_t volumeLevel = read_little_endian(&rpc->log2->field6.data[8]);
             osSprintf(buffer, "%d", volumeLevel);
