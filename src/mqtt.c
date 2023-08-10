@@ -596,14 +596,16 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolUp";
     entity.name = "Volume Up";
-    entity.type = ha_binary_sensor;
+    entity.type = ha_event;
+    entity.event_types = "pressed;doublepress;triplepress";
     entity.stat_t = "%s/VolUp";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolDown";
     entity.name = "Volume Down";
-    entity.type = ha_binary_sensor;
+    entity.type = ha_event;
+    entity.event_types = "pressed;doublepress;triplepress";
     entity.stat_t = "%s/VolDown";
     ha_add(ha_box_instance, &entity);
 
@@ -624,28 +626,32 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "KnockForward";
     entity.name = "Knock Forward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/KnockForward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "KnockBackward";
     entity.name = "Knock Backward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/KnockBackward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltForward";
     entity.name = "Tilt Forward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/TiltForward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltBackward";
     entity.name = "Tilt Backward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/TiltBackward";
     ha_add(ha_box_instance, &entity);
 
