@@ -281,6 +281,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     client_ctx_t client_ctx;
+    osMemset(&client_ctx, 0x00, sizeof(client_ctx));
 
     if (connection->tlsContext)
     {
