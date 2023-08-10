@@ -180,14 +180,15 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
     for (size_t i = 1; i < MAX_OVERLAYS; i++)
     {
         settings_t *settings = get_settings_id(i);
-        if (osStrcmp(settings->commonName, "") == 0)
+        if (!settings->internal.config_used)
         {
             continue;
         }
 
         cJSON *jsonEntry = cJSON_CreateObject();
-        cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayName);
+        cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayUniqueId);
         cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
+        cJSON_AddStringToObject(jsonEntry, "boxName", settings->boxName);
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
     }

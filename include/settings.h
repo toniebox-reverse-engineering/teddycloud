@@ -34,7 +34,6 @@ typedef struct
     bool enableV2Content;
     bool cacheContent;
     bool markCustomTagByPass;
-    bool markCustomTagByUid;
     bool prioCustomContent;
 } settings_cloud_t;
 
@@ -86,6 +85,7 @@ typedef struct
     settings_cert_t server;
     settings_cert_t client;
     bool config_init;
+    bool config_used;
     bool config_changed;
 
     char *cwd;
@@ -95,8 +95,8 @@ typedef struct
     char *datadirfull;
     char *wwwdirfull;
 
-    char *overlayName;
-    uint8_t overlayId;
+    char *overlayUniqueId;
+    uint8_t overlayNumber;
     char *assign_unknown;
 
     settings_version_t version;
@@ -146,6 +146,7 @@ typedef struct
 {
     uint32_t configVersion;
     char *commonName;
+    char *boxName;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
@@ -253,11 +254,11 @@ typedef struct
 void overlay_settings_init();
 
 settings_t *get_settings();
-settings_t *get_settings_ovl(const char *overlay);
+settings_t *get_settings_ovl(const char *overlay_unique_id);
 settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
 
-uint8_t get_overlay_id(const char *overlay);
+uint8_t get_overlay_id(const char *overlay_unique_id);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
@@ -276,7 +277,7 @@ void settings_init(char *cwd);
  *
  * This function should be called to clean up all allocated memory.
  */
-void settings_deinit(uint8_t overlayId);
+void settings_deinit(uint8_t overlayNumber);
 void settings_deinit_all();
 
 /**
@@ -428,5 +429,7 @@ float settings_get_float_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_float(const char *item, float value);
 bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
+
+char *settings_sanitize_box_id(const char *input_id);
 
 #endif

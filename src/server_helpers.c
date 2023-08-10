@@ -211,15 +211,3 @@ void time_format_current(char_t *buffer)
 
     time_format(time, buffer);
 }
-
-const char *get_box_id(HttpConnection *connection)
-{
-    const char *box_id = NULL;
-
-    if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
-    {
-        box_id = connection->tlsContext->client_cert_subject;
-    }
-
-    return box_id;
-}

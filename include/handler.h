@@ -21,6 +21,7 @@ typedef struct
 {
     settings_t *settings;
     const char *box_id;
+    const char *box_name;
 } client_ctx_t;
 
 typedef struct

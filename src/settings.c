@@ -24,7 +24,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_START()
 
     OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
-    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "", "common name of the certificate (for overlays)")
+    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)")
+    OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box")
 
     OPTION_TREE_DESC("log", "Logging")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "0=off - 6=verbose")
@@ -82,6 +83,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server")
     OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
     OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?")
+    OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
@@ -89,8 +91,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
-    OPTION_INTERNAL_UNSIGNED("internal.overlayId", &settings->internal.overlayId, 0, 0, MAX_OVERLAYS, "Id of the overlay")
+    OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay")
+    OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
 
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
@@ -115,7 +117,6 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, FALSE, "Cache cloud content on local server")
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Automatically mark custom tags by password")
-    OPTION_BOOL("cloud.markCustomTagByUid", &settings->cloud.markCustomTagByUid, TRUE, "Automatically mark custom tags by Uid")
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Priotize custom over boxine content (force update)")
 
     OPTION_TREE_DESC("toniebox", "Toniebox")
@@ -195,8 +196,9 @@ void overlay_settings_init()
             }
             pos++;
         }
-        Settings_Overlay[i].internal.overlayId = i;
+        Settings_Overlay[i].internal.overlayNumber = i;
         Settings_Overlay[i].internal.config_init = true;
+        Settings_Overlay[i].internal.config_used = false;
     }
 }
 
@@ -205,9 +207,9 @@ settings_t *get_settings()
     return get_settings_id(0);
 }
 
-settings_t *get_settings_ovl(const char *overlay)
+settings_t *get_settings_ovl(const char *overlay_unique_id)
 {
-    return get_settings_id(get_overlay_id(overlay));
+    return get_settings_id(get_overlay_id(overlay_unique_id));
 }
 settings_t *get_settings_id(uint8_t settingsId)
 {
@@ -231,32 +233,42 @@ settings_t *get_settings_cn(const char *commonName)
 
         for (size_t i = 1; i < MAX_OVERLAYS; i++)
         {
-            if (osStrcmp(Settings_Overlay[i].commonName, "") == 0)
+            if (!Settings_Overlay[i].internal.config_used)
             {
-                settings_set_string_id("commonName", commonName, i);
-                settings_set_string_id("internal.overlayName", commonName, i);
+                char *boxId = settings_sanitize_box_id((const char *)commonName);
+                char *boxPrefix = "Toniebox ";
+                char *boxName = osAllocMem(osStrlen(boxPrefix) + osStrlen(commonName) + 1);
+                osSprintf(boxName, "%s%s", boxPrefix, commonName);
+
+                settings_set_string_id("commonName", boxId, i);
+                settings_set_string_id("internal.overlayUniqueId", boxId, i);
+                settings_set_string_id("boxName", commonName, i);
+                Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS_CN);
+
+                free(boxId);
+                free(boxName);
                 return &Settings_Overlay[i];
             }
         }
 
-        TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.", commonName);
+        TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.\r\n", commonName);
     }
     mutex_unlock(MUTEX_SETTINGS_CN);
     return get_settings();
 }
 
-uint8_t get_overlay_id(const char *overlay)
+uint8_t get_overlay_id(const char *overlay_unique_id)
 {
-    if (overlay == NULL || osStrlen(overlay) == 0)
+    if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {
         return 0;
     }
 
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        if (osStrcmp(Settings_Overlay[i].internal.overlayName, overlay) == 0)
+        if (osStrcmp(Settings_Overlay[i].internal.overlayUniqueId, overlay_unique_id) == 0)
         {
             return i;
         }
@@ -313,10 +325,10 @@ void settings_changed()
     settings_load_ovl(true);
 }
 
-void settings_deinit(uint8_t overlayId)
+void settings_deinit(uint8_t overlayNumber)
 {
     int pos = 0;
-    setting_item_t *option_map = Option_Map_Overlay[overlayId];
+    setting_item_t *option_map = Option_Map_Overlay[overlayNumber];
     if (option_map == NULL)
     {
         return;
@@ -340,10 +352,10 @@ void settings_deinit(uint8_t overlayId)
         }
         pos++;
     }
-    Settings_Overlay[overlayId].internal.config_init = false;
+    Settings_Overlay[overlayNumber].internal.config_init = false;
 
-    osFreeMem(Option_Map_Overlay[overlayId]);
-    Option_Map_Overlay[overlayId] = NULL;
+    osFreeMem(Option_Map_Overlay[overlayNumber]);
+    Option_Map_Overlay[overlayNumber] = NULL;
 }
 
 void settings_deinit_all()
@@ -406,6 +418,7 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
 
     Settings_Overlay[0].internal.config_init = true;
+    Settings_Overlay[0].internal.config_used = true;
 
     settings_changed();
     settings_load();
@@ -448,7 +461,7 @@ void settings_save_ovl(bool overlay)
         while (option_map[pos].type != TYPE_END)
         {
             setting_item_t *opt = &option_map[pos];
-            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && !osStrcmp(opt->option_name, "commonName")))
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName"))))
             {
                 char *overlayPrefix;
                 if (overlay)
@@ -458,9 +471,9 @@ void settings_save_ovl(bool overlay)
                         pos++;
                         continue; // Only write overlay settings if they were overlayed
                     }
-                    overlayPrefix = osAllocMem(8 + osStrlen(Settings_Overlay[i].internal.overlayName) + 1 + 1); // overlay.[NAME].
+                    overlayPrefix = osAllocMem(8 + osStrlen(Settings_Overlay[i].internal.overlayUniqueId) + 1 + 1); // overlay.[NAME].
                     osStrcpy(overlayPrefix, "overlay.");
-                    osStrcat(overlayPrefix, Settings_Overlay[i].internal.overlayName);
+                    osStrcat(overlayPrefix, Settings_Overlay[i].internal.overlayUniqueId);
                     osStrcat(overlayPrefix, ".");
                 }
                 else
@@ -567,22 +580,23 @@ void settings_load_ovl(bool overlay)
                 char *option_name = strtok(line, "=");
                 char *value_str = &line[osStrlen(option_name) + 1];
 
-                char *overlay_name = NULL;
+                char *overlay_unique_id = NULL;
                 char *tokenizer = NULL;
                 if (overlay && osStrncmp(OVERLAY_CONFIG_PREFIX, option_name, osStrlen(OVERLAY_CONFIG_PREFIX)) == 0)
                 {
                     option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
                     tokenizer = strdup(option_name);
-                    overlay_name = strtok(tokenizer, ".");
-                    option_name += osStrlen(overlay_name) + 1;
+                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok(tokenizer, "."));
+                    option_name += osStrlen(overlay_unique_id) + 1;
 
-                    if (get_overlay_id(overlay_name) == 0)
+                    if (get_overlay_id(overlay_unique_id) == 0)
                     {
                         for (size_t i = 1; i < MAX_OVERLAYS; i++)
                         {
-                            if (osStrlen(Settings_Overlay[i].internal.overlayName) == 0)
+                            if (!Settings_Overlay[i].internal.config_used)
                             {
-                                settings_set_string_id("internal.overlayName", overlay_name, i);
+                                settings_set_string_id("internal.overlayUniqueId", overlay_unique_id, i);
+                                Settings_Overlay[i].internal.config_used = true;
                                 break;
                             }
                         }
@@ -592,7 +606,7 @@ void settings_load_ovl(bool overlay)
                 if (option_name != NULL && value_str != NULL)
                 {
                     // Find the corresponding setting item
-                    setting_item_t *opt = settings_get_by_name_ovl(option_name, overlay_name);
+                    setting_item_t *opt = settings_get_by_name_ovl(option_name, overlay_unique_id);
                     if (opt != NULL)
                     {
                         // Update the setting value based on the type
@@ -640,7 +654,8 @@ void settings_load_ovl(bool overlay)
                         TRACE_WARNING("Setting item '%s' not found\r\n", option_name);
                     }
                 }
-                free(tokenizer);
+                osFreeMem(overlay_unique_id);
+                osFreeMem(tokenizer);
             }
 
             line = next_line + 1; // Move to the next line
@@ -1042,4 +1057,27 @@ void settings_loop()
             settings_load();
         }
     }
+}
+
+char *settings_sanitize_box_id(const char *input_id)
+{
+    char *new_str = osAllocMem(osStrlen(input_id) + 1);
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+
+    char *dst = new_str;
+    const char *src = input_id;
+    while (*src)
+    {
+        if (isalnum((unsigned char)*src) || *src == '_' || *src == '-')
+        {
+            *dst++ = *src;
+        }
+        src++;
+    }
+    *dst = '\0'; // null terminate the string
+
+    return new_str;
 }

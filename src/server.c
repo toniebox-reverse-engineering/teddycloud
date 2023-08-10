@@ -283,21 +283,25 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     client_ctx_t client_ctx;
     osMemset(&client_ctx, 0x00, sizeof(client_ctx));
     client_ctx.settings = get_settings();
-    client_ctx.box_id = "default";
 
     if (connection->tlsContext)
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
-        client_ctx.box_id = subject;
-
-        if (osStrlen(subject) == 15)
+        char_t *commonName;
+        if (osStrlen(subject) == 15) // Boxine standard cn with b'[MAC]'
         {
-            char_t *commonName = strdup(&subject[2]);
+            commonName = strdup(&subject[2]);
             commonName[osStrlen(commonName) - 1] = '\0';
-            client_ctx.settings = get_settings_cn(commonName);
-            free(commonName);
         }
+        else
+        {
+            commonName = subject;
+        }
+        client_ctx.settings = get_settings_cn(commonName);
+        free(commonName);
     }
+    client_ctx.box_id = client_ctx.settings->commonName;
+    client_ctx.box_name = client_ctx.settings->boxName;
 
     connection->response.keepAlive = connection->request.keepAlive;
 
