@@ -110,8 +110,7 @@ bool checkCustomTonie(char *ruid, uint8_t *token, settings_t *settings)
             return true;
         }
     }
-    if (settings->cloud.markCustomTagByUid &&
-        (ruid[15] != '0' || ruid[14] != 'e' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0'))
+    if (ruid[15] != '0' || ruid[14] != 'e' || ruid[13] != '4' || ruid[12] != '0' || ruid[11] != '3' || ruid[10] != '0')
     {
         TRACE_INFO("Found possible custom tonie by uid\r\n");
         return true;

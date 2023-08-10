@@ -115,7 +115,6 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, FALSE, "Cache cloud content on local server")
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Automatically mark custom tags by password")
-    OPTION_BOOL("cloud.markCustomTagByUid", &settings->cloud.markCustomTagByUid, TRUE, "Automatically mark custom tags by Uid")
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Priotize custom over boxine content (force update)")
 
     OPTION_TREE_DESC("toniebox", "Toniebox")

@@ -34,7 +34,6 @@ typedef struct
     bool enableV2Content;
     bool cacheContent;
     bool markCustomTagByPass;
-    bool markCustomTagByUid;
     bool prioCustomContent;
 } settings_cloud_t;
 
