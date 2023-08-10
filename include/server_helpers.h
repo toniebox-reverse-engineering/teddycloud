@@ -14,4 +14,3 @@ char_t *ipv6AddrToString(const Ipv6Addr *ipAddr, char_t *str);
 char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 void time_format(time_t time, char_t *buffer);
 void time_format_current(char_t *buffer);
-const char *get_box_id(HttpConnection *connection);
