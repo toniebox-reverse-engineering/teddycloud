@@ -38,29 +38,6 @@ typedef struct
 #define MQTT_TX_BUFFERS 512
 mqtt_tx_buffer mqtt_tx_buffers[MQTT_TX_BUFFERS];
 
-char *mqtt_sanitize_id(const char *input)
-{
-    char *new_str = osAllocMem(osStrlen(input) + 1);
-    if (new_str == NULL)
-    {
-        return NULL;
-    }
-
-    char *dst = new_str;
-    const char *src = input;
-    while (*src)
-    {
-        if (isalnum((unsigned char)*src) || *src == '_' || *src == '-')
-        {
-            *dst++ = *src;
-        }
-        src++;
-    }
-    *dst = '\0'; // null terminate the string
-
-    return new_str;
-}
-
 char *mqtt_settingname_clean(const char *str)
 {
     int length = osStrlen(str) + 1;
@@ -592,12 +569,7 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
     const char *box_id = client_ctx->box_id;
-    const char *box_name = client_ctx->settings->internal.overlayName;
-
-    if (osStrlen(client_ctx->settings->commonName) > 0)
-    {
-        box_id = client_ctx->settings->commonName;
-    }
+    const char *box_name = client_ctx->box_name;
 
     ha_setup(ha_box_instance);
     osSprintf(ha_box_instance->name, "%s", box_name);
@@ -790,10 +762,6 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
     t_ha_info *ret = NULL;
 
     const char *box_id = client_ctx->box_id;
-    if (osStrlen(client_ctx->settings->commonName) > 0)
-    {
-        box_id = client_ctx->settings->commonName;
-    }
 
     char *name = mqtt_fmt_create("%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
 
