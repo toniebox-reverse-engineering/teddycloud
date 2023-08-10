@@ -28,7 +28,9 @@ typedef enum
     /* https://www.home-assistant.io/integrations/event.mqtt/ */
     ha_event,
     /* https://www.home-assistant.io/integrations/device_trigger.mqtt/ */
-    ha_device_trigger
+    ha_device_trigger,
+    /* https://www.home-assistant.io/integrations/image.mqtt/ */
+    ha_image
 } t_ha_device_type;
 
 typedef struct s_ha_entity t_ha_entity;
@@ -75,6 +77,8 @@ struct s_ha_entity
     const char *fx_stat_t;
     /* used by: light, comma separated */
     const char *fx_list;
+    /* used by: image */
+    const char *url_t;
 
     /* alternative client name */
     const char *alt_name;
