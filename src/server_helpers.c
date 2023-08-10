@@ -1,7 +1,40 @@
 
 #include <string.h>
+#include <stdarg.h>
+
 #include "os_port.h"
 #include "server_helpers.h"
+
+char *custom_asprintf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    // Calculate the length of the final string
+    va_list tmp_args;
+    va_copy(tmp_args, args);
+    int length = osVsnprintf(NULL, 0, fmt, tmp_args);
+    va_end(tmp_args);
+
+    if (length < 0)
+    {
+        return NULL;
+    }
+
+    // Allocate memory for the new string
+    char *new_str = osAllocMem(length + 1); // Add 1 for the null terminator
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+
+    // Format the new string
+    osVsnprintf(new_str, length + 1, fmt, args);
+
+    va_end(args);
+
+    return new_str;
+}
 
 int urldecode(char *dest, const char *src)
 {

@@ -18,6 +18,7 @@
 #include "cloud_request.h"
 #include "server_helpers.h"
 #include "toniesJson.h"
+#include "server_helpers.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
@@ -264,7 +265,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
             mqtt_sendBoxEvent("AudioId", "", client_ctx);
             mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
-            mqtt_sendBoxEvent("ContentPicture", "", client_ctx);
+            char *url = custom_asprintf("%s/img_empty.png", settings_get_string("core.host_url"));
+            mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+            osFreeMem(url);
             break;
         default:
             TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
@@ -313,6 +316,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             {
                 sse_sendEvent("ContentTitle", "Unknown", true);
                 mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
+                char *url = custom_asprintf("%s/img_unknown.png", settings_get_string("core.host_url"));
+                mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                osFreeMem(url);
             }
             else
             {
