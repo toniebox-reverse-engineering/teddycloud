@@ -287,18 +287,19 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     if (connection->tlsContext)
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
-        char_t *commonName;
+
         if (osStrlen(subject) == 15) // Boxine standard cn with b'[MAC]'
         {
+            char_t *commonName;
             commonName = strdup(&subject[2]);
             commonName[osStrlen(commonName) - 1] = '\0';
+            client_ctx.settings = get_settings_cn(commonName);
+            osFreeMem(commonName);
         }
         else
         {
-            commonName = subject;
+            client_ctx.settings = get_settings_cn(subject);
         }
-        client_ctx.settings = get_settings_cn(commonName);
-        free(commonName);
     }
     client_ctx.box_id = client_ctx.settings->commonName;
     client_ctx.box_name = client_ctx.settings->boxName;
