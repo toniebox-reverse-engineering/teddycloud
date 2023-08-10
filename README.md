@@ -96,7 +96,7 @@ An example [docker-compose.yaml can be found within the docker subdir.](docker/d
 The icons used are from here:
 * img_empty.png: https://www.flaticon.com/free-icon/ask_1372671
 * img_unknown.png: https://www.flaticon.com/free-icon/ask_1923795
-* favicon.ico: https://www.flaticon.com/free-icon/dog_2829818
+* img_custom.png/favicon.ico: https://www.flaticon.com/free-icon/dog_2829818
 
 Thanks for the original authors for these great icons.
 

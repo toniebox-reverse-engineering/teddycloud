@@ -316,9 +316,20 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             {
                 sse_sendEvent("ContentTitle", "Unknown", true);
                 mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
-                char *url = custom_asprintf("%s/img_unknown.png", settings_get_string("core.host_url"));
-                mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
-                osFreeMem(url);
+                if (audioId < 0x50000000)
+                {
+                    /* custom tonie */
+                    char *url = custom_asprintf("%s/img_custom.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
+                else
+                {
+                    /* no image in the json file */
+                    char *url = custom_asprintf("%s/img_unknown.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
             }
             else
             {
