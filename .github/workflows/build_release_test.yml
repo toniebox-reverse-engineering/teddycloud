@@ -1,11 +1,7 @@
-name: Build and zip
+name: Build and zip windows/linux
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - tc_nightly
-      - tc_v*
 
 jobs:
   build-windows-amd64:
