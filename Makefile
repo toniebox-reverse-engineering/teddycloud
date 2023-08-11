@@ -16,6 +16,12 @@ LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
+	SHELL_ENV ?= cmd
+else
+	SHELL_ENV ?= bash
+endif
+
+ifeq ($(SHELL_ENV),cmd)
 build_rawDateTime:="${shell date /t} ${shell time /t}"
 else
 build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"

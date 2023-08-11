@@ -16,7 +16,7 @@ jobs:
 
     - name: Build windows
       id:  build-zip
-      run: make build PLATFORM=windows
+      run: make build PLATFORM=windows SHELL_ENV=bash
     - name: Check windows executable existence
       id: check_release
       uses: andstor/file-existence-action@v1
