@@ -106,7 +106,7 @@ void ha_publish(t_ha_info *ha_info)
     char mqtt_path[2 * MAX_LEN + 1];
     char uniq_id[2 * MAX_LEN + 1];
 
-    TRACE_INFO("[HA] Publish\n");
+    TRACE_DEBUG("[HA] Publish\n");
 
     for (int pos = 0; pos < ha_info->entitiy_count; pos++)
     {
