@@ -73,11 +73,11 @@ void ha_addmqtt(t_ha_info *ha_info, char *json_str, const char *name, const char
 
         if (entity && entity->alt_name)
         {
-            osSprintf(path_buffer, value, entity->alt_name);
+            osSnprintf(path_buffer, sizeof(path_buffer), value, entity->alt_name);
         }
         else
         {
-            osSprintf(path_buffer, value, ha_info->base_topic);
+            osSnprintf(path_buffer, sizeof(path_buffer), value, ha_info->base_topic);
         }
         osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, path_buffer, (last ? ' ' : ','));
         osStrcat(json_str, tmp_buf);
@@ -153,10 +153,10 @@ void ha_publish(t_ha_info *ha_info)
             break;
         }
 
-        osSprintf(uniq_id, "%s_%s", ha_info->id, ha_info->entities[pos].id);
+        osSnprintf(uniq_id, sizeof(uniq_id), "%s_%s", ha_info->id, ha_info->entities[pos].id);
 
         // TRACE_INFO("[HA]   uniq_id %s\n", uniq_id);
-        osSprintf(mqtt_path, "homeassistant/%s/%s/%s/config", type, ha_info->id, ha_info->entities[pos].id);
+        osSnprintf(mqtt_path, sizeof(mqtt_path), "homeassistant/%s/%s/%s/config", type, ha_info->id, ha_info->entities[pos].id);
 
         // TRACE_INFO("[HA]   mqtt_path %s\n", mqtt_path);
 
@@ -226,7 +226,7 @@ void ha_received(t_ha_info *ha_info, char *topic, const char *payload)
 
         if (ha_info->entities[pos].cmd_t && ha_info->entities[pos].received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].cmd_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].cmd_t, ha_info->base_topic);
             if (!osStrcmp(topic, item_topic))
             {
                 ha_info->entities[pos].received(ha_info, &ha_info->entities[pos], ha_info->entities[pos].received_ctx, payload);
@@ -240,7 +240,7 @@ void ha_received(t_ha_info *ha_info, char *topic, const char *payload)
 
         if (ha_info->entities[pos].rgb_t && ha_info->entities[pos].rgb_received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].rgb_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].rgb_t, ha_info->base_topic);
             if (!osStrcmp(topic, item_topic))
             {
                 ha_info->entities[pos].rgb_received(ha_info, &ha_info->entities[pos], ha_info->entities[pos].rgb_received_ctx, payload);
@@ -254,7 +254,7 @@ void ha_received(t_ha_info *ha_info, char *topic, const char *payload)
 
         if (ha_info->entities[pos].fx_cmd_t && ha_info->entities[pos].fx_received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].fx_cmd_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].fx_cmd_t, ha_info->base_topic);
             if (!osStrcmp(topic, item_topic))
             {
                 ha_info->entities[pos].fx_received(ha_info, &ha_info->entities[pos], ha_info->entities[pos].fx_received_ctx, payload);
@@ -280,7 +280,7 @@ void ha_transmit(t_ha_info *ha_info, const t_ha_entity *entity, const char *valu
         return;
     }
     char item_topic[128];
-    osSprintf(item_topic, entity->stat_t, ha_info->base_topic);
+    osSnprintf(item_topic, sizeof(item_topic), entity->stat_t, ha_info->base_topic);
 
     if (!mqtt_publish(item_topic, value))
     {
@@ -296,7 +296,7 @@ void ha_transmit_topic(t_ha_info *ha_info, const char *stat_t, const char *value
     }
 
     char item_topic[128];
-    osSprintf(item_topic, stat_t, ha_info->base_topic);
+    osSnprintf(item_topic, sizeof(item_topic), stat_t, ha_info->base_topic);
 
     if (!mqtt_publish(item_topic, value))
     {
@@ -319,13 +319,13 @@ void ha_setup(t_ha_info *ha_info)
 {
     osMemset(ha_info, 0x00, sizeof(t_ha_info));
 
-    osSprintf(ha_info->base_topic, "%s", "teddyCloud");
-    osSprintf(ha_info->name, "%s", ha_info->base_topic);
-    osSprintf(ha_info->id, "%s", "teddyCloud");
-    osSprintf(ha_info->cu, "%s", settings_get_string("core.host_url"));
-    osSprintf(ha_info->mf, "RevvoX");
-    osSprintf(ha_info->mdl, "%s", "teddyCloud");
-    osSprintf(ha_info->sw, "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
+    osSnprintf(ha_info->base_topic, sizeof(ha_info->base_topic), "%s", "teddyCloud");
+    osSnprintf(ha_info->name, sizeof(ha_info->name), "%s", ha_info->base_topic);
+    osSnprintf(ha_info->id, sizeof(ha_info->id), "%s", "teddyCloud");
+    osSnprintf(ha_info->cu, sizeof(ha_info->cu), "%s", settings_get_string("core.host_url"));
+    osSnprintf(ha_info->mf, sizeof(ha_info->mf), "RevvoX");
+    osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "%s", "teddyCloud");
+    osSnprintf(ha_info->sw, sizeof(ha_info->sw), "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
     ha_info->entitiy_count = 0;
     ha_info->initialized = true;
 }
@@ -337,17 +337,17 @@ void ha_connected(t_ha_info *ha_info)
         char item_topic[128];
         if (ha_info->entities[pos].cmd_t && ha_info->entities[pos].received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].cmd_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].cmd_t, ha_info->base_topic);
             mqtt_subscribe(item_topic);
         }
         if (ha_info->entities[pos].rgb_t && ha_info->entities[pos].rgb_received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].rgb_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].rgb_t, ha_info->base_topic);
             mqtt_subscribe(item_topic);
         }
         if (ha_info->entities[pos].fx_cmd_t && ha_info->entities[pos].fx_received)
         {
-            osSprintf(item_topic, ha_info->entities[pos].fx_cmd_t, ha_info->base_topic);
+            osSnprintf(item_topic, sizeof(item_topic), ha_info->entities[pos].fx_cmd_t, ha_info->base_topic);
             mqtt_subscribe(item_topic);
         }
     }
