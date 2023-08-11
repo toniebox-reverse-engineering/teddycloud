@@ -18,6 +18,7 @@
 #include "cloud_request.h"
 #include "server_helpers.h"
 #include "toniesJson.h"
+#include "server_helpers.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
@@ -217,33 +218,27 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         {
         case RTNL3_TYPE_EAR_BIG:
             sse_sendEvent("pressed", "ear-big", true);
-            mqtt_sendBoxEvent("VolUp", "ON", client_ctx);
-            mqtt_sendBoxEvent("VolUp", "OFF", client_ctx);
+            mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"pressed\"}", client_ctx);
             break;
         case RTNL3_TYPE_EAR_SMALL:
             sse_sendEvent("pressed", "ear-small", true);
-            mqtt_sendBoxEvent("VolDown", "ON", client_ctx);
-            mqtt_sendBoxEvent("VolDown", "OFF", client_ctx);
+            mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"pressed\"}", client_ctx);
             break;
         case RTNL3_TYPE_KNOCK_FORWARD:
             sse_sendEvent("knock", "forward", true);
-            mqtt_sendBoxEvent("KnockForward", "ON", client_ctx);
-            mqtt_sendBoxEvent("KnockForward", "OFF", client_ctx);
+            mqtt_sendBoxEvent("KnockForward", "{\"event_type\": \"triggered\"}", client_ctx);
             break;
         case RTNL3_TYPE_KNOCK_BACKWARD:
             sse_sendEvent("knock", "backward", true);
-            mqtt_sendBoxEvent("KnockBackward", "ON", client_ctx);
-            mqtt_sendBoxEvent("KnockBackward", "OFF", client_ctx);
+            mqtt_sendBoxEvent("KnockBackward", "{\"event_type\": \"triggered\"}", client_ctx);
             break;
         case RTNL3_TYPE_TILT_FORWARD:
             sse_sendEvent("tilt", "forward", true);
-            mqtt_sendBoxEvent("TiltForward", "ON", client_ctx);
-            mqtt_sendBoxEvent("TiltForward", "OFF", client_ctx);
+            mqtt_sendBoxEvent("TiltForward", "{\"event_type\": \"triggered\"}", client_ctx);
             break;
         case RTNL3_TYPE_TILT_BACKWARD:
             sse_sendEvent("tilt", "backward", true);
-            mqtt_sendBoxEvent("TiltBackward", "ON", client_ctx);
-            mqtt_sendBoxEvent("TiltBackward", "OFF", client_ctx);
+            mqtt_sendBoxEvent("TiltBackward", "{\"event_type\": \"triggered\"}", client_ctx);
             break;
         case RTNL3_TYPE_CHARGER_ON:
             sse_sendEvent("charger", "on", true);
@@ -270,7 +265,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
             mqtt_sendBoxEvent("AudioId", "", client_ctx);
             mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
-            mqtt_sendBoxEvent("ContentPicture", "", client_ctx);
+            char *url = custom_asprintf("%s/img_empty.png", settings_get_string("core.host_url"));
+            mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+            osFreeMem(url);
             break;
         default:
             TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
@@ -319,6 +316,20 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             {
                 sse_sendEvent("ContentTitle", "Unknown", true);
                 mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
+                if (audioId < 0x50000000)
+                {
+                    /* custom tonie */
+                    char *url = custom_asprintf("%s/img_custom.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
+                else
+                {
+                    /* no image in the json file */
+                    char *url = custom_asprintf("%s/img_unknown.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
             }
             else
             {

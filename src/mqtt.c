@@ -8,6 +8,7 @@
 #include "core/tcp.h"
 #include "settings.h"
 #include "platform.h"
+#include "server_helpers.h"
 
 #include "mqtt/mqtt_client.h"
 
@@ -60,37 +61,6 @@ char *mqtt_settingname_clean(const char *str)
     return new_str;
 }
 
-char *mqtt_fmt_create(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-
-    // Calculate the length of the final string
-    va_list tmp_args;
-    va_copy(tmp_args, args);
-    int length = osVsnprintf(NULL, 0, fmt, tmp_args);
-    va_end(tmp_args);
-
-    if (length < 0)
-    {
-        return NULL;
-    }
-
-    // Allocate memory for the new string
-    char *new_str = osAllocMem(length + 1); // Add 1 for the null terminator
-    if (new_str == NULL)
-    {
-        return NULL;
-    }
-
-    // Format the new string
-    osVsnprintf(new_str, length + 1, fmt, args);
-
-    va_end(args);
-
-    return new_str;
-}
-
 char *mqtt_topic_str(const char *fmt, const char *param)
 {
     char *first_s = osStrstr(fmt, "%s");
@@ -139,7 +109,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     {
         return ERROR_FAILURE;
     }
-    char *topic = mqtt_fmt_create("%%s/%s", eventname);
+    char *topic = custom_asprintf("%%s/%s", eventname);
     ha_transmit_topic(ha_info, topic, content);
     osFreeMem(topic);
     return NO_ERROR;
@@ -596,14 +566,16 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolUp";
     entity.name = "Volume Up";
-    entity.type = ha_binary_sensor;
+    entity.type = ha_event;
+    entity.event_types = "pressed;doublepress;triplepress";
     entity.stat_t = "%s/VolUp";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "VolDown";
     entity.name = "Volume Down";
-    entity.type = ha_binary_sensor;
+    entity.type = ha_event;
+    entity.event_types = "pressed;doublepress;triplepress";
     entity.stat_t = "%s/VolDown";
     ha_add(ha_box_instance, &entity);
 
@@ -624,28 +596,32 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "KnockForward";
     entity.name = "Knock Forward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/KnockForward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "KnockBackward";
     entity.name = "Knock Backward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/KnockBackward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltForward";
     entity.name = "Tilt Forward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/TiltForward";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
     entity.id = "TiltBackward";
     entity.name = "Tilt Backward";
-    entity.type = ha_sensor;
+    entity.type = ha_event;
+    entity.event_types = "triggered";
     entity.stat_t = "%s/TiltBackward";
     ha_add(ha_box_instance, &entity);
 
@@ -763,7 +739,7 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 
     const char *box_id = client_ctx->box_id;
 
-    char *name = mqtt_fmt_create("%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
+    char *name = custom_asprintf("%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
 
     mutex_lock(MUTEX_MQTT_BOX);
     for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
@@ -820,7 +796,7 @@ void mqtt_init()
 
         char *name = mqtt_settingname_clean(s->option_name);
         entity.id = name;
-        entity.name = mqtt_fmt_create("%s - %s", s->option_name, s->description);
+        entity.name = custom_asprintf("%s - %s", s->option_name, s->description);
         entity.stat_t = mqtt_topic_str("%s/%s/status", name);
         entity.cmd_t = mqtt_topic_str("%s/%s/command", name);
         entity.transmit = &mqtt_settings_tx;

@@ -90,3 +90,13 @@ Please put your content into the ```/data/content/default/``` in the same struct
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
 
 An example [docker-compose.yaml can be found within the docker subdir.](docker/docker-compose.yaml)
+
+## Attribution
+
+The icons used are from here:
+* img_empty.png: https://www.flaticon.com/free-icon/ask_1372671
+* img_unknown.png: https://www.flaticon.com/free-icon/ask_1923795
+* img_custom.png/favicon.ico: https://www.flaticon.com/free-icon/dog_2829818
+
+Thanks for the original authors for these great icons.
+

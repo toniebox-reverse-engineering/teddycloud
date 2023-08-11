@@ -79,6 +79,8 @@ struct s_ha_entity
     const char *fx_list;
     /* used by: image */
     const char *url_t;
+    /* used by: event, comma separated */
+    const char *event_types;
 
     /* alternative client name */
     const char *alt_name;

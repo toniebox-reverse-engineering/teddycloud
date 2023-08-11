@@ -141,6 +141,9 @@ void ha_publish(t_ha_info *ha_info)
         case ha_image:
             type = "image";
             break;
+        case ha_event:
+            type = "event";
+            break;
         default:
             break;
         }
@@ -173,6 +176,7 @@ void ha_publish(t_ha_info *ha_info)
         ha_addmqtt(ha_info, json_str, "fx_stat_t", ha_info->entities[pos].fx_stat_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "url_topic", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
         ha_addstrarray(json_str, "fx_list", ha_info->entities[pos].fx_list, false);
+        ha_addstrarray(json_str, "event_types", ha_info->entities[pos].event_types, false);
         ha_addmqtt(ha_info, json_str, "val_tpl", ha_info->entities[pos].val_tpl, &ha_info->entities[pos], false);
         ha_addstrarray(json_str, "options", ha_info->entities[pos].options, false);
         ha_addstr(json_str, "unit_of_meas", ha_info->entities[pos].unit_of_meas, false);
