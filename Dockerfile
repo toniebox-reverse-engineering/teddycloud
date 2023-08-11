@@ -30,12 +30,11 @@ COPY --from=buildenv \
 COPY --from=buildenv \
     /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
 
-VOLUME [ \
+VOLUME \
     "/teddycloud/data/content" \
     "/teddycloud/data/library" \
     "/teddycloud/certs" \
-    "/teddycloud/config" \
-    ]
+    "/teddycloud/config"
 
 COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
