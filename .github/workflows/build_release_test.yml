@@ -16,7 +16,7 @@ jobs:
 
     - name: Build windows
       id:  build-zip
-      run: make build
+      run: make build PLATFORM=windows
     - name: Check windows executable existence
       id: check_release
       uses: andstor/file-existence-action@v1
@@ -33,6 +33,7 @@ jobs:
   
 
   build-linux-amd64:
+    needs: build-windows-amd64
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.set_data1.outputs.upload_url }}
