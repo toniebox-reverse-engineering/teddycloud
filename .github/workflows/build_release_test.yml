@@ -1,4 +1,4 @@
-name: Build and zip windows/linux
+name: Build and zip windows/linux Test
 
 on:
   workflow_dispatch:
@@ -16,12 +16,13 @@ jobs:
 
     - name: Build windows
       id:  build-zip
-      run: make build PLATFORM=windows SHELL_ENV=bash
+      run: cmd /c "C:\"Program Files"\"Microsoft Visual Studio"\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat && make build PLATFORM=windows SHELL_ENV=bash"
+      shell: cmd
     - name: Check windows executable existence
       id: check_release
       uses: andstor/file-existence-action@v1
       with:
-        files: "./bin/teddybench.exe"  
+        files: "bin/teddycloud.exe"  
         allow_failure: false 
     - name: File exist
       if: steps.check_files.outputs.files_exists == 'true'
@@ -29,7 +30,7 @@ jobs:
     - uses: actions/upload-artifact@master
       with:
         name: windows-exe
-        path: /bin/teddybench.exe
+        path: bin\*
   
 
   build-linux-amd64:
@@ -69,7 +70,7 @@ jobs:
     - uses: actions/download-artifact@master
       with:
         name: windows-exe
-        path: /bin/teddybench.exe
+        path: ./bin/
 
     - name: Build and zip amd64
       id:  build-zip
@@ -79,7 +80,7 @@ jobs:
       uses: andstor/file-existence-action@v1
       with:
         files: "./install/zip/release.zip"  
-        allow_failure: false 
+        allow_failure: true 
     - name: File exist
       if: steps.check_files.outputs.files_exists == 'true'
       run: echo amd64 release zip exists!

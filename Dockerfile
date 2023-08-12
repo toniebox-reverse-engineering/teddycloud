@@ -18,6 +18,7 @@ RUN apt-get update \
 RUN mkdir -p /teddycloud/certs \
     && mkdir /teddycloud/config \
     && mkdir -p /teddycloud/data/content/default \
+    && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/www 
 
 COPY --from=buildenv \
