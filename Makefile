@@ -98,9 +98,9 @@ ifeq ($(PLATFORM),windows)
 	endif
 	CC = cl.exe
 	LD = link.exe
-	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
-	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
-	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)\lib\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)lib\$(VSCMD_ARG_TGT_ARCH)"
 endif
 
 ## posix/linux specific headers/sources
