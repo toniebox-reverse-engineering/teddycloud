@@ -17,8 +17,10 @@ PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
+	build_arch:="$(shell echo %PROCESSOR_ARCHITECTURE%)
 else
 	SHELL_ENV ?= bash
+	build_arch:="$(shell arch)"
 endif
 
 ifeq ($(SHELL_ENV),cmd)
@@ -34,7 +36,6 @@ build_gitSha:=${shell git rev-parse HEAD}
 build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
 build_platform:=$(PLATFORM)
 build_os:="$(OS)"
-build_arch:="$(shell arch)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\"
