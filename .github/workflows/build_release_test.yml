@@ -80,7 +80,7 @@ jobs:
       uses: andstor/file-existence-action@v1
       with:
         files: "./install/zip/release.zip"  
-        allow_failure: true 
+        allow_failure: false 
     - name: File exist
       if: steps.check_files.outputs.files_exists == 'true'
       run: echo amd64 release zip exists!
