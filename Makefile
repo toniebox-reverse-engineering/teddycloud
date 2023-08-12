@@ -32,8 +32,12 @@ build_gitDateTime:="${shell git log -1 --format=%ai}"
 build_gitShortSha:=${shell git rev-parse --short HEAD}
 build_gitSha:=${shell git rev-parse HEAD}
 build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+build_platform:=$(PLATFORM)
+build_os:="$(OS)"
+build_arch:="$(shell arch)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
+CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\"
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)

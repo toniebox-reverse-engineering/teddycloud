@@ -100,6 +100,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Git sha hash")
     OPTION_INTERNAL_BOOL("internal.version.dirty", &settings->internal.version.dirty, FALSE, "Dirty build")
     OPTION_INTERNAL_STRING("internal.version.datetime", &settings->internal.version.datetime, "", "Build/git datetime")
+    OPTION_INTERNAL_STRING("internal.version.platform", &settings->internal.version.platform, "", "Build Platform")
+    OPTION_INTERNAL_STRING("internal.version.os", &settings->internal.version.os, "", "Build OS")
+    OPTION_INTERNAL_STRING("internal.version.architecture", &settings->internal.version.architecture, "", "Build Architecture")
     OPTION_INTERNAL_STRING("internal.version.v_short", &settings->internal.version.v_short, "", "Short version string")
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Long version string")
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Full version string")
@@ -413,6 +416,9 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.git_sha", BUILD_GIT_SHA);
     settings_set_bool("internal.version.id", BUILD_GIT_IS_DIRTY);
     settings_set_string("internal.version.datetime", BUILD_DATETIME);
+    settings_set_string("internal.version.platform", BUILD_PLATFORM);
+    settings_set_string("internal.version.os", BUILD_OS);
+    settings_set_string("internal.version.architecture", BUILD_ARCH);
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);

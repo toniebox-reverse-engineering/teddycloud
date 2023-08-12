@@ -73,6 +73,9 @@ typedef struct
     char *git_sha;
     bool dirty;
     char *datetime;
+    char *platform;
+    char *os;
+    char *architecture;
     char *v_short;
     char *v_long;
     char *v_full;
