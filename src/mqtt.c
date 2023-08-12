@@ -535,11 +535,16 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
     }
 }
 
-void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
+error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
     const char *box_id = client_ctx->box_id;
     const char *box_name = client_ctx->box_name;
+
+    if (client_ctx->settings->internal.overlayNumber == 0)
+    {
+        return ERROR_ABORTED; // Skip clients without an overlay / box
+    }
 
     ha_setup(ha_box_instance);
     osSprintf(ha_box_instance->name, "teddyCloud Box: %s", box_name);
@@ -731,6 +736,8 @@ void mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.type = ha_image;
     entity.url_t = "%s/ContentPicture";
     ha_add(ha_box_instance, &entity);
+
+    return NO_ERROR;
 }
 
 t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
@@ -756,9 +763,11 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
         {
             if (!ha_box_instances[pos].initialized)
             {
-                ret = &ha_box_instances[pos];
-                mqtt_init_box(ret, client_ctx);
-                ha_connected(ret);
+                if (mqtt_init_box(&ha_box_instances[pos], client_ctx) == NO_ERROR)
+                {
+                    ret = &ha_box_instances[pos];
+                    ha_connected(ret);
+                }
                 break;
             }
         }
