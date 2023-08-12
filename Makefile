@@ -17,7 +17,9 @@ PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
-	build_arch:="$(shell powershell -NoProfile -Command "$$Env:PROCESSOR_ARCHITECTURE")"
+#	build_arch:="$(shell powershell -NoProfile -Command "$$Env:PROCESSOR_ARCHITECTURE")"
+#   TODO
+	build_arch:="AMD64-tbd"
 else
 	SHELL_ENV ?= bash
 	build_arch:="$(shell arch)"
