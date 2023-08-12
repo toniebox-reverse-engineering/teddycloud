@@ -85,6 +85,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?")
     OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
+    OPTION_INTERNAL_BOOL("internal.logColorSupport", &settings->internal.logColorSupport, FALSE, "Terminal supports color (log)")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
@@ -422,6 +423,8 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
+    settings_set_bool("internal.logColorSupport", supportsAnsiColors());
 
     Settings_Overlay[0].internal.config_init = true;
     Settings_Overlay[0].internal.config_used = true;

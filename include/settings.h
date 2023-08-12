@@ -90,6 +90,7 @@ typedef struct
     bool config_init;
     bool config_used;
     bool config_changed;
+    bool logColorSupport;
 
     char *cwd;
     char *contentdirrel;
