@@ -26,7 +26,7 @@ jobs:
       id: check_release
       uses: andstor/file-existence-action@v1
       with:
-        files: "bin\teddycloud.exe"  
+        files: "bin/teddycloud.exe"  
         allow_failure: true 
     - name: File exist
       if: steps.check_files.outputs.files_exists == 'true'
