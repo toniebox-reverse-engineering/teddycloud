@@ -17,7 +17,7 @@ PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
-	build_arch:="$(shell echo %PROCESSOR_ARCHITECTURE%)
+	build_arch:="$(shell echo %PROCESSOR_ARCHITECTURE%)"
 else
 	SHELL_ENV ?= bash
 	build_arch:="$(shell arch)"
