@@ -423,6 +423,11 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
 
+    if (osStrcmp(get_settings()->internal.version.platform, "windows") == 0)
+    {
+        settings_set_bool("log.color", false);
+    }
+
     Settings_Overlay[0].internal.config_init = true;
     Settings_Overlay[0].internal.config_used = true;
 
