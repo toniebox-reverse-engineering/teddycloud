@@ -6,12 +6,13 @@
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
-#define MAX_TONIES_JSON_ENTRIES 2048
-static toniesJson_item_t toniesJsonCache[MAX_TONIES_JSON_ENTRIES];
+static size_t toniesCount;
+static toniesJson_item_t *toniesJsonCache;
 #endif
 
 void tonies_init()
 {
+    toniesCount = 0;
     tonies_readJson();
 }
 
@@ -37,6 +38,12 @@ uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
 void tonies_readJson()
 {
 #if TONIES_JSON_CACHED == 1
+    if (toniesCount > 0)
+    {
+        toniesCount = 0;
+        osFreeMem(toniesJsonCache);
+    }
+
     char jsonPath[256];
     size_t fileSize = 0;
     osStrcpy(jsonPath, get_settings()->internal.datadirfull);
@@ -77,6 +84,8 @@ void tonies_readJson()
         else
         {
             size_t line = 0;
+            toniesCount = cJSON_GetArraySize(toniesJson);
+            toniesJsonCache = osAllocMem(toniesCount * sizeof(toniesJson_item_t));
             cJSON_ArrayForEach(tonieJson, toniesJson)
             {
                 cJSON *arrayJson;
@@ -109,7 +118,7 @@ void tonies_readJson()
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
 #if TONIES_JSON_CACHED == 1
-    for (size_t i = 0; i < MAX_TONIES_JSON_ENTRIES; i++)
+    for (size_t i = 0; i < toniesCount; i++)
     {
         for (size_t j = 0; j < toniesJsonCache[i].audio_ids_count; j++)
         {
@@ -125,7 +134,7 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 void tonies_deinit()
 {
 #if TONIES_JSON_CACHED == 1
-    for (size_t i = 0; i < MAX_TONIES_JSON_ENTRIES; i++)
+    for (size_t i = 0; i < toniesCount; i++)
     {
         toniesJson_item_t *item = &toniesJsonCache[i];
         osFreeMem(item->model);
@@ -136,5 +145,7 @@ void tonies_deinit()
         osFreeMem(item->category);
         osFreeMem(item->picture);
     }
+    toniesCount = 0;
+    osFreeMem(toniesJsonCache);
 #endif
 }
