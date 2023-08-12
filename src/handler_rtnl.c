@@ -214,15 +214,38 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
 
     if (rpc->log3)
     {
+        settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
         switch (rpc->log3->field2)
         {
         case RTNL3_TYPE_EAR_BIG:
-            sse_sendEvent("pressed", "ear-big", true);
-            mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"pressed\"}", client_ctx);
+            if (rtnl_setting->lastEarId == EAR_BIG && rtnl_setting->wasDoubleEarpress)
+            {
+                rtnl_setting->lastEarId = EAR_NONE;
+                rtnl_setting->wasDoubleEarpress = false;
+                sse_sendEvent("pressed", "ear-big-double", true);
+                mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"double-pressed\"}", client_ctx);
+            }
+            else
+            {
+                rtnl_setting->lastEarId = EAR_BIG;
+                sse_sendEvent("pressed", "ear-big", true);
+                mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"pressed\"}", client_ctx);
+            }
             break;
         case RTNL3_TYPE_EAR_SMALL:
-            sse_sendEvent("pressed", "ear-small", true);
-            mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"pressed\"}", client_ctx);
+            if (rtnl_setting->lastEarId == EAR_SMALL && rtnl_setting->wasDoubleEarpress)
+            {
+                rtnl_setting->lastEarId = EAR_NONE;
+                rtnl_setting->wasDoubleEarpress = false;
+                sse_sendEvent("pressed", "ear-small-double", true);
+                mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"double-pressed\"}", client_ctx);
+            }
+            else
+            {
+                rtnl_setting->lastEarId = EAR_SMALL;
+                sse_sendEvent("pressed", "ear-small", true);
+                mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"pressed\"}", client_ctx);
+            }
             break;
         case RTNL3_TYPE_KNOCK_FORWARD:
             sse_sendEvent("knock", "forward", true);
@@ -364,6 +387,13 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             osSprintf(buffer, "%d", volumedB);
             sse_sendEvent("VolumedB", buffer, true);
             mqtt_sendBoxEvent("VolumedB", buffer, client_ctx);
+
+            settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
+            if (rpc->log2->uptime - rtnl_setting->lastEarpress < rtnl_setting->multipressTime)
+            {
+                rtnl_setting->wasDoubleEarpress = true;
+            }
+            rtnl_setting->lastEarpress = rpc->log2->uptime;
         }
     }
 }

@@ -20,6 +20,13 @@ typedef enum
     LOGLEVEL_VERBOSE = 6
 } settings_loglevel;
 
+typedef enum
+{
+    EAR_NONE = 0,
+    EAR_SMALL = 1,
+    EAR_BIG = 2,
+} settings_earid;
+
 typedef struct
 {
     bool enabled;
@@ -83,6 +90,14 @@ typedef struct
 
 typedef struct
 {
+    settings_earid lastEarId;
+    uint64_t lastEarpress;
+    bool wasDoubleEarpress;
+    uint16_t multipressTime;
+} settings_internal_rtnl_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -103,6 +118,7 @@ typedef struct
     uint8_t overlayNumber;
     char *assign_unknown;
 
+    settings_internal_rtnl_t rtnl;
     settings_version_t version;
 } settings_internal_t;
 
@@ -176,7 +192,7 @@ typedef union
 {
     bool bool_value;
     int32_t signed_value;
-    uint32_t unsigned_value;
+    uint64_t unsigned_value;
     uint32_t hex_value;
     float float_value;
     const char *string_value;

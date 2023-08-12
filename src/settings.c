@@ -96,6 +96,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
 
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarId", &settings->internal.rtnl.lastEarId, EAR_NONE, EAR_BIG, EAR_NONE, "Id of the last pressed id")
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarpress", &settings->internal.rtnl.lastEarpress, 0, 0, UINT64_MAX, "Timestamp of the last pressed ear")
+    OPTION_INTERNAL_BOOL("internal.rtnl.wasDoubleEarpress", &settings->internal.rtnl.wasDoubleEarpress, FALSE, "Was double Earpress?")
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.multipressTime", &settings->internal.rtnl.multipressTime, 300, 0, UINT16_MAX, "Multipress time")
+
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
     OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Git sha short hash")
     OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Git sha hash")
@@ -394,7 +399,7 @@ void settings_init(char *cwd)
             break;
         case TYPE_UNSIGNED:
         case TYPE_HEX:
-            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.unsigned_value);
+            TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
             *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
             break;
         case TYPE_FLOAT:
