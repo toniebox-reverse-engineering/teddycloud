@@ -39,7 +39,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_UNSIGNED("core.server.http_port", &settings->core.https_port, 80, 1, 65535, "HTTP port")
 
     OPTION_TREE_DESC("core.server", "HTTP server")
-    OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost/", "URL to teddyCloud server")
+    OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "URL to teddyCloud server")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Directory where to upload genuine client certs to")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Directory where cloud content is placed")
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Directory wof the audio library")
