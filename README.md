@@ -39,8 +39,11 @@ You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3
 python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
 ```
 #### CC3235
-You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. 
-
+You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. I recommend flashrom as tool for that. It may be necessary to use a more recent version of it.
+You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to extract your certificates from the flash dump.
+```
+cc3200tool -if cc32xx-flash.bin -d cc32xx read_all_files extract/
+```
 #### ESP32
 You can extract the flash memory via the debug port of the box and the esptool. Keep your backup!
 Please connect the jumper J100 (Boot) and reset the box to put it into the required mode. Connect your 3.3V UART to J103 (TxD, RxD, GND).
@@ -64,8 +67,10 @@ python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
 **Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
 
 #### CC3235
-Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
-(no manual or tool available yet)
+Replace the original CA within your flash dump with the replacement CA and reflash it to your box. I recommend flashrom for that
+```
+cc3200tool -if cc32xx-flash.bin -of cc32xx-flash.customca.bin -d cc32xx customca.der /cert/ca.der
+```
 
 #### ESP32
 Replace the original CA within your flash dump with esptool.
