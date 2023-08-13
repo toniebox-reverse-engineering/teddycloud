@@ -44,7 +44,7 @@
 // DTLS support
 #define DTLS_SUPPORT DISABLED
 
-//Key logging
+// Key logging
 #define TLS_KEY_LOG_SUPPORT ENABLED
 
 // Client mode of operation
@@ -188,7 +188,7 @@
 #define TLS_SHA512_SUPPORT DISABLED
 
 // FFDHE key exchange mechanism
-#define TLS_FFDHE_SUPPORT DISABLED
+#define TLS_FFDHE_SUPPORT ENABLED
 // ffdhe2048 group support
 #define TLS_FFDHE2048_SUPPORT DISABLED
 // ffdhe3072 group support
