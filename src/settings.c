@@ -246,7 +246,7 @@ settings_t *get_settings_cn(const char *commonName)
             if (!Settings_Overlay[i].internal.config_used)
             {
                 char *boxId = settings_sanitize_box_id((const char *)commonName);
-                char *boxPrefix = "Toniebox ";
+                char *boxPrefix = "teddyCloud Box ";
                 char *boxName = osAllocMem(osStrlen(boxPrefix) + osStrlen(commonName) + 1);
                 osSprintf(boxName, "%s%s", boxPrefix, commonName);
 

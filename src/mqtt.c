@@ -547,7 +547,7 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     }
 
     ha_setup(ha_box_instance);
-    osSprintf(ha_box_instance->name, "teddyCloud Box: %s", box_name);
+    osSprintf(ha_box_instance->name, "%s", box_name);
     osSprintf(ha_box_instance->id, "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
 
