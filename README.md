@@ -36,7 +36,7 @@ You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der`
 #### CC3200
 You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
-python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
+cc3200tool -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
 ```
 #### CC3235
 You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. I recommend flashrom as tool for that. It may be necessary to use a more recent version of it.
@@ -62,7 +62,7 @@ cp certs/server/ca.der certs/client/esp32-fakeca/CA.DER
 #### CC3200
 It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate. If you have installed the HackieboxNG Bootloader and the Hackiebox CFW you may upload the certificate via the webinterface of the CFW.
 ```
-python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
+cc3200tool -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
 **Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
 
