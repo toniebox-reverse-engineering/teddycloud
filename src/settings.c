@@ -252,7 +252,9 @@ settings_t *get_settings_cn(const char *commonName)
 
                 settings_set_string_id("commonName", boxId, i);
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
-                settings_set_string_id("boxName", commonName, i);
+                settings_set_string_id("boxName", boxName, i);
+                settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS_CN);
