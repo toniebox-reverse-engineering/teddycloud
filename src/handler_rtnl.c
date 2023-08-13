@@ -328,7 +328,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagValid", buffer, client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
         }
-        else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID_DOWNLOAD))
+        else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID))
         {
             uint32_t audioId = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", audioId);
