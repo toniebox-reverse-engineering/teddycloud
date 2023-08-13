@@ -49,19 +49,9 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
         return error;
 
     // TODO fix code duplication with server.c
-    settings_t *settings;
-    char_t *subject = tlsContext->client_cert_subject;
-    if (tlsContext != NULL && osStrlen(subject) == 15)
-    {
-        char_t *commonName = strdup(&subject[2]);
-        commonName[osStrlen(commonName) - 1] = '\0';
-        settings = get_settings_cn(commonName);
-        free(commonName);
-    }
-    else
-    {
-        settings = get_settings();
-    }
+    req_cbr_t *cbr_ctx = context->sourceCtx;
+    client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
+    settings_t *settings = client_ctx->settings;
 
     const char *client_ca = settings->internal.client.ca;
     const char *client_crt = settings->internal.client.crt;
@@ -137,6 +127,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                server, port);
 
     httpClientInit(&httpClientContext);
+    httpClientContext.sourceCtx = cbr;
     error_t error;
     if (https)
     {

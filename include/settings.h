@@ -421,6 +421,7 @@ setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_n
  */
 const char *settings_get_string(const char *item);
 const char *settings_get_string_ovl(const char *item, const char *overlay_name);
+const char *settings_get_string_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of a string setting item.
@@ -451,5 +452,8 @@ bool settings_set_float(const char *item, float value);
 bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 char *settings_sanitize_box_id(const char *input_id);
+
+void settings_load_all_certs();
+void settings_load_certs_id(uint8_t settingsId);
 
 #endif

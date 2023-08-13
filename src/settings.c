@@ -8,6 +8,7 @@
 #include "debug.h"
 #include "settings.h"
 #include "mutex_manager.h"
+#include "tls_adapter.h"
 
 #include "fs_port.h"
 
@@ -696,12 +697,14 @@ void settings_load_ovl(bool overlay)
         for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
         {
             settings_generate_internal_dirs(&Settings_Overlay[i]);
+            settings_load_certs_id(i);
             Settings_Overlay[i].internal.config_changed = false;
         }
     }
     else
     {
         settings_generate_internal_dirs(get_settings());
+        settings_load_certs_id(0);
 
         if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
         {
@@ -992,17 +995,20 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 
 const char *settings_get_string(const char *item)
 {
-    return settings_get_string_ovl(item, NULL);
+    return settings_get_string_id(item, 0);
 }
-
 const char *settings_get_string_ovl(const char *item, const char *overlay_name)
+{
+    return settings_get_string_id(item, get_overlay_id(overlay_name));
+}
+const char *settings_get_string_id(const char *item, uint8_t settingsId)
 {
     if (!item)
     {
         return NULL;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_STRING)
     {
         return NULL;
@@ -1094,4 +1100,24 @@ char *settings_sanitize_box_id(const char *input_id)
     *dst = '\0'; // null terminate the string
 
     return new_str;
+}
+
+void settings_load_all_certs()
+{
+    for (size_t id = 0; id < MAX_OVERLAYS; id++)
+    {
+        settings_load_certs_id(id);
+    }
+}
+void settings_load_certs_id(uint8_t settingsId)
+{
+    if (get_settings_id(settingsId)->internal.config_used)
+    {
+        load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId);
+        load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId);
+        load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId);
+        load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+        load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+        load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+    }
 }
