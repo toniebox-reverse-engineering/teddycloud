@@ -572,7 +572,7 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.id = "VolUp";
     entity.name = "Volume Up";
     entity.type = ha_event;
-    entity.event_types = "pressed;doublepress;triplepress";
+    entity.event_types = "pressed;double-pressed;triple-pressed";
     entity.stat_t = "%s/VolUp";
     ha_add(ha_box_instance, &entity);
 
@@ -580,7 +580,7 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.id = "VolDown";
     entity.name = "Volume Down";
     entity.type = ha_event;
-    entity.event_types = "pressed;doublepress;triplepress";
+    entity.event_types = "pressed;double-pressed;triple-pressed";
     entity.stat_t = "%s/VolDown";
     ha_add(ha_box_instance, &entity);
 
