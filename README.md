@@ -94,7 +94,7 @@ Please put your content into the ```/data/content/default/``` in the same struct
 ### Webinterface
 Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes affecting the toniebox (volume, LED) which are made through this interface will only be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
 
-As an additional frontend is still being developed, you can reach the frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
+As an additional frontend is still being developed, you can reach a second frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
 
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
