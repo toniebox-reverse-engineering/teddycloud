@@ -10,6 +10,18 @@
 #include "platform.h"
 #include "server_helpers.h"
 
+typedef struct
+{
+    char *hostname;
+    char *identification;
+    char *username;
+    char *password;
+    char *topic;
+
+} mqtt_ctx_t;
+
+#define MQTT_CLIENT_PRIVATE_CONTEXT mqtt_ctx_t *mqtt_ctx;
+
 #include "mqtt/mqtt_client.h"
 
 #include "home_assistant.h"
@@ -83,11 +95,11 @@ char *mqtt_topic_str(const char *fmt, const char *param)
     return new_str;
 }
 
-char *mqtt_prefix(const char *path)
+char *mqtt_prefix(const char *path, char *topic)
 {
     static char buffer[MQTT_TOPIC_STRING_LENGTH];
 
-    osSnprintf(buffer, sizeof(buffer), "%s/%s", settings_get_string("mqtt.topic"), path);
+    osSnprintf(buffer, sizeof(buffer), "%s/%s", topic, path);
 
     return buffer;
 }
@@ -230,12 +242,12 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
     mqttClientSetTimeout(mqtt_context, 20000);
     mqttClientSetKeepAlive(mqtt_context, 30);
-    const char *server = settings_get_string("mqtt.hostname");
+    const char *server = mqtt_context->mqtt_ctx->hostname;
     uint32_t port = settings_get_unsigned("mqtt.port");
 
-    mqttClientSetIdentifier(mqtt_context, settings_get_string("mqtt.identification"));
-    mqttClientSetAuthInfo(mqtt_context, settings_get_string("mqtt.username"), settings_get_string("mqtt.password"));
-    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status"), "offline", 7, MQTT_QOS_LEVEL_2, TRUE);
+    mqttClientSetIdentifier(mqtt_context, mqtt_context->mqtt_ctx->identification);
+    mqttClientSetAuthInfo(mqtt_context, mqtt_context->mqtt_ctx->username, mqtt_context->mqtt_ctx->password);
+    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "offline", 7, MQTT_QOS_LEVEL_2, TRUE);
 
     do
     {
@@ -270,11 +282,11 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
             break;
         }
 
-        error = mqttClientSubscribe(mqtt_context, mqtt_prefix("*"), MQTT_QOS_LEVEL_2, NULL);
+        error = mqttClientSubscribe(mqtt_context, mqtt_prefix("*", mqtt_context->mqtt_ctx->topic), MQTT_QOS_LEVEL_2, NULL);
         if (error)
             break;
 
-        error = mqttClientPublish(mqtt_context, mqtt_prefix("status"), "online", 6, MQTT_QOS_LEVEL_2, TRUE, NULL);
+        error = mqttClientPublish(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "online", 6, MQTT_QOS_LEVEL_2, TRUE, NULL);
         if (error)
             break;
 
@@ -290,6 +302,14 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
 void mqtt_thread()
 {
+    mqtt_ctx_t mqtt_ctx;
+    mqtt_ctx.hostname = strdup(settings_get_string("mqtt.hostname"));
+    mqtt_ctx.identification = strdup(settings_get_string("mqtt.identification"));
+    mqtt_ctx.username = strdup(settings_get_string("mqtt.username"));
+    mqtt_ctx.password = strdup(settings_get_string("mqtt.password"));
+    mqtt_ctx.topic = strdup(settings_get_string("mqtt.topic"));
+    mqtt_context.mqtt_ctx = &mqtt_ctx;
+
     while (!settings_get_bool("internal.exit"))
     {
         if (!settings_get_bool("mqtt.enabled"))
@@ -357,6 +377,12 @@ void mqtt_thread()
         mutex_unlock(MUTEX_MQTT_BOX);
         ha_loop(&ha_server_instance);
     }
+
+    osFreeMem(mqtt_ctx.hostname);
+    osFreeMem(mqtt_ctx.identification);
+    osFreeMem(mqtt_ctx.username);
+    osFreeMem(mqtt_ctx.password);
+    osFreeMem(mqtt_ctx.topic);
 }
 
 void mqtt_publish_string(const char *name, const char *value)
