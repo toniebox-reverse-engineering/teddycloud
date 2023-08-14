@@ -64,7 +64,9 @@ It is recommended to flash the replacement CA to /cert/c2.der and use the hackie
 ```
 cc3200tool -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
-**Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
+**Beware** The ```blockCheckRemove.310```, ```noCerts.305``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them by removing them in the [```ngCfg.json```](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Bootloader#configuration) on the SD card.
+
+To have the patched toniebox booting, stage 2 of the [hackiebox_cfw_ng install](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Install#2-bootloader-stage-2) has to be modified, so that only the content of the *sd* folder is copied and the ```ngCfg.json```  selects e.g. ```ofw2``` as the active image with activated alt* patches.
 
 #### CC3235
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box. I recommend flashrom for that
@@ -91,10 +93,16 @@ Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the Ted
 ### Content
 Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
 
+### Webinterface
+Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes made through this interface will be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
+
+As the frontend is still being developed, you can reach the frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
+
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
 
 An example [docker-compose.yaml can be found within the docker subdir.](docker/docker-compose.yaml)
+
 
 ## Attribution
 
