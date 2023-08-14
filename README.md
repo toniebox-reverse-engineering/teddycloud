@@ -94,9 +94,9 @@ Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the Ted
 Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
 
 ### Webinterface
-Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes made through this interface will be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
+Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes affecting the toniebox (volume, LED) which are made through this interface will only be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
 
-As the frontend is still being developed, you can reach the frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
+As an additional frontend is still being developed, you can reach the frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
 
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
