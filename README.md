@@ -66,8 +66,6 @@ cc3200tool -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
 **Beware** The ```blockCheckRemove.310```, ```noCerts.305``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them by removing them in the [```ngCfg.json```](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Bootloader#configuration) on the SD card.
 
-To have the patched toniebox booting, stage 2 of the [hackiebox_cfw_ng install](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Install#2-bootloader-stage-2) has to be modified, so that only the content of the *sd* folder is copied and the ```ngCfg.json```  selects e.g. ```ofw2``` as the active image with activated alt* patches.
-
 #### CC3235
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box. I recommend flashrom for that
 ```
