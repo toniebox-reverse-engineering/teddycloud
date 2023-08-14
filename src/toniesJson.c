@@ -90,7 +90,9 @@ void tonies_readJson()
             {
                 cJSON *arrayJson;
                 toniesJson_item_t *item = &toniesJsonCache[line++];
-                item->no = atoi(tonies_jsonGetString(tonieJson, "no"));
+                char *no_str = tonies_jsonGetString(tonieJson, "no");
+                item->no = atoi(no_str);
+                free(no_str);
                 item->model = tonies_jsonGetString(tonieJson, "model");
 
                 arrayJson = cJSON_GetObjectItem(tonieJson, "audio_id");
