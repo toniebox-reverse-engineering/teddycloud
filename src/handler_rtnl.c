@@ -414,7 +414,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
         {
             TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
         }
-        TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
+        TRACE_DEBUG_RESUME(", txt=%.*s\r\n", (int)rpc->log2->field6.len, rpc->log2->field6.data);
         if (rpc->log2->has_field8)
             TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
         if (rpc->log2->has_field9)
@@ -424,7 +424,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
             {
                 TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
             }
-            TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
+            TRACE_DEBUG_RESUME(", txt=%.*s\r\n", (int)rpc->log2->field9.len, rpc->log2->field9.data);
         }
     }
     if (rpc->log3)
