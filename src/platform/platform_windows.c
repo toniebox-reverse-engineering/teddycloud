@@ -200,6 +200,13 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
 
 void socketClose(Socket *socket)
 {
+    socket_buffer_t *buff = (socket_buffer_t *)socket->interface;
+    if (buff)
+    {
+        osFreeMem(buff->buffer);
+        osFreeMem(buff);
+    }
+
     if (socket->descriptor)
     {
         closesocket(socket->descriptor);
@@ -247,6 +254,7 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     {
         return NO_ERROR;
     }
+
     // Send data
     n = send(socket->descriptor, data, length, 0);
 
@@ -436,6 +444,7 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
                 // ai_addr is a pointer to a sockaddr, which we know is a sockaddr_in because ai_family == AF_INET.
                 struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
                 memcpy(&ipAddr->ipv4Addr, &(ipv4->sin_addr), sizeof(struct in_addr));
+                ipAddr->length = 4;
                 return true;
             }
             // Handle the case of an IPv6 address
@@ -443,6 +452,7 @@ bool resolve_get_ip(void *ctx, int pos, IpAddr *ipAddr)
             {
                 struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
                 memcpy(&ipAddr->ipv6Addr, &(ipv6->sin6_addr), sizeof(struct in6_addr));
+                ipAddr->length = 6;
                 return true;
             }
         }
