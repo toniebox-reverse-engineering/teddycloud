@@ -93,7 +93,7 @@ typedef struct
     settings_earid lastEarId;
     uint64_t lastEarpress;
     bool wasDoubleEarpress;
-    uint16_t multipressTime;
+    uint32_t multipressTime;
 } settings_internal_rtnl_t;
 
 typedef struct
