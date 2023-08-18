@@ -300,47 +300,95 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
     return error;
 }
 
+void mqtt_free_settings(mqtt_ctx_t *mqtt_ctx)
+{
+    if (mqtt_ctx->hostname)
+    {
+        osFreeMem(mqtt_ctx->hostname);
+    }
+    if (mqtt_ctx->identification)
+    {
+        osFreeMem(mqtt_ctx->identification);
+    }
+    if (mqtt_ctx->username)
+    {
+        osFreeMem(mqtt_ctx->username);
+    }
+    if (mqtt_ctx->password)
+    {
+        osFreeMem(mqtt_ctx->password);
+    }
+    if (mqtt_ctx->topic)
+    {
+        osFreeMem(mqtt_ctx->topic);
+    }
+    osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
+}
+
+void mqtt_get_settings(mqtt_ctx_t *mqtt_ctx)
+{
+    mqtt_free_settings(mqtt_ctx);
+
+    mqtt_ctx->hostname = strdup(settings_get_string("mqtt.hostname"));
+    mqtt_ctx->identification = strdup(settings_get_string("mqtt.identification"));
+    mqtt_ctx->username = strdup(settings_get_string("mqtt.username"));
+    mqtt_ctx->password = strdup(settings_get_string("mqtt.password"));
+    mqtt_ctx->topic = strdup(settings_get_string("mqtt.topic"));
+}
+
 void mqtt_thread()
 {
+    uint32_t errors = 0;
     mqtt_ctx_t mqtt_ctx;
-    mqtt_ctx.hostname = strdup(settings_get_string("mqtt.hostname"));
-    mqtt_ctx.identification = strdup(settings_get_string("mqtt.identification"));
-    mqtt_ctx.username = strdup(settings_get_string("mqtt.username"));
-    mqtt_ctx.password = strdup(settings_get_string("mqtt.password"));
-    mqtt_ctx.topic = strdup(settings_get_string("mqtt.topic"));
+    osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
+
     mqtt_context.mqtt_ctx = &mqtt_ctx;
 
     while (!settings_get_bool("internal.exit"))
     {
         if (!settings_get_bool("mqtt.enabled"))
         {
-            osDelayTask(1000);
+            if (mqttConnected)
+            {
+                TRACE_INFO("Disconnecting\r\n");
+                mqttClientClose(&mqtt_context);
+                mqttConnected = FALSE;
+            }
+
+            osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
             continue;
         }
 
         if (!mqttConnected)
         {
+            mqtt_get_settings(mqtt_context.mqtt_ctx);
+
             error = mqttConnect(&mqtt_context);
-            if (!error)
+            if (error)
             {
-                TRACE_INFO("Connected\r\n");
-                mqttConnected = TRUE;
-                mqtt_fail = false;
-                mutex_lock(MUTEX_MQTT_BOX);
-                for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
+                osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
+                if (++errors > 10)
                 {
-                    if (ha_box_instances[pos].initialized)
-                    {
-                        ha_connected(&ha_box_instances[pos]);
-                    }
+                    TRACE_INFO("Too many errors, disabling MQTT\r\n");
+                    errors = 0;
+                    settings_set_bool("mqtt.enabled", false);
                 }
-                mutex_unlock(MUTEX_MQTT_BOX);
-                ha_connected(&ha_server_instance);
+                continue;
             }
-            else
+
+            TRACE_INFO("Connected\r\n");
+            mqttConnected = TRUE;
+            mqtt_fail = false;
+            mutex_lock(MUTEX_MQTT_BOX);
+            for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
             {
-                osDelayTask(10000);
+                if (ha_box_instances[pos].initialized)
+                {
+                    ha_connected(&ha_box_instances[pos]);
+                }
             }
+            mutex_unlock(MUTEX_MQTT_BOX);
+            ha_connected(&ha_server_instance);
         }
         error = NO_ERROR;
         error = mqttClientTask(&mqtt_context, 500);
@@ -349,7 +397,7 @@ void mqtt_thread()
         {
             mqttClientClose(&mqtt_context);
             mqttConnected = FALSE;
-            osDelayTask(2000);
+            osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
         }
 
         /* process buffered Tx actions */
@@ -378,11 +426,7 @@ void mqtt_thread()
         ha_loop(&ha_server_instance);
     }
 
-    osFreeMem(mqtt_ctx.hostname);
-    osFreeMem(mqtt_ctx.identification);
-    osFreeMem(mqtt_ctx.username);
-    osFreeMem(mqtt_ctx.password);
-    osFreeMem(mqtt_ctx.topic);
+    mqtt_free_settings(mqtt_context.mqtt_ctx);
 }
 
 void mqtt_publish_string(const char *name, const char *value)
