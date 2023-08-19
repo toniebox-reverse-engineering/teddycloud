@@ -27,10 +27,7 @@
     "tasks": [
         {
             "label": "build",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "command": "make build",
             "type": "shell",
             "problemMatcher": []
@@ -46,14 +43,40 @@
             "problemMatcher": []
         },
         {
-            "label": "[win32] build",
+            "label": "[wsl] build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c", "make build"
+            ]
+        },
+        {
+            "label": "[wsl] clean",
             "group": {
                 "kind": "build",
                 "isDefault": false
             },
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c", "make clean"
+            ]
+        },
+        {
+            "label": "[win32] build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "command": "make PLATFORM=windows build",
             "type": "shell",
-            "problemMatcher": ["$msCompile"],
+            "problemMatcher": [
+                "$msCompile"
+            ]
         },
         {
             "label": "[win32] clean",

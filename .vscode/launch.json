@@ -33,6 +33,34 @@
             },
         },
         {
+            "name": "[wsl] teddyCloud",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "bin/teddycloud",
+            "args": [],
+            "cwd": ".",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "pipeTransport": {
+                "pipeProgram": "wsl",
+                "pipeArgs": [ "--cd", "${workspaceFolder}", "-e", "bash", "-c" ]
+            },
+            "preLaunchTask": "[wsl] build",
+            "logging": {
+                "programOutput": true,
+                "engineLogging": true,
+                "trace": false,
+                "traceResponse": false,
+                "exceptions": false
+            }
+        },
+        {
             "name": "[win32] teddyCloud",
             "type": "cppvsdbg",
             "request": "launch",
