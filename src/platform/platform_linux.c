@@ -207,7 +207,7 @@ error_t socketSend(Socket *socket, const void *data, size_t length,
     }
 
     // Send data
-    n = send(socket->descriptor, data, length, 0);
+    n = send(socket->descriptor, data, length, MSG_NOSIGNAL);
 
     // Check return value
     if (n > 0)
