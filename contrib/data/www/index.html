@@ -826,6 +826,7 @@
 
             handlePopState = (event) => {
                 if (event.state && event.state.path && event.state.mode) {
+                    this.setState({ path: event.state.path, mode: event.state.mode });
                     this.fetchFileIndex(event.state.path, event.state.mode, true);
                 }
             };
