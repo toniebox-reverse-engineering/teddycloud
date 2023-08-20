@@ -779,10 +779,10 @@
                 super(props);
                 this.state = {
                     path: '/',
+                    mode: 'content',
                     files: [],
                     selectedFiles: [],
                     tonies: [],
-                    mode: "content",
                     showSuccessMessage: false,
                     showSuccessState: false,
                     opacity: 1
@@ -805,17 +805,19 @@
             componentDidMount() {
                 // Extract path from the URL if present
                 const urlParams = new URLSearchParams(window.location.search);
-                const initialPath = urlParams.get('path') || '/';
-                const initialMode = urlParams.get('mode') || 'content';
+                const path = urlParams.get('path') || this.state.path;
+                const mode = urlParams.get('mode') || this.state.mode;
 
-                this.setState({ path: initialPath, mode: initialMode });
-                this.fetchFileIndex(initialPath, initialMode);
+                this.setState({ path: path, mode: mode });
+                this.fetchFileIndex(path, mode);
 
                 fetch("/tonies.json")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
 
                 window.addEventListener('popstate', this.handlePopState);
+
+                window.history.replaceState({ path, mode }, '', `?path=${path}&mode=${mode}`);
             }
 
             componentWillUnmount() {
@@ -823,7 +825,7 @@
             }
 
             handlePopState = (event) => {
-                if (event.state && event.state.path) {
+                if (event.state && event.state.path && event.state.mode) {
                     this.fetchFileIndex(event.state.path, event.state.mode, true);
                 }
             };
@@ -889,7 +891,14 @@
 
             async fetchFileIndex(path, mode, scroll = false) {
                 try {
-                    window.history.pushState({ path }, '', `?path=${path}&mode=${mode}`);
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const currentPath = urlParams.get('path') || '';
+                    const currentMode = urlParams.get('mode') || '';
+
+                    if (path !== currentPath || mode !== currentMode) {
+                        window.history.pushState({ path, mode }, '', `?path=${path}&mode=${mode}`);
+                    }
+
                     const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${mode}`);
                     if (response.ok) {
                         const data = await response.json();
