@@ -7,6 +7,7 @@
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
 #define CONFIG_VERSION 4
+#define MAX_OVERLAYS 16 + 1
 
 typedef enum
 {
@@ -18,6 +19,13 @@ typedef enum
     LOGLEVEL_DEBUG = 5,
     LOGLEVEL_VERBOSE = 6
 } settings_loglevel;
+
+typedef enum
+{
+    EAR_NONE = 0,
+    EAR_SMALL = 1,
+    EAR_BIG = 2,
+} settings_earid;
 
 typedef struct
 {
@@ -33,7 +41,6 @@ typedef struct
     bool enableV2Content;
     bool cacheContent;
     bool markCustomTagByPass;
-    bool markCustomTagByUid;
     bool prioCustomContent;
 } settings_cloud_t;
 
@@ -41,9 +48,12 @@ typedef struct
 {
     bool enabled;
     char *hostname;
+    uint32_t port;
     char *username;
     char *password;
     char *identification;
+    char *topic;
+    uint32_t qosLevel;
 } settings_mqtt_t;
 
 typedef struct
@@ -70,10 +80,21 @@ typedef struct
     char *git_sha;
     bool dirty;
     char *datetime;
+    char *platform;
+    char *os;
+    char *architecture;
     char *v_short;
     char *v_long;
     char *v_full;
 } settings_version_t;
+
+typedef struct
+{
+    settings_earid lastEarId;
+    uint64_t lastEarpress;
+    bool wasDoubleEarpress;
+    uint32_t multipressTime;
+} settings_internal_rtnl_t;
 
 typedef struct
 {
@@ -82,7 +103,9 @@ typedef struct
     settings_cert_t server;
     settings_cert_t client;
     bool config_init;
+    bool config_used;
     bool config_changed;
+    bool logColorSupport;
 
     char *cwd;
     char *contentdirrel;
@@ -91,9 +114,11 @@ typedef struct
     char *datadirfull;
     char *wwwdirfull;
 
-    char *overlayName;
+    char *overlayUniqueId;
+    uint8_t overlayNumber;
     char *assign_unknown;
 
+    settings_internal_rtnl_t rtnl;
     settings_version_t version;
 } settings_internal_t;
 
@@ -107,20 +132,26 @@ typedef struct
 {
     uint32_t http_port;
     uint32_t https_port;
+    char *host_url;
     char *certdir;
     char *contentdir;
     char *librarydir;
     char *datadir;
     char *wwwdir;
+    char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
+
+    bool flex_enabled;
+    char *flex_uid;
 } settings_core_t;
 
 typedef struct
 {
     settings_loglevel level;
     bool color;
+    bool logFullAuth;
 } settings_log_t;
 
 typedef struct
@@ -135,6 +166,7 @@ typedef struct
 {
     uint32_t configVersion;
     char *commonName;
+    char *boxName;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
@@ -152,6 +184,7 @@ typedef enum
     TYPE_HEX,
     TYPE_STRING,
     TYPE_FLOAT,
+    TYPE_TREE_DESC,
     TYPE_END
 } settings_type;
 
@@ -159,7 +192,7 @@ typedef union
 {
     bool bool_value;
     int32_t signed_value;
-    uint32_t unsigned_value;
+    uint64_t unsigned_value;
     uint32_t hex_value;
     float float_value;
     const char *string_value;
@@ -206,26 +239,30 @@ typedef struct
     setting_value_t min;
     setting_value_t max;
     bool internal;
+    bool overlayed;
 } setting_item_t;
 
 #define OPTION_START() setting_item_t option_map_array[] = {
-#define OPTION_ADV_BOOL(o, p, d, desc, i) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i},
-#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i},
-#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i},
-#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i},
-#define OPTION_ADV_STRING(o, p, d, desc, i) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i},
+#define OPTION_ADV_BOOL(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_STRING(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .internal = i, .overlayed = ov},
 
-#define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false)
-#define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false)
-#define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false)
-#define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false)
-#define OPTION_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, false)
+#define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false, false)
+#define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false, false)
+#define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false, false)
+#define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false, false)
+#define OPTION_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, false, false)
 
-#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true)
-#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true)
-#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true)
-#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true)
-#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true)
+#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true, false)
+#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true, false)
+#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true, false)
+#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true, false)
+#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true, false)
+
+#define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
 
 #define OPTION_END()     \
     {                    \
@@ -237,10 +274,11 @@ typedef struct
 void overlay_settings_init();
 
 settings_t *get_settings();
-settings_t *get_settings_ovl(const char *overlay);
+settings_t *get_settings_ovl(const char *overlay_unique_id);
+settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
 
-uint8_t get_overlay_id(const char *overlay);
+uint8_t get_overlay_id(const char *overlay_unique_id);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
@@ -259,7 +297,7 @@ void settings_init(char *cwd);
  *
  * This function should be called to clean up all allocated memory.
  */
-void settings_deinit(uint8_t overlayId);
+void settings_deinit(uint8_t overlayNumber);
 void settings_deinit_all();
 
 /**
@@ -319,6 +357,7 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
  * @param value The new value for the setting item.
  */
 bool settings_set_bool(const char *item, bool value);
+bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name);
 
 /**
  * @brief Gets the value of a boolean setting item.
@@ -345,6 +384,7 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_signed(const char *item, int32_t value);
+bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name);
 
 /**
  * @brief Gets the value of an unsigned integer setting item.
@@ -362,6 +402,7 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  * @param value The new value for the setting item.
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
+bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
 
 /**
  * @brief Retrieves a setting item by its name.
@@ -380,6 +421,7 @@ setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_n
  */
 const char *settings_get_string(const char *item);
 const char *settings_get_string_ovl(const char *item, const char *overlay_name);
+const char *settings_get_string_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of a string setting item.
@@ -388,6 +430,7 @@ const char *settings_get_string_ovl(const char *item, const char *overlay_name);
  * @param value The new string value for the setting item.
  */
 bool settings_set_string(const char *item, const char *value);
+bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name);
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId);
 
 /**
@@ -406,5 +449,11 @@ float settings_get_float_ovl(const char *item, const char *overlay_name);
  * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
  */
 bool settings_set_float(const char *item, float value);
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
+
+char *settings_sanitize_box_id(const char *input_id);
+
+void settings_load_all_certs();
+void settings_load_certs_id(uint8_t settingsId);
 
 #endif

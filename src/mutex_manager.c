@@ -40,17 +40,17 @@ void mutex_lock(mutex_id_t mutex_id)
 {
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
-    TRACE_DEBUG(">locking mutex %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE(">locking mutex %" PRIu8 "\r\n", mutex_id);
     osAcquireMutex(&mutex_info->mutex);
     mutex_info->last_lock = osGetSystemTime();
     mutex_info->locked = TRUE;
-    TRACE_DEBUG(">mutex locked %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE(">mutex locked %" PRIu8 "\r\n", mutex_id);
 }
 void mutex_unlock(mutex_id_t mutex_id)
 {
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
-    TRACE_DEBUG("<unlocking mutex %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE("<unlocking mutex %" PRIu8 "\r\n", mutex_id);
     osReleaseMutex(&mutex_info->mutex);
     mutex_info->locked = FALSE;
     if (mutex_info->warned)
@@ -63,7 +63,7 @@ void mutex_unlock(mutex_id_t mutex_id)
         TRACE_ERROR("<mutex %" PRIu8 " had an error\r\n", mutex_id);
         mutex_info->errored = FALSE;
     }
-    TRACE_DEBUG("<mutex unlocked %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE("<mutex unlocked %" PRIu8 "\r\n", mutex_id);
 }
 
 void mutex_manager_loop()

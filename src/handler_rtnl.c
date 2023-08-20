@@ -13,8 +13,12 @@
 #include "handler_rtnl.h"
 #include "settings.h"
 #include "stats.h"
+#include "mqtt.h"
 #include "fs_ext.h"
 #include "cloud_request.h"
+#include "server_helpers.h"
+#include "toniesJson.h"
+#include "server_helpers.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
@@ -84,6 +88,10 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     char_t *buffer = connection->buffer;
     size_t size = connection->response.contentLength;
 
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastSeen", current_time, client_ctx);
+
     size_t pos = 0;
     do
     {
@@ -126,9 +134,9 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         pos += protoLength;
         if (rpc && (rpc->log2 || rpc->log3))
         {
-            rtnlEvent(rpc);
-            rtnlEventLog(rpc);
-            rtnlEventDump(rpc, client_ctx->settings);
+            rtnlEvent(connection, rpc, client_ctx);
+            rtnlEventLog(connection, rpc);
+            rtnlEventDump(connection, rpc, client_ctx->settings);
         }
         tonie_rtnl_rpc__free_unpacked(rpc, NULL);
     } while (true);
@@ -140,9 +148,15 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
     return NO_ERROR;
 }
 
-void rtnlEvent(TonieRtnlRPC *rpc)
+int32_t read_little_endian(const uint8_t *buf)
+{
+    return (int32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+}
+
+void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *client_ctx)
 {
     char_t buffer[4096];
+
     if (rpc->log2)
     {
         sse_startEventRaw("rtnl-raw-log2");
@@ -200,18 +214,191 @@ void rtnlEvent(TonieRtnlRPC *rpc)
 
     if (rpc->log3)
     {
-        if (rpc->log3->field2 == 1)
+        settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
+        switch (rpc->log3->field2)
         {
-            sse_sendEvent("pressed", "ear-big", true);
+        case RTNL3_TYPE_EAR_BIG:
+            if (rtnl_setting->lastEarId == EAR_BIG && rtnl_setting->wasDoubleEarpress)
+            {
+                rtnl_setting->lastEarId = EAR_NONE;
+                rtnl_setting->wasDoubleEarpress = false;
+                sse_sendEvent("pressed", "ear-big-double", true);
+                mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"double-pressed\"}", client_ctx);
+            }
+            else
+            {
+                rtnl_setting->lastEarId = EAR_BIG;
+                sse_sendEvent("pressed", "ear-big", true);
+                mqtt_sendBoxEvent("VolUp", "{\"event_type\": \"pressed\"}", client_ctx);
+            }
+            break;
+        case RTNL3_TYPE_EAR_SMALL:
+            if (rtnl_setting->lastEarId == EAR_SMALL && rtnl_setting->wasDoubleEarpress)
+            {
+                rtnl_setting->lastEarId = EAR_NONE;
+                rtnl_setting->wasDoubleEarpress = false;
+                sse_sendEvent("pressed", "ear-small-double", true);
+                mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"double-pressed\"}", client_ctx);
+            }
+            else
+            {
+                rtnl_setting->lastEarId = EAR_SMALL;
+                sse_sendEvent("pressed", "ear-small", true);
+                mqtt_sendBoxEvent("VolDown", "{\"event_type\": \"pressed\"}", client_ctx);
+            }
+            break;
+        case RTNL3_TYPE_KNOCK_FORWARD:
+            sse_sendEvent("knock", "forward", true);
+            mqtt_sendBoxEvent("KnockForward", "{\"event_type\": \"triggered\"}", client_ctx);
+            break;
+        case RTNL3_TYPE_KNOCK_BACKWARD:
+            sse_sendEvent("knock", "backward", true);
+            mqtt_sendBoxEvent("KnockBackward", "{\"event_type\": \"triggered\"}", client_ctx);
+            break;
+        case RTNL3_TYPE_TILT_FORWARD:
+            sse_sendEvent("tilt", "forward", true);
+            mqtt_sendBoxEvent("TiltForward", "{\"event_type\": \"triggered\"}", client_ctx);
+            break;
+        case RTNL3_TYPE_TILT_BACKWARD:
+            sse_sendEvent("tilt", "backward", true);
+            mqtt_sendBoxEvent("TiltBackward", "{\"event_type\": \"triggered\"}", client_ctx);
+            break;
+        case RTNL3_TYPE_CHARGER_ON:
+            sse_sendEvent("charger", "on", true);
+            mqtt_sendBoxEvent("Charger", "ON", client_ctx);
+            break;
+        case RTNL3_TYPE_CHARGER_OFF:
+            sse_sendEvent("charger", "off", true);
+            mqtt_sendBoxEvent("Charger", "OFF", client_ctx);
+            break;
+        case RTNL3_TYPE_PLAYBACK_STARTING:
+            sse_sendEvent("playback", "starting", true);
+            mqtt_sendBoxEvent("Playback", "ON", client_ctx);
+            mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+            break;
+        case RTNL3_TYPE_PLAYBACK_STARTED:
+            sse_sendEvent("playback", "started", true);
+            mqtt_sendBoxEvent("Playback", "ON", client_ctx);
+            mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+            break;
+        case RTNL3_TYPE_PLAYBACK_STOPPED:
+            sse_sendEvent("playback", "stopped", true);
+            mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
+            mqtt_sendBoxEvent("TagValid", "", client_ctx);
+            mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+            mqtt_sendBoxEvent("AudioId", "", client_ctx);
+            mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
+            char *url = custom_asprintf("%s/img_empty.png", settings_get_string("core.host_url"));
+            mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+            osFreeMem(url);
+            break;
+        default:
+            TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
+            break;
         }
-        else if (rpc->log3->field2 == 2)
+    }
+
+    if (rpc->log2)
+    {
+        char buffer[33];
+
+        if (rpc->log2->function_group == RTNL2_FUGR_TAG && (rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32))
         {
-            sse_sendEvent("pressed", "ear-small", true);
+            if (rpc->log2->field6.len == 8)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                }
+            }
+            sse_sendEvent("TagInvalid", buffer, true);
+            mqtt_sendBoxEvent("TagInvalid", buffer, client_ctx);
+            mqtt_sendBoxEvent("TagValid", "", client_ctx);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_TAG && (rpc->log2->function == RTNL2_FUNC_TAG_VALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_VALID_ESP32))
+        {
+            if (rpc->log2->field6.len == 8)
+            {
+                for (size_t i = 0; i < rpc->log2->field6.len; i++)
+                {
+                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                }
+            }
+            sse_sendEvent("TagValid", buffer, true);
+            mqtt_sendBoxEvent("TagValid", buffer, client_ctx);
+            mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
+        }
+        else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID))
+        {
+            uint32_t audioId = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", audioId);
+            toniesJson_item_t *item = tonies_byAudioId(audioId);
+            sse_sendEvent("AudioId", buffer, true);
+            mqtt_sendBoxEvent("AudioId", buffer, client_ctx);
+            if (item == NULL)
+            {
+                sse_sendEvent("ContentTitle", "Unknown", true);
+                mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
+                if (audioId < 0x50000000)
+                {
+                    /* custom tonie */
+                    char *url = custom_asprintf("%s/img_custom.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
+                else
+                {
+                    /* no image in the json file */
+                    char *url = custom_asprintf("%s/img_unknown.png", settings_get_string("core.host_url"));
+                    mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+                    osFreeMem(url);
+                }
+            }
+            else
+            {
+                sse_sendEvent("ContentTitle", item->title, true);
+                mqtt_sendBoxEvent("ContentTitle", item->title, client_ctx);
+                sse_sendEvent("ContentPicture", item->picture, true);
+                mqtt_sendBoxEvent("ContentPicture", item->picture, client_ctx);
+            }
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
+        {
+            int32_t angle = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", angle);
+            sse_sendEvent("BoxTilt-A", buffer, true);
+            mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->function == RTNL2_FUNC_TILT_B_ESP32)
+        {
+            int32_t angle = read_little_endian(rpc->log2->field6.data);
+            osSprintf(buffer, "%d", angle);
+            sse_sendEvent("BoxTilt-B", buffer, true);
+            mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME && (rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_CC3200 || rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32))
+        {
+            /* DE210000 DBFFFFFF 01000000 */ /* 963C0000 D8FFFFFF 00000000 */
+            int32_t volumedB = read_little_endian(&rpc->log2->field6.data[4]);
+            int32_t volumeLevel = read_little_endian(&rpc->log2->field6.data[8]);
+            osSprintf(buffer, "%d", volumeLevel);
+            sse_sendEvent("VolumeLevel", buffer, true);
+            mqtt_sendBoxEvent("VolumeLevel", buffer, client_ctx);
+            osSprintf(buffer, "%d", volumedB);
+            sse_sendEvent("VolumedB", buffer, true);
+            mqtt_sendBoxEvent("VolumedB", buffer, client_ctx);
+
+            settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
+            if (rpc->log2->uptime - rtnl_setting->lastEarpress < rtnl_setting->multipressTime)
+            {
+                rtnl_setting->wasDoubleEarpress = true;
+            }
+            rtnl_setting->lastEarpress = rpc->log2->uptime;
         }
     }
 }
 
-void rtnlEventLog(TonieRtnlRPC *rpc)
+void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
 {
     TRACE_DEBUG("RTNL: \r\n");
     if (rpc->log2)
@@ -227,7 +414,7 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
         {
             TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
         }
-        TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field6.data);
+        TRACE_DEBUG_RESUME(", txt=%.*s\r\n", (int)rpc->log2->field6.len, rpc->log2->field6.data);
         if (rpc->log2->has_field8)
             TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
         if (rpc->log2->has_field9)
@@ -237,7 +424,7 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
             {
                 TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
             }
-            TRACE_DEBUG_RESUME(", txt=%s\r\n", rpc->log2->field9.data);
+            TRACE_DEBUG_RESUME(", txt=%.*s\r\n", (int)rpc->log2->field9.len, rpc->log2->field9.data);
         }
     }
     if (rpc->log3)
@@ -248,7 +435,7 @@ void rtnlEventLog(TonieRtnlRPC *rpc)
     }
 }
 
-void rtnlEventDump(TonieRtnlRPC *rpc, settings_t *settings)
+void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *settings)
 {
     if (settings->rtnl.logHuman)
     {

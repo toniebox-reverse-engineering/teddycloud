@@ -15,7 +15,7 @@ void stats_update(const char *item, int count)
     int pos = 0;
     while (statistics[pos].name)
     {
-        if (!strcmp(item, statistics[pos].name))
+        if (!osStrcmp(item, statistics[pos].name))
         {
             statistics[pos].value += count;
             return;

@@ -7,10 +7,11 @@
 #include "version.h"
 #include "debug.h"
 #include "settings.h"
+#include "mutex_manager.h"
+#include "tls_adapter.h"
 
 #include "fs_port.h"
 
-#define MAX_OVERLAYS 16 + 1
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
@@ -24,36 +25,55 @@ static void option_map_init(uint8_t settingsId)
     OPTION_START()
 
     OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
-    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "", "common name of the certificate (for overlays)")
+    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)")
+    OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box")
+
+    OPTION_TREE_DESC("log", "Logging")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "0=off - 6=verbose")
     OPTION_BOOL("log.color", &settings->log.color, TRUE, "Colored log")
+    OPTION_BOOL("log.logFullAuth", &settings->log.logFullAuth, FALSE, "Log full authentication of tags")
 
     /* settings for HTTPS server */
+    OPTION_TREE_DESC("core.server", "Server ports")
     OPTION_UNSIGNED("core.server.https_port", &settings->core.http_port, 443, 1, 65535, "HTTPS port")
     OPTION_UNSIGNED("core.server.http_port", &settings->core.https_port, 80, 1, 65535, "HTTP port")
+
+    OPTION_TREE_DESC("core.server", "HTTP server")
+    OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "URL to teddyCloud server")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Directory where to upload genuine client certs to")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Directory where cloud content is placed")
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Directory wof the audio library")
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Base directory for contentdir/wwwdir when relative")
     OPTION_STRING("core.wwwdir", &settings->core.wwwdir, "www", "Directory where web content is placed")
+    OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL/TLS key log filename")
 
+    OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates")
+    OPTION_TREE_DESC("core.client_cert.file", "File certificates")
     OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA")
     OPTION_STRING("core.server_cert.file.crt", &settings->core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate")
     OPTION_STRING("core.server_cert.file.key", &settings->core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key")
+    OPTION_TREE_DESC("core.server_cert.data", "Raw certificates")
     OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "Server CA data")
     OPTION_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data")
     OPTION_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data")
 
     /* settings for HTTPS/cloud client */
+    OPTION_TREE_DESC("core.client_cert", "Cloud client certificates")
+    OPTION_TREE_DESC("core.client_cert.file", "File certificates")
     OPTION_STRING("core.client_cert.file.ca", &settings->core.client_cert.file.ca, "certs/client/ca.der", "Client CA")
     OPTION_STRING("core.client_cert.file.crt", &settings->core.client_cert.file.crt, "certs/client/client.der", "Client certificate")
     OPTION_STRING("core.client_cert.file.key", &settings->core.client_cert.file.key, "certs/client/private.der", "Client key")
+    OPTION_TREE_DESC("core.client_cert.data", "Raw certificates")
     OPTION_STRING("core.client_cert.data.ca", &settings->core.client_cert.data.ca, "", "Client CA")
     OPTION_STRING("core.client_cert.data.crt", &settings->core.client_cert.data.crt, "", "Client certificate data")
     OPTION_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data")
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "Set CORS Access-Control-Allow-Origin header")
 
+    OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "When enabled this UID always gets assigned the audio assigned from web interface")
+    OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "UID which shall get selected audio files assigned")
+
+    OPTION_TREE_DESC("internal", "Internal")
     OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "Server CA data")
     OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
     OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
@@ -63,26 +83,38 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server")
     OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
-    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, TRUE, "Config initialized?")
+    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?")
+    OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
+    OPTION_INTERNAL_BOOL("internal.logColorSupport", &settings->internal.logColorSupport, FALSE, "Terminal supports color (log)")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.overlayName", &settings->internal.overlayName, "", "Name of the overlay")
+    OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay")
+    OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
+
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarId", &settings->internal.rtnl.lastEarId, EAR_NONE, EAR_BIG, EAR_NONE, "Id of the last pressed id")
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarpress", &settings->internal.rtnl.lastEarpress, 0, 0, UINT64_MAX, "Timestamp of the last pressed ear")
+    OPTION_INTERNAL_BOOL("internal.rtnl.wasDoubleEarpress", &settings->internal.rtnl.wasDoubleEarpress, FALSE, "Was double Earpress?")
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.multipressTime", &settings->internal.rtnl.multipressTime, 300, 0, UINT16_MAX, "Multipress time")
 
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
     OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Git sha short hash")
     OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Git sha hash")
     OPTION_INTERNAL_BOOL("internal.version.dirty", &settings->internal.version.dirty, FALSE, "Dirty build")
     OPTION_INTERNAL_STRING("internal.version.datetime", &settings->internal.version.datetime, "", "Build/git datetime")
+    OPTION_INTERNAL_STRING("internal.version.platform", &settings->internal.version.platform, "", "Build Platform")
+    OPTION_INTERNAL_STRING("internal.version.os", &settings->internal.version.os, "", "Build OS")
+    OPTION_INTERNAL_STRING("internal.version.architecture", &settings->internal.version.architecture, "", "Build Architecture")
     OPTION_INTERNAL_STRING("internal.version.v_short", &settings->internal.version.v_short, "", "Short version string")
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Long version string")
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Full version string")
 
+    OPTION_TREE_DESC("cloud", "Cloud")
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Generally enable cloud operation")
     OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Hostname of remote cloud server")
     OPTION_UNSIGNED("cloud.remote_port", &settings->cloud.remote_port, 443, 1, 65535, "Port of remote cloud server")
@@ -95,9 +127,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Pass 'content' queries to boxine cloud")
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, FALSE, "Cache cloud content on local server")
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Automatically mark custom tags by password")
-    OPTION_BOOL("cloud.markCustomTagByUid", &settings->cloud.markCustomTagByUid, TRUE, "Automatically mark custom tags by Uid")
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Priotize custom over boxine content (force update)")
 
+    OPTION_TREE_DESC("toniebox", "Toniebox")
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override toniebox settings from the boxine cloud")
     OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume (0-3)")
     OPTION_UNSIGNED("toniebox.max_vol_hdp", &settings->toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume (0-3)")
@@ -105,16 +137,21 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("toniebox.slap_back_left", &settings->toniebox.slap_back_left, FALSE, "False=left-backwards - True=left-forward")
     OPTION_UNSIGNED("toniebox.led", &settings->toniebox.led, 0, 0, 2, "0=on, 1=off, 2=dimmed")
 
+    OPTION_TREE_DESC("rtnl", "RTNL log")
     OPTION_BOOL("rtnl.logRaw", &settings->rtnl.logRaw, FALSE, "Enable raw rtnl logging")
     OPTION_BOOL("rtnl.logHuman", &settings->rtnl.logHuman, FALSE, "Enable human readable rtnl logging")
     OPTION_STRING("rtnl.logRawFile", &settings->rtnl.logRawFile, "config/rtnl.bin", "RTNL raw logfile")
     OPTION_STRING("rtnl.logHumanFile", &settings->rtnl.logHumanFile, "config/rtnl.csv", "RTNL human readable logfile")
 
+    OPTION_TREE_DESC("mqtt", "MQTT")
     OPTION_BOOL("mqtt.enabled", &settings->mqtt.enabled, FALSE, "Enable MQTT service")
     OPTION_STRING("mqtt.hostname", &settings->mqtt.hostname, "", "MQTT hostname")
+    OPTION_UNSIGNED("mqtt.port", &settings->mqtt.port, 1883, 1, 65535, "Port of MQTT server")
     OPTION_STRING("mqtt.username", &settings->mqtt.username, "", "Username")
     OPTION_STRING("mqtt.password", &settings->mqtt.password, "", "Password")
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification")
+    OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix")
+    OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level")
     OPTION_END()
 
     if (Option_Map_Overlay[settingsId] == NULL)
@@ -169,42 +206,81 @@ void overlay_settings_init()
             }
             pos++;
         }
+        Settings_Overlay[i].internal.overlayNumber = i;
         Settings_Overlay[i].internal.config_init = true;
+        Settings_Overlay[i].internal.config_used = false;
     }
 }
 
 settings_t *get_settings()
 {
-    return &Settings_Overlay[0];
+    return get_settings_id(0);
 }
 
-settings_t *get_settings_ovl(const char *overlay)
+settings_t *get_settings_ovl(const char *overlay_unique_id)
 {
-    return &Settings_Overlay[get_overlay_id(overlay)];
+    return get_settings_id(get_overlay_id(overlay_unique_id));
+}
+settings_t *get_settings_id(uint8_t settingsId)
+{
+    return &Settings_Overlay[settingsId];
 }
 
 settings_t *get_settings_cn(const char *commonName)
 {
-    for (size_t i = 0; i < MAX_OVERLAYS; i++)
+    mutex_lock(MUTEX_SETTINGS_CN);
+    if (commonName != NULL && osStrcmp(commonName, "") != 0)
     {
-        if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
+
+        for (size_t i = 1; i < MAX_OVERLAYS; i++)
         {
-            return &Settings_Overlay[i];
+            if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
+            {
+                mutex_unlock(MUTEX_SETTINGS_CN);
+                return &Settings_Overlay[i];
+            }
         }
+
+        for (size_t i = 1; i < MAX_OVERLAYS; i++)
+        {
+            if (!Settings_Overlay[i].internal.config_used)
+            {
+                char *boxId = settings_sanitize_box_id((const char *)commonName);
+                char *boxPrefix = "teddyCloud Box ";
+                char *boxName = osAllocMem(osStrlen(boxPrefix) + osStrlen(commonName) + 1);
+                osSprintf(boxName, "%s%s", boxPrefix, commonName);
+
+                settings_set_string_id("commonName", boxId, i);
+                settings_set_string_id("internal.overlayUniqueId", boxId, i);
+                settings_set_string_id("boxName", boxName, i);
+                settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
+                Settings_Overlay[i].internal.config_used = true;
+                settings_save_ovl(true);
+                mutex_unlock(MUTEX_SETTINGS_CN);
+
+                free(boxId);
+                free(boxName);
+                return &Settings_Overlay[i];
+            }
+        }
+
+        TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.\r\n", commonName);
     }
+    mutex_unlock(MUTEX_SETTINGS_CN);
     return get_settings();
 }
 
-uint8_t get_overlay_id(const char *overlay)
+uint8_t get_overlay_id(const char *overlay_unique_id)
 {
-    if (overlay == NULL)
+    if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {
         return 0;
     }
 
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        if (osStrcmp(Settings_Overlay[i].internal.overlayName, overlay) == 0)
+        if (osStrcmp(Settings_Overlay[i].internal.overlayUniqueId, overlay_unique_id) == 0)
         {
             return i;
         }
@@ -258,14 +334,13 @@ void settings_changed()
 {
     Settings_Overlay[0].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings());
-    overlay_settings_init();
     settings_load_ovl(true);
 }
 
-void settings_deinit(uint8_t overlayId)
+void settings_deinit(uint8_t overlayNumber)
 {
     int pos = 0;
-    setting_item_t *option_map = Option_Map_Overlay[overlayId];
+    setting_item_t *option_map = Option_Map_Overlay[overlayNumber];
     if (option_map == NULL)
     {
         return;
@@ -274,6 +349,7 @@ void settings_deinit(uint8_t overlayId)
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
+        opt->overlayed = false;
 
         switch (opt->type)
         {
@@ -288,10 +364,10 @@ void settings_deinit(uint8_t overlayId)
         }
         pos++;
     }
-    Settings_Overlay[overlayId].internal.config_init = FALSE;
+    Settings_Overlay[overlayNumber].internal.config_init = false;
 
-    osFreeMem(Option_Map_Overlay[overlayId]);
-    Option_Map_Overlay[overlayId] = NULL;
+    osFreeMem(Option_Map_Overlay[overlayNumber]);
+    Option_Map_Overlay[overlayNumber] = NULL;
 }
 
 void settings_deinit_all()
@@ -326,7 +402,7 @@ void settings_init(char *cwd)
             break;
         case TYPE_UNSIGNED:
         case TYPE_HEX:
-            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.unsigned_value);
+            TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
             *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
             break;
         case TYPE_FLOAT:
@@ -342,10 +418,6 @@ void settings_init(char *cwd)
         }
         pos++;
     }
-    for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
-    {
-        Settings_Overlay[i].internal.config_init = FALSE;
-    }
     settings_set_string("internal.cwd", cwd);
 
     settings_set_string("internal.version.id", BUILD_VERSION);
@@ -353,9 +425,17 @@ void settings_init(char *cwd)
     settings_set_string("internal.version.git_sha", BUILD_GIT_SHA);
     settings_set_bool("internal.version.id", BUILD_GIT_IS_DIRTY);
     settings_set_string("internal.version.datetime", BUILD_DATETIME);
+    settings_set_string("internal.version.platform", BUILD_PLATFORM);
+    settings_set_string("internal.version.os", BUILD_OS);
+    settings_set_string("internal.version.architecture", BUILD_ARCH);
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
+    settings_set_bool("internal.logColorSupport", supportsAnsiColors());
+
+    Settings_Overlay[0].internal.config_init = true;
+    Settings_Overlay[0].internal.config_used = true;
 
     settings_changed();
     settings_load();
@@ -363,7 +443,8 @@ void settings_init(char *cwd)
 
 void settings_save()
 {
-    settings_save_ovl(NULL);
+    settings_save_ovl(false);
+    settings_save_ovl(true);
 }
 
 void settings_save_ovl(bool overlay)
@@ -378,48 +459,74 @@ void settings_save_ovl(bool overlay)
         return;
     }
 
-    if (overlay)
+    for (size_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        fsCloseFile(file);
-        return;
-    }
+        int pos = 0;
+        char buffer[256]; // Buffer to hold the file content
 
-    Settings_Overlay[0].configVersion = CONFIG_VERSION;
-
-    int pos = 0;
-    char buffer[256]; // Buffer to hold the file content
-    while (get_option_map(NULL)[pos].type != TYPE_END)
-    {
-        if (!get_option_map(NULL)[pos].internal || !osStrcmp(get_option_map(NULL)[pos].option_name, "configVersion"))
+        if (i == 0 && overlay)
         {
-            setting_item_t *opt = &get_option_map(NULL)[pos];
-
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                sprintf(buffer, "%s=%s\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
-                break;
-            case TYPE_SIGNED:
-                sprintf(buffer, "%s=%d\n", opt->option_name, *((int32_t *)opt->ptr));
-                break;
-            case TYPE_UNSIGNED:
-            case TYPE_HEX:
-                sprintf(buffer, "%s=%u\n", opt->option_name, *((uint32_t *)opt->ptr));
-                break;
-            case TYPE_FLOAT:
-                sprintf(buffer, "%s=%f\n", opt->option_name, *((float *)opt->ptr));
-                break;
-            case TYPE_STRING:
-                sprintf(buffer, "%s=%s\n", opt->option_name, *((char **)opt->ptr));
-                break;
-            default:
-                buffer[0] = 0;
-                break;
-            }
-            if (osStrlen(buffer) > 0)
-                fsWriteFile(file, buffer, osStrlen(buffer));
+            i++;
         }
-        pos++;
+        else if (i > 0 && !overlay)
+        {
+            break;
+        }
+        Settings_Overlay[i].configVersion = CONFIG_VERSION;
+
+        setting_item_t *option_map = Option_Map_Overlay[i];
+        while (option_map[pos].type != TYPE_END)
+        {
+            setting_item_t *opt = &option_map[pos];
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName"))))
+            {
+                char *overlayPrefix;
+                if (overlay)
+                {
+                    if (!opt->overlayed)
+                    {
+                        pos++;
+                        continue; // Only write overlay settings if they were overlayed
+                    }
+                    overlayPrefix = osAllocMem(8 + osStrlen(Settings_Overlay[i].internal.overlayUniqueId) + 1 + 1); // overlay.[NAME].
+                    osStrcpy(overlayPrefix, "overlay.");
+                    osStrcat(overlayPrefix, Settings_Overlay[i].internal.overlayUniqueId);
+                    osStrcat(overlayPrefix, ".");
+                }
+                else
+                {
+                    overlayPrefix = osAllocMem(1);
+                    osStrcpy(overlayPrefix, "");
+                }
+
+                switch (opt->type)
+                {
+                case TYPE_BOOL:
+                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
+                    break;
+                case TYPE_SIGNED:
+                    sprintf(buffer, "%s%s=%d\n", overlayPrefix, opt->option_name, *((int32_t *)opt->ptr));
+                    break;
+                case TYPE_UNSIGNED:
+                case TYPE_HEX:
+                    sprintf(buffer, "%s%s=%u\n", overlayPrefix, opt->option_name, *((uint32_t *)opt->ptr));
+                    break;
+                case TYPE_FLOAT:
+                    sprintf(buffer, "%s%s=%f\n", overlayPrefix, opt->option_name, *((float *)opt->ptr));
+                    break;
+                case TYPE_STRING:
+                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((char **)opt->ptr));
+                    break;
+                default:
+                    buffer[0] = '\0';
+                    break;
+                }
+                if (osStrlen(buffer) > 0)
+                    fsWriteFile(file, buffer, osStrlen(buffer));
+                osFreeMem(overlayPrefix);
+            }
+            pos++;
+        }
     }
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
@@ -458,6 +565,11 @@ void settings_load_ovl(bool overlay)
         return;
     }
 
+    if (overlay)
+    {
+        overlay_settings_init();
+    }
+
     // Buffer to hold the file content
     char buffer[256];
     size_t from_read;
@@ -485,25 +597,23 @@ void settings_load_ovl(bool overlay)
                 char *option_name = strtok(line, "=");
                 char *value_str = &line[osStrlen(option_name) + 1];
 
-                char *overlay_name = NULL;
+                char *overlay_unique_id = NULL;
                 char *tokenizer = NULL;
                 if (overlay && osStrncmp(OVERLAY_CONFIG_PREFIX, option_name, osStrlen(OVERLAY_CONFIG_PREFIX)) == 0)
                 {
                     option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
                     tokenizer = strdup(option_name);
-                    overlay_name = strtok(tokenizer, ".");
-                    option_name += osStrlen(overlay_name) + 1;
+                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok(tokenizer, "."));
+                    option_name += osStrlen(overlay_unique_id) + 1;
 
-                    if (get_overlay_id(overlay_name) == 0)
+                    if (get_overlay_id(overlay_unique_id) == 0)
                     {
                         for (size_t i = 1; i < MAX_OVERLAYS; i++)
                         {
-                            if (osStrlen(Settings_Overlay[i].internal.overlayName) == 0)
+                            if (!Settings_Overlay[i].internal.config_used)
                             {
-                                free(Settings_Overlay[i].internal.overlayName);
-                                Settings_Overlay[i].internal.overlayName = strdup(overlay_name);
-                                // setting_item_t *opt = settings_get_by_name_id("internal.overlayName", i);
-                                //*((char **)opt->ptr) = strdup(*((char **)opt->ptr));
+                                settings_set_string_id("internal.overlayUniqueId", overlay_unique_id, i);
+                                Settings_Overlay[i].internal.config_used = true;
                                 break;
                             }
                         }
@@ -513,10 +623,14 @@ void settings_load_ovl(bool overlay)
                 if (option_name != NULL && value_str != NULL)
                 {
                     // Find the corresponding setting item
-                    setting_item_t *opt = settings_get_by_name_ovl(option_name, overlay_name);
+                    setting_item_t *opt = settings_get_by_name_ovl(option_name, overlay_unique_id);
                     if (opt != NULL)
                     {
                         // Update the setting value based on the type
+                        if (overlay)
+                        {
+                            opt->overlayed = true;
+                        }
                         switch (opt->type)
                         {
                         case TYPE_BOOL:
@@ -548,6 +662,7 @@ void settings_load_ovl(bool overlay)
                             break;
 
                         default:
+                            opt->overlayed = false;
                             break;
                         }
                     }
@@ -556,7 +671,8 @@ void settings_load_ovl(bool overlay)
                         TRACE_WARNING("Setting item '%s' not found\r\n", option_name);
                     }
                 }
-                free(tokenizer);
+                osFreeMem(overlay_unique_id);
+                osFreeMem(tokenizer);
             }
 
             line = next_line + 1; // Move to the next line
@@ -583,12 +699,14 @@ void settings_load_ovl(bool overlay)
         for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
         {
             settings_generate_internal_dirs(&Settings_Overlay[i]);
+            settings_load_certs_id(i);
             Settings_Overlay[i].internal.config_changed = false;
         }
     }
     else
     {
         settings_generate_internal_dirs(get_settings());
+        settings_load_certs_id(0);
 
         if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
         {
@@ -680,12 +798,16 @@ bool settings_get_bool_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_bool(const char *item, bool value)
 {
+    return settings_set_bool_ovl(item, value, NULL);
+}
+bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_BOOL)
     {
         return false;
@@ -693,6 +815,10 @@ bool settings_set_bool(const char *item, bool value)
 
     *((bool *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -723,12 +849,16 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_signed(const char *item, int32_t value)
 {
+    return settings_set_signed_ovl(item, value, NULL);
+}
+bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_SIGNED)
     {
         return false;
@@ -742,6 +872,10 @@ bool settings_set_signed(const char *item, int32_t value)
 
     *((int32_t *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -771,12 +905,16 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_unsigned(const char *item, uint32_t value)
 {
+    return settings_set_unsigned_ovl(item, value, NULL);
+}
+bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_UNSIGNED)
     {
         return false;
@@ -790,6 +928,10 @@ bool settings_set_unsigned(const char *item, uint32_t value)
 
     *((uint32_t *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -819,12 +961,16 @@ float settings_get_float_ovl(const char *item, const char *overlay_name)
 
 bool settings_set_float(const char *item, float value)
 {
+    return settings_set_float_ovl(item, value, NULL);
+}
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name(item);
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
     if (!opt || opt->type != TYPE_FLOAT)
     {
         return false;
@@ -838,6 +984,10 @@ bool settings_set_float(const char *item, float value)
 
     *((float *)opt->ptr) = value;
 
+    if (overlay_name)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -847,17 +997,20 @@ bool settings_set_float(const char *item, float value)
 
 const char *settings_get_string(const char *item)
 {
-    return settings_get_string_ovl(item, NULL);
+    return settings_get_string_id(item, 0);
 }
-
 const char *settings_get_string_ovl(const char *item, const char *overlay_name)
+{
+    return settings_get_string_id(item, get_overlay_id(overlay_name));
+}
+const char *settings_get_string_id(const char *item, uint8_t settingsId)
 {
     if (!item)
     {
         return NULL;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_STRING)
     {
         return NULL;
@@ -870,7 +1023,10 @@ bool settings_set_string(const char *item, const char *value)
 {
     return settings_set_string_id(item, value, 0);
 }
-
+bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name)
+{
+    return settings_set_string_id(item, value, get_overlay_id(overlay_name));
+}
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId)
 {
     if (!item || !value)
@@ -893,6 +1049,10 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
 
     *ptr = strdup(value);
 
+    if (settingsId > 0)
+    {
+        opt->overlayed = true;
+    }
     if (!opt->internal)
     {
         settings_changed();
@@ -918,5 +1078,48 @@ void settings_loop()
             TRACE_INFO("Overlay settings file changed. Reloading.\r\n");
             settings_load();
         }
+    }
+}
+
+char *settings_sanitize_box_id(const char *input_id)
+{
+    char *new_str = osAllocMem(osStrlen(input_id) + 1);
+    if (new_str == NULL)
+    {
+        return NULL;
+    }
+
+    char *dst = new_str;
+    const char *src = input_id;
+    while (*src)
+    {
+        if (isalnum((unsigned char)*src) || *src == '_' || *src == '-')
+        {
+            *dst++ = *src;
+        }
+        src++;
+    }
+    *dst = '\0'; // null terminate the string
+
+    return new_str;
+}
+
+void settings_load_all_certs()
+{
+    for (size_t id = 0; id < MAX_OVERLAYS; id++)
+    {
+        settings_load_certs_id(id);
+    }
+}
+void settings_load_certs_id(uint8_t settingsId)
+{
+    if (get_settings_id(settingsId)->internal.config_used)
+    {
+        load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId);
+        load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId);
+        load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId);
+        load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+        load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+        load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
     }
 }

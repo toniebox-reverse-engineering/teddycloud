@@ -18,6 +18,7 @@ RUN apt-get update \
 RUN mkdir -p /teddycloud/certs \
     && mkdir /teddycloud/config \
     && mkdir -p /teddycloud/data/content/default \
+    && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/www 
 
 COPY --from=buildenv \
@@ -30,12 +31,11 @@ COPY --from=buildenv \
 COPY --from=buildenv \
     /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
 
-VOLUME [ \
-    "/teddycloud/data/content", \
-    "/teddycloud/data/library", \
-    "/teddycloud/certs", \
-    "/teddycloud/config", \
-    ]
+VOLUME \
+    "/teddycloud/data/content" \
+    "/teddycloud/data/library" \
+    "/teddycloud/certs" \
+    "/teddycloud/config"
 
 COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +rx /usr/local/bin/docker-entrypoint.sh

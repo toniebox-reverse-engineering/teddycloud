@@ -25,6 +25,7 @@
 #include "tls_adapter.h"
 #include "handler_api.h"
 #include "settings.h"
+#include "mqtt.h"
 #include "platform.h"
 
 #include "handler_cloud.h"
@@ -48,20 +49,9 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
         return error;
 
     // TODO fix code duplication with server.c
-    settings_t *settings;
-    char_t *commonName = NULL;
-    char_t *subject = tlsContext->client_cert_subject;
-    if (tlsContext != NULL && osStrlen(subject) == 15)
-    {
-        commonName = strdup(&subject[2]);
-        commonName[osStrlen(commonName) - 1] = '\0';
-        settings = get_settings_cn(commonName);
-        free(commonName);
-    }
-    else
-    {
-        settings = get_settings();
-    }
+    req_cbr_t *cbr_ctx = context->sourceCtx;
+    client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
+    settings_t *settings = client_ctx->settings;
 
     const char *client_ca = settings->internal.client.ca;
     const char *client_crt = settings->internal.client.crt;
@@ -86,6 +76,8 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    tls_context_key_log_init(tlsContext);
+
     TRACE_INFO("Initializing TLS done\r\n");
 
     // Successful processing
@@ -106,7 +98,8 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 
 int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    settings_t *settings = ((cbr_ctx_t *)cbr->ctx)->client_ctx->settings;
+    client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr->ctx)->client_ctx;
+    settings_t *settings = client_ctx->settings;
 
     if (!settings->cloud.enabled)
     {
@@ -114,6 +107,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
         stats_update("cloud_blocked", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
+
+    mqtt_sendEvent("CloudRequest", uri, client_ctx);
 
     HttpClientContext httpClientContext;
 
@@ -132,6 +127,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                server, port);
 
     httpClientInit(&httpClientContext);
+    httpClientContext.sourceCtx = cbr;
     error_t error;
     if (https)
     {

@@ -34,6 +34,8 @@
 #include "os_port.h"
 #include "settings.h"
 
+bool supportsAnsiColors();
+
 // Trace level definitions
 #define TRACE_LEVEL_OFF 0
 #define TRACE_LEVEL_FATAL 1
@@ -66,7 +68,7 @@
 #ifndef TRACE_PRINTF_PREFIX
 #define TRACE_PRINTF_PREFIX(colorPrefix, level)                                                                                \
    osSuspendAllTasks();                                                                                                        \
-   if (get_settings()->log.color)                                                                                              \
+   if (get_settings()->log.color && get_settings()->internal.logColorSupport)                                                                                              \
    {                                                                                                                           \
       TRACE_PRINTF_NOSYNC("%s%-5s\x1b[0m|\x1b[90m%s:%04d:%s()\x1b[0m| ", colorPrefix, level, __FILENAME__, __LINE__, __func__) \
    }                                                                                                                           \

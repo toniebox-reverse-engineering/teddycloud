@@ -27,7 +27,7 @@ Currently implemented are:
 
 ## Preparation
 ### Generate certificates
-First of all you'll need to generate the CA and certificates with the starting date 2015-11-03: ```faketime '2015-11-03 00:00:00' gencerts.sh``` Those will be placed in ```/certs/server/```.
+First of all you'll need to generate the CA and certificates with the starting date 2015-11-03: ```./gencerts.sh``` Those will be placed in ```/certs/server/```.
 This also generates the replacement CA for the toniebox ```certs/server/ca.der```.
 If you are using docker, this will happen automatically.
 
@@ -36,11 +36,14 @@ You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der`
 #### CC3200
 You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
-python cc.py -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
+cc3200tool -p COM3 read_file /cert/ca.der cert/ca.der read_file /cert/private.der cert/private.der read_file /cert/client.der cert/client.der
 ```
 #### CC3235
-You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. 
-
+You'll have to manually extract it from the flash of the box with a SOP8 clamp directly from the memory or by desoldering it. Reading in-circuit can be tricky, but is possible. I recommend flashrom as tool for that. It may be necessary to use a more recent version of it.
+You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to extract your certificates from the flash dump.
+```
+cc3200tool -if cc32xx-flash.bin -d cc32xx read_all_files extract/
+```
 #### ESP32
 You can extract the flash memory via the debug port of the box and the esptool. Keep your backup!
 Please connect the jumper J100 (Boot) and reset the box to put it into the required mode. Connect your 3.3V UART to J103 (TxD, RxD, GND).
@@ -59,13 +62,15 @@ cp certs/server/ca.der certs/client/esp32-fakeca/CA.DER
 #### CC3200
 It is recommended to flash the replacement CA to /cert/c2.der and use the hackiebox-ng bootloader with the altCA patch. This will allow you to switch between the original and your replacement certificate. If you have installed the HackieboxNG Bootloader and the Hackiebox CFW you may upload the certificate via the webinterface of the CFW.
 ```
-python cc.py -p COM3 write_file certs/server/ca.der /cert/c2.der
+cc3200tool -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
-**Beware** The ```blockCheckRemove.310``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them.
+**Beware** The ```blockCheckRemove.310```, ```noCerts.305``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them by removing them in the [```ngCfg.json```](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Bootloader#configuration) on the SD card.
 
 #### CC3235
-Replace the original CA within your flash dump with the replacement CA and reflash it to your box.
-(no manual or tool available yet)
+Replace the original CA within your flash dump with the replacement CA and reflash it to your box. I recommend flashrom for that
+```
+cc3200tool -if cc32xx-flash.bin -of cc32xx-flash.customca.bin -d cc32xx customca.der /cert/ca.der
+```
 
 #### ESP32
 Replace the original CA within your flash dump with esptool.
@@ -86,7 +91,23 @@ Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the Ted
 ### Content
 Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
 
+### Webinterface
+Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes affecting the toniebox (volume, LED) which are made through this interface will only be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
+
+As an additional frontend is still being developed, you can reach a second frontend at ```xxx.xxx.xxx/web```. Changes made here are instantly live on the box.
+
 ## Docker hints
 The docker container automatically generates the server certificates on first run. You can extract the ```certs/server/ca.der``` for your box after that. The container won't run without the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key).
 
 An example [docker-compose.yaml can be found within the docker subdir.](docker/docker-compose.yaml)
+
+
+## Attribution
+
+The icons used are from here:
+* img_empty.png: https://www.flaticon.com/free-icon/ask_1372671
+* img_unknown.png: https://www.flaticon.com/free-icon/ask_1923795
+* img_custom.png/favicon.ico: https://www.flaticon.com/free-icon/dog_2829818
+
+Thanks for the original authors for these great icons.
+

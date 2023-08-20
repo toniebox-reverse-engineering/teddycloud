@@ -11,13 +11,23 @@
     "options": {
         "cwd": "${workspaceRoot}"
     },
+    "windows": {
+      "options": {
+        "shell": {
+          "executable": "cmd.exe",
+          "args": [
+            "/C",
+            // The path to VsDevCmd.bat depends on the version of Visual Studio you have installed.
+            "\"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat\"",
+            "&&"
+          ]
+        }
+      }
+    },
     "tasks": [
         {
             "label": "build",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "group": "build",
             "command": "make build",
             "type": "shell",
             "problemMatcher": []
@@ -29,6 +39,52 @@
                 "isDefault": false
             },
             "command": "make clean",
+            "type": "shell",
+            "problemMatcher": []
+        },
+        {
+            "label": "[wsl] build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c", "make build"
+            ]
+        },
+        {
+            "label": "[wsl] clean",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "-c", "make clean"
+            ]
+        },
+        {
+            "label": "[win32] build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "command": "make PLATFORM=windows build",
+            "type": "shell",
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        },
+        {
+            "label": "[win32] clean",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "command": "make PLATFORM=windows clean",
             "type": "shell",
             "problemMatcher": []
         }

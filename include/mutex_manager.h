@@ -5,9 +5,12 @@
 typedef enum
 {
     MUTEX_SETTINGS = 0,
+    MUTEX_SETTINGS_CN = 0,
     MUTEX_SSE_CTX,
     MUTEX_SSE_EVENT,
     MUTEX_RTNL_FILE,
+    MUTEX_MQTT_TX_BUFFER,
+    MUTEX_MQTT_BOX,
     MUTEX_LAST
 } mutex_id_t;
 

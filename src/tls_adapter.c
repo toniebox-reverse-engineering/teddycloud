@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "settings.h"
 #include "fs_port.h"
+#include "fs_ext.h"
 
 // tsl_certificate.c function Dependencies
 #include <string.h>
@@ -307,6 +308,41 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
     return error;
 }
 
+static void keylog_write(TlsContext *context, const char_t *key)
+{
+    static bool failed = false;
+    const char *logfile = settings_get_string("core.sslkeylogfile");
+    if (!logfile || !osStrlen(logfile))
+        return;
+
+    FsFile *keyLogFile = fsOpenFileEx(logfile, "a");
+    if (keyLogFile == NULL)
+    {
+        if (!failed)
+        {
+            TRACE_ERROR("Failed to open ssl key log file \"%s\"\r\n", logfile);
+            failed = true;
+        }
+        return;
+    }
+
+    char buf[256]; // key is at most 194 chars. see tlsDumpSecret
+    size_t len = osStrlen(key);
+    if (len > sizeof(buf) - 2)
+        return;
+    osMemcpy(buf, key, len);
+    buf[len++] = '\n';
+    buf[len] = '\0';
+    fsWriteFile(keyLogFile, buf, len);
+    fsCloseFile(keyLogFile);
+    failed = false;
+}
+
+void tls_context_key_log_init(TlsContext *context)
+{
+    (void)tlsSetKeyLogCallback(context, keylog_write);
+}
+
 error_t tls_adapter_deinit()
 {
     // Release PRNG context
@@ -315,18 +351,18 @@ error_t tls_adapter_deinit()
     return NO_ERROR;
 }
 
-error_t load_cert(const char *dest_var, const char *src_file, const char *src_var)
+error_t load_cert(const char *dest_var, const char *src_file, const char *src_var, uint8_t settingsId)
 {
     /* check if the source setting contains a cert */
-    const char *src_var_val = settings_get_string(src_var);
+    const char *src_var_val = settings_get_string_id(src_var, settingsId);
 
     if (src_var_val && strlen(src_var_val))
     {
-        settings_set_string(dest_var, src_var_val);
+        settings_set_string_id(dest_var, src_var_val, settingsId);
     }
     else
     {
-        const char *src_filename = settings_get_string(src_file);
+        const char *src_filename = settings_get_string_id(src_file, settingsId);
         if (!src_filename)
         {
             TRACE_ERROR("Failed to look up '%s'\r\n", src_file);
@@ -341,7 +377,7 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
             TRACE_ERROR("Loading cert '%s' failed\r\n", src_filename);
             return error;
         }
-        settings_set_string(dest_var, serverCert);
+        settings_set_string_id(dest_var, serverCert, settingsId);
         free(serverCert);
     }
 
@@ -374,13 +410,7 @@ error_t tls_adapter_init()
     }
 
     TRACE_INFO("Loading certificates...\r\n");
-
-    load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca");
-    load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt");
-    load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key");
-    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca");
-    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt");
-    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key");
+    settings_load_certs_id(0);
 
     // TLS session cache initialization
     tlsCache = tlsInitCache(8);

@@ -16,6 +16,16 @@ LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 
 ifeq ($(OS),Windows_NT)
+	SHELL_ENV ?= cmd
+#	build_arch:="$(shell powershell -NoProfile -Command "$$Env:PROCESSOR_ARCHITECTURE")"
+#   TODO
+	build_arch:="AMD64-tbd"
+else
+	SHELL_ENV ?= bash
+	build_arch:="$(shell arch)"
+endif
+
+ifeq ($(SHELL_ENV),cmd)
 build_rawDateTime:="${shell date /t} ${shell time /t}"
 else
 build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
@@ -26,8 +36,11 @@ build_gitDateTime:="${shell git log -1 --format=%ai}"
 build_gitShortSha:=${shell git rev-parse --short HEAD}
 build_gitSha:=${shell git rev-parse HEAD}
 build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+build_platform:=$(PLATFORM)
+build_os:="$(OS)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
+CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\"
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)
@@ -87,9 +100,9 @@ ifeq ($(PLATFORM),windows)
 	endif
 	CC = cl.exe
 	LD = link.exe
-	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
-	LFLAGS += /LIBPATH:"$(WindowsSdkDir)\lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
-	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)\lib\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
+	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)lib\$(VSCMD_ARG_TGT_ARCH)"
 endif
 
 ## posix/linux specific headers/sources
@@ -172,6 +185,9 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_tcp/http/http_common.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_packet.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_misc.c \
 	cyclone/cyclone_ssl/tls.c \
 	cyclone/cyclone_ssl/tls_cipher_suites.c \
 	cyclone/cyclone_ssl/tls_handshake.c \
@@ -245,6 +261,7 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
 	cyclone/cyclone_ssl/tls_certificate.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
@@ -252,6 +269,7 @@ CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
+	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	src/cyclone/cyclone_ssl/tls_certificate.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
