@@ -787,6 +787,7 @@
                     showSuccessState: false,
                     opacity: 1
                 };
+                this.fileBrowserRef = React.createRef();
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
                 this.createDirectory = this.createDirectory.bind(this);
@@ -802,11 +803,30 @@
             }
 
             componentDidMount() {
+                // Extract path from the URL if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const initialPath = urlParams.get('path') || '/';
+                const initialMode = urlParams.get('mode') || 'content';
+
+                this.setState({ path: initialPath, mode: initialMode });
+                this.fetchFileIndex(initialPath, initialMode);
+
                 fetch("/tonies.json")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
-                this.fetchFileIndex(this.state.path);
+
+                window.addEventListener('popstate', this.handlePopState);
             }
+
+            componentWillUnmount() {
+                window.removeEventListener('popstate', this.handlePopState);
+            }
+
+            handlePopState = (event) => {
+                if (event.state && event.state.path) {
+                    this.fetchFileIndex(event.state.path, event.state.mode, true);
+                }
+            };
 
             showSuccess(success) {
                 // Start by showing the success message
@@ -852,7 +872,7 @@
                 }
 
                 this.setState({ selectedFiles: [] });
-                this.fetchFileIndex(this.state.path);
+                this.fetchFileIndex(this.state.path, this.state.mode, true);
             }
 
             handleModeChange = () => {
@@ -862,17 +882,21 @@
                         path: '/'
                     }),
                     () => {
-                        this.fetchFileIndex(this.state.path);
+                        this.fetchFileIndex(this.state.path, this.state.mode, true);
                     }
                 );
             };
 
-            async fetchFileIndex(path) {
+            async fetchFileIndex(path, mode, scroll = false) {
                 try {
-                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
+                    window.history.pushState({ path }, '', `?path=${path}&mode=${mode}`);
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${mode}`);
                     if (response.ok) {
                         const data = await response.json();
                         this.setState({ files: data.files, path, selectedFiles: [] });
+                        if (scroll) {
+                            this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
+                        }
                     } else {
                         console.error('Failed to fetch file index');
                         this.setState({ files: [], path, selectedFiles: [] });
@@ -927,7 +951,7 @@
                     }
                 }
 
-                this.fetchFileIndex(this.state.path); // Refresh files after all uploads
+                this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files after all uploads
             }
 
             async createDirectory() {
@@ -946,7 +970,7 @@
                     });
 
                     if (response.ok) {
-                        this.fetchFileIndex(this.state.path); // Refresh files
+                        this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files
                         this.showSuccess(true);
                     } else {
                         alert('Failed to create directory');
@@ -994,7 +1018,7 @@
                     this.showSuccess(true);
                 }
                 this.setState({ selectedFiles: [] });
-                this.fetchFileIndex(this.state.path); // Refresh files after delete
+                this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files after delete
             }
 
 
@@ -1014,7 +1038,7 @@
 
             render() {
                 return (
-                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()} ref={this.fileBrowserRef}>
                         <h2>File Viewer</h2>
                         <OggPlayer ref={this.oggPlayerRef} />
 
@@ -1035,7 +1059,7 @@
                         </div>
 
                         <p>
-                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
+                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path, this.state.mode, true)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
@@ -1087,7 +1111,7 @@
 
                         {this.state.path !== '/' && (
                             <pre key="goup" style={{ fontFamily: 'monospace' }}>
-                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path)) }}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path), this.state.mode, true) }}>
                                     ..
                                 </a >
                             </pre>
@@ -1131,7 +1155,7 @@
                                     />
                                     {file.isDirectory ? (
                                         <React.Fragment>
-                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`, this.state.mode, true); }}>
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -1152,6 +1176,7 @@
                                                         onClick={() => {
                                                             this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                            this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
                                                         }
                                                         } className="small-round-button"
                                                     >
@@ -1198,7 +1223,6 @@
             }
 
             componentDidMount() {
-                console.log("componentDidMount started");
             }
 
             componentDidUpdate(prevProps, prevState) {
