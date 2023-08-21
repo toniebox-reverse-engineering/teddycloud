@@ -105,6 +105,7 @@ struct s_ha_info
     char mf[MAX_LEN];
     char mdl[MAX_LEN];
     char sw[MAX_LEN];
+    char via[MAX_LEN];
     t_ha_entity entities[MAX_ENTITIES];
     int entitiy_count;
 };

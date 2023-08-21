@@ -327,9 +327,9 @@ void ha_setup(t_ha_info *ha_info)
     osSnprintf(ha_info->name, sizeof(ha_info->name), "%s", ha_info->base_topic);
     osSnprintf(ha_info->id, sizeof(ha_info->id), "%s", "teddyCloud");
     osSnprintf(ha_info->cu, sizeof(ha_info->cu), "%s", settings_get_string("core.host_url"));
-    osSnprintf(ha_info->mf, sizeof(ha_info->mf), "RevvoX");
+    osSnprintf(ha_info->mf, sizeof(ha_info->mf), "Team RevvoX");
     osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "%s", "teddyCloud");
-    osSnprintf(ha_info->sw, sizeof(ha_info->sw), "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
+    osSnprintf(ha_info->sw, sizeof(ha_info->sw), "%s (%s)", get_settings()->internal.version.id, get_settings()->internal.version.git_sha_short);
     ha_info->entitiy_count = 0;
     ha_info->initialized = true;
 }

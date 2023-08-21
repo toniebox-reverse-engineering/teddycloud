@@ -98,6 +98,21 @@ typedef struct
 
 typedef struct
 {
+    char *rtnlVersion;
+    char *rtnlFullVersion;
+    char *rtnlDetail;
+    char *rtnlRegion;
+
+    uint32_t otaVersionSfx;
+    uint32_t otaVersionServicePack;
+    uint32_t otaVersionHtml;
+    uint32_t otaVersionEu;
+    uint32_t otaVersionPd;
+
+} settings_internal_toniebox_firmware_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -120,6 +135,7 @@ typedef struct
 
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
+    settings_internal_toniebox_firmware_t toniebox_firmware;
 } settings_internal_t;
 
 typedef struct
@@ -343,6 +359,8 @@ void settings_save_ovl(bool overlay);
  */
 void settings_load();
 void settings_load_ovl(bool overlay);
+
+uint16_t settings_get_size();
 
 /**
  * @brief Gets the setting item at a specific index.

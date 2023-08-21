@@ -15,6 +15,7 @@
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
+static uint16_t settings_size = 0;
 DateTime settings_last_load;
 DateTime settings_last_load_ovl;
 
@@ -114,6 +115,16 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor")
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details")
 
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlVersion", &settings->internal.toniebox_firmware.rtnlVersion, "", "Firmware version from RTNL")
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlFullVersion", &settings->internal.toniebox_firmware.rtnlFullVersion, "", "Firmware full version from RTNL")
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlDetail", &settings->internal.toniebox_firmware.rtnlDetail, "", "Firmware detail information")
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlRegion", &settings->internal.toniebox_firmware.rtnlRegion, "", "Firmware region")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionSfx", &settings->internal.toniebox_firmware.otaVersionSfx, 0, 0, 0, " ota version")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionServicePack", &settings->internal.toniebox_firmware.otaVersionServicePack, 0, 0, 0, " ota version")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionHtml", &settings->internal.toniebox_firmware.otaVersionHtml, 0, 0, 0, " ota version")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, 0, " ota version")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, 0, " ota version")
+
     OPTION_TREE_DESC("cloud", "Cloud")
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation")
     OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Cloud hostname", "Hostname of remote cloud server")
@@ -153,6 +164,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix")
     OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level")
     OPTION_END()
+
+    settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;
 
     if (Option_Map_Overlay[settingsId] == NULL)
     {
@@ -729,6 +742,11 @@ void settings_load_ovl(bool overlay)
     }
 }
 
+uint16_t settings_get_size()
+{
+    return settings_size;
+}
+
 setting_item_t *settings_get(int index)
 {
     return settings_get_ovl(index, NULL);
@@ -736,15 +754,8 @@ setting_item_t *settings_get(int index)
 
 setting_item_t *settings_get_ovl(int index, const char *overlay_name)
 {
-    int pos = 0;
-    while (get_option_map(overlay_name)[pos].type != TYPE_END)
-    {
-        if (pos == index)
-        {
-            return &get_option_map(overlay_name)[pos];
-        }
-        pos++;
-    }
+    if (index < settings_get_size())
+        return &get_option_map(overlay_name)[index];
     TRACE_WARNING("Setting item #%d not found\r\n", index);
     return NULL;
 }

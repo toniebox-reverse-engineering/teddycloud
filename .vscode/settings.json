@@ -2,7 +2,10 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
     "files.associations": {
         "*.v": "bsv",
-        "*.h": "c"
+        "*.h": "c",
+        "algorithm": "c",
+        "limits": "c",
+        "utility": "c"
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,
