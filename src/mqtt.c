@@ -866,8 +866,8 @@ void mqtt_init()
     t_ha_entity entity;
 
     ha_setup(&ha_server_instance);
-    osSprintf(ha_server_instance.name, "%s - Server", settings_get_string("mqtt.topic"));
-    osSprintf(ha_server_instance.id, "%s_Settings", settings_get_string("mqtt.topic"));
+    osStrcpy(ha_server_instance.name, settings_get_string("hass.name"));
+    osStrcpy(ha_server_instance.id, settings_get_string("hass.id"));
     osStrcpy(ha_server_instance.base_topic, settings_get_string("mqtt.topic"));
 
     for (size_t index = 0; index < settings_get_size(); index++)

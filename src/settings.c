@@ -163,6 +163,10 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification", "Client identification")
     OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix")
     OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level")
+
+    OPTION_TREE_DESC("hass", "Home Assistant")
+    OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name")
+    OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device")
     OPTION_END()
 
     settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;

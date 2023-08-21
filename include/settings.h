@@ -58,6 +58,12 @@ typedef struct
 
 typedef struct
 {
+    char *name;
+    char *id;
+} settings_hass_t;
+
+typedef struct
+{
     bool overrideCloud;
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;
@@ -186,6 +192,7 @@ typedef struct
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
+    settings_hass_t hass;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
     settings_log_t log;

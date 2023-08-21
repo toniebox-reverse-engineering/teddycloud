@@ -203,11 +203,11 @@ void ha_publish(t_ha_info *ha_info)
         ha_addstr(json_str, "cu", ha_info->cu, false);
         ha_addstr(json_str, "mf", ha_info->mf, false);
         ha_addstr(json_str, "mdl", ha_info->mdl, false);
-        ha_addstr(json_str, "sw", ha_info->sw, true);
         if (osStrlen(ha_info->via))
         {
-            ha_addstr(json_str, "via_device", ha_info->via, true);
+            ha_addstr(json_str, "via_device", ha_info->via, false);
         }
+        ha_addstr(json_str, "sw", ha_info->sw, true);
         osStrcat(json_str, "}}");
 
         // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
