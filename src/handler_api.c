@@ -97,7 +97,6 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
 {
     cJSON *json = cJSON_CreateObject();
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "options");
-    int pos = 0;
 
     char overlay[16];
     osStrcpy(overlay, "");
@@ -105,17 +104,12 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
     }
-    while (true)
+    for (size_t pos = 0; pos < settings_get_size(); pos++)
     {
         setting_item_t *opt = settings_get_ovl(pos, overlay);
 
-        if (!opt)
-        {
-            break;
-        }
         if (opt->internal || opt->type == TYPE_TREE_DESC)
         {
-            pos++;
             continue;
         }
 
@@ -167,8 +161,6 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         }
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
-
-        pos++;
     }
 
     char *jsonString = cJSON_PrintUnformatted(json);

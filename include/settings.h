@@ -344,6 +344,8 @@ void settings_save_ovl(bool overlay);
 void settings_load();
 void settings_load_ovl(bool overlay);
 
+uint16_t settings_get_size();
+
 /**
  * @brief Gets the setting item at a specific index.
  *

@@ -15,6 +15,7 @@
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
+static uint16_t settings_size = 0;
 DateTime settings_last_load;
 DateTime settings_last_load_ovl;
 
@@ -153,6 +154,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix")
     OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level")
     OPTION_END()
+
+    settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;
 
     if (Option_Map_Overlay[settingsId] == NULL)
     {
@@ -729,6 +732,11 @@ void settings_load_ovl(bool overlay)
     }
 }
 
+uint16_t settings_get_size()
+{
+    return settings_size;
+}
+
 setting_item_t *settings_get(int index)
 {
     return settings_get_ovl(index, NULL);
@@ -736,15 +744,8 @@ setting_item_t *settings_get(int index)
 
 setting_item_t *settings_get_ovl(int index, const char *overlay_name)
 {
-    int pos = 0;
-    while (get_option_map(overlay_name)[pos].type != TYPE_END)
-    {
-        if (pos == index)
-        {
-            return &get_option_map(overlay_name)[pos];
-        }
-        pos++;
-    }
+    if (index < settings_get_size())
+        return &get_option_map(overlay_name)[index];
     TRACE_WARNING("Setting item #%d not found\r\n", index);
     return NULL;
 }

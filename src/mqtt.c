@@ -858,14 +858,9 @@ void mqtt_init()
     osSprintf(ha_server_instance.id, "%s_Settings", settings_get_string("mqtt.topic"));
     osStrcpy(ha_server_instance.base_topic, settings_get_string("mqtt.topic"));
 
-    int index = 0;
-    do
+    for (size_t index = 0; index < settings_get_size(); index++)
     {
         setting_item_t *s = settings_get(index);
-        if (!s)
-        {
-            break;
-        }
         if (s->internal)
         {
             index++;
@@ -915,6 +910,5 @@ void mqtt_init()
         {
             ha_add(&ha_server_instance, &entity);
         }
-        index++;
-    } while (1);
+    };
 }
