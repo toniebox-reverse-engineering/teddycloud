@@ -174,11 +174,11 @@ void ha_publish(t_ha_info *ha_info)
         ha_addmqtt(ha_info, json_str, "rgb_cmd_t", ha_info->entities[pos].rgb_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "fx_cmd_t", ha_info->entities[pos].fx_cmd_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "fx_stat_t", ha_info->entities[pos].fx_stat_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "url_topic", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
+        ha_addmqtt(ha_info, json_str, "url_t", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
         ha_addstrarray(json_str, "fx_list", ha_info->entities[pos].fx_list, false);
-        ha_addstrarray(json_str, "event_types", ha_info->entities[pos].event_types, false);
+        ha_addstrarray(json_str, "evt_typ", ha_info->entities[pos].event_types, false);
         ha_addmqtt(ha_info, json_str, "val_tpl", ha_info->entities[pos].val_tpl, &ha_info->entities[pos], false);
-        ha_addstrarray(json_str, "options", ha_info->entities[pos].options, false);
+        ha_addstrarray(json_str, "ops", ha_info->entities[pos].options, false);
         ha_addstr(json_str, "unit_of_meas", ha_info->entities[pos].unit_of_meas, false);
 
         switch (ha_info->entities[pos].type)
@@ -188,10 +188,10 @@ void ha_publish(t_ha_info *ha_info)
             ha_addint(json_str, "max", ha_info->entities[pos].max, false);
             break;
         case ha_switch:
-            ha_addstr(json_str, "payload_on", "TRUE", false);
-            ha_addstr(json_str, "payload_off", "FALSE", false);
-            ha_addstr(json_str, "state_on", "TRUE", false);
-            ha_addstr(json_str, "state_off", "FALSE", false);
+            ha_addstr(json_str, "pl_on", "TRUE", false);
+            ha_addstr(json_str, "pl_off", "FALSE", false);
+            ha_addstr(json_str, "stat_on", "TRUE", false);
+            ha_addstr(json_str, "stat_off", "FALSE", false);
             break;
         default:
             break;
