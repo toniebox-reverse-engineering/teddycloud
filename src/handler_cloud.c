@@ -68,6 +68,26 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
     TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
+    settings_internal_toniebox_firmware_t *toniebox_fw = &client_ctx->settings->internal.toniebox_firmware;
+    switch (fileId)
+    {
+    case 2:
+        toniebox_fw->otaVersionPd = timestamp;
+        break;
+    case 3:
+        toniebox_fw->otaVersionEu = timestamp;
+        break;
+    case 4:
+        toniebox_fw->otaVersionServicePack = timestamp;
+        break;
+    case 5:
+        toniebox_fw->otaVersionHtml = timestamp;
+        break;
+    case 6:
+        toniebox_fw->otaVersionSfx = timestamp;
+        break;
+    }
+
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudOtaTime", current_time, client_ctx);

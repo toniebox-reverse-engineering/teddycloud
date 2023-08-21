@@ -395,6 +395,28 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             }
             rtnl_setting->lastEarpress = rpc->log2->uptime;
         }
+        else if (rpc->log2->function_group == RTNL2_FUGR_FIRMWARE && rpc->log2->function == RTNL2_FUNC_FIRMWARE_VERSION)
+        {
+            const char *rtnlVersion = (const char *)rpc->log2->field6.data;
+            settings_set_string_id("internal.toniebox_firmware.rtnlVersion", rtnlVersion, client_ctx->settings->internal.overlayNumber);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_FIRMWARE && rpc->log2->function == RTNL2_FUNC_FIRMWARE_FULL_VERSION)
+        {
+            const char *rtnlFullVersion = (const char *)rpc->log2->field6.data;
+            settings_set_string_id("internal.toniebox_firmware.rtnlFullVersion", rtnlFullVersion, client_ctx->settings->internal.overlayNumber);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_FIRMWARE && rpc->log2->function == RTNL2_FUNC_FIRMWARE_INFOS)
+        {
+            // Raw2 | #158 Uptime: 13505 Func:  8-7146 Payload: 'A93394604657000032363430633166003036204D61792032303A32310009000000030000000100000000000000' ASCII: '.3.`FW..2640c1f.06 May 20:21.................'
+            // TODO
+            settings_set_string_id("internal.toniebox_firmware.rtnlDetail", (const char *)&rpc->log2->field6.data[8], client_ctx->settings->internal.overlayNumber);
+        }
+        else if (rpc->log2->function_group == RTNL2_FUGR_NETWORK_HTTP && rpc->log2->function == RTNL2_FUNC_NETWORK_REGION)
+        {
+            // Raw2 | #102 Uptime: 7606 Func:  6-791 Payload: '45550030010000' ASCII: 'EU.0...'
+            // TODO
+            settings_set_string_id("internal.toniebox_firmware.rtnlRegion", (const char *)rpc->log2->field6.data, client_ctx->settings->internal.overlayNumber);
+        }
     }
 }
 
