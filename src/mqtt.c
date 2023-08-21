@@ -620,6 +620,7 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     osSprintf(ha_box_instance->name, "%s", box_name);
     osSprintf(ha_box_instance->id, "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
+    osStrcpy(ha_box_instance->via, ha_server_instance.id);
 
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
