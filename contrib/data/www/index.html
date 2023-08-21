@@ -252,6 +252,38 @@
         .slider.round:before {
             border-radius: 50%;
         }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            left: 5px;
+            color: #808080;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            /* Position the tooltip above the text */
+            left: 50%;
+            margin-left: -100px;
+            /* Use half the width to center it */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -293,6 +325,12 @@
                                 onChange={this.handleCheckboxChange}
                             />
                             {this.props.label}
+                            <span className="tooltip">
+                                &#9432;
+                                <span className="tooltip-text">
+                                    {this.props.description}
+                                </span>
+                            </span>
                         </label>
                     </div>
                 );
@@ -310,7 +348,13 @@
             }
 
             handleInputChange = (event) => {
-                const newValue = parseInt(event.target.value, 10);
+                var newValue = parseInt(event.target.value, 10);
+                if (newValue > this.props.max) {
+                    newValue = this.props.max;
+                }
+                if (newValue < this.props.min) {
+                    newValue = this.props.min;
+                }
                 this.setState({ value: newValue });
 
                 fetch(`/api/set/${this.props.id}`, {
@@ -331,7 +375,66 @@
                                 value={this.state.value}
                                 onChange={this.handleInputChange}
                             />
+                            &nbsp;
                             {this.props.label}
+                            <span className="tooltip">
+                                &#9432;
+                                <span className="tooltip-text">
+                                    {this.props.description}
+                                </span>
+                            </span>
+                        </label>
+                    </div>
+                );
+            }
+        }
+
+        class FloatInput extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { value: 0 };
+            }
+
+            componentDidMount() {
+                this.setState({ value: this.props.value });
+            }
+
+            handleInputChange = (event) => {
+                var newValue = parseFloat(event.target.value);
+                if (newValue > this.props.max) {
+                    newValue = this.props.max;
+                }
+                if (newValue < this.props.min) {
+                    newValue = this.props.min;
+                }
+                this.setState({ value: newValue });
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newValue.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="number"
+                                value={this.state.value}
+                                onChange={this.handleInputChange}
+                            />
+                            &nbsp;
+                            {this.props.label}
+                            <span className="tooltip">
+                                &#9432;
+                                <span className="tooltip-text">
+                                    {this.props.description}
+                                </span>
+                            </span>
                         </label>
                     </div>
                 );
@@ -386,13 +489,19 @@
                                 onBlur={this.handleInputBlur}
                                 onKeyPress={this.handleKeyPress}
                             />
+                            &nbsp;
                             {this.props.label}
+                            <span className="tooltip">
+                                &#9432;
+                                <span className="tooltip-text">
+                                    {this.props.description}
+                                </span>
+                            </span>
                         </label>
                     </div>
                 );
             }
         }
-
 
         class OptionList extends React.Component {
             constructor(props) {
@@ -441,25 +550,31 @@
                     case 'bool':
                         return (
                             <div style={{ marginLeft: `${indent}px` }}>
-                                <Checkbox id={option.ID} label={option.description} value={option.value} />
+                                <Checkbox id={option.ID} label={option.label} description={option.description} value={option.value} />
                             </div>
                         );
                     case 'int':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
+                                <IntegerInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
                             </div>
                         );
                     case 'uint':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
+                                <IntegerInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
+                            </div>
+                        );
+                    case 'float':
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <FloatInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
                             </div>
                         );
                     case 'string':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <StringInput id={option.ID} label={option.description} value={option.value} />
+                                <StringInput id={option.ID} label={option.label} description={option.description} value={option.value} />
                             </div>
                         );
                     default:

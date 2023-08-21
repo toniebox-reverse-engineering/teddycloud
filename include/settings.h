@@ -211,6 +211,9 @@ typedef union
  * @var const char *description
  * A description of the setting item, which can be used to give users an understanding of its purpose.
  *
+ * @var const char *label
+ * A short description of the setting item, which can be used as an entry name.
+ *
  * @var void *ptr
  * A pointer to the value of the setting. The type of the value pointed to should match the specified setting type.
  *
@@ -233,6 +236,7 @@ typedef struct
 {
     const char *option_name;
     const char *description;
+    const char *label;
     void *ptr;
     settings_type type;
     setting_value_t init;
@@ -243,24 +247,24 @@ typedef struct
 } setting_item_t;
 
 #define OPTION_START() setting_item_t option_map_array[] = {
-#define OPTION_ADV_BOOL(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_STRING(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_BOOL(o, p, d, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_STRING(o, p, d, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .label = NULL, .internal = i, .overlayed = ov},
 
-#define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false, false)
-#define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false, false)
-#define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false, false)
-#define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false, false)
-#define OPTION_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, false, false)
+#define OPTION_BOOL(o, p, d, short, desc) OPTION_ADV_BOOL(o, p, d, short, desc, false, false)
+#define OPTION_SIGNED(o, p, d, min, max, short, desc) OPTION_ADV_SIGNED(o, p, d, min, max, short, desc, false, false)
+#define OPTION_UNSIGNED(o, p, d, min, max, short, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, short, desc, false, false)
+#define OPTION_FLOAT(o, p, d, min, max, short, desc) OPTION_ADV_FLOAT(o, p, d, min, max, short, desc, false, false)
+#define OPTION_STRING(o, p, d, short, desc) OPTION_ADV_STRING(o, p, d, short, desc, false, false)
 
-#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true, false)
-#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true, false)
+#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, desc, true, false)
+#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, desc, true, false)
 
 #define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
 

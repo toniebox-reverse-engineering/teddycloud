@@ -123,6 +123,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "ID", opt->option_name);
         cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
         cJSON_AddStringToObject(jsonEntry, "description", opt->description);
+        cJSON_AddStringToObject(jsonEntry, "label", opt->label);
 
         switch (opt->type)
         {
@@ -133,14 +134,20 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         case TYPE_UNSIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "uint");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
+            cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_SIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "int");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "min", opt->min.signed_value);
+            cJSON_AddNumberToObject(jsonEntry, "max", opt->max.signed_value);
             break;
         case TYPE_HEX:
             cJSON_AddStringToObject(jsonEntry, "type", "hex");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
+            cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_STRING:
             cJSON_AddStringToObject(jsonEntry, "type", "string");
@@ -149,6 +156,8 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         case TYPE_FLOAT:
             cJSON_AddStringToObject(jsonEntry, "type", "float");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "min", opt->min.float_value);
+            cJSON_AddNumberToObject(jsonEntry, "max", opt->max.float_value);
             break;
         case TYPE_TREE_DESC:
             cJSON_AddStringToObject(jsonEntry, "type", "desc");
