@@ -116,13 +116,22 @@ error_t mqtt_sendEvent(const char *eventname, const char *content, client_ctx_t 
 
 error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx_t *client_ctx)
 {
-    t_ha_info *ha_info = mqtt_get_box(client_ctx);
-    if (!ha_info)
+    t_ha_info *ha_box = mqtt_get_box(client_ctx);
+    if (!ha_box)
     {
         return ERROR_FAILURE;
     }
+
+    char *version = client_ctx->settings->internal.toniebox_firmware.rtnlFullVersion;
+    if (osStrlen(version) > 0 && osStrcmp(version, ha_box->sw) != 0)
+    {
+        osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", version);
+        ha_publish(ha_box);
+        ha_transmit_all(ha_box);
+    }
+
     char *topic = custom_asprintf("%%s/%s", eventname);
-    ha_transmit_topic(ha_info, topic, content);
+    ha_transmit_topic(ha_box, topic, content);
     osFreeMem(topic);
     return NO_ERROR;
 }
@@ -620,6 +629,9 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     osSprintf(ha_box_instance->name, "%s", box_name);
     osSprintf(ha_box_instance->id, "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
+    osSprintf(ha_box_instance->mf, "%s", "tonies");
+    osSprintf(ha_box_instance->mdl, "%s", "Toniebox");
+    osSprintf(ha_box_instance->sw, "%s", "Unknown"); // TODO
 
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
