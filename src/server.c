@@ -81,7 +81,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/get/", &handleApiGet},
     {REQ_POST, "/api/set/", &handleApiSet},
     {REQ_GET, "/api/sse", &handleApiSse},
-    /* official boxine API */
+    /* official tonies API */
     {REQ_GET, "/v1/time", &handleCloudTime},
     {REQ_GET, "/v1/ota", &handleCloudOTA},
     {REQ_GET, "/v1/claim", &handleCloudClaim},
@@ -288,7 +288,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
 
-        if (osStrlen(subject) == 15) // Boxine standard cn with b'[MAC]'
+        if (osStrlen(subject) == 15) // tonies standard cn with b'[MAC]'
         {
             char_t *commonName;
             commonName = strdup(&subject[2]);

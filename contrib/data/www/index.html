@@ -1534,15 +1534,11 @@
                 super(props);
                 this.state = {
                     time: 0,
-                    cloud_time: 0,
                     display_time: 0,
-                    display_cloud_time: 0,
-                    version: "(unknown version)",
-                    enableCloudTime: false
+                    version: "(unknown version)"
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
-                this.handleEnableCloudTimeChange = this.handleEnableCloudTimeChange.bind(this);
                 this.fetchFromServer();
             }
 
@@ -1562,10 +1558,6 @@
                     })
             }
 
-            handleEnableCloudTimeChange(event) {
-                this.setState({ enableCloudTime: event.target.checked }, () => { this.fetchFromServer() });
-            }
-
             componentWillUnmount() {
                 clearInterval(this.interval);
                 clearInterval(this.intervalDisplay);
@@ -1577,13 +1569,6 @@
                         const date = new Date(prevState.time * 1000 + 1000);
                         const formattedTime = this.formatTime(date);
                         return { time: prevState.time + 1, display_time: formattedTime };
-                    });
-                }
-                if (this.state.cloud_time !== 0 && this.state.cloud_time !== 'Error') {
-                    this.setState((prevState) => {
-                        const date = new Date(prevState.cloud_time * 1000 + 1000);
-                        const formattedTime = this.formatTime(date);
-                        return { cloud_time: prevState.cloud_time + 1, display_cloud_time: formattedTime };
                     });
                 }
             }
@@ -1603,23 +1588,6 @@
                         console.error('There was an error!', error);
                         this.setState({ time: 'Error', display_time: 'Error' });
                     });
-
-                if (this.state.enableCloudTime) {
-                    fetch('/reverse/v1/time')
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.text();
-                        })
-                        .then(unixTime => {
-                            this.setState({ cloud_time: parseInt(unixTime, 10) });
-                        })
-                        .catch(error => {
-                            console.error('There was an error!', error);
-                            this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
-                        });
-                }
             }
 
             formatTime(date) {
@@ -1635,15 +1603,6 @@
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
-                            <label>
-                                Fetch Cloud Time
-                                <input
-                                    type="checkbox"
-                                    checked={this.state.enableCloudTime}
-                                    onChange={this.handleEnableCloudTimeChange}
-                                />
-                            </label>
-                            <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
                             <CertificateUploadTile />
                             <FileViewerTile />
