@@ -122,10 +122,47 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
         return ERROR_FAILURE;
     }
 
+    bool_t updated = false;
+    settings_box_type boxIC = client_ctx->settings->internal.toniebox_firmware.boxIC;
+    if (osStrlen(ha_box->hw) == 0)
+    {
+        switch (boxIC)
+        {
+        case BOX_CC3200:
+            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "CC3200");
+            updated = true;
+            break;
+        case BOX_CC3235:
+            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "CC3235");
+            updated = true;
+            break;
+        case BOX_ESP32:
+            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "ESP32");
+            updated = true;
+            break;
+        case BOX_UNKNOWN:
+            break;
+        }
+    }
     char *version = client_ctx->settings->internal.toniebox_firmware.rtnlFullVersion;
     if (osStrlen(version) > 0 && osStrcmp(version, ha_box->sw) != 0)
     {
         osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", version);
+        updated = true;
+    }
+    else if (osStrlen(version) == 0 && client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware > 0)
+    {
+        char sw[MAX_LEN];
+        osSnprintf(sw, sizeof(sw), "%" PRIuTIME, client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware);
+        if (osStrcmp(sw, ha_box->sw) != 0)
+        {
+            osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", sw);
+            updated = true;
+        }
+    }
+
+    if (updated)
+    {
         ha_publish(ha_box);
         ha_transmit_all(ha_box);
     }
@@ -641,8 +678,8 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->mf, "%s", "tonies");
     osSprintf(ha_box_instance->mdl, "%s", "Toniebox");
-    osSprintf(ha_box_instance->sw, "%s", "Unknown"); // TODO
     osStrcpy(ha_box_instance->via, ha_server_instance.id);
+    osStrcpy(ha_box_instance->availability_topic, ha_server_instance.availability_topic); // TODO for each box individually
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
 
@@ -879,6 +916,7 @@ void mqtt_init()
     osStrcpy(ha_server_instance.name, settings_get_string("hass.name"));
     osStrcpy(ha_server_instance.id, settings_get_string("hass.id"));
     osStrcpy(ha_server_instance.base_topic, settings_get_string("mqtt.topic"));
+    osStrcpy(ha_server_instance.availability_topic, (const char *)mqtt_prefix("status", ha_server_instance.base_topic));
 
     for (size_t index = 0; index < settings_get_size(); index++)
     {

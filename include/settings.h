@@ -27,6 +27,14 @@ typedef enum
     EAR_BIG = 2,
 } settings_earid;
 
+typedef enum
+{
+    BOX_UNKNOWN = 0,
+    BOX_CC3200 = 1,
+    BOX_CC3235 = 2,
+    BOX_ESP32 = 3,
+} settings_box_type;
+
 typedef struct
 {
     bool enabled;
@@ -104,6 +112,12 @@ typedef struct
 
 typedef struct
 {
+    settings_box_type boxIC;
+
+    time_t uaVersionFirmware;
+    time_t uaVersionServicePack;
+    time_t uaVersionHardware;
+
     char *rtnlVersion;
     char *rtnlFullVersion;
     char *rtnlDetail;
