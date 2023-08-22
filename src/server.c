@@ -95,7 +95,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
 
-    TRACE_INFO("Query: '%s'\r\n", queryString);
+    TRACE_DEBUG("Query: '%s'\r\n", queryString);
 
     char ogg[16];
     char overlay[16];
@@ -111,11 +111,11 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
     }
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     if (queryGet(queryString, "special", special, sizeof(special)))
     {
-        TRACE_INFO("requested index for special '%s'\r\n", special);
+        TRACE_DEBUG("requested index for special '%s'\r\n", special);
         if (!osStrcmp(special, "library"))
         {
             rootPath = settings_get_string("internal.librarydirfull");
@@ -139,7 +139,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 
     osStrcpy(new_uri, rootPath);
     osStrcat(new_uri, &uri[8]);
-    TRACE_INFO("Request for '%s', ogg: %s\r\n", new_uri, ogg);
+    TRACE_DEBUG("Request for '%s', ogg: %s\r\n", new_uri, ogg);
 
     error_t error;
     size_t n;
@@ -201,7 +201,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 
     if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
     {
-        TRACE_DEBUG("Seeking file to %" PRIu64 "\r\n", connection->request.Range.start);
+        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
         fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
     }
     else
@@ -252,7 +252,7 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 {
-    TRACE_INFO("resGetData: %s (static response)\n", path);
+    TRACE_DEBUG("resGetData: %s (static response)\n", path);
 
     *data = (uint8_t *)"CONTENT\r\n";
     *length = (size_t)osStrlen((char *)*data);
@@ -268,17 +268,17 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
     if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
     {
-        TRACE_INFO("Certificate authentication:\r\n");
-        TRACE_INFO("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
-        TRACE_INFO("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
-        TRACE_INFO("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
+        TRACE_DEBUG("Certificate authentication:\r\n");
+        TRACE_DEBUG("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
+        TRACE_DEBUG("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
+        TRACE_DEBUG("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
     }
     else
     {
-        TRACE_INFO("No certificate authentication\r\n");
+        TRACE_DEBUG("No certificate authentication\r\n");
     }
 
-    TRACE_INFO(" >> client requested '%s' via %s \n", uri, connection->request.method);
+    TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
     client_ctx_t client_ctx;
     osMemset(&client_ctx, 0x00, sizeof(client_ctx));
@@ -390,7 +390,7 @@ HttpAccessStatus httpServerAuthCallback(HttpConnection *connection, const char_t
 
 size_t httpAddAuthenticateField(HttpConnection *connection, char_t *output)
 {
-    TRACE_INFO("httpAddAuthenticateField\r\n");
+    TRACE_DEBUG("httpAddAuthenticateField\r\n");
     return 0;
 }
 
@@ -398,7 +398,7 @@ error_t httpServerCgiCallback(HttpConnection *connection,
                               const char_t *param)
 {
     // Not implemented
-    TRACE_INFO("httpServerCgiCallback: %s\r\n", param);
+    TRACE_DEBUG("httpServerCgiCallback: %s\r\n", param);
     return NO_ERROR;
 }
 
