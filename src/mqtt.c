@@ -620,8 +620,18 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     const char *box_id = client_ctx->box_id;
     const char *box_name = client_ctx->box_name;
 
+    if (!box_id)
+    {
+        box_id = "NULL";
+    }
+    if (!box_name)
+    {
+        box_name = "NULL";
+    }
+
     if (client_ctx->settings->internal.overlayNumber == 0)
     {
+        TRACE_INFO("Skipping client '%s' (cn: '%s')\r\n", box_name, box_id);
         return ERROR_ABORTED; // Skip clients without an overlay / box
     }
 
