@@ -287,18 +287,75 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     if (connection->tlsContext)
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
+        char_t *issuer = connection->tlsContext->client_cert_issuer;
 
-        if (osStrlen(subject) == 15) // tonies standard cn with b'[MAC]'
+        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL)
         {
-            char_t *commonName;
-            commonName = strdup(&subject[2]);
-            commonName[osStrlen(commonName) - 1] = '\0';
-            client_ctx.settings = get_settings_cn(commonName);
-            osFreeMem(commonName);
-        }
-        else
-        {
-            client_ctx.settings = get_settings_cn(subject);
+            if (osStrlen(subject) == 15) // tonies standard cn with b'[MAC]'
+            {
+                char_t *commonName;
+                commonName = strdup(&subject[2]);
+                commonName[osStrlen(commonName) - 1] = '\0';
+                client_ctx.settings = get_settings_cn(commonName);
+                osFreeMem(commonName);
+            }
+            else
+            {
+                client_ctx.settings = get_settings_cn(subject);
+            }
+
+            if (connection->request.userAgent != NULL)
+            {
+                char *ua = connection->request.userAgent;
+                char *tbV = osStrstr(ua, "TB/");
+                char *tbSp = osStrstr(ua, "SP/");
+                char *tbHw = osStrstr(ua, "HW/");
+
+                if (tbV != NULL)
+                {
+                    char *buffer;
+                    char *spacePos;
+
+                    buffer = strdup(tbV + 3);
+                    spacePos = osStrchr(buffer, ' ');
+                    if (spacePos != NULL)
+                    {
+                        buffer[spacePos - buffer] = '\0';
+                    }
+                    time_t fwVersionTime = atoi(buffer);
+                    osFreeMem(buffer);
+
+                    buffer = strdup(tbSp + 3);
+                    spacePos = osStrchr(buffer, ' ');
+                    if (spacePos != NULL)
+                    {
+                        buffer[spacePos - buffer] = '\0';
+                    }
+                    time_t spVersionTime = atoi(buffer);
+                    osFreeMem(buffer);
+
+                    buffer = strdup(tbHw + 3);
+                    spacePos = osStrchr(buffer, ' ');
+                    if (spacePos != NULL)
+                    {
+                        buffer[spacePos - buffer] = '\0';
+                    }
+                    time_t hwVersionTime = atoi(buffer);
+                    osFreeMem(buffer);
+
+                    TRACE_INFO("UA=%s, FW=%" PRIuSIZE ", SP=%" PRIuSIZE ", HW=%" PRIuSIZE "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
+
+                    if (tbV == ua)
+                    {
+                        // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                        // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                    }
+                    else
+                    {
+                        // ESP32 User-Agent: %box-color% TB/%firmware-ts%
+                    }
+                }
+            }
         }
     }
     client_ctx.box_id = client_ctx.settings->commonName;
