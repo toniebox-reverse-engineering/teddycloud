@@ -1,6 +1,4 @@
 
-#define TRACE_LEVEL TRACE_LEVEL_WARNING
-
 #ifdef WIN32
 #else
 #include <sys/random.h>
