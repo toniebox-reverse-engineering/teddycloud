@@ -349,17 +349,36 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                     osFreeMem(buffer);
                 }
 
-                TRACE_INFO("UA=%s, FW=%" PRIuTIME ", SP=%" PRIuTIME ", HW=%" PRIuTIME "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
-
-                if (tbV == ua)
+                if (fwVersionTime > 0)
                 {
-                    // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
-                    // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                    if (tbV == ua)
+                    {
+                        if (hwVersionTime > 1100000)
+                        {
+                            // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                            client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
+                        }
+                        else
+                        {
+                            // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                            client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_CC3200;
+                        }
+                    }
+                    else
+                    {
+                        client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                        // ESP32 User-Agent: %box-color% TB/%firmware-ts%
+                    }
                 }
                 else
                 {
-                    // ESP32 User-Agent: %box-color% TB/%firmware-ts%
+                    client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_UNKNOWN;
                 }
+                TRACE_INFO("UA=%s, FW=%" PRIuTIME ", SP=%" PRIuTIME ", HW=%" PRIuTIME "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
+                settings_internal_toniebox_firmware_t *firmware_info = &client_ctx.settings->internal.toniebox_firmware;
+                firmware_info->uaVersionFirmware = fwVersionTime;
+                firmware_info->uaVersionServicePack = spVersionTime;
+                firmware_info->uaVersionHardware = hwVersionTime;
             }
         }
     }

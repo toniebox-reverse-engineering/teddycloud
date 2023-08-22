@@ -207,7 +207,8 @@ void ha_publish(t_ha_info *ha_info)
         {
             ha_addstr(json_str, "via_device", ha_info->via, false);
         }
-        ha_addstr(json_str, "sw", ha_info->sw, true);
+        ha_addstr(json_str, "sw", ha_info->sw, false);
+        ha_addstr(json_str, "hw", ha_info->hw, true);
         osStrcat(json_str, "}}");
 
         // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
