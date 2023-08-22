@@ -302,56 +302,63 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                 client_ctx.settings = get_settings_cn(subject);
             }
 
-            if (connection->request.userAgent != NULL)
+            char *ua = connection->request.userAgent;
+            if (ua != NULL && osStrlen(ua) > 3)
             {
-                char *ua = connection->request.userAgent;
                 char *tbV = osStrstr(ua, "TB/");
                 char *tbSp = osStrstr(ua, "SP/");
                 char *tbHw = osStrstr(ua, "HW/");
+                char *buffer;
+                char *spacePos;
+
+                time_t fwVersionTime = 0;
+                time_t spVersionTime = 0;
+                time_t hwVersionTime = 0;
 
                 if (tbV != NULL)
                 {
-                    char *buffer;
-                    char *spacePos;
-
                     buffer = strdup(tbV + 3);
                     spacePos = osStrchr(buffer, ' ');
                     if (spacePos != NULL)
                     {
                         buffer[spacePos - buffer] = '\0';
                     }
-                    time_t fwVersionTime = atoi(buffer);
+                    fwVersionTime = atoi(buffer);
                     osFreeMem(buffer);
-
+                }
+                if (tbSp != NULL)
+                {
                     buffer = strdup(tbSp + 3);
                     spacePos = osStrchr(buffer, ' ');
                     if (spacePos != NULL)
                     {
                         buffer[spacePos - buffer] = '\0';
                     }
-                    time_t spVersionTime = atoi(buffer);
+                    spVersionTime = atoi(buffer);
                     osFreeMem(buffer);
-
+                }
+                if (tbHw != NULL)
+                {
                     buffer = strdup(tbHw + 3);
                     spacePos = osStrchr(buffer, ' ');
                     if (spacePos != NULL)
                     {
                         buffer[spacePos - buffer] = '\0';
                     }
-                    time_t hwVersionTime = atoi(buffer);
+                    hwVersionTime = atoi(buffer);
                     osFreeMem(buffer);
+                }
 
-                    TRACE_INFO("UA=%s, FW=%" PRIuSIZE ", SP=%" PRIuSIZE ", HW=%" PRIuSIZE "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
+                TRACE_INFO("UA=%s, FW=%" PRIuTIME ", SP=%" PRIuTIME ", HW=%" PRIuTIME "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
 
-                    if (tbV == ua)
-                    {
-                        // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
-                        // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
-                    }
-                    else
-                    {
-                        // ESP32 User-Agent: %box-color% TB/%firmware-ts%
-                    }
+                if (tbV == ua)
+                {
+                    // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                    // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
+                }
+                else
+                {
+                    // ESP32 User-Agent: %box-color% TB/%firmware-ts%
                 }
             }
         }
