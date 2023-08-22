@@ -168,6 +168,7 @@ void ha_publish(t_ha_info *ha_info)
         ha_addstr(json_str, "ic", ha_info->entities[pos].ic, false);
         ha_addstr(json_str, "mode", ha_info->entities[pos].mode, false);
         ha_addstr(json_str, "ent_cat", ha_info->entities[pos].ent_cat, false);
+        ha_addstr(json_str, "avty_t", ha_info->availability_topic, false);
         ha_addmqtt(ha_info, json_str, "cmd_t", ha_info->entities[pos].cmd_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "stat_t", ha_info->entities[pos].stat_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "rgbw_cmd_t", ha_info->entities[pos].rgbw_t, &ha_info->entities[pos], false);
@@ -188,8 +189,6 @@ void ha_publish(t_ha_info *ha_info)
             ha_addint(json_str, "max", ha_info->entities[pos].max, false);
             break;
         case ha_switch:
-            ha_addstr(json_str, "pl_on", "TRUE", false);
-            ha_addstr(json_str, "pl_off", "FALSE", false);
             ha_addstr(json_str, "stat_on", "TRUE", false);
             ha_addstr(json_str, "stat_off", "FALSE", false);
             break;
@@ -324,13 +323,15 @@ void ha_setup(t_ha_info *ha_info)
 {
     osMemset(ha_info, 0x00, sizeof(t_ha_info));
 
-    osSnprintf(ha_info->base_topic, sizeof(ha_info->base_topic), "%s", "teddyCloud");
+    osSnprintf(ha_info->base_topic, sizeof(ha_info->base_topic), "teddyCloud");
     osSnprintf(ha_info->name, sizeof(ha_info->name), "%s", ha_info->base_topic);
-    osSnprintf(ha_info->id, sizeof(ha_info->id), "%s", "teddyCloud");
+    osSnprintf(ha_info->id, sizeof(ha_info->id), "teddyCloud");
     osSnprintf(ha_info->cu, sizeof(ha_info->cu), "%s", settings_get_string("core.host_url"));
     osSnprintf(ha_info->mf, sizeof(ha_info->mf), "Team RevvoX");
-    osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "%s", "teddyCloud");
+    osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "teddyCloud");
     osSnprintf(ha_info->sw, sizeof(ha_info->sw), "%s (%s)", get_settings()->internal.version.id, get_settings()->internal.version.git_sha_short);
+    osSnprintf(ha_info->hw, sizeof(ha_info->hw), "%s %s", get_settings()->internal.version.platform, get_settings()->internal.version.architecture);
+
     ha_info->entitiy_count = 0;
     ha_info->initialized = true;
 }

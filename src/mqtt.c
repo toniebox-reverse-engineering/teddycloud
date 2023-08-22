@@ -668,8 +668,8 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->mf, "%s", "tonies");
     osSprintf(ha_box_instance->mdl, "%s", "Toniebox");
-    osSprintf(ha_box_instance->sw, "%s", "Unknown"); // TODO
     osStrcpy(ha_box_instance->via, ha_server_instance.id);
+    osStrcpy(ha_box_instance->availability_topic, ha_server_instance.availability_topic); // TODO for each box individually
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);
 
@@ -906,6 +906,7 @@ void mqtt_init()
     osStrcpy(ha_server_instance.name, settings_get_string("hass.name"));
     osStrcpy(ha_server_instance.id, settings_get_string("hass.id"));
     osStrcpy(ha_server_instance.base_topic, settings_get_string("mqtt.topic"));
+    osStrcpy(ha_server_instance.availability_topic, (const char *)mqtt_prefix("status", ha_server_instance.base_topic));
 
     for (size_t index = 0; index < settings_get_size(); index++)
     {
