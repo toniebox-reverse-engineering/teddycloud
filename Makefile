@@ -112,7 +112,7 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	src/cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-CFLAGS_linux += -Wall -Werror
+CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow
 CFLAGS_linux += -ggdb
 
 # for now enable extensive error checking
@@ -142,6 +142,8 @@ INCLUDES = \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
+	-Icyclone/cyclone_crypto/pkc \
+	-Icyclone/cyclone_crypto/rng \
 	-IcJSON \
 	-Ifat/source
 
@@ -231,7 +233,6 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/ecc/ecdh.c \
 	cyclone/cyclone_crypto/ecc/ecdsa.c \
 	cyclone/cyclone_crypto/ecc/eddsa.c \
-	cyclone/cyclone_crypto/mpi/mpi.c \
 	cyclone/cyclone_crypto/encoding/base64.c \
 	cyclone/cyclone_crypto/encoding/asn1.c \
 	cyclone/cyclone_crypto/encoding/oid.c \
@@ -246,12 +247,17 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/pkix/x509_cert_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_validate.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_create.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_format.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_ext_format.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_validate.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_common.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_verify.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_parse.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_generate.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_format.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
 	cyclone/cyclone_crypto/rng/yarrow.c
 
@@ -267,6 +273,7 @@ CYCLONE_SOURCES := $(filter-out \
 # and add modified ones
 CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
+	src/cyclone/cyclone_crypto/mpi.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
 	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
