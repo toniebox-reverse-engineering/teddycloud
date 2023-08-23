@@ -289,7 +289,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
         if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL)
         {
-            if (osStrlen(subject) == 15) // tonies standard cn with b'[MAC]'
+            if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
             {
                 char_t *commonName;
                 commonName = strdup(&subject[2]);
