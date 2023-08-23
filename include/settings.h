@@ -83,6 +83,7 @@ typedef struct
 typedef struct
 {
     char *ca;
+    char *ca_key;
     char *crt;
     char *key;
 } settings_cert_t;

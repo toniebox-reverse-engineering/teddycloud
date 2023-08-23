@@ -50,11 +50,13 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates")
     OPTION_TREE_DESC("core.client_cert.file", "File certificates")
-    OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "Server CA", "Server CA")
+    OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "CA certificate", "CA certificate")
+    OPTION_STRING("core.server_cert.file.ca_key", &settings->core.server_cert.file.ca_key, "certs/server/ca-key.pem", "CA key", "CA key")
     OPTION_STRING("core.server_cert.file.crt", &settings->core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate", "Server certificate")
     OPTION_STRING("core.server_cert.file.key", &settings->core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key", "Server key")
     OPTION_TREE_DESC("core.server_cert.data", "Raw certificates")
-    OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "Server CA data", "Server CA data")
+    OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "CA certificate data", "CA certificate data")
+    OPTION_STRING("core.server_cert.data.ca_key", &settings->core.server_cert.data.ca_key, "", "CA key data", "CA key data")
     OPTION_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data", "Server certificate data")
     OPTION_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data", "Server key data")
 
@@ -75,7 +77,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned")
 
     OPTION_TREE_DESC("internal", "Internal")
-    OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "Server CA data")
+    OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data")
+    OPTION_INTERNAL_STRING("internal.server.ca_key", &settings->internal.server.ca_key, "", "Server CA key data")
     OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
     OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
     OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA")
@@ -1135,6 +1138,7 @@ void settings_load_certs_id(uint8_t settingsId)
     if (get_settings_id(settingsId)->internal.config_used)
     {
         load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId);
+        load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId);
         load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId);
         load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId);
         load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
