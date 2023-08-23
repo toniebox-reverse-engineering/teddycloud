@@ -112,12 +112,13 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	src/cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow
+CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow -Wno-error=stringop-truncation
 CFLAGS_linux += -ggdb
 
 # for now enable extensive error checking
 CFLAGS_linux += -fsanitize=undefined -fsanitize=address -Og
 LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
+CFLAGS_linux += -O2
 
 ## win32 specific headers/sources
 HEADERS_windows = 

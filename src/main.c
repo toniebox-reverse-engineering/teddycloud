@@ -322,7 +322,7 @@ int_t main(int argc, char *argv[])
             RsaPublicKey publicKey;
             osMemset(&privateKey, 0x00, sizeof(privateKey));
             osMemset(&publicKey, 0x00, sizeof(publicKey));
-            if (rsaGenerateKeyPair(YARROW_PRNG_ALGO, &yarrowContext, 2048, 65537, &privateKey, &publicKey) != NO_ERROR)
+            if (rsaGenerateKeyPair(YARROW_PRNG_ALGO, &yarrowContext, 4096, 65537, &privateKey, &publicKey) != NO_ERROR)
             {
                 TRACE_ERROR("rsaGenerateKeyPair failed\r\n");
                 return -1;
@@ -447,11 +447,15 @@ int_t main(int argc, char *argv[])
                 osFreeMem(path);
             }
 
+            rsaFreePublicKey(&publicKey);
+            rsaFreePrivateKey(&privateKey);
+
             osFreeMem(server_ca_der);
             osFreeMem(derOutput);
             osFreeMem(rsa_n_buf);
             osFreeMem(rsa_e_buf);
             osFreeMem(privateKey_der_data);
+            osFreeMem(pemOutput);
         }
         else if (!strcasecmp(type, "ESP32CERT"))
         {

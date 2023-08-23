@@ -31,6 +31,8 @@
 // Switch to the appropriate trace level
 #define TRACE_LEVEL CRYPTO_TRACE_LEVEL
 
+#pragma GCC optimize("O3")
+
 // Dependencies
 #include "core/crypto.h"
 #include "mpi/mpi.h"
@@ -538,95 +540,105 @@ end:
 /* https://github.com/cslarsen/miller-rabin */
 bool mpiCheckProbablePrimeWorker(const Mpi *n, int k, const PrngAlgo *prngAlgo, void *prngContext)
 {
-   // Write n-1 as d*2^s by factoring powers of 2 from n-1
-   // int s = 0;
-   // for (uint64_t m = n - 1; !(m & 1); ++s, m >>= 1)
-   //   ; // loop
-
-   Mpi m;
-   mpiInit(&m);
-   mpiSubInt(&m, n, 1);
-
-   int s = 0;
-
-   while (!mpiGetBitValue(&m, 0))
-   {
-      s++;
-      mpiShiftRight(&m, 1);
-   }
-
-   // uint64_t d = (n - 1) / (1 << s);
-
-   Mpi n1;
-   mpiInit(&n1);
-   mpiSubInt(&n1, n, 1);
-
-   Mpi sShifted;
-   mpiInit(&sShifted);
-   mpiSetValue(&sShifted, 1);
-   mpiShiftLeft(&sShifted, s);
-
-   Mpi d;
-   mpiInit(&d);
-   mpiDiv(&d, NULL, &n1, &sShifted);
+   bool ret = false;
 
    /* keep Mpi numbers initialized outside loop */
    Mpi randRange;
+   Mpi num1;
    Mpi num2;
    Mpi x2;
    Mpi a;
    Mpi rnd;
    Mpi x;
+   Mpi m;
+   Mpi n1;
+   Mpi sShifted;
+   Mpi d;
 
-   /* randrange shall go from 2..n-2, so prepare consts for 2 + 0..n-4 including the last number */
+   mpiInit(&m);
+   mpiInit(&n1);
+   mpiInit(&sShifted);
+   mpiInit(&d);
    mpiInit(&randRange);
-   mpiSubInt(&randRange, n, 5);
+   mpiInit(&num1);
    mpiInit(&num2);
-   mpiSetValue(&num2, 2);
-
-   /* these are used for intermediate results */
    mpiInit(&x2);
    mpiInit(&a);
    mpiInit(&rnd);
    mpiInit(&x);
 
+   mpiSubInt(&m, n, 1);
+
+   int s = 0;
+
+   while (!mpiGetBitValue(&m, s))
+   {
+      s++;
+   }
+   mpiShiftRight(&m, s);
+
+   mpiSubInt(&n1, n, 1);
+
+   mpiSetValue(&sShifted, 1);
+   mpiShiftLeft(&sShifted, s);
+
+   mpiDiv(&d, NULL, &n1, &sShifted);
+
+   /* randrange shall go from [2..n-2], so prepare consts for 1 + [1..n-3] */
+   mpiSubInt(&randRange, n, 3);
+   mpiSetValue(&num1, 1);
+   mpiSetValue(&num2, 2);
+
    for (int i = 0; i < k; i++)
    {
-      // uint64_t a = rand_between(2, n - 2);
+      /* creates a rand between 1 and p-1, including boundaries. upper bounds already corrected */
       mpiRandRange(&rnd, &randRange, prngAlgo, prngContext);
-      mpiAdd(&a, &rnd, &num2);
+      /* now just add one */
+      mpiAddAbs(&a, &rnd, &num1);
 
-      // uint64_t x = pow_mod(a, d, n);
       mpiExpMod(&x, &a, &d, n);
 
-      // if (x == 1 || x == n - 1)
-      //    continue;
-
       if (!mpiCompInt(&x, 1) || !mpiComp(&x, &n1))
+      {
          continue;
+      }
 
       for (int r = 1; r <= s - 1; r++)
       {
-         // x = pow_mod(x, 2, n);
          mpiExpMod(&x2, &x, &num2, n);
 
-         // if (x == 1)
-         //    return false;
          if (!mpiCompInt(&x2, 1))
-            return false;
-         // if (x == n - 1)
-         //    goto LOOP;
+         {
+            goto finish;
+         }
          if (!mpiComp(&x2, &n1))
+         {
             goto LOOP;
+         }
       }
 
-      return false;
+      goto finish;
    LOOP:
       continue;
    }
 
-   // n is *probably* prime
-   return true;
+   /* n is *probably* prime */
+   ret = true;
+
+finish:
+   mpiFree(&m);
+   mpiFree(&n1);
+   mpiFree(&sShifted);
+   mpiFree(&d);
+   mpiFree(&randRange);
+   mpiFree(&num1);
+   mpiFree(&num2);
+   mpiFree(&x2);
+   mpiFree(&a);
+   mpiFree(&rnd);
+   mpiFree(&x);
+
+   return ret;
 }
 
 /**
