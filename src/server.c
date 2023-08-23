@@ -287,7 +287,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         char_t *subject = connection->tlsContext->client_cert_subject;
         char_t *issuer = connection->tlsContext->client_cert_issuer;
 
-        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL)
+        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL)
         {
             if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
             {
