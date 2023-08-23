@@ -189,8 +189,8 @@ void ha_publish(t_ha_info *ha_info)
             ha_addint(json_str, "max", ha_info->entities[pos].max, false);
             break;
         case ha_switch:
-            ha_addstr(json_str, "stat_on", "TRUE", false);
-            ha_addstr(json_str, "stat_off", "FALSE", false);
+            ha_addstr(json_str, "pl_on", "TRUE", false);
+            ha_addstr(json_str, "pl_off", "FALSE", false);
             break;
         default:
             break;
