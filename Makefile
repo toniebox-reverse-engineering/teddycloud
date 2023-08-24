@@ -14,6 +14,7 @@ ZIP_DIR        = install/zip
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
+OPTI_LEVEL    ?= -O2
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -116,9 +117,9 @@ CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow -Wno-error=stringop-tru
 CFLAGS_linux += -ggdb
 
 # for now enable extensive error checking
-CFLAGS_linux += -fsanitize=undefined -fsanitize=address -Og
+CFLAGS_linux += -fsanitize=undefined -fsanitize=address 
 LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
-CFLAGS_linux += -O2
+CFLAGS_linux += $(OPTI_LEVEL)
 
 ## win32 specific headers/sources
 HEADERS_windows = 
