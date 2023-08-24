@@ -50,6 +50,7 @@ typedef struct
     bool cacheContent;
     bool markCustomTagByPass;
     bool prioCustomContent;
+    bool updateOnLowerAudioId;
 } settings_cloud_t;
 
 typedef struct

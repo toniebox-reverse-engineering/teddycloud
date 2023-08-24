@@ -546,6 +546,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                         serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
                     tonieInfo.updated = boxAudioId < serverAudioId;
+                    tonieInfo.updated = tonieInfo.updated || (client_ctx->settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
                     if (client_ctx->settings->cloud.prioCustomContent)
                     {
                         if (custom_box && !custom_server)
