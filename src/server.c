@@ -278,9 +278,9 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
     TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
-    client_ctx_t client_ctx;
-    osMemset(&client_ctx, 0x00, sizeof(client_ctx));
-    client_ctx.settings = get_settings();
+    client_ctx_t *client_ctx = &connection->private.client_ctx;
+    osMemset(client_ctx, 0x00, sizeof(client_ctx_t));
+    client_ctx->settings = get_settings();
 
     if (connection->tlsContext)
     {
@@ -294,18 +294,18 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                 char_t *commonName;
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
-                client_ctx.settings = get_settings_cn(commonName);
+                client_ctx->settings = get_settings_cn(commonName);
                 osFreeMem(commonName);
             }
             else
             {
-                client_ctx.settings = get_settings_cn(subject);
+                client_ctx->settings = get_settings_cn(subject);
             }
 
             char *ua = connection->request.userAgent;
             if (ua != NULL && osStrlen(ua) > 3)
             {
-                settings_internal_toniebox_firmware_t *firmware_info = &client_ctx.settings->internal.toniebox_firmware;
+                settings_internal_toniebox_firmware_t *firmware_info = &client_ctx->settings->internal.toniebox_firmware;
 
                 char *espDetectNew = "toniebox-esp32-";
 
@@ -366,32 +366,32 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                         if (hwVersionTime > 1100000)
                         {
                             // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
-                            client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
+                            client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
                         }
                         else
                         {
                             // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
-                            client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_CC3200;
+                            client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3200;
                         }
                     }
                     else
                     {
                         // ESP32 User-Agent (old): %box-color% TB/%firmware-ts%
-                        client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                        client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
                     }
                 }
                 else if (fwEsp != NULL)
                 {
                     // ESP32 User-Agent: toniebox-esp-eu/v5.226.0
-                    client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                    client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
                     if (osStrcmp(firmware_info->uaEsp32Firmware, fwEsp) != 0)
                     {
-                        settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx.settings->internal.overlayNumber);
+                        settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx->settings->internal.overlayNumber);
                     }
                 }
                 else
                 {
-                    client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_UNKNOWN;
+                    client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_UNKNOWN;
                 }
 
                 TRACE_INFO("UA=%s", ua);
@@ -411,8 +411,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             }
         }
     }
-    client_ctx.box_id = client_ctx.settings->commonName;
-    client_ctx.box_name = client_ctx.settings->boxName;
+    client_ctx->box_id = client_ctx->settings->commonName;
+    client_ctx->box_name = client_ctx->settings->boxName;
 
     connection->response.keepAlive = connection->request.keepAlive;
 
@@ -421,7 +421,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, &client_ctx);
+            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
         }
     }
 
@@ -434,8 +434,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         uri = "/web/index.html";
     }
 
-    char_t *newUri = osAllocMem(osStrlen(client_ctx.settings->core.wwwdir) + osStrlen(uri) + 1);
-    osStrcpy(newUri, client_ctx.settings->core.wwwdir);
+    char_t *newUri = osAllocMem(osStrlen(client_ctx->settings->core.wwwdir) + osStrlen(uri) + 1);
+    osStrcpy(newUri, client_ctx->settings->core.wwwdir);
     // osStrcat(newUri, "/");
     osStrcat(newUri, uri);
 
