@@ -278,6 +278,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
     TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
+    mutex_lock(MUTEX_CLIENT_CTX);
     client_ctx_t *client_ctx = &connection->private.client_ctx;
     osMemset(client_ctx, 0x00, sizeof(client_ctx_t));
     client_ctx->settings = get_settings();
@@ -413,6 +414,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     }
     client_ctx->box_id = client_ctx->settings->commonName;
     client_ctx->box_name = client_ctx->settings->boxName;
+    mutex_unlock(MUTEX_CLIENT_CTX);
 
     connection->response.keepAlive = connection->request.keepAlive;
 
@@ -683,12 +685,38 @@ void server_init()
                 continue;
             }
             openConnections++;
-            // client_ctx_t *client_ctx = &conn->private.client_ctx;
+            mutex_lock(MUTEX_CLIENT_CTX);
+            client_ctx_t *client_ctx = &conn->private.client_ctx;
+            if (client_ctx->settings == NULL)
+            {
+                mutex_unlock(MUTEX_CLIENT_CTX);
+                continue;
+            }
+            settings_internal_t *internal = &client_ctx->settings->internal;
+            if (internal->config_used)
+            {
+                time_t curr_time = time(NULL);
+                internal->online = true;
+                internal->last_connection = curr_time;
+            }
+            mutex_unlock(MUTEX_CLIENT_CTX);
         }
         if (openConnections != openConnectionsLast)
         {
             openConnectionsLast = openConnections;
             TRACE_INFO("%" PRIuSIZE " open HTTPS connections\r\n", openConnections);
+        }
+        for (size_t i = 0; i < MAX_OVERLAYS; i++)
+        {
+            settings_internal_t *internal = &get_settings_id(i)->internal;
+            if (internal->config_init)
+            {
+                time_t curr_time = time(NULL);
+                if (curr_time > internal->last_connection + 1)
+                {
+                    internal->online = false;
+                }
+            }
         }
     }
     tonies_deinit();

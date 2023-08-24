@@ -6,6 +6,7 @@ typedef enum
 {
     MUTEX_SETTINGS = 0,
     MUTEX_SETTINGS_CN,
+    MUTEX_CLIENT_CTX,
     MUTEX_SSE_CTX,
     MUTEX_SSE_EVENT,
     MUTEX_RTNL_FILE,

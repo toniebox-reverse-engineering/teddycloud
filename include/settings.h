@@ -159,6 +159,9 @@ typedef struct
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
     settings_internal_toniebox_firmware_t toniebox_firmware;
+
+    time_t last_connection;
+    bool online;
 } settings_internal_t;
 
 typedef struct
