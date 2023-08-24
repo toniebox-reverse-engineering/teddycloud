@@ -661,6 +661,7 @@ void server_init()
     }
 
     systime_t last = osGetSystemTime();
+    size_t openConnectionsLast = 0;
     while (!settings_get_bool("internal.exit"))
     {
         osDelayTask(250);
@@ -672,6 +673,23 @@ void server_init()
             sanityChecks();
         }
         mutex_manager_loop();
+
+        size_t openConnections = 0;
+        for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
+        {
+            HttpConnection *conn = &httpsConnections[i];
+            if (!conn->running)
+            {
+                continue;
+            }
+            openConnections++;
+            // client_ctx_t *client_ctx = &conn->private.client_ctx;
+        }
+        if (openConnections != openConnectionsLast)
+        {
+            openConnectionsLast = openConnections;
+            TRACE_INFO("%" PRIuSIZE " open HTTPS connections\r\n", openConnections);
+        }
     }
     tonies_deinit();
     mutex_manager_deinit();
