@@ -483,7 +483,7 @@ void httpConnectionTask(void *param)
             if(error)
             {
                //Debug message
-               TRACE_INFO("No HTTP request received or parsing error...\r\n");
+               TRACE_WARNING("No HTTP request received or parsing error=%u...\r\n", error);
                break;
             }
 
