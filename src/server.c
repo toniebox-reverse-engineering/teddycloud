@@ -305,15 +305,21 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             char *ua = connection->request.userAgent;
             if (ua != NULL && osStrlen(ua) > 3)
             {
+                settings_internal_toniebox_firmware_t *firmware_info = &client_ctx.settings->internal.toniebox_firmware;
+
+                char *espDetectNew = "toniebox-esp32-";
+
                 char *tbV = osStrstr(ua, "TB/");
                 char *tbSp = osStrstr(ua, "SP/");
                 char *tbHw = osStrstr(ua, "HW/");
+                char *tbEsp = osStrstr(ua, espDetectNew);
                 char *buffer;
                 char *spacePos;
 
                 time_t fwVersionTime = 0;
                 time_t spVersionTime = 0;
                 time_t hwVersionTime = 0;
+                char *fwEsp = NULL;
 
                 if (tbV != NULL)
                 {
@@ -348,6 +354,10 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                     hwVersionTime = atoi(buffer);
                     osFreeMem(buffer);
                 }
+                if (tbEsp != NULL)
+                {
+                    fwEsp = tbEsp + osStrlen(espDetectNew);
+                }
 
                 if (fwVersionTime > 0)
                 {
@@ -366,16 +376,35 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                     }
                     else
                     {
+                        // ESP32 User-Agent (old): %box-color% TB/%firmware-ts%
                         client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
-                        // ESP32 User-Agent: %box-color% TB/%firmware-ts%
+                    }
+                }
+                else if (fwEsp != NULL)
+                {
+                    // ESP32 User-Agent: toniebox-esp-eu/v5.226.0
+                    client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                    if (osStrcmp(firmware_info->uaEsp32Firmware, fwEsp) != 0)
+                    {
+                        settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx.settings->internal.overlayNumber);
                     }
                 }
                 else
                 {
                     client_ctx.settings->internal.toniebox_firmware.boxIC = BOX_UNKNOWN;
                 }
-                TRACE_INFO("UA=%s, FW=%" PRIuTIME ", SP=%" PRIuTIME ", HW=%" PRIuTIME "\r\n", ua, fwVersionTime, spVersionTime, hwVersionTime);
-                settings_internal_toniebox_firmware_t *firmware_info = &client_ctx.settings->internal.toniebox_firmware;
+
+                TRACE_INFO("UA=%s", ua);
+                if (fwVersionTime > 0)
+                {
+                    TRACE_INFO_RESUME(", FW=%" PRIuTIME ", SP=%" PRIuTIME ", HW=%" PRIuTIME, fwVersionTime, spVersionTime, hwVersionTime);
+                }
+                if (fwEsp != NULL)
+                {
+                    TRACE_INFO_RESUME(", ESPFW=%s", fwEsp);
+                }
+                TRACE_INFO_RESUME("\r\n");
+
                 firmware_info->uaVersionFirmware = fwVersionTime;
                 firmware_info->uaVersionServicePack = spVersionTime;
                 firmware_info->uaVersionHardware = hwVersionTime;

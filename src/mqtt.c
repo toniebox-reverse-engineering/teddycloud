@@ -124,39 +124,52 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
 
     bool_t updated = false;
     settings_box_type boxIC = client_ctx->settings->internal.toniebox_firmware.boxIC;
-    if (osStrlen(ha_box->hw) == 0)
+    char hw[7 + 1];
+    hw[0] = '\n';
+
+    switch (boxIC)
     {
-        switch (boxIC)
-        {
-        case BOX_CC3200:
-            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "CC3200");
-            updated = true;
-            break;
-        case BOX_CC3235:
-            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "CC3235");
-            updated = true;
-            break;
-        case BOX_ESP32:
-            osSnprintf(ha_box->hw, sizeof(ha_box->hw), "ESP32");
-            updated = true;
-            break;
-        case BOX_UNKNOWN:
-            break;
-        }
+    case BOX_CC3200:
+        osSnprintf(hw, sizeof(hw), "CC3200");
+        break;
+    case BOX_CC3235:
+        osSnprintf(hw, sizeof(hw), "CC3235");
+        break;
+    case BOX_ESP32:
+        osSnprintf(hw, sizeof(hw), "ESP32");
+        break;
+    case BOX_UNKNOWN:
+        break;
+    }
+    if (osStrcmp(hw, ha_box->hw) != 0)
+    {
+        osSnprintf(ha_box->hw, sizeof(ha_box->hw), "%s", hw);
+        updated = true;
     }
     char *version = client_ctx->settings->internal.toniebox_firmware.rtnlFullVersion;
+    time_t swUa = client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware;
+    char *swEsp = client_ctx->settings->internal.toniebox_firmware.uaEsp32Firmware;
+
     if (osStrlen(version) > 0 && osStrcmp(version, ha_box->sw) != 0)
     {
         osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", version);
         updated = true;
     }
-    else if (osStrlen(version) == 0 && client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware > 0)
+    else if (osStrlen(version) == 0 && swUa > 0)
     {
         char sw[MAX_LEN];
-        osSnprintf(sw, sizeof(sw), "%" PRIuTIME, client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware);
+        osSnprintf(sw, sizeof(sw), "%" PRIuTIME, swUa);
         if (osStrcmp(sw, ha_box->sw) != 0)
         {
             osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", sw);
+            updated = true;
+        }
+    }
+    else if (client_ctx->settings->internal.toniebox_firmware.uaEsp32Firmware != NULL)
+    {
+        if (osStrcmp(swEsp, ha_box->sw) != 0)
+        {
+            osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", swEsp);
             updated = true;
         }
     }
@@ -679,6 +692,8 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     osSprintf(ha_box_instance->mf, "%s", "tonies");
     osSprintf(ha_box_instance->mdl, "%s", "Toniebox");
     osStrcpy(ha_box_instance->via, ha_server_instance.id);
+    osStrcpy(ha_box_instance->hw, "");
+    osStrcpy(ha_box_instance->sw, "");
     osStrcpy(ha_box_instance->availability_topic, ha_server_instance.availability_topic); // TODO for each box individually
     TRACE_INFO("Registered new box '%s' (cn: '%s')\r\n", box_name, box_id);
     TRACE_INFO("Using base path '%s' and id '%s'\r\n", ha_box_instance->base_topic, ha_box_instance->id);

@@ -118,6 +118,7 @@ typedef struct
     time_t uaVersionFirmware;
     time_t uaVersionServicePack;
     time_t uaVersionHardware;
+    char *uaEsp32Firmware;
 
     char *rtnlVersion;
     char *rtnlFullVersion;
