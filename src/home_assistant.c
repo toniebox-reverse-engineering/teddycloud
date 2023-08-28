@@ -401,7 +401,7 @@ int ha_parse_index(t_ha_info *ha_info, const char *options, const char *message)
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf) - 1);
 
     while (true)
     {
@@ -436,7 +436,7 @@ void ha_get_index(t_ha_info *ha_info, const char *options, int index, char *text
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf) - 1);
 
     while (true)
     {

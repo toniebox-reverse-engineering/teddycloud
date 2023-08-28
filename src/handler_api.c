@@ -815,6 +815,10 @@ error_t parse_multipart_content(HttpConnection *connection, const char *rootPath
 
 void fileCertUploaded(const char *filename, const char *overlay)
 {
+    if (!filename || !overlay)
+    {
+        return;
+    }
     /* rootpath must be valid, which is ensured by upload handler */
     const char *rootPath = settings_get_string_ovl("core.certdir", overlay);
 
