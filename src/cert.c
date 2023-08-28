@@ -145,8 +145,8 @@ int cert_generate(const char *mac, const char *dest)
     algo.oid.value = SHA256_WITH_RSA_ENCRYPTION_OID;
     algo.oid.length = sizeof(SHA256_WITH_RSA_ENCRYPTION_OID);
 
-    size_t cert_der_size = 8192;
-    uint8_t *cert_der = osAllocMem(cert_der_size);
+    uint8_t *cert_der = osAllocMem(8192);
+    size_t cert_der_size = 0;
     if (x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, &issuer_certinfo, &serial, &validity, &algo, &server_ca_priv, cert_der, &cert_der_size) != NO_ERROR)
     {
         TRACE_ERROR("x509CreateCertificate failed\r\n");
