@@ -55,10 +55,16 @@ int cert_generate(const char *mac, const char *dest)
     /*********************************************/
     const char *server_ca = settings_get_string("internal.server.ca");
     const char *server_key = settings_get_string("internal.server.ca_key");
-    uint8_t *server_ca_der = osAllocMem(8192);
-    size_t server_ca_der_size = 0;
 
+    size_t server_ca_der_size = 0;
     TRACE_INFO("Load CA certificate...\r\n");
+    if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
+    {
+        TRACE_ERROR("pemImportCertificate failed\r\n");
+        return -1;
+    }
+
+    uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
     if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
@@ -141,10 +147,15 @@ int cert_generate(const char *mac, const char *dest)
     algo.oid.value = SHA256_WITH_RSA_ENCRYPTION_OID;
     algo.oid.length = sizeof(SHA256_WITH_RSA_ENCRYPTION_OID);
 
-    uint8_t *derOutput = osAllocMem(8192);
-    size_t derSize;
-
+    size_t derSize = 0;
     TRACE_INFO("Generating Certificate...\r\n");
+    if (x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, &issuerCertInfo, &serial, &validity, &algo, &caPrivateKey, NULL, &derSize) != NO_ERROR)
+    {
+        TRACE_ERROR("x509CreateCertificate failed\r\n");
+        return -1;
+    }
+
+    uint8_t *derOutput = osAllocMem(derSize);
     if (x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, &issuerCertInfo, &serial, &validity, &algo, &caPrivateKey, derOutput, &derSize) != NO_ERROR)
     {
         TRACE_ERROR("x509CreateCertificate failed\r\n");
