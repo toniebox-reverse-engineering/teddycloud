@@ -54,12 +54,6 @@ static void toniefile_comment_add(uint8_t *buffer, size_t *length, const char *s
 
 static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFileHeader *tafHeader)
 {
-    /*
-    TonieboxAudioFileHeader tafHeaderS = TONIEBOX_AUDIO_FILE_HEADER__INIT;
-    tafHeaderS.n_track_page_nums = 0;
-    tafHeaderS.track_page_nums = malloc(sizeof(uint32_t) * 99);
-    tafHeaderS.track_page_nums[tafHeaderS.n_track_page_nums++] = 1234;
-*/
     size_t dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
     if (dataLength <= length)
     {
@@ -250,7 +244,7 @@ error_t toniefile_new_chapter(toniefile_t *ctx)
         return ERROR_FAILURE;
     }
     ctx->taf.track_page_nums[ctx->taf.n_track_page_nums++] = ctx->taf_block_num;
-    TRACE_INFO("new chapter at 0x%08lX\r\n", ctx->taf_block_num);
+    TRACE_INFO("new chapter at 0x%08" PRIXSIZE "\r\n", ctx->taf_block_num);
 
     return NO_ERROR;
 }
@@ -375,7 +369,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                     ctx->taf_block_num++;
                     if (ctx->file_pos % TONIEFILE_FRAME_SIZE)
                     {
-                        TRACE_ERROR("Block alignment mismatch 0x%08lX\r\n", ctx->file_pos)
+                        TRACE_ERROR("Block alignment mismatch 0x%08" PRIXSIZE "\r\n", ctx->file_pos)
                         return ERROR_FAILURE;
                     }
                 }
