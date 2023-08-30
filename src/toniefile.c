@@ -17,6 +17,7 @@
 #include "ogg/ogg.h"
 #include "server_helpers.h"
 #include "version.h"
+#include "proto/toniebox.pb.taf-header.pb-c.h"
 
 struct toniefile_s
 {
@@ -42,6 +43,22 @@ static void comment_add(uint8_t *buffer, size_t *length, const char *str)
     *length += sizeof(uint32_t);
     osStrcpy((char *)&buffer[*length], str);
     *length += strlen(str);
+}
+
+static void generate_taf_header(uint8_t *buffer, size_t *length, TonieboxAudioFileHeader *tafHeader)
+{
+    /*
+    TonieboxAudioFileHeader tafHeaderS = TONIEBOX_AUDIO_FILE_HEADER__INIT;
+    tafHeaderS.n_track_page_nums = 0;
+    tafHeaderS.track_page_nums = malloc(sizeof(uint32_t) * 99);
+    tafHeaderS.track_page_nums[freshReqCloud.n_track_page_nums++] = 1234;
+    */
+    size_t dataLen = tonie_freshness_check_request__get_packed_size(tafHeader);
+    if (dataLength <= length)
+    {
+        tonie_freshness_check_request__pack(tafHeader, buffer);
+    }
+    tonie_freshness_check_request__free_unpacked(tafHeader, NULL);
 }
 
 toniefile_t *toniefile_create(const char *fullPath)
