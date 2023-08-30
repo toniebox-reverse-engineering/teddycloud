@@ -190,6 +190,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
         sha1Update(&ctx->sha1, og.header, og.header_len);
         sha1Update(&ctx->sha1, og.body, og.body_len);
     }
+    toniefile_new_chapter(ctx);
 
     return ctx;
 }
@@ -338,27 +339,26 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             ctx->ogg_packet_count++;
 
             ogg_stream_packetin(&ctx->os, &op);
-
-            /* analyze output page size and patch lacing table if necessary */
-            int resulting_size = (ctx->file_pos + 27 + ctx->os.lacing_fill + ctx->os.body_fill) % TONIEFILE_FRAME_SIZE;
-            int remaining_size = TONIEFILE_FRAME_SIZE - resulting_size;
-
-            /* yeah, make sure we occupy the rest of the block with a lacing table using more entries than it normally would need */
-            if (remaining_size < 64 && remaining_size < ctx->os.lacing_vals[0])
-            {
-                /* decrease first entry by the number of lacing entries to add */
-                ctx->os.lacing_vals[0] -= remaining_size;
-                for (int pos = 0; pos < remaining_size; pos++)
-                {
-                    /* add one entry */
-                    ctx->os.lacing_vals[ctx->os.lacing_fill] = 1;
-                    ctx->os.lacing_fill++;
-                }
-            }
-
             ogg_page og;
             while (ogg_stream_flush(&ctx->os, &og))
             {
+                /* analyze output page size and patch lacing table if necessary */
+                int remaining_size = TONIEFILE_FRAME_SIZE - ((ctx->file_pos + og.header_len + og.body_len) % TONIEFILE_FRAME_SIZE);
+
+                /* yeah, make sure we occupy the rest of the block with a lacing table using more entries than neccessary */
+                while (remaining_size > 0 && remaining_size < 64)
+                {
+                    /* reduce first lacing */
+                    og.header[27]--;
+                    /* add new lacing */
+                    og.header[27 + og.header[26]] = 1;
+                    /* increase lacing entry count */
+                    og.header[26]++;
+                    og.header_len++;
+                    ogg_page_checksum_set(&og);
+                    remaining_size--;
+                }
+
                 if (fsWriteFile(ctx->file, og.header, og.header_len) != NO_ERROR)
                 {
                     return ERROR_FAILURE;
