@@ -853,19 +853,23 @@ error_t taf_encode_add(void *in_ctx, void *data, size_t length)
     size_t byte_data_start = 0;
     size_t byte_data_length = length;
 
+    /* we have to take into account that the packets are not 4 byte aligned */
     if (ctx->remainder_avail)
     {
+        /* there a a few bytes, so first fill the buffer */
         int size = 4 - ctx->remainder_avail;
         if (size > length)
         {
             size = length;
         }
         osMemcpy(&ctx->remainder[ctx->remainder_avail], byte_data, size);
+
         byte_data_start += size;
         byte_data_length -= size;
         ctx->remainder_avail += size;
     }
 
+    /* either we have a full buffer now or no more data */
     if (ctx->remainder_avail == 4)
     {
         toniefile_encode(ctx->taf, (int16_t *)ctx->remainder, 1);
