@@ -320,6 +320,10 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 
             /* we have to retrieve the actually encoded samples in this frame */
             int frames = opus_packet_get_samples_per_frame(output_frame, OPUS_SAMPLING_RATE) * opus_packet_get_nb_frames(output_frame, frame_len);
+            if (frames != OPUS_FRAME_SIZE)
+            {
+                TRACE_ERROR("frame count unexpected: %d instead of %d\r\n", frames, OPUS_FRAME_SIZE);
+            }
             ctx->ogg_granule_position += frames;
 
             /* now fill output page */
