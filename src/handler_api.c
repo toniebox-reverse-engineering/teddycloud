@@ -872,13 +872,17 @@ error_t taf_encode_add(void *in_ctx, void *data, size_t length)
         ctx->remainder_avail = 0;
     }
 
-    toniefile_encode(ctx->taf, (int16_t *)&byte_data[byte_data_start], byte_data_length / 4);
-
+    int samples = byte_data_length / 4;
     int remain = byte_data_length % 4;
+
+    if (samples)
+    {
+        toniefile_encode(ctx->taf, (int16_t *)&byte_data[byte_data_start], samples);
+    }
 
     if (remain)
     {
-        osMemcpy(ctx->remainder, &byte_data[byte_data_start + (byte_data_length & ~3)], remain);
+        osMemcpy(ctx->remainder, &byte_data[byte_data_start + samples * 4], remain);
         ctx->remainder_avail = remain;
     }
 
