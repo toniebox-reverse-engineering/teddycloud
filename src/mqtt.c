@@ -125,7 +125,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     bool_t updated = false;
     settings_box_type boxIC = client_ctx->settings->internal.toniebox_firmware.boxIC;
     char hw[7 + 1];
-    hw[0] = '\n';
+    hw[0] = '\0';
 
     switch (boxIC)
     {
