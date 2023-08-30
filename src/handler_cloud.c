@@ -307,14 +307,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     settings_t *settings = client_ctx->settings;
 
-    bool assignFile = false;
     bool setLive = false;
+    const char *assignFile = NULL;
 
     if (osStrlen(settings->internal.assign_unknown) > 0)
     {
         if (!tonieInfo.exists)
         {
-            assignFile = true;
+            assignFile = settings->internal.assign_unknown;
+            TRACE_INFO(" >> this is a unknown tonie, assigning '%s'\r\n", assignFile);
         }
 
         if (settings->core.flex_enabled)
@@ -327,8 +328,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uid[16] = 0;
             if (!osStrcasecmp(uid, settings->core.flex_uid))
             {
-                TRACE_INFO(" >> this is a flex tonie\r\n");
-                assignFile = true;
+                TRACE_INFO(" >> this is the defined flex tonie, assigning '%s'\r\n", assignFile);
+                assignFile = settings->internal.assign_unknown;
                 setLive = true;
             }
         }
@@ -338,18 +339,17 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     {
         do
         {
-            char *path = settings->internal.assign_unknown;
-            if (!fsFileExists(path))
+            if (!fsFileExists(assignFile))
             {
-                TRACE_ERROR("Path to assign not available: %s\r\n", path);
+                TRACE_ERROR("Path to assign not available: %s\r\n", assignFile);
                 break;
             }
 
-            tonie_info_t tonieInfoAssign = getTonieInfo(path);
+            tonie_info_t tonieInfoAssign = getTonieInfo(assignFile);
             if (!tonieInfoAssign.valid)
             {
                 freeTonieInfo(&tonieInfoAssign);
-                TRACE_ERROR("TAF header invalid: %s\r\n", path);
+                TRACE_ERROR("TAF header invalid: %s\r\n", assignFile);
                 break;
             }
 
@@ -358,11 +358,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             fsCreateDir(dir);
             osFreeMem(dir);
 
-            error = fsCopyFile(path, tonieInfo.contentPath, true);
+            error = fsCopyFile(assignFile, tonieInfo.contentPath, true);
             if (error != NO_ERROR)
             {
                 freeTonieInfo(&tonieInfoAssign);
-                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error);
+                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", assignFile, tonieInfo.contentPath, error);
                 break;
             }
 
@@ -378,7 +378,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 break;
             }
 
-            TRACE_INFO("Assigned to %s\r\n", path);
+            TRACE_INFO("Assigned to %s\r\n", assignFile);
 
             if (setLive)
             {
