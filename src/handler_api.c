@@ -817,6 +817,8 @@ typedef struct
     const char *overlay;
     const char *file_path;
     toniefile_t *taf;
+    uint8_t remainder[4];
+    int remainder_avail;
 } taf_encode_ctx;
 
 error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
@@ -847,8 +849,40 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
 error_t taf_encode_add(void *in_ctx, void *data, size_t length)
 {
     taf_encode_ctx *ctx = (taf_encode_ctx *)in_ctx;
+    uint8_t *byte_data = (uint8_t *)data;
+    size_t byte_data_start = 0;
+    size_t byte_data_length = length;
 
-    return toniefile_encode(ctx->taf, data, length);
+    if (ctx->remainder_avail)
+    {
+        int size = 4 - ctx->remainder_avail;
+        if (size > length)
+        {
+            size = length;
+        }
+        osMemcpy(&ctx->remainder[ctx->remainder_avail], byte_data, size);
+        byte_data_start += size;
+        byte_data_length -= size;
+        ctx->remainder_avail += size;
+    }
+
+    if (ctx->remainder_avail == 4)
+    {
+        toniefile_encode(ctx->taf, (int16_t *)ctx->remainder, 1);
+        ctx->remainder_avail = 0;
+    }
+
+    toniefile_encode(ctx->taf, (int16_t *)&byte_data[byte_data_start], byte_data_length / 4);
+
+    int remain = byte_data_length % 4;
+
+    if (remain)
+    {
+        osMemcpy(ctx->remainder, &byte_data[byte_data_start + (byte_data_length & ~3)], remain);
+        ctx->remainder_avail = remain;
+    }
+
+    return NO_ERROR;
 }
 
 error_t taf_encode_end(void *in_ctx)
