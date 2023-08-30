@@ -54,7 +54,7 @@ static void toniefile_comment_add(uint8_t *buffer, size_t *length, const char *s
 
 static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFileHeader *tafHeader)
 {
-    uint16_t proto_frame_size = TONIEFILE_FRAME_SIZE - 4 - 1; // Offset 4, dynamic size of protobuf of +-1 byte
+    uint16_t proto_frame_size = TONIEFILE_FRAME_SIZE - 4; // Offset 4, dynamic size of protobuf
     tafHeader->_fill.len = proto_frame_size;
     tafHeader->_fill.data = osAllocMem(tafHeader->_fill.len);
     osMemset(tafHeader->_fill.data, 0x00, tafHeader->_fill.len);
@@ -63,7 +63,11 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     tafHeader->_fill.len = tafHeader->_fill.len + (proto_frame_size - dataLength); // Cut size to TONIEFILE_FRAME_SIZE
 
     dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
-    if (dataLength != proto_frame_size && dataLength != proto_frame_size + 1)
+    if (dataLength == proto_frame_size + 1)
+    {
+        tafHeader->_fill.len--;
+    }
+    if (dataLength != proto_frame_size && dataLength != proto_frame_size - 1)
     {
         TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIu16 "\r\n", dataLength, proto_frame_size);
         return 0;
