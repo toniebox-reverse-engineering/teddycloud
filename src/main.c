@@ -274,7 +274,7 @@ int_t main(int argc, char *argv[])
         }
         else if (!strcasecmp(type, "ENCODE_TEST"))
         {
-            toniefile_t *taf = toniefile_create("test2.ogg");
+            toniefile_t *taf = toniefile_create("test2.ogg", 0xDEAFBEEF);
 
             if (!taf)
             {
@@ -282,13 +282,13 @@ int_t main(int argc, char *argv[])
                 return -1;
             }
 
-#define SAMPLES 3333
+#define SAMPLES 333333
             int sample_total = 0;
             int16_t sample_buffer[2 * SAMPLES];
 
             osMemset(sample_buffer, 0x00, sizeof(sample_buffer));
 
-            for (int pos = 0; pos < 1333; pos++)
+            for (int pos = 0; pos < 10; pos++)
             {
                 for (int sample = 0; sample < SAMPLES; sample++)
                 {
@@ -300,6 +300,8 @@ int_t main(int argc, char *argv[])
                 {
                     break;
                 }
+
+                toniefile_new_chapter(taf);
             }
             toniefile_close(taf);
 

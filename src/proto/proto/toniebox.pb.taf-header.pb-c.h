@@ -29,15 +29,13 @@ struct  _TonieboxAudioFileHeader
   ProtobufCBinaryData sha1_hash;
   uint64_t num_bytes;
   uint32_t audio_id;
-  /*
-   *  required bytes _fill = 5;
-   */
   size_t n_track_page_nums;
   uint32_t *track_page_nums;
+  ProtobufCBinaryData _fill;
 };
 #define TONIEBOX_AUDIO_FILE_HEADER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&toniebox_audio_file_header__descriptor) \
-    , {0,NULL}, 0, 0, 0,NULL }
+    , {0,NULL}, 0, 0, 0,NULL, {0,NULL} }
 
 
 /* TonieboxAudioFileHeader methods */

@@ -17,6 +17,7 @@
 #include "stats.h"
 #include "returncodes.h"
 #include "cJSON.h"
+#include "toniefile.h"
 
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -811,6 +812,51 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
+typedef struct
+{
+    const char *overlay;
+    const char *file_path;
+    toniefile_t *taf;
+} taf_encode_ctx;
+
+error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
+{
+    taf_encode_ctx *ctx = (taf_encode_ctx *)in_ctx;
+
+    if (!ctx->taf)
+    {
+        TRACE_INFO("[TAF] Start encoding to %s\r\n", ctx->file_path);
+        TRACE_INFO("[TAF]   first file: %s\r\n", name);
+
+        ctx->taf = toniefile_create(ctx->file_path, 0xDEADBEEF);
+
+        if (ctx->taf == NULL)
+        {
+            return ERROR_FILE_OPENING_FAILED;
+        }
+    }
+    else
+    {
+        TRACE_INFO("[TAF]   new chapter for %s\r\n", name);
+        toniefile_new_chapter(ctx->taf);
+    }
+
+    return NO_ERROR;
+}
+
+error_t taf_encode_add(void *in_ctx, void *data, size_t length)
+{
+    taf_encode_ctx *ctx = (taf_encode_ctx *)in_ctx;
+
+    return toniefile_encode(ctx->taf, data, length);
+}
+
+error_t taf_encode_end(void *in_ctx)
+{
+    TRACE_INFO("[TAF]   end of file\r\n");
+    return NO_ERROR;
+}
+
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[128];
@@ -819,7 +865,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     char path[128];
 
     osStrcpy(overlay, "");
-    osStrcpy(name, "");
+    osStrcpy(name, "unnamed");
     osStrcpy(uid, "");
     osStrcpy(path, "");
 
@@ -841,11 +887,11 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     }
     sanitizePath(path, true);
 
-    const char *rootPath = "/mnt/c/TEMP/pcm/";
+    const char *rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
-        TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
+        TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
         return ERROR_FAILURE;
     }
 
@@ -865,17 +911,31 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
+        char *filename = custom_asprintf("%s/%s.taf", pathAbsolute, name);
+
+        if (!filename)
+        {
+            TRACE_ERROR("Failed to build filename\r\n");
+            return ERROR_FAILURE;
+        }
+        sanitizePath(filename, false);
+
+        if (fsFileExists(filename))
+        {
+            TRACE_INFO("Filename '%s' already exists, overwriting\r\n", filename);
+        }
+
         multipart_cbr_t cbr;
-        cert_save_ctx ctx;
+        taf_encode_ctx ctx;
 
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
 
-        cbr.multipart_start = &file_save_start;
-        cbr.multipart_add = &file_save_add;
-        cbr.multipart_end = &file_save_end;
+        cbr.multipart_start = &taf_encode_start;
+        cbr.multipart_add = &taf_encode_add;
+        cbr.multipart_end = &taf_encode_end;
 
-        ctx.root_path = pathAbsolute;
+        ctx.file_path = filename;
         ctx.overlay = overlay;
 
         switch (multipart_handle(connection, &cbr, &ctx))
@@ -888,6 +948,13 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
             statusCode = 500;
             break;
         }
+
+        if (ctx.taf)
+        {
+            TRACE_INFO("[TAF] Ended encoding\r\n");
+            toniefile_close(ctx.taf);
+        }
+        osFreeMem(filename);
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
