@@ -54,12 +54,25 @@ static void toniefile_comment_add(uint8_t *buffer, size_t *length, const char *s
 
 static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFileHeader *tafHeader)
 {
+    tafHeader->_fill.len = TONIEFILE_FRAME_SIZE;
+    tafHeader->_fill.data = osAllocMem(tafHeader->_fill.len);
+    osMemset(tafHeader->_fill.data, 0x00, tafHeader->_fill.len);
+
     size_t dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
-    if (dataLength <= length)
+    tafHeader->_fill.len = tafHeader->_fill.len + (TONIEFILE_FRAME_SIZE - dataLength); // Cut size to TONIEFILE_FRAME_SIZE
+
+    dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
+    if (dataLength != TONIEFILE_FRAME_SIZE)
     {
-        return toniebox_audio_file_header__pack(tafHeader, buffer);
+        TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
+        return 0;
     }
-    return 0;
+    if (dataLength > length)
+    {
+        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than framw size %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
+        return 0;
+    }
+    return toniebox_audio_file_header__pack(tafHeader, buffer);
 }
 
 toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
@@ -190,15 +203,7 @@ error_t toniefile_close(toniefile_t *ctx)
     uint8_t buffer[TONIEFILE_FRAME_SIZE];
 
     osMemset(buffer, 0x00, sizeof(buffer));
-
-    ctx->taf._fill.len = 0;
-    ctx->taf._fill.data = osAllocMem(TONIEFILE_FRAME_SIZE);
-    osMemset(ctx->taf._fill.data, 0x00, TONIEFILE_FRAME_SIZE);
     uint32_t proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &ctx->taf);
-
-    ctx->taf._fill.len = TONIEFILE_FRAME_SIZE - proto_size - 5;
-
-    proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &ctx->taf);
 
     fsSeekFile(ctx->file, 0, SEEK_SET);
     uint8_t proto_be[4];
