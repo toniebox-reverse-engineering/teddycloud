@@ -3,7 +3,21 @@
 #include <stdarg.h>
 
 #include "os_port.h"
+#include "debug.h"
 #include "server_helpers.h"
+#include "http/http_server_misc.h"
+
+typedef enum
+{
+    PARSE_HEADER,
+    PARSE_FILENAME,
+    PARSE_BODY
+} eMultipartState;
+
+/* multipart receive buffer */
+#define DATA_SIZE 1024
+#define SAVE_SIZE 80
+#define BUFFER_SIZE (DATA_SIZE + SAVE_SIZE)
 
 char *custom_asprintf(const char *fmt, ...)
 {
@@ -35,14 +49,18 @@ char *custom_asprintf(const char *fmt, ...)
 
     return new_str;
 }
+#include <ctype.h> // for isxdigit
 
-int urldecode(char *dest, const char *src)
+int urldecode(char *dest, size_t dest_max, const char *src)
 {
     char a, b;
-    while (*src)
+    size_t dest_idx = 0;
+    size_t src_idx = 0;
+
+    while (src[src_idx] && dest_idx < dest_max - 1)
     {
-        if ((*src == '%') &&
-            ((a = src[1]) && (b = src[2])) &&
+        if ((src[src_idx] == '%') &&
+            ((a = src[src_idx + 1]) && (b = src[src_idx + 2])) &&
             (isxdigit(a) && isxdigit(b)))
         {
             if (a >= 'a')
@@ -51,27 +69,30 @@ int urldecode(char *dest, const char *src)
                 a -= ('A' - 10);
             else
                 a -= '0';
+
             if (b >= 'a')
                 b -= 'a' - 'A';
             if (b >= 'A')
                 b -= ('A' - 10);
             else
                 b -= '0';
-            *dest++ = 16 * a + b;
-            src += 3;
+
+            dest[dest_idx++] = 16 * a + b;
+            src_idx += 3;
         }
-        else if (*src == '+')
+        else if (src[src_idx] == '+')
         {
-            *dest++ = ' ';
-            src++;
+            dest[dest_idx++] = ' ';
+            src_idx++;
         }
         else
         {
-            *dest++ = *src++;
+            dest[dest_idx++] = src[src_idx++];
         }
     }
-    *dest++ = '\0';
-    return dest - src;
+    dest[dest_idx] = '\0';
+
+    return dest_idx;
 }
 
 bool queryGet(const char *query, const char *key, char *data, size_t data_len)
@@ -98,8 +119,8 @@ bool queryGet(const char *query, const char *key, char *data, size_t data_len)
                     break;
                 }
             }
-            *b = '\0';               // Null-terminate the buffer
-            urldecode(data, buffer); // Decode and copy the value
+            *b = '\0';                         // Null-terminate the buffer
+            urldecode(data, data_len, buffer); // Decode and copy the value
             return true;
         }
         q += key_len; // Skip past the key
@@ -243,4 +264,246 @@ void time_format_current(char_t *buffer)
     time_t time = getCurrentUnixTime();
 
     time_format(time, buffer);
+}
+
+static int find_string(const void *haystack, size_t haystack_len, size_t haystack_start, const char *str)
+{
+    size_t str_len = osStrlen(str);
+
+    if (str_len > haystack_len)
+    {
+        return -1;
+    }
+
+    for (size_t i = haystack_start; i <= haystack_len - str_len; i++)
+    {
+        if (osMemcmp((uint8_t *)haystack + i, str, str_len) == 0)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+error_t multipart_get_field(const char *buffer, size_t buffer_size, const char *field, char *result, size_t result_max)
+{
+    char *start_match = custom_asprintf("%s=\"", field);
+
+    int fn_start = find_string(buffer, buffer_size, 0, start_match);
+    if (fn_start < 0)
+    {
+        osFreeMem(start_match);
+        return ERROR_FAILURE;
+    }
+
+    fn_start += osStrlen(start_match);
+    osFreeMem(start_match);
+
+    int fn_end = find_string(buffer, buffer_size, fn_start, "\"");
+    if (fn_end < 0)
+    {
+        return ERROR_FAILURE;
+    }
+
+    int inLen = fn_end - fn_start;
+    int len = (inLen < result_max) ? inLen : (result_max - 1);
+    osStrncpy(result, &buffer[fn_start], len);
+    result[len] = '\0';
+
+    return NO_ERROR;
+}
+
+error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void *multipart_ctx)
+{
+    char buffer[2 * BUFFER_SIZE];
+    char form_name[256];
+    char form_filename[256];
+    eMultipartState state = PARSE_HEADER;
+    char *boundary = connection->request.boundary;
+
+    size_t leftover = 0;
+    bool fetch = true;
+    int save_start = 0;
+    int save_end = 0;
+    int payload_size = 0;
+
+    do
+    {
+        if (!payload_size)
+        {
+            fetch = true;
+        }
+
+        payload_size = leftover;
+        if (fetch)
+        {
+            size_t packet_size;
+            error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("httpReceive failed\r\n");
+                return error;
+            }
+
+            save_start = 0;
+            payload_size = leftover + packet_size;
+            save_end = payload_size;
+
+            fetch = false;
+        }
+
+        switch (state)
+        {
+        case PARSE_HEADER:
+        {
+            /* when the payload starts with boundary, its a valid payload */
+            int boundary_start = find_string(buffer, payload_size, 0, boundary);
+            if (boundary_start < 0)
+            {
+                /* if not, check for newlines that preceed */
+                int data_end = find_string(buffer, payload_size, 0, "\r\n");
+                if (data_end >= 0)
+                {
+                    /* when found, start from there, after the newline */
+                    save_start = data_end + 2;
+                    save_end = payload_size;
+                }
+                else
+                {
+                    /* if not, drop most of the buffer, keeping the last few bytes */
+                    save_start = (payload_size > SAVE_SIZE) ? payload_size - SAVE_SIZE : 0;
+                    save_end = payload_size;
+                }
+            }
+            else
+            {
+                save_start = boundary_start + osStrlen(boundary);
+                save_end = payload_size;
+                state = PARSE_FILENAME;
+            }
+            break;
+        }
+
+        case PARSE_FILENAME:
+        {
+            if (payload_size < 3)
+            {
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+
+            /* when the payload starts with --, then leave */
+            if (!osMemcmp(buffer, "--", 2))
+            {
+                TRACE_DEBUG("Received multipart end\r\n");
+                return NO_ERROR;
+            }
+            if (osMemcmp(buffer, "\r\n", 2))
+            {
+                TRACE_DEBUG("No valid multipart\r\n");
+                return NO_ERROR;
+            }
+
+            if (multipart_get_field(buffer, payload_size, "name", form_name, sizeof(form_name)) != NO_ERROR)
+            {
+                TRACE_DEBUG("No name found, retrying\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+            if (multipart_get_field(buffer, payload_size, "filename", form_filename, sizeof(form_filename)) != NO_ERROR)
+            {
+                TRACE_DEBUG("No filename found, retrying\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+
+            save_start = find_string(buffer, payload_size, 0, "\r\n\r\n");
+            if (save_start < 0)
+            {
+                TRACE_DEBUG("no newlines found, reading next block\r\n");
+                save_start = 0;
+                save_end = payload_size;
+                fetch = true;
+                break;
+            }
+
+            if (cbr->multipart_start(multipart_ctx, form_name, form_filename) != NO_ERROR)
+            {
+                TRACE_ERROR("multipart_start failed\r\n");
+                return ERROR_INVALID_PATH;
+            }
+
+            state = PARSE_BODY;
+            save_start += 4;
+            save_end = payload_size;
+            break;
+        }
+
+        case PARSE_BODY:
+        {
+            if (!payload_size)
+            {
+                fetch = true;
+                break;
+            }
+
+            int data_end = find_string(buffer, payload_size, 0, boundary);
+
+            if (data_end >= 0)
+            {
+                /* We've found a boundary, let's finish up the current file, but skip the "--\r\n" */
+                if (cbr->multipart_add(multipart_ctx, (uint8_t *)buffer, data_end - 4) != NO_ERROR)
+                {
+                    TRACE_ERROR("multipart_add failed\r\n");
+                    return ERROR_FAILURE;
+                }
+                cbr->multipart_end(multipart_ctx);
+
+                TRACE_INFO("Received file '%s'\r\n", form_filename);
+
+                /* Prepare for next file */
+                state = PARSE_HEADER;
+                save_start = data_end;
+                save_end = payload_size;
+            }
+            else
+            {
+                /* there is no full bounday end in this block, save the end and fetch next */
+                fetch = true;
+
+                if (payload_size <= SAVE_SIZE)
+                {
+                    save_start = 0;
+                    save_end = payload_size;
+                }
+                else
+                {
+                    save_start = payload_size - SAVE_SIZE;
+                    save_end = payload_size;
+                    if (cbr->multipart_add(multipart_ctx, buffer, payload_size - SAVE_SIZE) != NO_ERROR)
+                    {
+                        TRACE_ERROR("multipart_add failed\r\n");
+                        return ERROR_FAILURE;
+                    }
+                }
+            }
+        }
+        break;
+        }
+
+        leftover = save_end - save_start;
+        if (leftover > 0)
+        {
+            memmove(buffer, &buffer[save_start], leftover);
+        }
+    } while (payload_size > 0);
+
+    return NO_ERROR;
 }

@@ -147,24 +147,30 @@ INCLUDES = \
 	-Icyclone/cyclone_crypto/pkc \
 	-Icyclone/cyclone_crypto/rng \
 	-IcJSON \
-	-Ifat/source
+	-Ifat/source \
+	-Iogg/include \
+	-Iogg/src \
+	-Iopus/include \
+	-Iopus/celt \
+	-Iopus/silk \
+	-Iopus/silk/float
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
-	cJSON/cJSON.c \
-	cJSON/cJSON_Utils.c \
-	fat/source/ff.c \
-	fat/source/ffsystem.c \
-	fat/source/ffunicode.c
+	$(LIBOPUS_SOURCES) \
+	$(LIBOGG_SOURCES) \
+	$(CJSON_SOURCES) \
+	$(FAT_SOURCES)
 
 HEADERS = \
 	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h) \
-	cJSON/cJSON.h \
-	cJSON/cJSON_Utils.h \
-	fat/source/ff.h
+	$(LIBOPUS_HEADERS) \
+	$(LIBOGG_HEADERS) \
+	$(CJSON_HEADERS) \
+	$(FAT_HEADERS)
 
 
 #
@@ -175,6 +181,45 @@ HEADERS   += $(HEADERS_$(PLATFORM))
 INCLUDES  += $(INCLUDES_$(PLATFORM))
 CFLAGS    += $(CFLAGS_$(PLATFORM))
 LFLAGS    += $(LFLAGS_$(PLATFORM))
+
+FAT_SOURCES = \
+	fat/source/ff.c \
+	fat/source/ffsystem.c \
+	fat/source/ffunicode.c
+
+FAT_HEADERS =\
+	fat/source/ff.h
+
+CJSON_SOURCES = \
+	cJSON/cJSON.c \
+	cJSON/cJSON_Utils.c
+
+CJSON_HEADERS = \
+	cJSON/cJSON.h \
+	cJSON/cJSON_Utils.h 
+
+LIBOGG_SOURCES = \
+	ogg/src/framing.c \
+	ogg/src/bitwise.c \
+
+include opus/silk_sources.mk
+include opus/celt_sources.mk
+include opus/opus_sources.mk
+include opus/silk_headers.mk
+include opus/celt_headers.mk
+include opus/opus_headers.mk
+
+LIBOPUS_SOURCES = \
+	$(addprefix opus/,$(SILK_SOURCES)) \
+	$(addprefix opus/,$(SILK_SOURCES_FLOAT)) \
+	$(addprefix opus/,$(CELT_SOURCES)) \
+	$(addprefix opus/,$(OPUS_SOURCES)) \
+	$(addprefix opus/,$(OPUS_SOURCES_FLOAT)) 
+
+LIBOPUS_HEADERS = \
+	$(addprefix opus/,$(SILK_HEAD)) \
+	$(addprefix opus/,$(CELT_HEAD)) \
+	$(addprefix opus/,$(OPUS_HEAD)) \
 
 CYCLONE_SOURCES = \
 	cyclone/common/cpu_endian.c \
@@ -285,6 +330,11 @@ CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += ${CFLAGS_VERSION}
 CFLAGS += $(INCLUDES)
+
+# for opus encoder
+CFLAGS += -DUSE_ALLOCA -DOPUS_BUILD
+CFLAGS_linux += -Wno-error=stringop-overflow= -Wno-error=stringop-overread
+
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
 

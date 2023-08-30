@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 #ifdef WIN32
 #else
@@ -25,6 +26,7 @@
 #include "esp32.h"
 #include "mqtt.h"
 #include "cert.h"
+#include "toniefile.h"
 
 void platform_init(void);
 void platform_deinit(void);
@@ -269,6 +271,39 @@ int_t main(int argc, char *argv[])
                 return -1;
             }
             esp32_fixup((const char *)argv[2], true);
+        }
+        else if (!strcasecmp(type, "ENCODE_TEST"))
+        {
+            toniefile_t *taf = toniefile_create("test2.ogg");
+
+            if (!taf)
+            {
+                TRACE_ERROR("toniefile_create() failed\r\n");
+                return -1;
+            }
+
+#define SAMPLES 3333
+            int sample_total = 0;
+            int16_t sample_buffer[2 * SAMPLES];
+
+            osMemset(sample_buffer, 0x00, sizeof(sample_buffer));
+
+            for (int pos = 0; pos < 1333; pos++)
+            {
+                for (int sample = 0; sample < SAMPLES; sample++)
+                {
+                    sample_buffer[2 * sample + 0] = 8192 * sinf(sample_total / 10.0f * (1 + sinf(sample_total / 100000.0f)));
+                    sample_buffer[2 * sample + 1] = 8192 * sinf(sample_total / 20.0f * (1 + sinf(sample_total / 30000.0f)));
+                    sample_total++;
+                }
+                if (toniefile_encode(taf, sample_buffer, SAMPLES) != NO_ERROR)
+                {
+                    break;
+                }
+            }
+            toniefile_close(taf);
+
+            return 1;
         }
     }
     else
