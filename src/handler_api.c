@@ -719,6 +719,7 @@ void sanitizePath(char *path, bool isDir)
     /* Null terminate the sanitized path */
     path[j] = '\0';
 
+#ifndef WIN32
     /* If path doesn't start with '/', shift right and add '/' */
     if (path[0] != '/')
     {
@@ -726,6 +727,7 @@ void sanitizePath(char *path, bool isDir)
         path[0] = '/';                      // Add '/' at the beginning
         j++;
     }
+#endif
 
     /* If path doesn't end with '/', add '/' at the end */
     if (isDir)
