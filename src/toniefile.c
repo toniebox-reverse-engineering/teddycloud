@@ -69,7 +69,7 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     }
     if (dataLength > length)
     {
-        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than framw size %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
+        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than frame size %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
         return 0;
     }
     return toniebox_audio_file_header__pack(tafHeader, buffer);
