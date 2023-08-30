@@ -318,7 +318,10 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                 frame_len = target_length;
             }
 
-            ctx->ogg_granule_position += OPUS_FRAME_SIZE;
+            /* we have to retrieve the actually encoded samples in this frame */
+            int frames = opus_packet_get_samples_per_frame(output_frame, OPUS_SAMPLING_RATE) * opus_packet_get_nb_frames(output_frame, frame_len);
+            ctx->ogg_granule_position += frames;
+
             /* now fill output page */
             ogg_packet op;
             op.packet = output_frame;
