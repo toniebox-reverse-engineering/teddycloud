@@ -45,20 +45,20 @@ static void comment_add(uint8_t *buffer, size_t *length, const char *str)
     *length += strlen(str);
 }
 
-static void generate_taf_header(uint8_t *buffer, size_t *length, TonieboxAudioFileHeader *tafHeader)
+void generate_taf_header(uint8_t *buffer, size_t *length, TonieboxAudioFileHeader *tafHeader)
 {
     /*
     TonieboxAudioFileHeader tafHeaderS = TONIEBOX_AUDIO_FILE_HEADER__INIT;
     tafHeaderS.n_track_page_nums = 0;
     tafHeaderS.track_page_nums = malloc(sizeof(uint32_t) * 99);
     tafHeaderS.track_page_nums[tafHeaderS.n_track_page_nums++] = 1234;
-    */
-    size_t dataLen = tonie_freshness_check_request__get_packed_size(tafHeader);
-    if (dataLength <= length)
+*/
+    size_t dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
+    if (dataLength <= *length)
     {
-        tonie_freshness_check_request__pack(tafHeader, buffer);
+        toniebox_audio_file_header__pack(tafHeader, buffer);
     }
-    tonie_freshness_check_request__free_unpacked(tafHeader, NULL);
+    toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
 }
 
 toniefile_t *toniefile_create(const char *fullPath)
