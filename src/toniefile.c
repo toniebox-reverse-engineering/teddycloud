@@ -63,14 +63,14 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     tafHeader->_fill.len = tafHeader->_fill.len + (proto_frame_size - dataLength); // Cut size to TONIEFILE_FRAME_SIZE
 
     dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
-    if (dataLength != proto_frame_size)
+    if (dataLength != proto_frame_size && dataLength != proto_frame_size + 1)
     {
-        TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
+        TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIu16 "\r\n", dataLength, proto_frame_size);
         return 0;
     }
     if (dataLength > length)
     {
-        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than buffer %" PRIuSIZE "\r\n", dataLength, (size_t)TONIEFILE_FRAME_SIZE);
+        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than buffer %" PRIu16 "\r\n", dataLength, proto_frame_size);
         return 0;
     }
     return toniebox_audio_file_header__pack(tafHeader, buffer);
