@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Audio File Uploader</title>
+</head>
+
+<body>
+    <h1>Upload Audio Files</h1>
+    <input type="file" id="fileInput" multiple accept="audio/*">
+    <button id="uploadButton">Upload</button>
+    <script>
+        async function fetchID3Metadata(arrayBuffer) {
+            return {
+                title: "Example Title",
+                trackNumber: "1"
+            };
+        }
+
+        function createQueryString(params) {
+            return Object.keys(params)
+                .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+                .join('&');
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const fileInput = document.getElementById("fileInput");
+            const uploadButton = document.getElementById("uploadButton");
+            let fileCounter = 0;
+
+            const handleUpload = async () => {
+                const files = fileInput.files;
+                const formData = new FormData();
+
+                for (const file of files) {
+                    const reader = new FileReader();
+
+                    await new Promise((resolve, reject) => {
+                        reader.onload = async (event) => {
+                            try {
+                                const arrayBuffer = event.target.result;
+                                const audioContext = new AudioContext();
+                                const targetSampleRate = 48000;
+
+                                const originalAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                                const offlineAudioContext = new OfflineAudioContext({
+                                    numberOfChannels: 2,
+                                    length: originalAudioBuffer.length * targetSampleRate / originalAudioBuffer.sampleRate,
+                                    sampleRate: targetSampleRate
+                                });
+
+                                const offlineSource = offlineAudioContext.createBufferSource();
+                                offlineSource.buffer = originalAudioBuffer;
+
+                                offlineSource.connect(offlineAudioContext.destination);
+                                offlineSource.start();
+
+                                const upsampledAudioBuffer = await offlineAudioContext.startRendering();
+
+                                const leftChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(0));
+                                const rightChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(1));
+
+                                const interleavedData = new Int16Array(leftChannelData.length + rightChannelData.length);
+                                for (let i = 0, j = 0; i < leftChannelData.length; i++, j += 2) {
+                                    interleavedData[j] = leftChannelData[i] * 32767;
+                                    interleavedData[j + 1] = rightChannelData[i] * 32767;
+                                }
+
+                                formData.append(file.name, new Blob([interleavedData.buffer]), `pcmData.${fileCounter}.pcm`);
+                                fileCounter++;
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(file);
+                    });
+                }
+
+                const queryParams = {
+                    uid: "0011223344556677",
+                    name: "ExampleTonieFile"
+                };
+
+                const queryString = createQueryString(queryParams);
+                const response = await fetch(`/api/pcmUpload?${queryString}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const responseData = await response.text();  // Reading the response as text
+                console.log("Successfully sent PCM data:", responseData);
+            };
+
+            uploadButton.addEventListener("click", handleUpload);
+        });
+    </script>
+</body>
+
+</html>
