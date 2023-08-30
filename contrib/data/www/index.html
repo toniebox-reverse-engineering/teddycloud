@@ -284,6 +284,14 @@
             visibility: visible;
             opacity: 1;
         }
+
+        .draggable-tile {
+            padding: 10px;
+            margin: 5px;
+            cursor: grab;
+            user-select: none;
+            /* Add this line */
+        }
     </style>
 </head>
 
@@ -900,7 +908,8 @@
                     tonies: [],
                     showSuccessMessage: false,
                     showSuccessState: false,
-                    opacity: 1
+                    opacity: 1,
+                    showAudioEncoder: false
                 };
                 this.fileBrowserRef = React.createRef();
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
@@ -915,6 +924,7 @@
                 this.handleModeChange = this.handleModeChange.bind(this);
                 this.oggPlayerRef = React.createRef();
                 this.showSuccess = this.showSuccess.bind(this);
+                this.toggleAudioEncoder = this.toggleAudioEncoder.bind(this);
             }
 
             componentDidMount() {
@@ -1039,6 +1049,9 @@
             }
 
             onDrop(event) {
+                if (e.target.closest('.encoder-tile')) {
+                    return;
+                }
                 event.preventDefault();
                 const files = [...event.dataTransfer.files].map(file => ({
                     name: file.name,
@@ -1161,6 +1174,11 @@
                 this.setState({ selectedFiles: [...this.state.files] });
             }
 
+            toggleAudioEncoder = () => {
+                this.setState({ showAudioEncoder: !this.state.showAudioEncoder });
+                console.log("state: " + this.state.showAudioEncoder);
+            }
+
             render() {
                 return (
                     <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()} ref={this.fileBrowserRef}>
@@ -1189,6 +1207,9 @@
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
                             <button className="button" onClick={this.assignNextUnknown}>Assign Unknown</button>
+                            <button className="button" onClick={this.toggleAudioEncoder}>
+                                {this.state.showAudioEncoder ? 'Hide Audio Encoder' : 'Show Audio Encoder'}
+                            </button>
                             {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
@@ -1205,6 +1226,9 @@
                                 }}
                             />
                         </p>
+
+                        {this.state.showAudioEncoder && <AudioEncoder path={this.state.path} />}
+
                         <div style={{ position: 'relative' }}>
                             {this.state.showSuccessMessage &&
                                 <div style={{
@@ -1256,6 +1280,7 @@
                             let tonieTitle = "(unknown)";
                             let toniePic = "img_unknown.png";
                             let tonieModel = "";
+                            let custom = false;
 
                             if (file.desc.startsWith('TAF:')) {
                                 let fileDescParts = file.desc.split(':');
@@ -1263,11 +1288,21 @@
                                 hashHex = fileDescParts[2];
                                 audioId = parseInt(audioIdHex, 16).toString();
 
+                                audioId = Number(audioId);
+                                if (audioId < 1342177280) {
+                                    audioId += 1342177280;
+                                    custom = true;
+                                }
+
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
                                 if (matchingTonie) {
                                     tonieTitle = matchingTonie.title;
                                     toniePic = matchingTonie.pic;
                                     tonieModel = matchingTonie.model;
+                                }
+
+                                if (custom) {
+                                    toniePic = "img_custom.png";
                                 }
                             }
 
@@ -1524,6 +1559,165 @@
                                 <div ref={this.messagesEnd}></div>
                             </div>
                         )}
+                    </div>
+                );
+            }
+        }
+
+        class AudioEncoder extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    selectedFiles: [],
+                    targetFilename: ''
+                };
+                this.fileInput = React.createRef();
+                this.fileCounter = 0;
+                this.draggedItem = null;
+            }
+
+            handleFilenameChange = (e) => {
+                this.setState({ targetFilename: e.target.value });
+            };
+
+            createQueryString = (params) => {
+                return Object.keys(params)
+                    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+                    .join('&');
+            };
+
+            handleUpload = async () => {
+                const { selectedFiles } = this.state;
+                const formData = new FormData();
+
+                this.fileCounter = 0;
+
+                for (const file of selectedFiles) {
+                    await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+
+                        reader.onload = async (event) => {
+                            try {
+                                const arrayBuffer = event.target.result;
+                                const audioContext = new AudioContext();
+                                const targetSampleRate = 48000;
+
+                                const originalAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                                const offlineAudioContext = new OfflineAudioContext({
+                                    numberOfChannels: 2,
+                                    length: originalAudioBuffer.length * targetSampleRate / originalAudioBuffer.sampleRate,
+                                    sampleRate: targetSampleRate
+                                });
+
+                                const offlineSource = offlineAudioContext.createBufferSource();
+                                offlineSource.buffer = originalAudioBuffer;
+
+                                offlineSource.connect(offlineAudioContext.destination);
+                                offlineSource.start();
+
+                                const upsampledAudioBuffer = await offlineAudioContext.startRendering();
+
+                                const leftChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(0));
+                                const rightChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(1));
+
+                                const interleavedData = new Int16Array(leftChannelData.length + rightChannelData.length);
+                                for (let i = 0, j = 0; i < leftChannelData.length; i++, j += 2) {
+                                    interleavedData[j] = leftChannelData[i] * 32767;
+                                    interleavedData[j + 1] = rightChannelData[i] * 32767;
+                                }
+
+                                formData.append(file.name, new Blob([interleavedData.buffer]), `pcmData.${this.fileCounter}.pcm`);
+                                this.fileCounter++;
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(file);
+                    });
+                }
+
+                const currentUnixTime = Math.floor(Date.now() / 1000);
+                const queryParams = {
+                    name: this.state.targetFilename || "UnnamedTonieFile",
+                    audioId: currentUnixTime - 0x50000000,
+                    path: this.props.path
+                };
+
+                const queryString = this.createQueryString(queryParams);
+                const response = await fetch(`/api/pcmUpload?${queryString}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const responseData = await response.text();
+                    console.log("Successfully sent PCM data:", responseData);
+                    this.setState({ selectedFiles: [] });
+                    this.fileCounter = 0;
+                } else {
+                    console.log("Upload failed:", responseData);
+                }
+            };
+
+            handleFileSelection = (e) => {
+                const files = Array.from(e.target.files);
+                this.setState({ selectedFiles: files });
+            };
+
+            dragStart = (e, index) => {
+                this.draggedItem = index;
+            };
+
+            onDrop = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.draggedItem = null;
+            };
+
+            onDragOver = (e, index) => {
+                e.preventDefault();
+
+                if (this.draggedItem === index) return;
+
+                const { selectedFiles } = this.state;
+                const [removed] = selectedFiles.splice(this.draggedItem, 1);
+                selectedFiles.splice(index, 0, removed);
+
+                this.draggedItem = index;
+
+                this.setState({ selectedFiles });
+            };
+
+
+            render() {
+                const { selectedFiles, targetFilename } = this.state;
+
+                return (
+                    <div className="tile encoder-tile">
+                        <h3>Encode to {this.props.path}</h3>
+                        <label htmlFor="targetFilename">Target filename:</label>
+                        <input type="text" id="targetFilename" value={targetFilename} onChange={this.handleFilenameChange} />
+                        <br />
+                        <input type="file" ref={this.fileInput} multiple accept="audio/*" onChange={this.handleFileSelection} />
+                        <br />
+                        <button className="button" onClick={this.handleUpload}>Upload</button>
+                        <div className="file-preview">
+                            {selectedFiles.map((file, index) => (
+                                <div
+                                    key={index}
+                                    draggable="true"
+                                    onDragStart={(e) => this.dragStart(e, index)}
+                                    onDragOver={(e) => this.onDragOver(e, index)}
+                                    onDrop={this.onDrop}
+                                    className="draggable-tile"
+                                    style={{ border: '1px solid black' }}
+                                >
+                                    <span>Track {index + 1}:</span> {file.name}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 );
             }

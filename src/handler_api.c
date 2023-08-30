@@ -821,6 +821,7 @@ typedef struct
     toniefile_t *taf;
     uint8_t remainder[4];
     int remainder_avail;
+    uint32_t audio_id;
 } taf_encode_ctx;
 
 error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
@@ -832,7 +833,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
         TRACE_INFO("[TAF] Start encoding to %s\r\n", ctx->file_path);
         TRACE_INFO("[TAF]   first file: %s\r\n", name);
 
-        ctx->taf = toniefile_create(ctx->file_path, 0xDEADBEEF);
+        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id);
 
         if (ctx->taf == NULL)
         {
@@ -907,11 +908,14 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     char name[256];
     char uid[32];
     char path[128];
+    char audio_id_str[128];
+    uint32_t audio_id = 0;
 
     osStrcpy(overlay, "");
     osStrcpy(name, "unnamed");
     osStrcpy(uid, "");
     osStrcpy(path, "");
+    osStrcpy(audio_id_str, "");
 
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
@@ -924,6 +928,11 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     if (queryGet(queryString, "uid", uid, sizeof(uid)))
     {
         TRACE_INFO("got uid '%s'\r\n", uid);
+    }
+    if (queryGet(queryString, "audioId", audio_id_str, sizeof(audio_id_str)))
+    {
+        TRACE_INFO("got audioId '%s'\r\n", audio_id_str);
+        audio_id = atol(audio_id_str);
     }
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
@@ -981,6 +990,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
 
         ctx.file_path = filename;
         ctx.overlay = overlay;
+        ctx.audio_id = audio_id;
 
         switch (multipart_handle(connection, &cbr, &ctx))
         {
