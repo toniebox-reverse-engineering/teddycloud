@@ -151,8 +151,10 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     }
     else
     {
+        int comments = 3;
         toniefile_comment_add(comment_data, &comment_data_pos, "libopus 1.2.1");
-        toniefile_comment_add(comment_data, &comment_data_pos, "");
+        osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
+        comment_data_pos += sizeof(uint32_t);
         toniefile_comment_add(comment_data, &comment_data_pos, "encoder=opusenc from opus-tools 0.1.10");
         toniefile_comment_add(comment_data, &comment_data_pos, "encoder_options=--bitrate 64 --vbr --comp 10 --framesize 20");
     }
