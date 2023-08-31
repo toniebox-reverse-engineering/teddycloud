@@ -1078,7 +1078,7 @@
                     formData.append(file.name, file.file);
 
                     try {
-                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
+                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}&special=${this.state.mode}`, {
                             method: 'POST',
                             body: formData,
                         });
@@ -1104,7 +1104,7 @@
                 }
 
                 try {
-                    const response = await fetch('/api/dirCreate', {
+                    const response = await fetch(`/api/dirCreate?special=${this.state.mode}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1138,7 +1138,7 @@
                     const api = file.isDirectory ? '/api/dirDelete' : '/api/fileDelete';
 
                     try {
-                        const response = await fetch(api, {
+                        const response = await fetch(api + `?special=${this.state.mode}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
                             body: this.state.path + '/' + file.name,
