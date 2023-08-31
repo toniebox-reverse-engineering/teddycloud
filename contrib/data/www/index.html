@@ -290,7 +290,12 @@
             margin: 5px;
             cursor: grab;
             user-select: none;
-            /* Add this line */
+            transition: all 0.3s ease;
+            border: 1px solid black;
+        }
+
+        .drag-over {
+            margin-top: 50px;
         }
     </style>
 </head>
@@ -1049,7 +1054,7 @@
             }
 
             onDrop(event) {
-                if (e.target.closest('.encoder-tile')) {
+                if (event.target.closest('.encoder-tile')) {
                     return;
                 }
                 event.preventDefault();
@@ -1667,29 +1672,43 @@
             };
 
             dragStart = (e, index) => {
-                this.draggedItem = index;
-            };
-
-            onDrop = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.draggedItem = null;
+                this.draggedItem = this.state.selectedFiles[index];
+                e.dataTransfer.effectAllowed = "move";
             };
 
             onDragOver = (e, index) => {
                 e.preventDefault();
 
-                if (this.draggedItem === index) return;
+                const draggedOverItem = this.state.selectedFiles[index];
 
-                const { selectedFiles } = this.state;
-                const [removed] = selectedFiles.splice(this.draggedItem, 1);
-                selectedFiles.splice(index, 0, removed);
+                // If the item being dragged is the same as the one being hovered over, ignore
+                if (this.draggedItem === draggedOverItem) {
+                    return;
+                }
 
-                this.draggedItem = index;
+                // Replace the hovered item with the dragged item and update the state
+                let items = this.state.selectedFiles.filter((item) => item !== this.draggedItem);
+                items.splice(index, 0, this.draggedItem);
 
-                this.setState({ selectedFiles });
+                this.setState({ selectedFiles: items });
+
+                // Add a class for kinetic effect
+                e.currentTarget.classList.add('drag-over');
             };
 
+            onDragLeave = (e) => {
+                // Remove the class when the drag is over
+                e.currentTarget.classList.remove('drag-over');
+            };
+
+            onDrop = (e) => {
+                e.stopPropagation();
+                this.draggedItem = null;
+                // Remove the class from all items
+                document.querySelectorAll('.draggable-tile').forEach((tile) => {
+                    tile.classList.remove('drag-over');
+                });
+            };
 
             render() {
                 const { selectedFiles, targetFilename } = this.state;
@@ -1710,6 +1729,7 @@
                                     draggable="true"
                                     onDragStart={(e) => this.dragStart(e, index)}
                                     onDragOver={(e) => this.onDragOver(e, index)}
+                                    onDragLeave={this.onDragLeave}
                                     onDrop={this.onDrop}
                                     className="draggable-tile"
                                     style={{ border: '1px solid black' }}
