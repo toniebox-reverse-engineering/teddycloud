@@ -743,9 +743,11 @@ void sanitizePath(char *path, bool isDir)
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[128];
+    char special[16];
     char path[128];
 
     osStrcpy(overlay, "");
+    osStrcpy(special, "");
     osStrcpy(path, "");
 
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
@@ -764,6 +766,21 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     {
         TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
     }
 
     char pathAbsolute[256];
@@ -1020,7 +1037,11 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
+    char special[16];
+
     osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
@@ -1032,6 +1053,22 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
         TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
+
     char path[256];
     size_t size = 0;
 
@@ -1073,7 +1110,11 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
+    char special[16];
+
     osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
@@ -1084,6 +1125,21 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     {
         TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
     }
     char path[256];
     size_t size = 0;
@@ -1126,7 +1182,11 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
+    char special[16];
+
     osStrcpy(overlay, "");
+    osStrcpy(special, "");
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
@@ -1138,6 +1198,22 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
         TRACE_ERROR("internal.contentdirfull not set to a valid path\r\n");
         return ERROR_FAILURE;
     }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_INFO("requested index for '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
+
     char path[256];
     size_t size = 0;
 
