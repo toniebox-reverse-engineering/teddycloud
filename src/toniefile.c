@@ -136,15 +136,28 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     osStrcpy((char *)&comment_data[comment_data_pos], "OpusTags");
     comment_data_pos += 8;
 
-    toniefile_comment_add(comment_data, &comment_data_pos, "teddyCloud");
+    bool_t customTags = false;
+    if (customTags)
+    {
+        toniefile_comment_add(comment_data, &comment_data_pos, "teddyCloud");
 
-    int comments = 2;
-    osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
-    comment_data_pos += sizeof(uint32_t);
+        int comments = 2;
+        osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
+        comment_data_pos += sizeof(uint32_t);
 
-    char *version_str = custom_asprintf("version=%s", BUILD_FULL_NAME_LONG);
-    toniefile_comment_add(comment_data, &comment_data_pos, version_str);
-    osFreeMem(version_str);
+        char *version_str = custom_asprintf("version=%s", BUILD_FULL_NAME_LONG);
+        toniefile_comment_add(comment_data, &comment_data_pos, version_str);
+        osFreeMem(version_str);
+    }
+    else
+    {
+        int comments = 3;
+        toniefile_comment_add(comment_data, &comment_data_pos, "libopus 1.2.1");
+        osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
+        comment_data_pos += sizeof(uint32_t);
+        toniefile_comment_add(comment_data, &comment_data_pos, "encoder=opusenc from opus-tools 0.1.10");
+        toniefile_comment_add(comment_data, &comment_data_pos, "encoder_options=--bitrate 64 --vbr --comp 10 --framesize 20");
+    }
 
     /* add padding of first block */
     int remain = sizeof(comment_data) - comment_data_pos - 4;
