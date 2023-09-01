@@ -845,7 +845,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
     else
     {
         TRACE_INFO("[TAF]   new chapter for %s\r\n", name);
-        // toniefile_new_chapter(ctx->taf);
+        toniefile_new_chapter(ctx->taf);
     }
 
     return NO_ERROR;
