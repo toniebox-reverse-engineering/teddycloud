@@ -19,6 +19,57 @@
 #include "cJSON.h"
 #include "toniefile.h"
 
+void sanitizePath(char *path, bool isDir)
+{
+    size_t i, j;
+    bool slash = false;
+
+    pathCanonicalize(path);
+
+    /* Merge all double (or more) slashes // */
+    for (i = 0, j = 0; path[i]; ++i)
+    {
+        if (path[i] == '/')
+        {
+            if (slash)
+                continue;
+            slash = true;
+        }
+        else
+        {
+            slash = false;
+        }
+        path[j++] = path[i];
+    }
+
+    /* Make sure the path doesn't end with a '/' unless it's the root directory. */
+    if (j > 1 && path[j - 1] == '/')
+        j--;
+
+    /* Null terminate the sanitized path */
+    path[j] = '\0';
+
+#ifndef WIN32
+    /* If path doesn't start with '/', shift right and add '/' */
+    if (path[0] != '/')
+    {
+        memmove(&path[1], &path[0], j + 1); // Shift right
+        path[0] = '/';                      // Add '/' at the beginning
+        j++;
+    }
+#endif
+
+    /* If path doesn't end with '/', add '/' at the end */
+    if (isDir)
+    {
+        if (path[j - 1] != '/')
+        {
+            path[j] = '/';      // Add '/' at the end
+            path[j + 1] = '\0'; // Null terminate
+        }
+    }
+}
+
 error_t queryPrepare(const char *queryString, const char **rootPath, char *overlay, size_t overlay_size)
 {
     char special[16];
@@ -85,10 +136,9 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
     if (ret == NO_ERROR)
     {
+        /* important: first canonicalize path, then merge to prevent directory traversal attacks */
         pathSafeCanonicalize(path);
-        char *pathAbsolute = osAllocMem(osStrlen(rootPath) + osStrlen(path) + 2);
-
-        osSprintf(pathAbsolute, "%s/%s", rootPath, path);
+        char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
         pathSafeCanonicalize(pathAbsolute);
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
@@ -413,18 +463,15 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         }
 
         char path[128];
-        char pathAbsolute[256];
 
         if (!queryGet(queryString, "path", path, sizeof(path)))
         {
             osStrcpy(path, "/");
         }
 
+        /* first canonicalize path, then merge to prevent directory traversal bugs */
         pathSafeCanonicalize(path);
-
-        osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-        pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
-
+        char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
         pathSafeCanonicalize(pathAbsolute);
 
         int pos = 0;
@@ -432,6 +479,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         if (dir == NULL)
         {
             TRACE_ERROR("Failed to open dir '%s'\r\n", pathAbsolute);
+            osFreeMem(pathAbsolute);
             break;
         }
 
@@ -459,8 +507,8 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                        entry.modified.year, entry.modified.month, entry.modified.day,
                        entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
 
-            char filePathAbsolute[384];
-            osSnprintf(filePathAbsolute, sizeof(filePathAbsolute), "%s/%s", pathAbsolute, entry.name);
+            char *filePathAbsolute = custom_asprintf("%s/%s", pathAbsolute, entry.name);
+            pathSafeCanonicalize(filePathAbsolute);
 
             char desc[64];
             desc[0] = 0;
@@ -475,6 +523,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osStrcat(desc, tmp);
                 }
             }
+            osFreeMem(filePathAbsolute);
             freeTonieInfo(&tafInfo);
 
             cJSON *jsonEntry = cJSON_CreateObject();
@@ -489,6 +538,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             pos++;
         }
 
+        osFreeMem(pathAbsolute);
         jsonString = cJSON_PrintUnformatted(json);
         cJSON_Delete(json);
     } while (0);
@@ -551,14 +601,22 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
         return ERROR_DIRECTORY_NOT_FOUND;
     }
 
-    char fullPath[1024];
-    osSnprintf(fullPath, sizeof(fullPath), "%s/%s", ctx->root_path, filename);
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    char *fullPath = custom_asprintf("%s/%s", ctx->root_path, filename);
+    sanitizePath(fullPath, false);
 
     if (fsFileExists(fullPath))
     {
-        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", filename);
+        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", fullPath);
     }
+    else
+    {
+        TRACE_INFO("Writing to '%s'\r\n", fullPath);
+    }
+
     ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+
+    osFreeMem(fullPath);
 
     if (ctx->file == NULL)
     {
@@ -689,55 +747,6 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
-void sanitizePath(char *path, bool isDir)
-{
-    size_t i, j;
-    bool slash = false;
-
-    /* Merge all double (or more) slashes // */
-    for (i = 0, j = 0; path[i]; ++i)
-    {
-        if (path[i] == '/')
-        {
-            if (slash)
-                continue;
-            slash = true;
-        }
-        else
-        {
-            slash = false;
-        }
-        path[j++] = path[i];
-    }
-
-    /* Make sure the path doesn't end with a '/' unless it's the root directory. */
-    if (j > 1 && path[j - 1] == '/')
-        j--;
-
-    /* Null terminate the sanitized path */
-    path[j] = '\0';
-
-#ifndef WIN32
-    /* If path doesn't start with '/', shift right and add '/' */
-    if (path[0] != '/')
-    {
-        memmove(&path[1], &path[0], j + 1); // Shift right
-        path[0] = '/';                      // Add '/' at the beginning
-        j++;
-    }
-#endif
-
-    /* If path doesn't end with '/', add '/' at the end */
-    if (isDir)
-    {
-        if (path[j - 1] != '/')
-        {
-            path[j] = '/';      // Add '/' at the end
-            path[j + 1] = '\0'; // Null terminate
-        }
-    }
-}
-
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[128];
@@ -756,11 +765,11 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     {
         osStrcpy(path, "/");
     }
-    sanitizePath(path, true);
 
-    char pathAbsolute[256];
-    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
     char message[256];
@@ -800,6 +809,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
         }
     }
 
+    osFreeMem(pathAbsolute);
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
@@ -932,11 +942,13 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     {
         osStrcpy(path, "/");
     }
-    sanitizePath(path, true);
 
-    char pathAbsolute[256];
-    osSnprintf(pathAbsolute, sizeof(pathAbsolute) - 1, "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+    sanitizePath(name, false);
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
     char message[256];
@@ -997,6 +1009,8 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
         osFreeMem(filename);
     }
 
+    osFreeMem(pathAbsolute);
+
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
 
@@ -1024,13 +1038,12 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     }
     path[size] = 0;
 
-    TRACE_INFO("Creating directory: '%s'\r\n", path);
-
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    sanitizePath(pathAbsolute, true);
 
-    char pathAbsolute[256 + 2];
-    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+    TRACE_INFO("Creating directory: '%s'\r\n", pathAbsolute);
 
     uint_t statusCode = 200;
     char message[256 + 64];
@@ -1047,6 +1060,8 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
+
+    osFreeMem(pathAbsolute);
 
     return httpWriteResponseString(connection, message, false);
 }
@@ -1071,13 +1086,12 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     }
     path[size] = 0;
 
-    TRACE_INFO("Deleting directory: '%s'\r\n", path);
-
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    sanitizePath(pathAbsolute, true);
 
-    char pathAbsolute[256 + 2];
-    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+    TRACE_INFO("Deleting directory: '%s'\r\n", pathAbsolute);
 
     uint_t statusCode = 200;
     char message[256 + 64];
@@ -1094,6 +1108,8 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
+
+    osFreeMem(pathAbsolute);
 
     return httpWriteResponseString(connection, message, false);
 }
@@ -1121,11 +1137,10 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
     TRACE_INFO("Deleting file: '%s'\r\n", path);
 
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, false);
-
-    char pathAbsolute[256 + 2];
-    osSnprintf(pathAbsolute, sizeof(pathAbsolute), "%s/%s", rootPath, path);
-    pathAbsolute[sizeof(pathAbsolute) - 1] = 0;
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    sanitizePath(pathAbsolute, false);
 
     uint_t statusCode = 200;
     char message[256 + 64];
@@ -1142,6 +1157,8 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
+
+    osFreeMem(pathAbsolute);
 
     return httpWriteResponseString(connection, message, false);
 }
