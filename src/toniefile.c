@@ -368,7 +368,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             {
                 if (page_remain)
                 {
-                    TRACE_INFO("unexpected small padding at %" PRIuSIZE " (%" PRIuSIZE " s)\r\n", ctx->ogg_granule_position, ctx->ogg_granule_position / OPUS_FRAME_SIZE * 60 / 1000)
+                    TRACE_INFO("unexpected small padding at %" PRIu64 " (%" PRIu64 " s)\r\n", ctx->ogg_granule_position, ctx->ogg_granule_position / OPUS_FRAME_SIZE * 60 / 1000)
                     return ERROR_FAILURE;
                 }
 
