@@ -328,9 +328,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uid[16] = 0;
             if (!osStrcasecmp(uid, settings->core.flex_uid))
             {
-                TRACE_INFO(" >> this is the defined flex tonie, assigning '%s'\r\n", assignFile);
                 assignFile = settings->internal.assign_unknown;
                 setLive = true;
+                TRACE_INFO(" >> this is the defined flex tonie, assigning '%s'\r\n", assignFile);
             }
         }
     }
