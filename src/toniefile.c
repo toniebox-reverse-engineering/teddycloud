@@ -194,6 +194,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
         sha1Update(&ctx->sha1, og.header, og.header_len);
         sha1Update(&ctx->sha1, og.body, og.body_len);
     }
+
     toniefile_new_chapter(ctx);
 
     return ctx;
@@ -282,24 +283,27 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
         /* buffer full? */
         if (ctx->audio_frame_used >= OPUS_FRAME_SIZE)
         {
-            int block_remain = TONIEFILE_FRAME_SIZE - (ctx->file_pos % TONIEFILE_FRAME_SIZE);
+            int page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill - ctx->os.lacing_returned + ctx->os.body_fill - ctx->os.body_returned;
+            int page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
-            if (block_remain < 64)
+            int frame_payload = (page_remain / 256) * 255 + (page_remain % 256) - 1;
+            int reconstructed = (frame_payload / 255) + 1 + frame_payload;
+
+            /* when due to segment sizes we would end up with a 1 byte gap, make sure that the next run will have at least 64 byte.
+             * reason why this could happen is that "adding one byte" would require one segment more and thus occupies two byte more.
+             * if this would happen, just reduce the calculated free space such that there is room for another segment.
+             */
+            if (page_remain != reconstructed && frame_payload > OPUS_PACKET_MINSIZE)
+            {
+                frame_payload -= OPUS_PACKET_MINSIZE;
+            }
+            if (frame_payload < OPUS_PACKET_MINSIZE)
             {
                 TRACE_ERROR("Not enough space in this block\r\n");
                 return ERROR_FAILURE;
             }
 
-            /* calc frame size using lacing usage */
-            int frame_payload = block_remain - 27;
-            if ((frame_payload % 256) == 0)
-            {
-                /* need to reduce due to lacing causing one byte extra. will fix that 1-byte gap later by patching lacing table */
-                frame_payload--;
-            }
-            int frame_dest = 255 * frame_payload / 256;
-
-            int frame_len = opus_encode(ctx->enc, ctx->audio_frame, OPUS_FRAME_SIZE, output_frame, frame_dest);
+            int frame_len = opus_encode(ctx->enc, ctx->audio_frame, OPUS_FRAME_SIZE, output_frame, frame_payload);
             // TRACE_INFO("opus_encode: %d/%d\r\n", frame_len, frame_dest);
 
             if (frame_len <= 0)
@@ -308,10 +312,10 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                 return ERROR_FAILURE;
             }
 
-            /* we did not exactly hit the destination size and are close to block size. pad frame */
-            if (block_remain < 0x200 && frame_len != frame_dest)
+            /* we did not exactly hit the destination size and are close to block size. pad packet */
+            if (frame_payload - frame_len < OPUS_PACKET_PAD)
             {
-                int target_length = frame_dest;
+                int target_length = frame_payload;
 
                 int ret = opus_packet_pad(output_frame, frame_len, target_length);
                 // TRACE_INFO("opus_packet_pad: %d -> %d\r\n", frame_len, target_length);
@@ -343,52 +347,47 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             ctx->ogg_packet_count++;
 
             ogg_stream_packetin(&ctx->os, &op);
-            ogg_page og;
-            while (ogg_stream_flush(&ctx->os, &og))
+
+            page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill + ctx->os.body_fill;
+            page_remain = TONIEFILE_FRAME_SIZE - page_used;
+
+            if (page_remain < TONIEFILE_PAD_END)
             {
-                /* analyze output page size and patch lacing table if necessary */
-                int remaining_size = TONIEFILE_FRAME_SIZE - ((ctx->file_pos + og.header_len + og.body_len) % TONIEFILE_FRAME_SIZE);
-
-                /* yeah, make sure we occupy the rest of the block with a lacing table using more entries than neccessary */
-                while (remaining_size > 0 && remaining_size < 64)
+                if (page_remain)
                 {
-                    /* reduce first lacing */
-                    og.header[27]--;
-                    /* add new lacing */
-                    og.header[27 + og.header[26]] = 1;
-                    /* increase lacing entry count */
-                    og.header[26]++;
-                    og.header_len++;
-                    ogg_page_checksum_set(&og);
-                    remaining_size--;
-                }
-
-                if (fsWriteFile(ctx->file, og.header, og.header_len) != NO_ERROR)
-                {
+                    TRACE_INFO("unexpected small padding at %llu (%llu s)\r\n", ctx->ogg_granule_position, ctx->ogg_granule_position / OPUS_FRAME_SIZE * 60 / 1000)
                     return ERROR_FAILURE;
                 }
-                if (fsWriteFile(ctx->file, og.body, og.body_len) != NO_ERROR)
-                {
-                    return ERROR_FAILURE;
-                }
-                size_t prev = ctx->file_pos;
-                ctx->file_pos += og.header_len + og.body_len;
-                ctx->audio_length += og.header_len + og.body_len;
 
-                sha1Update(&ctx->sha1, og.header, og.header_len);
-                sha1Update(&ctx->sha1, og.body, og.body_len);
-
-                if ((prev / TONIEFILE_FRAME_SIZE) != (ctx->file_pos / TONIEFILE_FRAME_SIZE))
+                ogg_page og;
+                while (ogg_stream_flush(&ctx->os, &og))
                 {
-                    ctx->taf_block_num++;
-                    if (ctx->file_pos % TONIEFILE_FRAME_SIZE)
+                    if (fsWriteFile(ctx->file, og.header, og.header_len) != NO_ERROR)
                     {
-                        TRACE_ERROR("Block alignment mismatch 0x%08" PRIXSIZE "\r\n", ctx->file_pos)
                         return ERROR_FAILURE;
+                    }
+                    if (fsWriteFile(ctx->file, og.body, og.body_len) != NO_ERROR)
+                    {
+                        return ERROR_FAILURE;
+                    }
+                    size_t prev = ctx->file_pos;
+                    ctx->file_pos += og.header_len + og.body_len;
+                    ctx->audio_length += og.header_len + og.body_len;
+
+                    sha1Update(&ctx->sha1, og.header, og.header_len);
+                    sha1Update(&ctx->sha1, og.body, og.body_len);
+
+                    if ((prev / TONIEFILE_FRAME_SIZE) != (ctx->file_pos / TONIEFILE_FRAME_SIZE))
+                    {
+                        ctx->taf_block_num++;
+                        if (ctx->file_pos % TONIEFILE_FRAME_SIZE)
+                        {
+                            TRACE_ERROR("Block alignment mismatch 0x%08" PRIXSIZE "\r\n", ctx->file_pos)
+                            return ERROR_FAILURE;
+                        }
                     }
                 }
             }
-
             /* fill again */
             ctx->audio_frame_used = 0;
         }

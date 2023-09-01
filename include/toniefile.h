@@ -8,9 +8,12 @@
 #define OPUS_BIT_RATE 96000
 #define OPUS_FRAME_SIZE 2880 /* samples: 60ms at 48kHz */
 #define OPUS_CHANNELS 2
+#define OPUS_PACKET_PAD 64
+#define OPUS_PACKET_MINSIZE 64
 
 #define TONIEFILE_FRAME_SIZE 4096
 #define TONIEFILE_MAX_CHAPTERS 100
+#define TONIEFILE_PAD_END 64
 
 typedef struct toniefile_s toniefile_t;
 
