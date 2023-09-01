@@ -136,7 +136,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     osStrcpy((char *)&comment_data[comment_data_pos], "OpusTags");
     comment_data_pos += 8;
 
-    bool_t customTags = false;
+    bool_t customTags = true;
     if (customTags)
     {
         toniefile_comment_add(comment_data, &comment_data_pos, "teddyCloud");
