@@ -17,13 +17,13 @@ Currently implemented are:
 * Configure slapping
 * Customize original box sounds (ex. jingle) over the air
 * Extract/Inject certitifcates on a esp32 firmware dump
-
-## Planned
 * Decode RTNL logs
 * MQTT client
-* Home Assistant integration (ideas welcome)
-* TeddyBench integration
+* Home Assistant integration (MQTT)
 * [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
+
+## Planned
+* TeddyBench integration
 
 ## Preparation
 ### Generate certificates
