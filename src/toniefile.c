@@ -408,3 +408,87 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 
     return NO_ERROR;
 }
+
+// Function to decode audio from FFmpeg's standard output
+FILE *ffmpeg_decode_audio_start(const char *input_source)
+{
+    // Construct the FFmpeg command based on the input source
+    char ffmpeg_command[1024]; // Adjust the buffer size as needed
+    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -", input_source);
+
+    FILE *ffmpeg_pipe = NULL;
+
+    // Open a pipe to execute the FFmpeg command
+    ffmpeg_pipe = popen(ffmpeg_command, "r");
+    if (ffmpeg_pipe == NULL)
+    {
+        TRACE_ERROR("Could not open FFmpeg pipe\n");
+        return ffmpeg_pipe;
+    }
+    return ffmpeg_pipe;
+}
+error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
+{
+    if (ffmpeg_pipe == NULL)
+        return ERROR_ABORTED;
+    /*
+    char line[1024]; // Adjust the buffer size as needed
+    if (error == NO_ERROR)
+    {
+        TRACE_INFO("%s", "");
+    }
+    else
+    {
+        TRACE_ERROR("%s", "");
+    }
+    while (fgets(line, sizeof(line), ffmpeg_pipe) != NULL)
+    {
+        if (error == NO_ERROR)
+        {
+            TRACE_INFO_RESUME("%s", (const char *)line);
+        }
+        else
+        {
+            TRACE_ERROR_RESUME("%s", (const char *)line);
+        }
+    }
+    if (error == NO_ERROR)
+    {
+        TRACE_INFO_RESUME("%s", "\r\n");
+    }
+    else
+    {
+        TRACE_ERROR_RESUME("%s", "\r\n");
+    }*/
+    // Close the FFmpeg pipe
+    pclose(ffmpeg_pipe);
+    return NO_ERROR;
+}
+error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *blocks_read)
+{
+    if (ffmpeg_pipe == NULL)
+        return ERROR_ABORTED;
+    *blocks_read = 0;
+    // Read and process audio data from the FFmpeg pipe
+    while (*blocks_read < size)
+    {
+        // Read a chunk of audio data from the pipe
+        int16_t sample;
+        size_t read = fread(&sample, sizeof(int16_t), 1, ffmpeg_pipe);
+        if (read != 1)
+        {
+            if (*blocks_read > 0)
+            {
+                return NO_ERROR;
+            }
+            else
+            {
+                return ERROR_END_OF_STREAM; // End of audio data
+            }
+        }
+        // Store the audio sample in the buffer
+        buffer[*blocks_read] = sample;
+        *blocks_read += read;
+    }
+    return NO_ERROR;
+}

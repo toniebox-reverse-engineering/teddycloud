@@ -21,3 +21,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id);
 error_t toniefile_close(toniefile_t *ctx);
 error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t samples_available);
 error_t toniefile_new_chapter(toniefile_t *ctx);
+
+FILE *ffmpeg_decode_audio_start(const char *input_source);
+error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error);
+error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *bytes_read);
