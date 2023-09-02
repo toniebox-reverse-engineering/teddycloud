@@ -367,8 +367,8 @@ int_t main(int argc, char *argv[])
 
             return 1;
         }
-    }
 #endif
+    }
     else
     {
         mqtt_init();
