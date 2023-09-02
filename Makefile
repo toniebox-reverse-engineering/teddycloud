@@ -115,6 +115,7 @@ SOURCES_linux = \
 	cyclone/common/fs_port_posix.c 
 CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=maybe-uninitialized -Wno-error=stringop-overflow= -Wno-error=cpp
 CFLAGS_linux += -ggdb
+CFLAGS_linux += -DFFMPEG_DECODING
 
 # for now enable extensive error checking
 CFLAGS_linux += -fsanitize=undefined -fsanitize=address 

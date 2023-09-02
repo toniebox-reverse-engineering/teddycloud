@@ -307,6 +307,7 @@ int_t main(int argc, char *argv[])
 
             return 1;
         }
+#ifdef FFMPEG_DECODING
         else if (!strcasecmp(type, "DENCODE"))
         {
             if (argc != 4)
@@ -367,6 +368,7 @@ int_t main(int argc, char *argv[])
             return 1;
         }
     }
+#endif
     else
     {
         mqtt_init();

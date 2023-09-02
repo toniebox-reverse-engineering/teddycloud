@@ -427,6 +427,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 // Function to decode audio from FFmpeg's standard output
 FILE *ffmpeg_decode_audio_start(const char *input_source)
 {
+#ifdef FFMPEG_DECODING
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
     snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -", input_source);
@@ -441,9 +442,13 @@ FILE *ffmpeg_decode_audio_start(const char *input_source)
         return ffmpeg_pipe;
     }
     return ffmpeg_pipe;
+#else
+    return NULL;
+#endif
 }
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
 {
+#ifdef FFMPEG_DECODING
     if (ffmpeg_pipe == NULL)
         return ERROR_ABORTED;
     /*
@@ -478,6 +483,9 @@ error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
     // Close the FFmpeg pipe
     pclose(ffmpeg_pipe);
     return NO_ERROR;
+#else
+    return ERROR_NOT_IMPLEMENTED;
+#endif
 }
 error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *blocks_read)
 {
