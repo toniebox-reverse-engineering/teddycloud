@@ -337,12 +337,23 @@ int_t main(int argc, char *argv[])
             size_t samples = sizeof(sample_buffer) / sizeof(uint16_t);
             size_t blocks_read = 0;
 
-            while (ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read) == NO_ERROR)
+            while (1)
             {
+                error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
+                if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
+                {
+                    TRACE_ERROR("Could not decode sample error=%" PRIu16 " read=%" PRIuSIZE "\r\n", error, blocks_read);
+                    break;
+                }
+                else if (error == ERROR_END_OF_STREAM)
+                {
+                    error = NO_ERROR;
+                    break;
+                }
                 error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
                 if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
                 {
-                    TRACE_ERROR("Could not encode toniesample error=%" PRIu16 " read=%" PRIuSIZE "\r\n", error, blocks_read);
+                    TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
                     break;
                 }
                 // toniefile_new_chapter(taf);
