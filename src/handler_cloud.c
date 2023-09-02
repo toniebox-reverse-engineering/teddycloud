@@ -395,6 +395,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
+
+        if (tonieInfo.tafHeader->num_bytes == UINT64_MAX)
+        {
+            TRACE_INFO("Found streaming content\r\n");
+        }
+
         error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
         if (error)
         {
