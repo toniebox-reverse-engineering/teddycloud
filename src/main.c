@@ -332,7 +332,7 @@ int_t main(int argc, char *argv[])
                 return -1;
             }
 
-            toniefile_t *taf = toniefile_create(taf_file, 0xDEAFBEEF);
+            toniefile_t *taf = toniefile_create(taf_file, time(NULL));
             if (!taf)
             {
                 TRACE_ERROR("toniefile_create() failed\r\n");
