@@ -398,7 +398,7 @@ error_t fsReadFile(FsFile *file, void *data, size_t size, size_t *length)
       return ERROR_END_OF_FILE;
    }
 
-   return error;
+   return NO_ERROR;
 }
 
 /**
