@@ -54,30 +54,39 @@ static void toniefile_comment_add(uint8_t *buffer, size_t *length, const char *s
 
 static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFileHeader *tafHeader)
 {
-    uint16_t proto_frame_size = TONIEFILE_FRAME_SIZE - 4; // Offset 4, dynamic size of protobuf
+    uint16_t proto_frame_size = TONIEFILE_FRAME_SIZE - 4;
+
     tafHeader->_fill.len = proto_frame_size;
     tafHeader->_fill.data = osAllocMem(tafHeader->_fill.len);
     osMemset(tafHeader->_fill.data, 0x00, tafHeader->_fill.len);
 
     size_t dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
-    tafHeader->_fill.len = tafHeader->_fill.len + (proto_frame_size - dataLength); // Cut size to TONIEFILE_FRAME_SIZE
+    tafHeader->_fill.len = tafHeader->_fill.len + (proto_frame_size - dataLength);
 
     dataLength = toniebox_audio_file_header__get_packed_size(tafHeader);
+
     if (dataLength == proto_frame_size + 1)
     {
         tafHeader->_fill.len--;
     }
+    size_t size = 0;
+
     if (dataLength != proto_frame_size && dataLength != proto_frame_size - 1)
     {
         TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIu16 "\r\n", dataLength, proto_frame_size);
-        return 0;
     }
-    if (dataLength > length)
+    else if (dataLength > length)
     {
         TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than buffer %" PRIu16 "\r\n", dataLength, proto_frame_size);
-        return 0;
     }
-    return toniebox_audio_file_header__pack(tafHeader, buffer);
+    else
+    {
+        size = toniebox_audio_file_header__pack(tafHeader, buffer);
+    }
+
+    osFreeMem(tafHeader->_fill.data);
+
+    return size;
 }
 
 toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
@@ -247,6 +256,7 @@ error_t toniefile_write_header(toniefile_t *ctx)
     }
     return NO_ERROR;
 }
+
 error_t toniefile_close(toniefile_t *ctx)
 {
     ctx->taf.sha1_hash.data = osAllocMem(SHA1_DIGEST_SIZE);
@@ -258,7 +268,6 @@ error_t toniefile_close(toniefile_t *ctx)
 
     fsCloseFile(ctx->file);
 
-    osFreeMem(ctx->taf._fill.data);
     osFreeMem(ctx->taf.sha1_hash.data);
     osFreeMem(ctx->taf.track_page_nums);
     opus_encoder_destroy(ctx->enc);

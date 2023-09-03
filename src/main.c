@@ -368,7 +368,7 @@ int_t main(int argc, char *argv[])
             ffmpeg_decode_audio_end(ffmpeg_pipe, error);
             toniefile_close(taf);
 
-            TRACE_INFO("TAF encoding successful");
+            TRACE_INFO("TAF encoding successful\r\n");
 
             return 1;
         }
