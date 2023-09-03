@@ -94,6 +94,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
+    toniefile_new_chapter(ctx);
 
     /* open file */
     ctx->fullPath = fullPath;
@@ -209,8 +210,6 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
         sha1Update(&ctx->sha1, og.header, og.header_len);
         sha1Update(&ctx->sha1, og.body, og.body_len);
     }
-
-    toniefile_new_chapter(ctx);
 
     return ctx;
 }
