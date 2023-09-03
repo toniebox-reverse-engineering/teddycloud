@@ -1014,6 +1014,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
 
         if (ctx->taf == NULL)
         {
+            TRACE_INFO("[TAF]   Creating TAF failed\r\n");
             return ERROR_FILE_OPENING_FAILED;
         }
     }

@@ -111,6 +111,9 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
 
     if (ctx->file == NULL)
     {
+        TRACE_ERROR("Cannot create file: %s\n", fullPath);
+        osFreeMem(ctx->taf.track_page_nums);
+        osFreeMem(ctx);
         return NULL;
     }
     toniefile_write_header(ctx);
@@ -121,6 +124,8 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     if (err != OPUS_OK)
     {
         TRACE_ERROR("Cannot create opus encoder: %s\n", opus_strerror(err));
+        osFreeMem(ctx->taf.track_page_nums);
+        osFreeMem(ctx);
         return NULL;
     }
 
