@@ -397,7 +397,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         connection->response.keepAlive = true;
 
         bool_t isStream = false;
-        if (tonieInfo.tafHeader->num_bytes == UINT32_MAX)
+        if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
         {
             TRACE_INFO("Found streaming content\r\n");
             isStream = true;
