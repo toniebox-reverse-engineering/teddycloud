@@ -878,7 +878,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     tonie_info_t tafInfo = getTonieInfo(new_uri);
     if (tafInfo.valid)
     {
-        if (tafInfo.tafHeader->num_bytes == CONTENT_LENGTH_MAX)
+        if (tafInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
         {
             isStream = true;
             length = tafInfo.tafHeader->num_bytes;

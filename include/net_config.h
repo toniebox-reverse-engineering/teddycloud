@@ -48,7 +48,8 @@ typedef struct
 
 } http_connection_private_t;
 
-#define CONTENT_LENGTH_MAX UINT32_MAX
+#define CONTENT_LENGTH_MAX (INT32_MAX - 1)
+#define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - 0x1000)
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;

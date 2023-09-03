@@ -99,7 +99,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     /* init TAF header */
     toniebox_audio_file_header__init(&ctx->taf);
     ctx->taf.audio_id = audio_id;
-    ctx->taf.num_bytes = CONTENT_LENGTH_MAX;
+    ctx->taf.num_bytes = TONIE_LENGTH_MAX;
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
@@ -230,7 +230,7 @@ error_t toniefile_write_header(toniefile_t *ctx)
 
     if (ctx->taf.sha1_hash.data == NULL)
     {
-        osMemset(sha1, 0x00, sizeof(sha1));
+        // osMemset(sha1, 0xFF, sizeof(sha1));
         ctx->taf.sha1_hash.data = sha1;
         ctx->taf.sha1_hash.len = SHA1_DIGEST_SIZE;
     }
