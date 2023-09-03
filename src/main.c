@@ -310,18 +310,23 @@ int_t main(int argc, char *argv[])
 #ifdef FFMPEG_DECODING
         else if (!strcasecmp(type, "DENCODE"))
         {
-            if (argc != 4)
+            if (argc != 4 && argc != 5)
             {
-                TRACE_ERROR("Usage: %s DENCODE <source> <taf_file>\r\n", argv[0]);
+                TRACE_ERROR("Usage: %s DENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
                 return -1;
             }
             const char *source = argv[2];
             const char *taf_file = argv[3];
-            TRACE_INFO("Encode source %s as TAF to %s\r\n", source, taf_file);
+            size_t skip_seconds = 0;
+            if (argc == 5)
+            {
+                skip_seconds = atoi(argv[4]);
+            }
+            TRACE_INFO("Encode source %s as TAF to %s and skip %" PRIuSIZE " seconds\r\n", source, taf_file, skip_seconds);
 
             FILE *ffmpeg_pipe = NULL;
             error_t error = NO_ERROR;
-            ffmpeg_pipe = ffmpeg_decode_audio_start(source);
+            ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source, skip_seconds);
             if (ffmpeg_pipe == NULL)
             {
                 return -1;

@@ -427,10 +427,14 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 // Function to decode audio from FFmpeg's standard output
 FILE *ffmpeg_decode_audio_start(const char *input_source)
 {
+    return ffmpeg_decode_audio_start_skip(input_source, 0);
+}
+FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds)
+{
 #ifdef FFMPEG_DECODING
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
-    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -", input_source);
+    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", input_source, skip_seconds);
 
     FILE *ffmpeg_pipe = NULL;
 
