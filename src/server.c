@@ -147,6 +147,11 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
 
     // Retrieve the size of the specified file
     error = fsGetFileSize(new_uri, &length);
+    
+    bool_t isStream = false;
+    if (isStream) {
+        length = UINT32_MAX;
+    }
     // The specified URI cannot be found?
     if (error || length < startOffset)
     {
@@ -218,6 +223,8 @@ error_t handleContent(HttpConnection *connection, const char_t *uri, const char_
         // Read data from the specified file
         error = fsReadFile(file, connection->buffer, n, &n);
         // End of input stream?
+        if (isStream && error == ERROR_END_OF_FILE && connection->running)
+            continue;
         if (error)
             break;
 

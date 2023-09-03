@@ -915,7 +915,10 @@ error_t httpCloseStream(HttpConnection *connection)
  * @return Error code
  **/
 
-error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
+error_t httpSendResponse(HttpConnection *connection, const char_t *uri) {
+   return httpSendResponseStream(connection, uri, false);
+}
+error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bool_t isStream) 
 {
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
    error_t error;
@@ -974,6 +977,9 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       //The specified URI cannot be found?
       if(error)
          return ERROR_NOT_FOUND;
+   }
+   if (isStream) {
+      length = UINT32_MAX;
    }
 
    //Open the file for reading
@@ -1063,6 +1069,7 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       connection->response.statusCode = 200;
       connection->response.contentLength = length;
    }
+
    connection->response.contentType = mimeGetType(uri);
    connection->response.chunkedEncoding = FALSE;
    length = connection->response.contentLength;
@@ -1100,6 +1107,8 @@ error_t httpSendResponse(HttpConnection *connection, const char_t *uri)
       //Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
       //End of input stream?
+      if (isStream && error == ERROR_END_OF_FILE && connection->running)
+         continue;
       if(error)
          break;
 

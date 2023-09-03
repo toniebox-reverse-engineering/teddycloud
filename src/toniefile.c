@@ -90,7 +90,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     /* init TAF header */
     toniebox_audio_file_header__init(&ctx->taf);
     ctx->taf.audio_id = audio_id;
-    ctx->taf.num_bytes = UINT64_MAX;
+    ctx->taf.num_bytes = UINT32_MAX;
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
