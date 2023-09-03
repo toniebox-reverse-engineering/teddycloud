@@ -979,7 +979,7 @@ error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bo
          return ERROR_NOT_FOUND;
    }
    if (isStream) {
-      length = UINT32_MAX;
+      length = CONTENT_LENGTH_MAX;
    }
 
    //Open the file for reading
