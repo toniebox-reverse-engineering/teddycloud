@@ -335,7 +335,8 @@ int_t main(int argc, char *argv[])
             toniefile_t *taf = toniefile_create(taf_file, time(NULL));
             if (!taf)
             {
-                TRACE_ERROR("toniefile_create() failed\r\n");
+                TRACE_ERROR("toniefile_create() failed, aborting\r\n");
+                ffmpeg_decode_audio_end(ffmpeg_pipe, error);
                 return -1;
             }
 
