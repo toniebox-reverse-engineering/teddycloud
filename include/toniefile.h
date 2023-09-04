@@ -27,3 +27,5 @@ FILE *ffmpeg_decode_audio_start(const char *input_source);
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds);
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error);
 error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *bytes_read);
+error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_t *active);
+error_t ffmpeg_convert(char *source, char *target_taf, size_t skip_seconds);

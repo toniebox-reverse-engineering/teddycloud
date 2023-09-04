@@ -45,6 +45,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
     content_json->source = NULL;
     content_json->cache = false;
     content_json->_updated = false;
+    content_json->_stream = false;
 
     if (fsFileExists(jsonPath))
     {
@@ -83,6 +84,17 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->nocloud = content_jsonGetBool(contentJson, "nocloud");
                 content_json->source = content_jsonGetString(contentJson, "source");
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
+
+                if (osStrlen(content_json->source) > 0)
+                {
+                    content_json->_stream = true;
+                    if (!content_json->live || !content_json->nocloud)
+                    {
+                        content_json->live = true;
+                        content_json->nocloud = true;
+                        content_json->_updated = true;
+                    }
+                }
 
                 if (content_jsonGetUInt32(contentJson, "_version") != CONTENT_JSON_VERSION)
                 {

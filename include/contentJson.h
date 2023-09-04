@@ -10,6 +10,7 @@ typedef struct
     char *source;
     bool_t cache;
 
+    bool_t _stream;
     uint32_t _version;
     bool_t _updated;
 

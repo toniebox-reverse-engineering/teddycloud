@@ -532,3 +532,62 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
     }
     return NO_ERROR;
 }
+
+error_t ffmpeg_convert(char *source, char *target_taf, size_t skip_seconds)
+{
+    bool_t active = true;
+    return ffmpeg_stream(source, target_taf, skip_seconds, &active);
+}
+error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_t *active)
+{
+    TRACE_INFO("Encode source %s as TAF to %s and skip %" PRIuSIZE " seconds\r\n", source, target_taf, skip_seconds);
+
+    FILE *ffmpeg_pipe = NULL;
+    error_t error = NO_ERROR;
+    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source, skip_seconds);
+    if (ffmpeg_pipe == NULL)
+    {
+        return -1;
+    }
+
+    toniefile_t *taf = toniefile_create(target_taf, time(NULL));
+    if (!taf)
+    {
+        TRACE_ERROR("toniefile_create() failed, aborting\r\n");
+        ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+        return -1;
+    }
+
+    int16_t sample_buffer[2 * 4096];
+    size_t samples = sizeof(sample_buffer) / sizeof(uint16_t);
+    size_t blocks_read = 0;
+
+    while (*active)
+    {
+        error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
+        if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
+        {
+            TRACE_ERROR("Could not decode sample error=%" PRIu16 " read=%" PRIuSIZE "\r\n", error, blocks_read);
+            break;
+        }
+        else if (error == ERROR_END_OF_STREAM)
+        {
+            error = NO_ERROR;
+            break;
+        }
+        error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
+        if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
+        {
+            TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
+            break;
+        }
+        // toniefile_new_chapter(taf);
+    }
+
+    ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+    toniefile_close(taf);
+
+    TRACE_INFO("TAF encoding successful\r\n");
+
+    return error;
+}
