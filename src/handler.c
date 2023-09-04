@@ -227,22 +227,13 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
 tonie_info_t getTonieInfo(const char *contentPath)
 {
     tonie_info_t tonieInfo;
-    int maxLen = strlen(contentPath) + 32;
-    char *checkFile = (char *)osAllocMem(maxLen + 1);
 
-    checkFile[maxLen] = 0;
     tonieInfo.valid = false;
     tonieInfo.updated = false;
     tonieInfo.stream = false;
     tonieInfo.tafHeader = NULL;
     tonieInfo.contentPath = strdup(contentPath);
-    snprintf(checkFile, maxLen, "%s", contentPath);
-    tonieInfo.exists = fsFileExists(checkFile);
-    snprintf(checkFile, maxLen, "%s.nocloud", contentPath);
-    tonieInfo.nocloud = fsFileExists(checkFile);
-    snprintf(checkFile, maxLen, "%s.live", contentPath);
-    tonieInfo.live = fsFileExists(checkFile);
-    osFreeMem(checkFile);
+    tonieInfo.exists = fsFileExists(contentPath);
 
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
@@ -262,6 +253,8 @@ tonie_info_t getTonieInfo(const char *contentPath)
                     if (tonieInfo.tafHeader)
                     {
                         tonieInfo.valid = true;
+                        load_content_json(contentPath, &tonieInfo.contentConfig);
+
                         if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
                         {
                             tonieInfo.stream = true;
@@ -294,10 +287,20 @@ tonie_info_t getTonieInfo(const char *contentPath)
 
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
+    if (tonieInfo->contentConfig._updated)
+    {
+        save_content_json(tonieInfo->contentPath, &tonieInfo->contentConfig);
+    }
+
     toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
     free(tonieInfo->contentPath);
     tonieInfo->contentPath = NULL;
     tonieInfo->tafHeader = NULL;
+
+    if (tonieInfo->valid)
+    {
+        free_content_json(&tonieInfo->contentConfig);
+    }
 }
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)

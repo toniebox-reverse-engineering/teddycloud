@@ -15,6 +15,8 @@
 #include "settings.h"
 #include "cloud_request.h"
 
+#include "contentJson.h"
+
 #define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
 
 typedef struct
@@ -22,10 +24,9 @@ typedef struct
     char *contentPath;
     bool_t exists;
     bool_t valid;
-    bool_t nocloud;
-    bool_t live;
     bool_t updated;
     bool_t stream;
+    contentJson_t contentConfig;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 

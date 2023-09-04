@@ -140,34 +140,16 @@ bool checkCustomTonie(char *ruid, uint8_t *token, settings_t *settings)
 
 void markCustomTonie(tonie_info_t *tonieInfo)
 {
-    int maxLen = 255;
-    char subDir[256];
-    char contentPathDot[256];
-
-    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
-    subDir[osStrlen(subDir) - 9] = '\0';
-    fsCreateDir(subDir);
-    snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
-
-    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
-    fsCloseFile(file);
-    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+    tonieInfo->contentConfig.nocloud = true;
+    tonieInfo->contentConfig._updated = true;
+    TRACE_INFO("Marked custom tonie %s\r\n", tonieInfo->contentPath);
 }
 
 void markLiveTonie(tonie_info_t *tonieInfo)
 {
-    int maxLen = 255;
-    char subDir[256];
-    char contentPathDot[256];
-
-    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
-    subDir[osStrlen(subDir) - 9] = '\0';
-    fsCreateDir(subDir);
-    snprintf(contentPathDot, maxLen, "%s.live", tonieInfo->contentPath);
-
-    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
-    fsCloseFile(file);
-    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+    tonieInfo->contentConfig.live = true;
+    tonieInfo->contentConfig._updated = true;
+    TRACE_INFO("Marked custom tonie %s\r\n", tonieInfo->contentPath);
 }
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -222,12 +204,11 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (!tonieInfo.nocloud)
+    if (!tonieInfo.contentConfig.nocloud)
     {
         if (checkCustomTonie(ruid, token, client_ctx->settings))
         {
             TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
-            tonieInfo.nocloud = true;
             markCustomTonie(&tonieInfo);
         }
         else if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Claim)
@@ -298,10 +279,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath);
 
-    if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
+    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
     {
         TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
-        tonieInfo.nocloud = true;
         markCustomTonie(&tonieInfo);
     }
 
@@ -409,9 +389,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo.nocloud)
+        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo.contentConfig.nocloud)
         {
-            if (tonieInfo.nocloud)
+            if (tonieInfo.contentConfig.nocloud)
             {
                 TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
             }
@@ -562,7 +542,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     }
                 }
 
-                if (!tonieInfo.nocloud)
+                if (!tonieInfo.contentConfig.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
@@ -580,8 +560,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 (void)custom_server;
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
-                           tonieInfo.nocloud,
-                           tonieInfo.live || isFlex || tonieInfo.stream,
+                           tonieInfo.contentConfig.nocloud,
+                           tonieInfo.contentConfig.live || isFlex || tonieInfo.stream,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -597,7 +577,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 TRACE_INFO_RESUME("\r\n");
 
-                if (tonieInfo.live || tonieInfo.updated || tonieInfo.stream || isFlex)
+                if (tonieInfo.contentConfig.live || tonieInfo.updated || tonieInfo.stream || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
