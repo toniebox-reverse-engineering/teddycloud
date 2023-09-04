@@ -233,6 +233,7 @@ tonie_info_t getTonieInfo(const char *contentPath)
     checkFile[maxLen] = 0;
     tonieInfo.valid = false;
     tonieInfo.updated = false;
+    tonieInfo.stream = false;
     tonieInfo.tafHeader = NULL;
     tonieInfo.contentPath = strdup(contentPath);
     snprintf(checkFile, maxLen, "%s", contentPath);
@@ -259,7 +260,13 @@ tonie_info_t getTonieInfo(const char *contentPath)
                 {
                     tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
                     if (tonieInfo.tafHeader)
+                    {
                         tonieInfo.valid = true;
+                        if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                        {
+                            tonieInfo.stream = true;
+                        }
+                    }
                 }
                 else
                 {

@@ -876,15 +876,12 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
 
     bool_t isStream = false;
     tonie_info_t tafInfo = getTonieInfo(new_uri);
-    if (tafInfo.valid)
-    {
-        if (tafInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+    if (tafInfo.valid && tafInfo.stream)
         {
             isStream = true;
             length = tafInfo.tafHeader->num_bytes;
             connection->response.noCache = true;
         }
-    }
     // osFreeMem(filePathAbsolute);
     freeTonieInfo(&tafInfo);
     // The specified URI cannot be found?

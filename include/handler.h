@@ -25,6 +25,7 @@ typedef struct
     bool_t nocloud;
     bool_t live;
     bool_t updated;
+    bool_t stream;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 

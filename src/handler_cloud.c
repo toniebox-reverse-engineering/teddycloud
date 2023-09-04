@@ -396,14 +396,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
 
-        bool_t isStream = false;
-        if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+        if (tonieInfo.stream)
         {
             TRACE_INFO("Found streaming content\r\n");
-            isStream = true;
         }
 
-        error_t error = httpSendResponseStream(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)], isStream);
+        error_t error = httpSendResponseStream(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)], tonieInfo.stream);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
@@ -583,7 +581,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo.nocloud,
-                           tonieInfo.live || isFlex,
+                           tonieInfo.live || isFlex || tonieInfo.stream,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -599,7 +597,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 TRACE_INFO_RESUME("\r\n");
 
-                if (tonieInfo.live || tonieInfo.updated || isFlex)
+                if (tonieInfo.live || tonieInfo.updated || tonieInfo.stream || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }
