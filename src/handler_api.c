@@ -879,7 +879,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     if (tafInfo.valid && tafInfo.stream)
         {
             isStream = true;
-            length = tafInfo.tafHeader->num_bytes;
+        length = CONTENT_LENGTH_MAX;
             connection->response.noCache = true;
         }
     // osFreeMem(filePathAbsolute);
