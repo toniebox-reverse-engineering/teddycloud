@@ -877,11 +877,11 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     bool_t isStream = false;
     tonie_info_t tafInfo = getTonieInfo(new_uri);
     if (tafInfo.valid && tafInfo.stream)
-        {
-            isStream = true;
+    {
+        isStream = true;
         length = CONTENT_LENGTH_MAX;
-            connection->response.noCache = true;
-        }
+        connection->response.noCache = true;
+    }
     // osFreeMem(filePathAbsolute);
     freeTonieInfo(&tafInfo);
     // The specified URI cannot be found?
@@ -956,7 +956,10 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         error = fsReadFile(file, connection->buffer, n, &n);
         // End of input stream?
         if (isStream && error == ERROR_END_OF_FILE && connection->running)
+        {
+            osDelayTask(500);
             continue;
+        }
         if (error)
             break;
 
