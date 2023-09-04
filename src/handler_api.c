@@ -902,7 +902,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
 
     // Format HTTP response header
     // TODO add status 416 on invalid ranges
-    if (connection->request.Range.start > 0)
+    if (!isStream && connection->request.Range.start > 0)
     {
         connection->request.Range.size = length;
         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
