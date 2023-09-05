@@ -238,9 +238,14 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig.live = false;
     tonieInfo.contentConfig.nocloud = false;
     tonieInfo.contentConfig.source = NULL;
+    tonieInfo.contentConfig.skip_seconds = 0;
     tonieInfo.contentConfig.cache = false;
     tonieInfo.contentConfig._updated = false;
     tonieInfo.contentConfig._stream = false;
+    tonieInfo.contentConfig._streamFile = osAllocMem(osStrlen(contentPath) + 7 + 1);
+
+    osStrcpy(tonieInfo.contentConfig._streamFile, contentPath);
+    osStrcat(tonieInfo.contentConfig._streamFile, ".stream");
 
     if (osStrstr(contentPath, ".json") == NULL &&
         osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&

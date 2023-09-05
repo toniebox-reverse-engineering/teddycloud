@@ -13,6 +13,8 @@
 #include "mqtt.h"
 #include "server_helpers.h"
 
+#include "toniefile.h"
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_INFO(" >> respond with current time\r\n");
@@ -371,7 +373,40 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         error = NO_ERROR;
     }
 
-    if (tonieInfo.exists && tonieInfo.valid)
+    if (tonieInfo.contentConfig._stream)
+    {
+        char *streamFileRel = &tonieInfo.contentConfig._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
+        TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo.contentConfig.source);
+        connection->response.keepAlive = true;
+
+        ffmpeg_stream_ctx_t ffmpeg_ctx;
+        ffmpeg_ctx.active = false;
+        ffmpeg_ctx.quit = false;
+        ffmpeg_ctx.source = tonieInfo.contentConfig.source;
+        ffmpeg_ctx.skip_seconds = tonieInfo.contentConfig.skip_seconds;
+        ffmpeg_ctx.targetFile = tonieInfo.contentConfig._streamFile;
+        ffmpeg_ctx.error = NO_ERROR;
+        ffmpeg_ctx.taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, &ffmpeg_ctx, 10 * 1024, 0);
+
+        while (!ffmpeg_ctx.active && ffmpeg_ctx.error == NO_ERROR)
+        {
+            osDelayTask(100);
+        }
+        if (ffmpeg_ctx.error == NO_ERROR)
+        {
+            error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo.contentConfig._stream);
+            if (error)
+            {
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
+            }
+        }
+        ffmpeg_ctx.active = false;
+        while (!ffmpeg_ctx.quit)
+        {
+            osDelayTask(100);
+        }
+    }
+    else if (tonieInfo.exists && tonieInfo.valid)
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;

@@ -562,6 +562,9 @@ error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_
     size_t samples = sizeof(sample_buffer) / sizeof(uint16_t);
     size_t blocks_read = 0;
 
+    osDelayTask(5000); // buffer incomming stream
+
+    *active = true;
     while (*active)
     {
         error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
@@ -590,4 +593,13 @@ error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_
     TRACE_INFO("TAF encoding successful\r\n");
 
     return error;
+}
+
+void ffmpeg_stream_task(void *param)
+{
+    ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
+
+    ctx->error = ffmpeg_stream(ctx->source, ctx->targetFile, ctx->skip_seconds, &ctx->active);
+    ctx->quit = true;
+    osDeleteTask(OS_SELF_TASK_ID);
 }

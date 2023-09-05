@@ -76,6 +76,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->live = content_jsonGetBool(contentJson, "live");
                 content_json->nocloud = content_jsonGetBool(contentJson, "nocloud");
                 content_json->source = content_jsonGetString(contentJson, "source");
+                content_json->skip_seconds = content_jsonGetUInt32(contentJson, "skip_seconds");
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
 
                 if (osStrlen(content_json->source) > 0)
@@ -131,6 +132,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     {
         cJSON_AddStringToObject(contentJson, "source", "");
     }
+    cJSON_AddNumberToObject(contentJson, "skip_seconds", content_json->skip_seconds);
     cJSON_AddBoolToObject(contentJson, "cache", content_json->cache);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
@@ -161,4 +163,5 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 void free_content_json(contentJson_t *content_json)
 {
     osFreeMem(content_json->source);
+    osFreeMem(content_json->_streamFile);
 }
