@@ -92,7 +92,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
                 getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
-                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath);
+                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
 
                 char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
                 osStrcpy(tmpPath, ctx->tonieInfo.contentPath);
@@ -224,7 +224,7 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->led = settings->toniebox.led;
 }
 
-tonie_info_t getTonieInfo(const char *contentPath)
+tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
 {
     tonie_info_t tonieInfo;
 
@@ -234,6 +234,22 @@ tonie_info_t getTonieInfo(const char *contentPath)
     tonieInfo.tafHeader = NULL;
     tonieInfo.contentPath = strdup(contentPath);
     tonieInfo.exists = fsFileExists(contentPath);
+
+    tonieInfo.contentConfig.live = false;
+    tonieInfo.contentConfig.nocloud = false;
+    tonieInfo.contentConfig.source = NULL;
+    tonieInfo.contentConfig.cache = false;
+    tonieInfo.contentConfig._updated = false;
+    tonieInfo.contentConfig._stream = false;
+
+    if (osStrstr(contentPath, ".json") == NULL &&
+        osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
+        (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
+        osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
+    {
+        // TODO: Nice checking if valid tonie path
+        load_content_json(contentPath, &tonieInfo.contentConfig);
+    }
 
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
@@ -253,7 +269,6 @@ tonie_info_t getTonieInfo(const char *contentPath)
                     if (tonieInfo.tafHeader)
                     {
                         tonieInfo.valid = true;
-                        load_content_json(contentPath, &tonieInfo.contentConfig);
 
                         if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
                         {

@@ -197,7 +197,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
-    tonieInfo = getTonieInfo(tonieInfo.contentPath);
+    tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
     /* allow to override HTTP status code if needed */
     bool served = false;
@@ -277,7 +277,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
-    tonieInfo = getTonieInfo(tonieInfo.contentPath);
+    tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
     if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
     {
@@ -325,7 +325,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 break;
             }
 
-            tonie_info_t tonieInfoAssign = getTonieInfo(assignFile);
+            tonie_info_t tonieInfoAssign = getTonieInfo(assignFile, client_ctx->settings);
             if (!tonieInfoAssign.valid)
             {
                 freeTonieInfo(&tonieInfoAssign);
@@ -348,7 +348,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             char *oldFile = strdup(tonieInfo.contentPath);
             freeTonieInfo(&tonieInfo);
-            tonieInfo = getTonieInfo(oldFile);
+            tonieInfo = getTonieInfo(oldFile, client_ctx->settings);
             free(oldFile);
 
             if (!tonieInfo.valid)
@@ -510,7 +510,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             {
                 tonie_info_t tonieInfo;
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath, client_ctx->settings);
-                tonieInfo = getTonieInfo(tonieInfo.contentPath);
+                tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
                 char date_buffer_box[32];
                 bool_t custom_box;

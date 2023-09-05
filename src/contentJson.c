@@ -40,13 +40,6 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
     osStrcat(jsonPath, ".json");
     error_t error = NO_ERROR;
 
-    content_json->live = false;
-    content_json->nocloud = false;
-    content_json->source = NULL;
-    content_json->cache = false;
-    content_json->_updated = false;
-    content_json->_stream = false;
-
     if (fsFileExists(jsonPath))
     {
         size_t fileSize = 0;

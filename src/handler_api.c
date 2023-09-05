@@ -512,7 +512,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[64];
             desc[0] = 0;
-            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute);
+            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
             if (tafInfo.valid)
             {
                 osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
@@ -875,7 +875,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(new_uri, &length);
 
     bool_t isStream = false;
-    tonie_info_t tafInfo = getTonieInfo(new_uri);
+    tonie_info_t tafInfo = getTonieInfo(new_uri, client_ctx->settings);
     if (tafInfo.valid && tafInfo.stream)
     {
         isStream = true;
