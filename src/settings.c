@@ -11,6 +11,7 @@
 #include "tls_adapter.h"
 
 #include "fs_port.h"
+#include "server_helpers.h"
 
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
@@ -276,8 +277,7 @@ settings_t *get_settings_cn(const char *commonName)
             {
                 char *boxId = settings_sanitize_box_id((const char *)commonName);
                 char *boxPrefix = "teddyCloud Box ";
-                char *boxName = osAllocMem(osStrlen(boxPrefix) + osStrlen(commonName) + 1);
-                osSprintf(boxName, "%s%s", boxPrefix, commonName);
+                char *boxName = custom_asprintf("%s%s", boxPrefix, commonName);
 
                 settings_set_string_id("commonName", boxId, i);
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
@@ -491,7 +491,7 @@ void settings_save_ovl(bool overlay)
     for (size_t i = 0; i < MAX_OVERLAYS; i++)
     {
         int pos = 0;
-        char buffer[256]; // Buffer to hold the file content
+        char *buffer = NULL;
 
         if (i == 0 && overlay)
         {
@@ -517,41 +517,40 @@ void settings_save_ovl(bool overlay)
                         pos++;
                         continue; // Only write overlay settings if they were overlayed
                     }
-                    overlayPrefix = osAllocMem(8 + osStrlen(Settings_Overlay[i].internal.overlayUniqueId) + 1 + 1); // overlay.[NAME].
-                    osStrcpy(overlayPrefix, "overlay.");
-                    osStrcat(overlayPrefix, Settings_Overlay[i].internal.overlayUniqueId);
-                    osStrcat(overlayPrefix, ".");
+                    overlayPrefix = custom_asprintf("overlay.%s.", Settings_Overlay[i].internal.overlayUniqueId);
                 }
                 else
                 {
-                    overlayPrefix = osAllocMem(1);
-                    osStrcpy(overlayPrefix, "");
+                    overlayPrefix = custom_asprintf("");
                 }
 
                 switch (opt->type)
                 {
                 case TYPE_BOOL:
-                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
+                    buffer = custom_asprintf("%s%s=%s\n", overlayPrefix, opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
                     break;
                 case TYPE_SIGNED:
-                    sprintf(buffer, "%s%s=%d\n", overlayPrefix, opt->option_name, *((int32_t *)opt->ptr));
+                    buffer = custom_asprintf("%s%s=%d\n", overlayPrefix, opt->option_name, *((int32_t *)opt->ptr));
                     break;
                 case TYPE_UNSIGNED:
                 case TYPE_HEX:
-                    sprintf(buffer, "%s%s=%u\n", overlayPrefix, opt->option_name, *((uint32_t *)opt->ptr));
+                    buffer = custom_asprintf("%s%s=%u\n", overlayPrefix, opt->option_name, *((uint32_t *)opt->ptr));
                     break;
                 case TYPE_FLOAT:
-                    sprintf(buffer, "%s%s=%f\n", overlayPrefix, opt->option_name, *((float *)opt->ptr));
+                    buffer = custom_asprintf("%s%s=%f\n", overlayPrefix, opt->option_name, *((float *)opt->ptr));
                     break;
                 case TYPE_STRING:
-                    sprintf(buffer, "%s%s=%s\n", overlayPrefix, opt->option_name, *((char **)opt->ptr));
+                    buffer = custom_asprintf("%s%s=%s\n", overlayPrefix, opt->option_name, *((char **)opt->ptr));
                     break;
                 default:
-                    buffer[0] = '\0';
+                    buffer = custom_asprintf("");
                     break;
                 }
-                if (osStrlen(buffer) > 0)
+                if (buffer && osStrlen(buffer) > 0)
+                {
                     fsWriteFile(file, buffer, osStrlen(buffer));
+                    osFreeMem(buffer);
+                }
                 osFreeMem(overlayPrefix);
             }
             pos++;

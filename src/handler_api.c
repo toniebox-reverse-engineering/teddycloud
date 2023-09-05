@@ -856,15 +856,9 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     bool skipFileHeader = !strcmp(ogg, "true");
     size_t startOffset = skipFileHeader ? 4096 : 0;
 
-    char *new_uri = (char *)osAllocMem(osStrlen(uri) + osStrlen(rootPath) + 1);
-    if (new_uri == NULL)
-    {
-        return ERROR_OUT_OF_MEMORY;
-    }
+    char *file_path = custom_asprintf("%s%s", rootPath, &uri[8]);
 
-    osStrcpy(new_uri, rootPath);
-    osStrcat(new_uri, &uri[8]);
-    TRACE_DEBUG("Request for '%s', ogg: %s\r\n", new_uri, ogg);
+    TRACE_DEBUG("Request for '%s', ogg: %s\r\n", file_path, ogg);
 
     error_t error;
     size_t n;
@@ -872,22 +866,23 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     FsFile *file;
 
     // Retrieve the size of the specified file
-    error = fsGetFileSize(new_uri, &length);
+    error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t tafInfo = getTonieInfo(new_uri, client_ctx->settings);
+    tonie_info_t tafInfo = getTonieInfo(file_path, client_ctx->settings);
+
     if (tafInfo.valid && tafInfo.stream)
     {
         isStream = true;
         length = CONTENT_LENGTH_MAX;
         connection->response.noCache = true;
     }
-    // osFreeMem(filePathAbsolute);
+
     freeTonieInfo(&tafInfo);
-    // The specified URI cannot be found?
+
     if (error || length < startOffset)
     {
-        TRACE_ERROR("File does not exist '%s'\r\n", new_uri);
+        TRACE_ERROR("File does not exist '%s'\r\n", file_path);
         return ERROR_NOT_FOUND;
     }
 
@@ -895,10 +890,16 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     length -= startOffset;
 
     // Open the file for reading
-    file = fsOpenFile(new_uri, FS_FILE_MODE_READ);
+    file = fsOpenFile(file_path, FS_FILE_MODE_READ);
+    free(file_path);
+
     // Failed to open the file?
     if (file == NULL)
+    {
         return ERROR_NOT_FOUND;
+    }
+
+    char *range_hdr = NULL;
 
     // Format HTTP response header
     // TODO add status 416 on invalid ranges
@@ -906,12 +907,12 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     {
         connection->request.Range.size = length;
         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
+        {
             connection->request.Range.end = connection->request.Range.size - 1;
+        }
 
-        if (connection->response.contentRange == NULL)
-            connection->response.contentRange = osAllocMem(255);
-
-        osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        connection->response.contentRange = range_hdr;
         connection->response.statusCode = 206;
         connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
@@ -924,14 +925,16 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     connection->response.contentType = "audio/ogg";
     connection->response.chunkedEncoding = FALSE;
 
-    // Send the header to the client
     error = httpWriteHeader(connection);
-    // Any error to report?
+
+    if (range_hdr)
+    {
+        osFreeMem(range_hdr);
+    }
+
     if (error)
     {
-        // Close the file
         fsCloseFile(file);
-        // Return status code
         return error;
     }
 
@@ -985,8 +988,6 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
             error = httpFlushStream(connection);
         }
     }
-
-    free(new_uri);
 
     return error;
 }

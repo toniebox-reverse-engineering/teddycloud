@@ -1,4 +1,5 @@
 #include "handler.h"
+#include "server_helpers.h"
 
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
@@ -94,9 +95,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
                 ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
 
-                char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
-                osStrcpy(tmpPath, ctx->tonieInfo.contentPath);
-                osStrcat(tmpPath, ".tmp");
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
 
                 char *dir = strdup(ctx->tonieInfo.contentPath);
                 dir[osStrlen(dir) - 8] = '\0';
@@ -120,9 +119,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             if (error == ERROR_END_OF_STREAM)
             {
                 fsCloseFile(ctx->file);
-                char *tmpPath = osAllocMem(osStrlen(ctx->tonieInfo.contentPath) + 4 + 1);
-                osStrcpy(tmpPath, ctx->tonieInfo.contentPath);
-                osStrcat(tmpPath, ".tmp");
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
+
                 fsDeleteFile(ctx->tonieInfo.contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
                 if (fsFileExists(ctx->tonieInfo.contentPath))
@@ -194,12 +192,11 @@ char *strupr(char input[])
 
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings)
 {
-    *pcontentPath = osAllocMem(256);
     char filePath[18];
     osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
     strupr(filePath);
 
-    osSprintf(*pcontentPath, "%s/%s", settings->internal.contentdirfull, filePath);
+    *pcontentPath = custom_asprintf("%s/%s", settings->internal.contentdirfull, filePath);
 }
 
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings)
@@ -242,10 +239,7 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig.cache = false;
     tonieInfo.contentConfig._updated = false;
     tonieInfo.contentConfig._stream = false;
-    tonieInfo.contentConfig._streamFile = osAllocMem(osStrlen(contentPath) + 7 + 1);
-
-    osStrcpy(tonieInfo.contentConfig._streamFile, contentPath);
-    osStrcat(tonieInfo.contentConfig._streamFile, ".stream");
+    tonieInfo.contentConfig._streamFile = custom_asprintf("%s.stream", contentPath);
 
     if (osStrstr(contentPath, ".json") == NULL &&
         osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
