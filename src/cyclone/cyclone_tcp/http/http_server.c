@@ -1107,9 +1107,12 @@ error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bo
       //Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
       //End of input stream?
-      if (isStream && error == ERROR_END_OF_FILE && connection->running)
+      if (isStream && error == ERROR_END_OF_FILE)
       {
          osDelayTask(500);
+         error = httpCloseStream(connection); //Test connection???
+         if(error)
+            break;
          continue;
       }
       if(error)
