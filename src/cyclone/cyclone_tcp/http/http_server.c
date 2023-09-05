@@ -1052,17 +1052,23 @@ error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bo
    // TODO add status 416 on invalid ranges
    if (connection->request.Range.start > 0)
    {
-      connection->request.Range.size = length;
-      if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-         connection->request.Range.end = connection->request.Range.size - 1;
+     if (isStream) {
+         TRACE_WARNING("Seeking file to %" PRIu32 " but streaming\r\n", connection->request.Range.start);
+         connection->response.contentLength = 0;
+         connection->response.statusCode = 404; // TODO find a way to enforce the box to read from the beginning.
+      } else {
+         connection->request.Range.size = length;
+         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
+            connection->request.Range.end = connection->request.Range.size - 1;
+            
+         if (connection->response.contentRange == NULL)
+            connection->response.contentRange = osAllocMem(255);
 
-      if (connection->response.contentRange == NULL)
-         connection->response.contentRange = osAllocMem(255);
-
-      osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
-      connection->response.statusCode = 206;
-      connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
-      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+         osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+         connection->response.statusCode = 206;
+         connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+      }
    }
    else
    {
