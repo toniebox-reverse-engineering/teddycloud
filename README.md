@@ -86,7 +86,8 @@ esptool.py -b 921600 write_flash 0x0 tb.esp32.fakeca.bin
 ### DNS
 #### CC3200 with altUrl patch
 With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries for ```prod.revvox``` and ```rtnl.revvox``` to the TeddyCloud servers ip-address.
-If you have a fritzbox you can use the [altUrl tc.fritz.box](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/blob/master/sd-bootloader-ng/bootmanager/sd/revvox/boot/patch/altUrl.tc.fritz.box.json) patch. You'll just have to set the hostname of your server in your fritzbox to ```tc.fritz.box```.
+If you have a fritzbox you can use the [altUrl tc.fritz.box](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/blob/master/sd-bootloader-ng/bootmanager/sd/revvox/boot/patch/altUrl.tc.fritz.box.json) patch. You'll just have to set the name of your server in your fritzbox to ```tc``` (Heimnetz -> Netzwerk -> Netzwerkverbindungen -> bearbeiten
+).
 You may also edit the patch yourself to set the ip-address directly. Please beware, it should not be longer than the original url, which is 12 characters.
 
 #### CC3235 / ESP32
@@ -106,7 +107,7 @@ uci commit dhcp
 ```
 
 ### Content
-Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
+Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can edit ```500304E0.json``` file beside the content files to mark them as live or you can prevent the usage of the Boxine cloud for that tag with the nocloud parameter. By setting a source teddyCloud can stream any content that ffmpeg can decode (urls and files).
 
 ### Webinterface
 Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes affecting the toniebox (volume, LED) which are made through this interface will only be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.
