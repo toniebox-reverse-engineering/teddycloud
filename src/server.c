@@ -278,10 +278,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         uri = "/web/index.html";
     }
 
-    char_t *newUri = osAllocMem(osStrlen(client_ctx->settings->core.wwwdir) + osStrlen(uri) + 1);
-    osStrcpy(newUri, client_ctx->settings->core.wwwdir);
-    // osStrcat(newUri, "/");
-    osStrcat(newUri, uri);
+    char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
     error = httpSendResponse(connection, newUri);
     free(newUri);
@@ -291,12 +288,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
 {
     error_t error = NO_ERROR;
-    char *fnf = "404.html";
 
-    char_t *newUri = osAllocMem(osStrlen(fnf) + osStrlen(get_settings()->core.wwwdir) + 2);
-    osStrcpy(newUri, get_settings()->core.wwwdir);
-    osStrcat(newUri, "/");
-    osStrcat(newUri, fnf);
+    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
 
     error = httpSendResponse(connection, newUri);
     free(newUri);
