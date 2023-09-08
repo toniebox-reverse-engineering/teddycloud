@@ -15,23 +15,18 @@
 #include "settings.h"
 #include "cloud_request.h"
 
-#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
+#include "contentJson.h"
 
-typedef struct
-{
-    settings_t *settings;
-    const char *box_id;
-    const char *box_name;
-} client_ctx_t;
+#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
 
 typedef struct
 {
     char *contentPath;
     bool_t exists;
     bool_t valid;
-    bool_t nocloud;
-    bool_t live;
     bool_t updated;
+    bool_t stream;
+    contentJson_t contentConfig;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 
@@ -90,7 +85,7 @@ char *strupr(char input[]);
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings);
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
-tonie_info_t getTonieInfo(const char *contentPath);
+tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);

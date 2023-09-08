@@ -252,6 +252,51 @@
         .slider.round:before {
             border-radius: 50%;
         }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            left: 5px;
+            color: #808080;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            /* Position the tooltip above the text */
+            left: 50%;
+            margin-left: -100px;
+            /* Use half the width to center it */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .draggable-tile {
+            padding: 10px;
+            margin: 5px;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.3s ease;
+            border: 1px solid black;
+        }
+
+        .drag-over {
+            margin-top: 50px;
+        }
     </style>
 </head>
 
@@ -292,8 +337,14 @@
                                 checked={this.state.isChecked}
                                 onChange={this.handleCheckboxChange}
                             />
-                            {this.props.label}
                         </label>
+                        {this.props.label}
+                        <span className="tooltip">
+                            &#9432;
+                            <span className="tooltip-text">
+                                {this.props.description}
+                            </span>
+                        </span>
                     </div>
                 );
             }
@@ -310,7 +361,13 @@
             }
 
             handleInputChange = (event) => {
-                const newValue = parseInt(event.target.value, 10);
+                var newValue = parseInt(event.target.value, 10);
+                if (newValue > this.props.max) {
+                    newValue = this.props.max;
+                }
+                if (newValue < this.props.min) {
+                    newValue = this.props.min;
+                }
                 this.setState({ value: newValue });
 
                 fetch(`/api/set/${this.props.id}`, {
@@ -331,8 +388,67 @@
                                 value={this.state.value}
                                 onChange={this.handleInputChange}
                             />
-                            {this.props.label}
                         </label>
+                        &nbsp;
+                        {this.props.label}
+                        <span className="tooltip">
+                            &#9432;
+                            <span className="tooltip-text">
+                                {this.props.description}
+                            </span>
+                        </span>
+                    </div>
+                );
+            }
+        }
+
+        class FloatInput extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { value: 0 };
+            }
+
+            componentDidMount() {
+                this.setState({ value: this.props.value });
+            }
+
+            handleInputChange = (event) => {
+                var newValue = parseFloat(event.target.value);
+                if (newValue > this.props.max) {
+                    newValue = this.props.max;
+                }
+                if (newValue < this.props.min) {
+                    newValue = this.props.min;
+                }
+                this.setState({ value: newValue });
+
+                fetch(`/api/set/${this.props.id}`, {
+                    method: 'POST',
+                    body: newValue.toString(),
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                });
+            }
+
+            render() {
+                return (
+                    <div>
+                        <label>
+                            <input
+                                type="number"
+                                value={this.state.value}
+                                onChange={this.handleInputChange}
+                            />
+                        </label>
+                        &nbsp;
+                        {this.props.label}
+                        <span className="tooltip">
+                            &#9432;
+                            <span className="tooltip-text">
+                                {this.props.description}
+                            </span>
+                        </span>
                     </div>
                 );
             }
@@ -386,13 +502,19 @@
                                 onBlur={this.handleInputBlur}
                                 onKeyPress={this.handleKeyPress}
                             />
-                            {this.props.label}
                         </label>
+                        &nbsp;
+                        {this.props.label}
+                        <span className="tooltip">
+                            &#9432;
+                            <span className="tooltip-text">
+                                {this.props.description}
+                            </span>
+                        </span>
                     </div>
                 );
             }
         }
-
 
         class OptionList extends React.Component {
             constructor(props) {
@@ -441,25 +563,31 @@
                     case 'bool':
                         return (
                             <div style={{ marginLeft: `${indent}px` }}>
-                                <Checkbox id={option.ID} label={option.description} value={option.value} />
+                                <Checkbox id={option.ID} label={option.label} description={option.description} value={option.value} />
                             </div>
                         );
                     case 'int':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
+                                <IntegerInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
                             </div>
                         );
                     case 'uint':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <IntegerInput id={option.ID} label={option.description} value={option.value} />
+                                <IntegerInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
+                            </div>
+                        );
+                    case 'float':
+                        return (
+                            <div style={{ marginLeft: `${indent + 4}px` }}>
+                                <FloatInput id={option.ID} label={option.label} description={option.description} min={option.min} max={option.max} value={option.value} />
                             </div>
                         );
                     case 'string':
                         return (
                             <div style={{ marginLeft: `${indent + 4}px` }}>
-                                <StringInput id={option.ID} label={option.description} value={option.value} />
+                                <StringInput id={option.ID} label={option.label} description={option.description} value={option.value} />
                             </div>
                         );
                     default:
@@ -779,14 +907,16 @@
                 super(props);
                 this.state = {
                     path: '/',
+                    mode: 'content',
                     files: [],
                     selectedFiles: [],
                     tonies: [],
-                    mode: "content",
                     showSuccessMessage: false,
                     showSuccessState: false,
-                    opacity: 1
+                    opacity: 1,
+                    showAudioEncoder: false
                 };
+                this.fileBrowserRef = React.createRef();
                 this.fetchFileIndex = this.fetchFileIndex.bind(this);
                 this.uploadFiles = this.uploadFiles.bind(this);
                 this.createDirectory = this.createDirectory.bind(this);
@@ -799,14 +929,37 @@
                 this.handleModeChange = this.handleModeChange.bind(this);
                 this.oggPlayerRef = React.createRef();
                 this.showSuccess = this.showSuccess.bind(this);
+                this.toggleAudioEncoder = this.toggleAudioEncoder.bind(this);
             }
 
             componentDidMount() {
+                // Extract path from the URL if present
+                const urlParams = new URLSearchParams(window.location.search);
+                const path = urlParams.get('path') || this.state.path;
+                const mode = urlParams.get('mode') || this.state.mode;
+
+                this.setState({ path: path, mode: mode });
+                this.fetchFileIndex(path, mode);
+
                 fetch("/tonies.json")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
-                this.fetchFileIndex(this.state.path);
+
+                window.addEventListener('popstate', this.handlePopState);
+
+                window.history.replaceState({ path, mode }, '', `?path=${path}&mode=${mode}`);
             }
+
+            componentWillUnmount() {
+                window.removeEventListener('popstate', this.handlePopState);
+            }
+
+            handlePopState = (event) => {
+                if (event.state && event.state.path && event.state.mode) {
+                    this.setState({ path: event.state.path, mode: event.state.mode });
+                    this.fetchFileIndex(event.state.path, event.state.mode, true);
+                }
+            };
 
             showSuccess(success) {
                 // Start by showing the success message
@@ -852,7 +1005,7 @@
                 }
 
                 this.setState({ selectedFiles: [] });
-                this.fetchFileIndex(this.state.path);
+                this.fetchFileIndex(this.state.path, this.state.mode, true);
             }
 
             handleModeChange = () => {
@@ -862,17 +1015,28 @@
                         path: '/'
                     }),
                     () => {
-                        this.fetchFileIndex(this.state.path);
+                        this.fetchFileIndex(this.state.path, this.state.mode, true);
                     }
                 );
             };
 
-            async fetchFileIndex(path) {
+            async fetchFileIndex(path, mode, scroll = false) {
                 try {
-                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${this.state.mode}`);
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const currentPath = urlParams.get('path') || '';
+                    const currentMode = urlParams.get('mode') || '';
+
+                    if (path !== currentPath || mode !== currentMode) {
+                        window.history.pushState({ path, mode }, '', `?path=${path}&mode=${mode}`);
+                    }
+
+                    const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${mode}`);
                     if (response.ok) {
                         const data = await response.json();
                         this.setState({ files: data.files, path, selectedFiles: [] });
+                        if (scroll) {
+                            this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
+                        }
                     } else {
                         console.error('Failed to fetch file index');
                         this.setState({ files: [], path, selectedFiles: [] });
@@ -890,6 +1054,9 @@
             }
 
             onDrop(event) {
+                if (event.target.closest('.encoder-tile')) {
+                    return;
+                }
                 event.preventDefault();
                 const files = [...event.dataTransfer.files].map(file => ({
                     name: file.name,
@@ -911,7 +1078,7 @@
                     formData.append(file.name, file.file);
 
                     try {
-                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}`, {
+                        const response = await fetch(`/api/fileUpload?path=${encodeURIComponent(this.state.path)}&special=${this.state.mode}`, {
                             method: 'POST',
                             body: formData,
                         });
@@ -927,7 +1094,7 @@
                     }
                 }
 
-                this.fetchFileIndex(this.state.path); // Refresh files after all uploads
+                this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files after all uploads
             }
 
             async createDirectory() {
@@ -937,7 +1104,7 @@
                 }
 
                 try {
-                    const response = await fetch('/api/dirCreate', {
+                    const response = await fetch(`/api/dirCreate?special=${this.state.mode}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -946,7 +1113,7 @@
                     });
 
                     if (response.ok) {
-                        this.fetchFileIndex(this.state.path); // Refresh files
+                        this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files
                         this.showSuccess(true);
                     } else {
                         alert('Failed to create directory');
@@ -971,7 +1138,7 @@
                     const api = file.isDirectory ? '/api/dirDelete' : '/api/fileDelete';
 
                     try {
-                        const response = await fetch(api, {
+                        const response = await fetch(api + `?special=${this.state.mode}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
                             body: this.state.path + '/' + file.name,
@@ -994,7 +1161,7 @@
                     this.showSuccess(true);
                 }
                 this.setState({ selectedFiles: [] });
-                this.fetchFileIndex(this.state.path); // Refresh files after delete
+                this.fetchFileIndex(this.state.path, this.state.mode, true); // Refresh files after delete
             }
 
 
@@ -1012,9 +1179,14 @@
                 this.setState({ selectedFiles: [...this.state.files] });
             }
 
+            toggleAudioEncoder = () => {
+                this.setState({ showAudioEncoder: !this.state.showAudioEncoder });
+                console.log("state: " + this.state.showAudioEncoder);
+            }
+
             render() {
                 return (
-                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()}>
+                    <div className="tile config-tile" onDrop={this.onDrop} onDragOver={event => event.preventDefault()} ref={this.fileBrowserRef}>
                         <h2>File Viewer</h2>
                         <OggPlayer ref={this.oggPlayerRef} />
 
@@ -1035,11 +1207,14 @@
                         </div>
 
                         <p>
-                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path)}>Refresh</button>
+                            <button className="button" onClick={this.fetchFileIndex.bind(this, this.state.path, this.state.mode, true)}>Refresh</button>
                             <button className="button" onClick={() => this.fileInputRef.current.click()}>Upload</button>
                             <button className="button" onClick={this.createDirectory}>Create Directory</button>
                             <button className="button" onClick={this.deleteSelectedFiles}>Delete</button>
                             <button className="button" onClick={this.assignNextUnknown}>Assign Unknown</button>
+                            <button className="button" onClick={this.toggleAudioEncoder}>
+                                {this.state.showAudioEncoder ? 'Hide Audio Encoder' : 'Show Audio Encoder'}
+                            </button>
                             {this.state.files.length > 0 && <button className="button" onClick={this.selectAllFiles}>Select All</button>}
                             <input
                                 type="file"
@@ -1056,6 +1231,9 @@
                                 }}
                             />
                         </p>
+
+                        {this.state.showAudioEncoder && <AudioEncoder path={this.state.path} />}
+
                         <div style={{ position: 'relative' }}>
                             {this.state.showSuccessMessage &&
                                 <div style={{
@@ -1087,7 +1265,7 @@
 
                         {this.state.path !== '/' && (
                             <pre key="goup" style={{ fontFamily: 'monospace' }}>
-                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path)) }}>
+                                <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(this.getParentPath(this.state.path), this.state.mode, true) }}>
                                     ..
                                 </a >
                             </pre>
@@ -1107,6 +1285,7 @@
                             let tonieTitle = "(unknown)";
                             let toniePic = "img_unknown.png";
                             let tonieModel = "";
+                            let custom = false;
 
                             if (file.desc.startsWith('TAF:')) {
                                 let fileDescParts = file.desc.split(':');
@@ -1114,11 +1293,21 @@
                                 hashHex = fileDescParts[2];
                                 audioId = parseInt(audioIdHex, 16).toString();
 
+                                audioId = Number(audioId);
+                                if (audioId < 1342177280) {
+                                    audioId += 1342177280;
+                                    custom = true;
+                                }
+
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
                                 if (matchingTonie) {
                                     tonieTitle = matchingTonie.title;
                                     toniePic = matchingTonie.pic;
                                     tonieModel = matchingTonie.model;
+                                }
+
+                                if (custom) {
+                                    toniePic = "img_custom.png";
                                 }
                             }
 
@@ -1131,7 +1320,7 @@
                                     />
                                     {file.isDirectory ? (
                                         <React.Fragment>
-                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`); }}>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); this.fetchFileIndex(`${this.state.path}${file.name}/`, this.state.mode, true); }}>
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
@@ -1152,6 +1341,7 @@
                                                         onClick={() => {
                                                             this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                            this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
                                                         }
                                                         } className="small-round-button"
                                                     >
@@ -1198,7 +1388,6 @@
             }
 
             componentDidMount() {
-                console.log("componentDidMount started");
             }
 
             componentDidUpdate(prevProps, prevState) {
@@ -1380,20 +1569,190 @@
             }
         }
 
+        class AudioEncoder extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    selectedFiles: [],
+                    targetFilename: ''
+                };
+                this.fileInput = React.createRef();
+                this.fileCounter = 0;
+                this.draggedItem = null;
+            }
+
+            handleFilenameChange = (e) => {
+                this.setState({ targetFilename: e.target.value });
+            };
+
+            createQueryString = (params) => {
+                return Object.keys(params)
+                    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+                    .join('&');
+            };
+
+            handleUpload = async () => {
+                const { selectedFiles } = this.state;
+                const formData = new FormData();
+
+                this.fileCounter = 0;
+
+                for (const file of selectedFiles) {
+                    await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+
+                        reader.onload = async (event) => {
+                            try {
+                                const arrayBuffer = event.target.result;
+                                const audioContext = new AudioContext();
+                                const targetSampleRate = 48000;
+
+                                const originalAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                                const offlineAudioContext = new OfflineAudioContext({
+                                    numberOfChannels: 2,
+                                    length: originalAudioBuffer.length * targetSampleRate / originalAudioBuffer.sampleRate,
+                                    sampleRate: targetSampleRate
+                                });
+
+                                const offlineSource = offlineAudioContext.createBufferSource();
+                                offlineSource.buffer = originalAudioBuffer;
+
+                                offlineSource.connect(offlineAudioContext.destination);
+                                offlineSource.start();
+
+                                const upsampledAudioBuffer = await offlineAudioContext.startRendering();
+
+                                const leftChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(0));
+                                const rightChannelData = new Float32Array(upsampledAudioBuffer.getChannelData(1));
+
+                                const interleavedData = new Int16Array(leftChannelData.length + rightChannelData.length);
+                                for (let i = 0, j = 0; i < leftChannelData.length; i++, j += 2) {
+                                    interleavedData[j] = leftChannelData[i] * 32767;
+                                    interleavedData[j + 1] = rightChannelData[i] * 32767;
+                                }
+
+                                formData.append(file.name, new Blob([interleavedData.buffer]), `pcmData.${this.fileCounter}.pcm`);
+                                this.fileCounter++;
+                                resolve();
+                            } catch (error) {
+                                reject(error);
+                            }
+                        };
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(file);
+                    });
+                }
+
+                const currentUnixTime = Math.floor(Date.now() / 1000);
+                const queryParams = {
+                    name: this.state.targetFilename || "UnnamedTonieFile",
+                    audioId: currentUnixTime - 0x50000000,
+                    path: this.props.path
+                };
+
+                const queryString = this.createQueryString(queryParams);
+                const response = await fetch(`/api/pcmUpload?${queryString}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const responseData = await response.text();
+                    console.log("Successfully sent PCM data:", responseData);
+                    this.setState({ selectedFiles: [] });
+                    this.fileCounter = 0;
+                } else {
+                    console.log("Upload failed:", responseData);
+                }
+            };
+
+            handleFileSelection = (e) => {
+                const files = Array.from(e.target.files);
+                this.setState({ selectedFiles: files });
+            };
+
+            dragStart = (e, index) => {
+                this.draggedItem = this.state.selectedFiles[index];
+                e.dataTransfer.effectAllowed = "move";
+            };
+
+            onDragOver = (e, index) => {
+                e.preventDefault();
+
+                const draggedOverItem = this.state.selectedFiles[index];
+
+                // If the item being dragged is the same as the one being hovered over, ignore
+                if (this.draggedItem === draggedOverItem) {
+                    return;
+                }
+
+                // Replace the hovered item with the dragged item and update the state
+                let items = this.state.selectedFiles.filter((item) => item !== this.draggedItem);
+                items.splice(index, 0, this.draggedItem);
+
+                this.setState({ selectedFiles: items });
+
+                // Add a class for kinetic effect
+                e.currentTarget.classList.add('drag-over');
+            };
+
+            onDragLeave = (e) => {
+                // Remove the class when the drag is over
+                e.currentTarget.classList.remove('drag-over');
+            };
+
+            onDrop = (e) => {
+                e.stopPropagation();
+                this.draggedItem = null;
+                // Remove the class from all items
+                document.querySelectorAll('.draggable-tile').forEach((tile) => {
+                    tile.classList.remove('drag-over');
+                });
+            };
+
+            render() {
+                const { selectedFiles, targetFilename } = this.state;
+
+                return (
+                    <div className="tile encoder-tile">
+                        <h3>Encode to {this.props.path}</h3>
+                        <label htmlFor="targetFilename">Target filename:</label>
+                        <input type="text" id="targetFilename" value={targetFilename} onChange={this.handleFilenameChange} />
+                        <br />
+                        <input type="file" ref={this.fileInput} multiple accept="audio/*" onChange={this.handleFileSelection} />
+                        <br />
+                        <button className="button" onClick={this.handleUpload}>Upload</button>
+                        <div className="file-preview">
+                            {selectedFiles.map((file, index) => (
+                                <div
+                                    key={index}
+                                    draggable="true"
+                                    onDragStart={(e) => this.dragStart(e, index)}
+                                    onDragOver={(e) => this.onDragOver(e, index)}
+                                    onDragLeave={this.onDragLeave}
+                                    onDrop={this.onDrop}
+                                    className="draggable-tile"
+                                    style={{ border: '1px solid black' }}
+                                >
+                                    <span>Track {index + 1}:</span> {file.name}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+        }
+
         class App extends React.Component {
             constructor(props) {
                 super(props);
                 this.state = {
                     time: 0,
-                    cloud_time: 0,
                     display_time: 0,
-                    display_cloud_time: 0,
-                    version: "(unknown version)",
-                    enableCloudTime: false
+                    version: "(unknown version)"
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
-                this.handleEnableCloudTimeChange = this.handleEnableCloudTimeChange.bind(this);
                 this.fetchFromServer();
             }
 
@@ -1413,10 +1772,6 @@
                     })
             }
 
-            handleEnableCloudTimeChange(event) {
-                this.setState({ enableCloudTime: event.target.checked }, () => { this.fetchFromServer() });
-            }
-
             componentWillUnmount() {
                 clearInterval(this.interval);
                 clearInterval(this.intervalDisplay);
@@ -1428,13 +1783,6 @@
                         const date = new Date(prevState.time * 1000 + 1000);
                         const formattedTime = this.formatTime(date);
                         return { time: prevState.time + 1, display_time: formattedTime };
-                    });
-                }
-                if (this.state.cloud_time !== 0 && this.state.cloud_time !== 'Error') {
-                    this.setState((prevState) => {
-                        const date = new Date(prevState.cloud_time * 1000 + 1000);
-                        const formattedTime = this.formatTime(date);
-                        return { cloud_time: prevState.cloud_time + 1, display_cloud_time: formattedTime };
                     });
                 }
             }
@@ -1454,23 +1802,6 @@
                         console.error('There was an error!', error);
                         this.setState({ time: 'Error', display_time: 'Error' });
                     });
-
-                if (this.state.enableCloudTime) {
-                    fetch('/reverse/v1/time')
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.text();
-                        })
-                        .then(unixTime => {
-                            this.setState({ cloud_time: parseInt(unixTime, 10) });
-                        })
-                        .catch(error => {
-                            console.error('There was an error!', error);
-                            this.setState({ cloud_time: 'Error', display_cloud_time: 'Error' });
-                        });
-                }
             }
 
             formatTime(date) {
@@ -1486,15 +1817,6 @@
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
-                            <label>
-                                Fetch Cloud Time
-                                <input
-                                    type="checkbox"
-                                    checked={this.state.enableCloudTime}
-                                    onChange={this.handleEnableCloudTimeChange}
-                                />
-                            </label>
-                            <TimeTile name="Boxine" time={this.state.display_cloud_time} />
                             <StatsTile />
                             <CertificateUploadTile />
                             <FileViewerTile />

@@ -13,6 +13,8 @@
 #include "mqtt.h"
 #include "server_helpers.h"
 
+#include "toniefile.h"
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_INFO(" >> respond with current time\r\n");
@@ -68,6 +70,26 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
 
     TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
+    settings_internal_toniebox_firmware_t *toniebox_fw = &client_ctx->settings->internal.toniebox_firmware;
+    switch (fileId)
+    {
+    case 2:
+        toniebox_fw->otaVersionPd = timestamp;
+        break;
+    case 3:
+        toniebox_fw->otaVersionEu = timestamp;
+        break;
+    case 4:
+        toniebox_fw->otaVersionServicePack = timestamp;
+        break;
+    case 5:
+        toniebox_fw->otaVersionHtml = timestamp;
+        break;
+    case 6:
+        toniebox_fw->otaVersionSfx = timestamp;
+        break;
+    }
+
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudOtaTime", current_time, client_ctx);
@@ -120,34 +142,16 @@ bool checkCustomTonie(char *ruid, uint8_t *token, settings_t *settings)
 
 void markCustomTonie(tonie_info_t *tonieInfo)
 {
-    int maxLen = 255;
-    char subDir[256];
-    char contentPathDot[256];
-
-    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
-    subDir[osStrlen(subDir) - 9] = '\0';
-    fsCreateDir(subDir);
-    snprintf(contentPathDot, maxLen, "%s.nocloud", tonieInfo->contentPath);
-
-    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
-    fsCloseFile(file);
-    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+    tonieInfo->contentConfig.nocloud = true;
+    tonieInfo->contentConfig._updated = true;
+    TRACE_INFO("Marked custom tonie %s\r\n", tonieInfo->contentPath);
 }
 
 void markLiveTonie(tonie_info_t *tonieInfo)
 {
-    int maxLen = 255;
-    char subDir[256];
-    char contentPathDot[256];
-
-    snprintf(subDir, maxLen, "%s", tonieInfo->contentPath);
-    subDir[osStrlen(subDir) - 9] = '\0';
-    fsCreateDir(subDir);
-    snprintf(contentPathDot, maxLen, "%s.live", tonieInfo->contentPath);
-
-    FsFile *file = fsOpenFile(contentPathDot, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
-    fsCloseFile(file);
-    TRACE_INFO("Marked custom tonie with file %s\r\n", contentPathDot);
+    tonieInfo->contentConfig.live = true;
+    tonieInfo->contentConfig._updated = true;
+    TRACE_INFO("Marked custom tonie %s\r\n", tonieInfo->contentPath);
 }
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -195,19 +199,18 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
-    tonieInfo = getTonieInfo(tonieInfo.contentPath);
+    tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
     /* allow to override HTTP status code if needed */
     bool served = false;
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (!tonieInfo.nocloud)
+    if (!tonieInfo.contentConfig.nocloud)
     {
         if (checkCustomTonie(ruid, token, client_ctx->settings))
         {
             TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
-            tonieInfo.nocloud = true;
             markCustomTonie(&tonieInfo);
         }
         else if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Claim)
@@ -276,25 +279,25 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
-    tonieInfo = getTonieInfo(tonieInfo.contentPath);
+    tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
-    if (!tonieInfo.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
+    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
     {
         TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
-        tonieInfo.nocloud = true;
         markCustomTonie(&tonieInfo);
     }
 
     settings_t *settings = client_ctx->settings;
 
-    bool assignFile = false;
     bool setLive = false;
+    const char *assignFile = NULL;
 
     if (osStrlen(settings->internal.assign_unknown) > 0)
     {
         if (!tonieInfo.exists)
         {
-            assignFile = true;
+            assignFile = settings->internal.assign_unknown;
+            TRACE_INFO(" >> this is a unknown tonie, assigning '%s'\r\n", assignFile);
         }
 
         if (settings->core.flex_enabled)
@@ -307,9 +310,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uid[16] = 0;
             if (!osStrcasecmp(uid, settings->core.flex_uid))
             {
-                TRACE_INFO(" >> this is a flex tonie\r\n");
-                assignFile = true;
+                assignFile = settings->internal.assign_unknown;
                 setLive = true;
+                TRACE_INFO(" >> this is the defined flex tonie, assigning '%s'\r\n", assignFile);
             }
         }
     }
@@ -318,18 +321,17 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     {
         do
         {
-            char *path = settings->internal.assign_unknown;
-            if (!fsFileExists(path))
+            if (!fsFileExists(assignFile))
             {
-                TRACE_ERROR("Path to assign not available: %s\r\n", path);
+                TRACE_ERROR("Path to assign not available: %s\r\n", assignFile);
                 break;
             }
 
-            tonie_info_t tonieInfoAssign = getTonieInfo(path);
+            tonie_info_t tonieInfoAssign = getTonieInfo(assignFile, client_ctx->settings);
             if (!tonieInfoAssign.valid)
             {
                 freeTonieInfo(&tonieInfoAssign);
-                TRACE_ERROR("TAF header invalid: %s\r\n", path);
+                TRACE_ERROR("TAF header invalid: %s\r\n", assignFile);
                 break;
             }
 
@@ -338,17 +340,17 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             fsCreateDir(dir);
             osFreeMem(dir);
 
-            error = fsCopyFile(path, tonieInfo.contentPath, true);
+            error = fsCopyFile(assignFile, tonieInfo.contentPath, true);
             if (error != NO_ERROR)
             {
                 freeTonieInfo(&tonieInfoAssign);
-                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", path, tonieInfo.contentPath, error);
+                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", assignFile, tonieInfo.contentPath, error);
                 break;
             }
 
             char *oldFile = strdup(tonieInfo.contentPath);
             freeTonieInfo(&tonieInfo);
-            tonieInfo = getTonieInfo(oldFile);
+            tonieInfo = getTonieInfo(oldFile, client_ctx->settings);
             free(oldFile);
 
             if (!tonieInfo.valid)
@@ -358,7 +360,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 break;
             }
 
-            TRACE_INFO("Assigned to %s\r\n", path);
+            TRACE_INFO("Assigned to %s\r\n", assignFile);
 
             if (setLive)
             {
@@ -371,11 +373,50 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         error = NO_ERROR;
     }
 
-    if (tonieInfo.exists && tonieInfo.valid)
+    if (tonieInfo.contentConfig._stream)
+    {
+        char *streamFileRel = &tonieInfo.contentConfig._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
+        TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo.contentConfig.source);
+        connection->response.keepAlive = true;
+
+        ffmpeg_stream_ctx_t ffmpeg_ctx;
+        ffmpeg_ctx.active = false;
+        ffmpeg_ctx.quit = false;
+        ffmpeg_ctx.source = tonieInfo.contentConfig.source;
+        ffmpeg_ctx.skip_seconds = tonieInfo.contentConfig.skip_seconds;
+        ffmpeg_ctx.targetFile = tonieInfo.contentConfig._streamFile;
+        ffmpeg_ctx.error = NO_ERROR;
+        ffmpeg_ctx.taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, &ffmpeg_ctx, 10 * 1024, 0);
+
+        while (!ffmpeg_ctx.active && ffmpeg_ctx.error == NO_ERROR)
+        {
+            osDelayTask(100);
+        }
+        if (ffmpeg_ctx.error == NO_ERROR)
+        {
+            error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo.contentConfig._stream);
+            if (error)
+            {
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
+            }
+        }
+        ffmpeg_ctx.active = false;
+        while (!ffmpeg_ctx.quit)
+        {
+            osDelayTask(100);
+        }
+    }
+    else if (tonieInfo.exists && tonieInfo.valid)
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo.contentPath);
         connection->response.keepAlive = true;
-        error_t error = httpSendResponse(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)]);
+
+        if (tonieInfo.stream)
+        {
+            TRACE_INFO("Found streaming content\r\n");
+        }
+
+        error_t error = httpSendResponseStream(connection, &tonieInfo.contentPath[osStrlen(client_ctx->settings->internal.datadirfull)], tonieInfo.stream);
         if (error)
         {
             TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo.contentPath, error);
@@ -383,9 +424,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo.nocloud)
+        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo.contentConfig.nocloud)
         {
-            if (tonieInfo.nocloud)
+            if (tonieInfo.contentConfig.nocloud)
             {
                 TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
             }
@@ -504,7 +545,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             {
                 tonie_info_t tonieInfo;
                 getContentPathFromUID(freshReq->tonie_infos[i]->uid, &tonieInfo.contentPath, client_ctx->settings);
-                tonieInfo = getTonieInfo(tonieInfo.contentPath);
+                tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
                 char date_buffer_box[32];
                 bool_t custom_box;
@@ -526,6 +567,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                         serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
                     tonieInfo.updated = boxAudioId < serverAudioId;
+                    tonieInfo.updated = tonieInfo.updated || (client_ctx->settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
                     if (client_ctx->settings->cloud.prioCustomContent)
                     {
                         if (custom_box && !custom_server)
@@ -535,7 +577,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     }
                 }
 
-                if (!tonieInfo.nocloud)
+                if (!tonieInfo.contentConfig.nocloud)
                 {
                     freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
                 }
@@ -553,8 +595,8 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 (void)custom_server;
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
-                           tonieInfo.nocloud,
-                           tonieInfo.live || isFlex,
+                           tonieInfo.contentConfig.nocloud,
+                           tonieInfo.contentConfig.live || isFlex || tonieInfo.stream,
                            tonieInfo.updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -570,7 +612,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 TRACE_INFO_RESUME("\r\n");
 
-                if (tonieInfo.live || tonieInfo.updated || isFlex)
+                if (tonieInfo.contentConfig.live || tonieInfo.updated || tonieInfo.stream || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }

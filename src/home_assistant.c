@@ -168,17 +168,18 @@ void ha_publish(t_ha_info *ha_info)
         ha_addstr(json_str, "ic", ha_info->entities[pos].ic, false);
         ha_addstr(json_str, "mode", ha_info->entities[pos].mode, false);
         ha_addstr(json_str, "ent_cat", ha_info->entities[pos].ent_cat, false);
+        ha_addstr(json_str, "avty_t", ha_info->availability_topic, false);
         ha_addmqtt(ha_info, json_str, "cmd_t", ha_info->entities[pos].cmd_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "stat_t", ha_info->entities[pos].stat_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "rgbw_cmd_t", ha_info->entities[pos].rgbw_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "rgb_cmd_t", ha_info->entities[pos].rgb_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "fx_cmd_t", ha_info->entities[pos].fx_cmd_t, &ha_info->entities[pos], false);
         ha_addmqtt(ha_info, json_str, "fx_stat_t", ha_info->entities[pos].fx_stat_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "url_topic", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
+        ha_addmqtt(ha_info, json_str, "url_t", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
         ha_addstrarray(json_str, "fx_list", ha_info->entities[pos].fx_list, false);
-        ha_addstrarray(json_str, "event_types", ha_info->entities[pos].event_types, false);
+        ha_addstrarray(json_str, "evt_typ", ha_info->entities[pos].event_types, false);
         ha_addmqtt(ha_info, json_str, "val_tpl", ha_info->entities[pos].val_tpl, &ha_info->entities[pos], false);
-        ha_addstrarray(json_str, "options", ha_info->entities[pos].options, false);
+        ha_addstrarray(json_str, "ops", ha_info->entities[pos].options, false);
         ha_addstr(json_str, "unit_of_meas", ha_info->entities[pos].unit_of_meas, false);
 
         switch (ha_info->entities[pos].type)
@@ -188,10 +189,8 @@ void ha_publish(t_ha_info *ha_info)
             ha_addint(json_str, "max", ha_info->entities[pos].max, false);
             break;
         case ha_switch:
-            ha_addstr(json_str, "payload_on", "TRUE", false);
-            ha_addstr(json_str, "payload_off", "FALSE", false);
-            ha_addstr(json_str, "state_on", "TRUE", false);
-            ha_addstr(json_str, "state_off", "FALSE", false);
+            ha_addstr(json_str, "pl_on", "TRUE", false);
+            ha_addstr(json_str, "pl_off", "FALSE", false);
             break;
         default:
             break;
@@ -203,7 +202,12 @@ void ha_publish(t_ha_info *ha_info)
         ha_addstr(json_str, "cu", ha_info->cu, false);
         ha_addstr(json_str, "mf", ha_info->mf, false);
         ha_addstr(json_str, "mdl", ha_info->mdl, false);
-        ha_addstr(json_str, "sw", ha_info->sw, true);
+        if (osStrlen(ha_info->via))
+        {
+            ha_addstr(json_str, "via_device", ha_info->via, false);
+        }
+        ha_addstr(json_str, "sw", ha_info->sw, false);
+        ha_addstr(json_str, "hw", ha_info->hw, true);
         osStrcat(json_str, "}}");
 
         // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
@@ -319,13 +323,15 @@ void ha_setup(t_ha_info *ha_info)
 {
     osMemset(ha_info, 0x00, sizeof(t_ha_info));
 
-    osSnprintf(ha_info->base_topic, sizeof(ha_info->base_topic), "%s", "teddyCloud");
+    osSnprintf(ha_info->base_topic, sizeof(ha_info->base_topic), "teddyCloud");
     osSnprintf(ha_info->name, sizeof(ha_info->name), "%s", ha_info->base_topic);
-    osSnprintf(ha_info->id, sizeof(ha_info->id), "%s", "teddyCloud");
+    osSnprintf(ha_info->id, sizeof(ha_info->id), "teddyCloud");
     osSnprintf(ha_info->cu, sizeof(ha_info->cu), "%s", settings_get_string("core.host_url"));
-    osSnprintf(ha_info->mf, sizeof(ha_info->mf), "RevvoX");
-    osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "%s", "teddyCloud");
-    osSnprintf(ha_info->sw, sizeof(ha_info->sw), "" BUILD_GIT_TAG " (" BUILD_GIT_SHORT_SHA ")");
+    osSnprintf(ha_info->mf, sizeof(ha_info->mf), "Team RevvoX");
+    osSnprintf(ha_info->mdl, sizeof(ha_info->mdl), "teddyCloud");
+    osSnprintf(ha_info->sw, sizeof(ha_info->sw), "%s (%s)", get_settings()->internal.version.id, get_settings()->internal.version.git_sha_short);
+    osSnprintf(ha_info->hw, sizeof(ha_info->hw), "%s %s", get_settings()->internal.version.platform, get_settings()->internal.version.architecture);
+
     ha_info->entitiy_count = 0;
     ha_info->initialized = true;
 }
@@ -395,7 +401,7 @@ int ha_parse_index(t_ha_info *ha_info, const char *options, const char *message)
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf) - 1);
 
     while (true)
     {
@@ -430,7 +436,7 @@ void ha_get_index(t_ha_info *ha_info, const char *options, int index, char *text
     char tmp_buf[128];
     char *cur_elem = tmp_buf;
 
-    osStrncpy(tmp_buf, options, sizeof(tmp_buf));
+    osStrncpy(tmp_buf, options, sizeof(tmp_buf) - 1);
 
     while (true)
     {

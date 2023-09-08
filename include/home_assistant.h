@@ -6,6 +6,7 @@
 #define MAX_LEN 128
 #define MAX_ENTITIES (3 * 9 + 16 * 7 + 32)
 
+/* https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery */
 typedef enum
 {
     ha_unused = 0,
@@ -105,6 +106,9 @@ struct s_ha_info
     char mf[MAX_LEN];
     char mdl[MAX_LEN];
     char sw[MAX_LEN];
+    char hw[MAX_LEN];
+    char via[MAX_LEN];
+    char availability_topic[MAX_LEN];
     t_ha_entity entities[MAX_ENTITIES];
     int entitiy_count;
 };

@@ -27,6 +27,14 @@ typedef enum
     EAR_BIG = 2,
 } settings_earid;
 
+typedef enum
+{
+    BOX_UNKNOWN = 0,
+    BOX_CC3200 = 1,
+    BOX_CC3235 = 2,
+    BOX_ESP32 = 3,
+} settings_box_type;
+
 typedef struct
 {
     bool enabled;
@@ -42,6 +50,7 @@ typedef struct
     bool cacheContent;
     bool markCustomTagByPass;
     bool prioCustomContent;
+    bool updateOnLowerAudioId;
 } settings_cloud_t;
 
 typedef struct
@@ -58,6 +67,12 @@ typedef struct
 
 typedef struct
 {
+    char *name;
+    char *id;
+} settings_hass_t;
+
+typedef struct
+{
     bool overrideCloud;
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;
@@ -69,6 +84,7 @@ typedef struct
 typedef struct
 {
     char *ca;
+    char *ca_key;
     char *crt;
     char *key;
 } settings_cert_t;
@@ -98,6 +114,28 @@ typedef struct
 
 typedef struct
 {
+    settings_box_type boxIC;
+
+    time_t uaVersionFirmware;
+    time_t uaVersionServicePack;
+    time_t uaVersionHardware;
+    char *uaEsp32Firmware;
+
+    char *rtnlVersion;
+    char *rtnlFullVersion;
+    char *rtnlDetail;
+    char *rtnlRegion;
+
+    uint32_t otaVersionSfx;
+    uint32_t otaVersionServicePack;
+    uint32_t otaVersionHtml;
+    uint32_t otaVersionEu;
+    uint32_t otaVersionPd;
+
+} settings_internal_toniebox_firmware_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -120,6 +158,10 @@ typedef struct
 
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
+    settings_internal_toniebox_firmware_t toniebox_firmware;
+
+    time_t last_connection;
+    bool online;
 } settings_internal_t;
 
 typedef struct
@@ -170,6 +212,7 @@ typedef struct
     settings_core_t core;
     settings_cloud_t cloud;
     settings_mqtt_t mqtt;
+    settings_hass_t hass;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
     settings_log_t log;
@@ -211,6 +254,9 @@ typedef union
  * @var const char *description
  * A description of the setting item, which can be used to give users an understanding of its purpose.
  *
+ * @var const char *label
+ * A short description of the setting item, which can be used as an entry name.
+ *
  * @var void *ptr
  * A pointer to the value of the setting. The type of the value pointed to should match the specified setting type.
  *
@@ -233,6 +279,7 @@ typedef struct
 {
     const char *option_name;
     const char *description;
+    const char *label;
     void *ptr;
     settings_type type;
     setting_value_t init;
@@ -243,24 +290,24 @@ typedef struct
 } setting_item_t;
 
 #define OPTION_START() setting_item_t option_map_array[] = {
-#define OPTION_ADV_BOOL(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_STRING(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .internal = i, .overlayed = ov},
-#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .internal = i, .overlayed = ov},
+#define OPTION_ADV_BOOL(o, p, d, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.bool_value = d}, .type = TYPE_BOOL, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_SIGNED(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.signed_value = d}, .min = {.signed_value = minVal}, .max = {.signed_value = maxVal}, .type = TYPE_SIGNED, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_STRING(o, p, d, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .label = NULL, .internal = i, .overlayed = ov},
 
-#define OPTION_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, false, false)
-#define OPTION_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, false, false)
-#define OPTION_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, false, false)
-#define OPTION_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, false, false)
-#define OPTION_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, false, false)
+#define OPTION_BOOL(o, p, d, short, desc) OPTION_ADV_BOOL(o, p, d, short, desc, false, false)
+#define OPTION_SIGNED(o, p, d, min, max, short, desc) OPTION_ADV_SIGNED(o, p, d, min, max, short, desc, false, false)
+#define OPTION_UNSIGNED(o, p, d, min, max, short, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, short, desc, false, false)
+#define OPTION_FLOAT(o, p, d, min, max, short, desc) OPTION_ADV_FLOAT(o, p, d, min, max, short, desc, false, false)
+#define OPTION_STRING(o, p, d, short, desc) OPTION_ADV_STRING(o, p, d, short, desc, false, false)
 
-#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, true, false)
-#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, true, false)
-#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, true, false)
+#define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, desc, true, false)
+#define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, desc, true, false)
+#define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, desc, true, false)
 
 #define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
 
@@ -339,6 +386,8 @@ void settings_save_ovl(bool overlay);
  */
 void settings_load();
 void settings_load_ovl(bool overlay);
+
+uint16_t settings_get_size();
 
 /**
  * @brief Gets the setting item at a specific index.

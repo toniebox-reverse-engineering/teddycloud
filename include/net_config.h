@@ -31,11 +31,25 @@
 #ifndef _NET_CONFIG_H
 #define _NET_CONFIG_H
 
+#include "settings.h"
 #define AUTH_TOKEN_LENGTH 32
+
+typedef struct
+{
+    settings_t *settings;
+    const char *box_id;
+    const char *box_name;
+} client_ctx_t;
+
 typedef struct
 {
     uint8_t authentication_token[AUTH_TOKEN_LENGTH];
+    client_ctx_t client_ctx;
+
 } http_connection_private_t;
+
+#define CONTENT_LENGTH_MAX (INT32_MAX)
+#define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - 0x1000)
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;

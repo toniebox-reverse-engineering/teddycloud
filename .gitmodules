@@ -17,3 +17,9 @@
 [submodule "cyclone/cyclone_crypto"]
 	path = cyclone/cyclone_crypto
 	url = https://github.com/Oryx-Embedded/CycloneCrypto.git
+[submodule "opus"]
+	path = opus
+	url = https://github.com/xiph/opus.git
+[submodule "ogg"]
+	path = ogg
+	url = https://github.com/xiph/ogg.git

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 
 #ifdef WIN32
 #else
@@ -24,6 +25,8 @@
 #include "settings.h"
 #include "esp32.h"
 #include "mqtt.h"
+#include "cert.h"
+#include "toniefile.h"
 
 void platform_init(void);
 void platform_deinit(void);
@@ -219,6 +222,30 @@ int_t main(int argc, char *argv[])
 
             error = cloud_request_get(NULL, 0, request, "", hash, NULL);
         }
+        else if (!strcasecmp(type, "CERTGEN"))
+        {
+            /* sanity checks */
+            if (argc != 4)
+            {
+                TRACE_ERROR("Usage: %s CERTGEN <mac_address> <target-dir>\r\n", argv[0]);
+                return -1;
+            }
+            const char *mac = argv[2];
+            const char *dest = argv[3];
+
+            if (osStrlen(mac) != 12)
+            {
+                TRACE_ERROR("MAC address must be in format 001122334455\r\n");
+                return -1;
+            }
+            if (!fsDirExists(dest))
+            {
+                TRACE_ERROR("Destination directory must exist\r\n");
+                return -1;
+            }
+
+            cert_generate(mac, dest);
+        }
         else if (!strcasecmp(type, "ESP32CERT"))
         {
             if (argc < 5)
@@ -245,6 +272,62 @@ int_t main(int argc, char *argv[])
             }
             esp32_fixup((const char *)argv[2], true);
         }
+        else if (!strcasecmp(type, "ENCODE_TEST"))
+        {
+            toniefile_t *taf = toniefile_create("test2.ogg", 0xDEAFBEEF);
+
+            if (!taf)
+            {
+                TRACE_ERROR("toniefile_create() failed\r\n");
+                return -1;
+            }
+
+#define SAMPLES 333333
+            int sample_total = 0;
+            int16_t *sample_buffer = osAllocMem(2 * SAMPLES * sizeof(int16_t));
+
+            osMemset(sample_buffer, 0x00, sizeof(2 * SAMPLES * sizeof(int16_t)));
+
+            for (int pos = 0; pos < 100; pos++)
+            {
+                for (int sample = 0; sample < SAMPLES; sample++)
+                {
+                    sample_buffer[2 * sample + 0] = 8192 * sinf(sample_total / 10.0f * (1 + sinf(sample_total / 100000.0f)));
+                    sample_buffer[2 * sample + 1] = 8192 * sinf(sample_total / 20.0f * (1 + sinf(sample_total / 30000.0f)));
+                    sample_total++;
+                }
+                if (toniefile_encode(taf, sample_buffer, SAMPLES) != NO_ERROR)
+                {
+                    break;
+                }
+
+                toniefile_new_chapter(taf);
+            }
+            toniefile_close(taf);
+
+            return 1;
+        }
+#ifdef FFMPEG_DECODING
+        else if (!strcasecmp(type, "DENCODE"))
+        {
+            if (argc != 4 && argc != 5)
+            {
+                TRACE_ERROR("Usage: %s DENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
+                return -1;
+            }
+            char *source = argv[2];
+            char *taf_file = argv[3];
+            size_t skip_seconds = 0;
+            if (argc == 5)
+            {
+                skip_seconds = atoi(argv[4]);
+            }
+
+            ffmpeg_convert(source, taf_file, skip_seconds);
+
+            return 1;
+        }
+#endif
     }
     else
     {

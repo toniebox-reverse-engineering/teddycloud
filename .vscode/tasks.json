@@ -12,23 +12,23 @@
         "cwd": "${workspaceRoot}"
     },
     "windows": {
-      "options": {
-        "shell": {
-          "executable": "cmd.exe",
-          "args": [
-            "/C",
-            // The path to VsDevCmd.bat depends on the version of Visual Studio you have installed.
-            "\"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat\"",
-            "&&"
-          ]
+        "options": {
+            "shell": {
+                "executable": "cmd.exe",
+                "args": [
+                    "/C",
+                    // The path to VsDevCmd.bat depends on the version of Visual Studio you have installed.
+                    "\"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/Common7/Tools/VsDevCmd.bat\"",
+                    "&&"
+                ]
+            }
         }
-      }
     },
     "tasks": [
         {
             "label": "build",
             "group": "build",
-            "command": "make build",
+            "command": "make build OPTI_LEVEL=-Og",
             "type": "shell",
             "problemMatcher": []
         },
@@ -51,7 +51,8 @@
             "type": "process",
             "command": "bash",
             "args": [
-                "-c", "make build"
+                "-c",
+                "make build"
             ]
         },
         {
@@ -63,7 +64,8 @@
             "type": "process",
             "command": "bash",
             "args": [
-                "-c", "make clean"
+                "-c",
+                "make clean"
             ]
         },
         {
@@ -72,7 +74,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "command": "make PLATFORM=windows build",
+            "command": "make PLATFORM=windows OPTI_LEVEL=-Og build",
             "type": "shell",
             "problemMatcher": [
                 "$msCompile"

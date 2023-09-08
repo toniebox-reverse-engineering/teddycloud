@@ -1,7 +1,7 @@
 # TeddyCloud
 
 ## Features
-TeddyCloud is an alternative server for your Toniebox, allowing you to host the could services locally.
+TeddyCloud is an alternative server for your Toniebox, allowing you to host the cloud services locally.
 This gives you the control about which data is sent to the original manufacturer's cloud and allows you
 to host your own figurine audio files on e.g. your NAS or any other server.
 
@@ -10,6 +10,8 @@ Currently implemented are:
 * Cache original tonie audio content
 * Simulate live content (.live)
 * Passthrough original tonie audio content
+* Convert any audio file to a tonie audio file (web)
+* On-the-fly convert audio streams via ffmpeg for webradio and streams
 * Basic Web fronted
 * Filter custom tags to prevent deletion (.nocloud)
 * Configure maximum volume for speaker and headphones
@@ -17,13 +19,13 @@ Currently implemented are:
 * Configure slapping
 * Customize original box sounds (ex. jingle) over the air
 * Extract/Inject certitifcates on a esp32 firmware dump
-
-## Planned
 * Decode RTNL logs
 * MQTT client
-* Home Assistant integration (ideas welcome)
-* TeddyBench integration
+* Home Assistant integration (MQTT)
 * [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
+
+## Planned
+* TeddyBench integration
 
 ## Preparation
 ### Generate certificates
@@ -83,13 +85,29 @@ esptool.py -b 921600 write_flash 0x0 tb.esp32.fakeca.bin
 
 ### DNS
 #### CC3200 with altUrl patch
-With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries for ```prod.revvox``` and ```rtnl.revvox``` to the TeddyCloud servers ip-address. 
+With a CC3200 box it is recommened to use the altUrl patch. Set the DNS entries for ```prod.revvox``` and ```rtnl.revvox``` to the TeddyCloud servers ip-address.
+If you have a fritzbox you can use the [altUrl tc.fritz.box](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/blob/master/sd-bootloader-ng/bootmanager/sd/revvox/boot/patch/altUrl.tc.fritz.box.json) patch. You'll just have to set the name of your server in your fritzbox to ```tc``` (Heimnetz -> Netzwerk -> Netzwerkverbindungen -> bearbeiten
+).
+You may also edit the patch yourself to set the ip-address directly. Please beware, it should not be longer than the original url, which is 12 characters.
 
 #### CC3235 / ESP32
 Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the TeddyCloud servers ip-address. Beware, this will cut off the connection of all tonieboxes within your network, which arn't patched with your replacement CA!
+As an alternative you can set the gateway for the tonieboxes to the ip of teddyCloud. With OpenWRT it works this way:
+```
+uci set dhcp.teddycloud="tag"
+uci set dhcp.teddycloud.dhcp_option="3,1.2.3.4" # 1.2.3.4=teddycloud ip
+
+uci add dhcp host
+uci set dhcp.@host[-1].name="toniebox_1"
+uci set dhcp.@host[-1].mac="00:11:22:33:44:55" # toniebox mac
+uci set dhcp.@host[-1].ip="1.2.3.101" # toniebox_1 ip
+uci set dhcp.@host[-1].tag="teddycloud"
+uci commit dhcp
+/etc/init.d/dnsmasq restart
+```
 
 ### Content
-Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can place an empty ```500304E0.live``` file beside the content files to mark them as live. With ```500304E0.nocloud``` you can prevent the usage of the Boxine cloud for that tag.
+Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can edit ```500304E0.json``` file beside the content files to mark them as live or you can prevent the usage of the Boxine cloud for that tag with the nocloud parameter. By setting a source teddyCloud can stream any content that ffmpeg can decode (urls and files).
 
 ### Webinterface
 Currently the interface to teddycloud is reachable through the IP of the docker container at port 80 or 443 (depending on your ```docker-compose.yaml```). Changes affecting the toniebox (volume, LED) which are made through this interface will only be reflected onto the toniebox after pressing the big ear for a few seconds until a beep occurs.

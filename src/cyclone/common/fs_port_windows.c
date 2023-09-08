@@ -49,41 +49,40 @@
 #include <unistd.h>
 #endif
 
-
-void strConvertFromWchar(const WCHAR* wstr, char* outString, int maxLen)
+void strConvertFromWchar(const WCHAR *wstr, char *outString, int maxLen)
 {
-    if (wstr == NULL || outString == NULL)
-    {
-        return;
-    }
+   if (wstr == NULL || outString == NULL)
+   {
+      return;
+   }
 
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
-    if (sizeNeeded > maxLen)
-    {
-        // The output string won't fit into the provided buffer
-        // Handle this situation (e.g., by returning, throwing an exception, etc.)
-        return;
-    }
+   int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+   if (sizeNeeded > maxLen)
+   {
+      // The output string won't fit into the provided buffer
+      // Handle this situation (e.g., by returning, throwing an exception, etc.)
+      return;
+   }
 
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, outString, sizeNeeded, NULL, NULL);
+   WideCharToMultiByte(CP_UTF8, 0, wstr, -1, outString, sizeNeeded, NULL, NULL);
 }
 
-void strConvertToWchar(const char* str, WCHAR* outWStr, int maxLen)
+void strConvertToWchar(const char *str, WCHAR *outWStr, int maxLen)
 {
-    if (str == NULL || outWStr == NULL)
-    {
-        return;
-    }
+   if (str == NULL || outWStr == NULL)
+   {
+      return;
+   }
 
-    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
-    if (sizeNeeded > maxLen)
-    {
-        // The output string won't fit into the provided buffer
-        // Handle this situation (e.g., by returning, throwing an exception, etc.)
-        return;
-    }
+   int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+   if (sizeNeeded > maxLen)
+   {
+      // The output string won't fit into the provided buffer
+      // Handle this situation (e.g., by returning, throwing an exception, etc.)
+      return;
+   }
 
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, outWStr, sizeNeeded);
+   MultiByteToWideChar(CP_UTF8, 0, str, -1, outWStr, sizeNeeded);
 }
 
 /**
@@ -147,7 +146,9 @@ error_t fsGetFileSize(const char_t *path, uint32_t *size)
 
    // Check parameters
    if (path == NULL || size == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // Retrieve the attributes of the specified file
    error = fsGetFileStat(path, &fileStat);
@@ -173,7 +174,7 @@ error_t fsGetFileStat(const char_t *path, FsFileStat *fileStat)
 {
    error_t error = NO_ERROR;
    wchar_t wpath[FS_MAX_PATH_LEN + 1];
-   WIN32_FILE_ATTRIBUTE_DATA fad; 
+   WIN32_FILE_ATTRIBUTE_DATA fad;
 
    strConvertToWchar(path, wpath, FS_MAX_PATH_LEN);
 
@@ -218,7 +219,9 @@ error_t fsRenameFile(const char_t *oldPath, const char_t *newPath)
 
    // Check parameters
    if (oldPath == NULL || newPath == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // Rename the specified file
    ret = rename(oldPath, newPath);
@@ -250,7 +253,9 @@ error_t fsDeleteFile(const char_t *path)
 
    // Make sure the pathname is valid
    if (path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // Delete the specified file
    ret = remove(path);
@@ -279,29 +284,13 @@ error_t fsDeleteFile(const char_t *path)
 
 FsFile *fsOpenFile(const char_t *path, uint_t mode)
 {
-   char_t s[4];
-
-   // File pointer
-   FILE *fp = NULL;
-
-   // Make sure the pathname is valid
    if (path == NULL)
+   {
       return NULL;
-
-   // Check file access mode
-   if (mode & FS_FILE_MODE_WRITE)
-   {
-      osStrcpy(s, "wb");
-   }
-   else
-   {
-      osStrcpy(s, "rb");
    }
 
-   // Open the specified file
-   fp = fopen(path, s);
+   FILE *fp = fopen(path, (mode & FS_FILE_MODE_WRITE) ? "wb" : "rb");
 
-   // Return a handle to the file
    return fp;
 }
 
@@ -321,7 +310,9 @@ error_t fsSeekFile(FsFile *file, int_t offset, uint_t origin)
 
    // Make sure the file pointer is valid
    if (file == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // The origin is used as reference for the offset
    if (origin == FS_SEEK_CUR)
@@ -367,30 +358,19 @@ error_t fsSeekFile(FsFile *file, int_t offset, uint_t origin)
 
 error_t fsWriteFile(FsFile *file, void *data, size_t length)
 {
-   error_t error;
-   int_t n;
-
-   // Make sure the file pointer is valid
    if (file == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
-
-   // Write data
-   n = fwrite(data, sizeof(uint8_t), length, file);
-
-   // The total number of elements successfully written is returned. If this
-   // number differs from the count parameter, a writing error prevented the
-   // function from completing
-   if (n == length)
-   {
-      error = NO_ERROR;
-   }
-   else
-   {
-      error = ERROR_FAILURE;
    }
 
-   // Return status code
-   return error;
+   size_t written = fwrite(data, length, 1, file);
+
+   if (written != 1)
+   {
+      return ERROR_FAILURE;
+   }
+
+   return NO_ERROR;
 }
 
 /**
@@ -404,38 +384,21 @@ error_t fsWriteFile(FsFile *file, void *data, size_t length)
 
 error_t fsReadFile(FsFile *file, void *data, size_t size, size_t *length)
 {
-   error_t error;
-   int_t n;
-
-   // Check parameters
    if (file == NULL || length == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
-
-   // No data has been read yet
-   *length = 0;
-
-   // Read data
-   n = fread(data, sizeof(uint8_t), size, file);
-
-   // The total number of elements successfully read is returned. If this
-   // number differs from the count parameter, either a reading error occurred
-   // or the end-of-file was reached while reading
-   if (n != 0)
-   {
-      // Total number of data that have been read
-      *length = n;
-
-      // Successful processing
-      error = NO_ERROR;
-   }
-   else
-   {
-      // Report an error
-      error = ERROR_END_OF_FILE;
    }
 
-   // Return status code
-   return error;
+   size_t n = fread(data, 1, size, file);
+
+   *length = n;
+
+   if (n == 0)
+   {
+      return ERROR_END_OF_FILE;
+   }
+
+   return NO_ERROR;
 }
 
 /**
@@ -498,9 +461,11 @@ error_t fsCreateDir(const char_t *path)
 
    // Make sure the pathname is valid
    if (path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
-      // Create a new directory
+   // Create a new directory
 #ifdef _WIN32
    ret = _mkdir(path);
 #else
@@ -534,9 +499,11 @@ error_t fsRemoveDir(const char_t *path)
 
    // Make sure the pathname is valid
    if (path == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
-      // Remove the specified directory
+   // Remove the specified directory
 #ifdef _WIN32
    ret = _rmdir(path);
 #else
@@ -593,7 +560,9 @@ error_t fsReadDir(FsDir *dir, FsDirEntry *dirEntry)
 
    // Check parameters
    if (dir == NULL || dirEntry == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // Clear directory entry
    osMemset(dirEntry, 0, sizeof(FsDirEntry));

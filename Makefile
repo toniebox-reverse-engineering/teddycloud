@@ -14,6 +14,7 @@ ZIP_DIR        = install/zip
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
+OPTI_LEVEL    ?= -O2
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -112,12 +113,14 @@ SOURCES_linux = \
 	src/platform/platform_$(PLATFORM).c \
 	src/cyclone/common/os_port_posix.c \
 	cyclone/common/fs_port_posix.c 
-CFLAGS_linux += -Wall -Werror
+CFLAGS_linux += -Wall -Werror -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=maybe-uninitialized -Wno-error=stringop-overflow= -Wno-error=cpp
 CFLAGS_linux += -ggdb
+CFLAGS_linux += -DFFMPEG_DECODING
 
 # for now enable extensive error checking
-CFLAGS_linux += -fsanitize=undefined -fsanitize=address -Og
+CFLAGS_linux += -fsanitize=undefined -fsanitize=address 
 LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
+CFLAGS_linux += $(OPTI_LEVEL)
 
 ## win32 specific headers/sources
 HEADERS_windows = 
@@ -142,25 +145,33 @@ INCLUDES = \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
+	-Icyclone/cyclone_crypto/pkc \
+	-Icyclone/cyclone_crypto/rng \
 	-IcJSON \
-	-Ifat/source
+	-Ifat/source \
+	-Iogg/include \
+	-Iogg/src \
+	-Iopus/include \
+	-Iopus/celt \
+	-Iopus/silk \
+	-Iopus/silk/float
 
 SOURCES = \
 	$(wildcard $(SRC_DIR)/*.c) \
 	$(wildcard $(SRC_DIR)/proto/*.c) \
 	$(CYCLONE_SOURCES) \
-	cJSON/cJSON.c \
-	cJSON/cJSON_Utils.c \
-	fat/source/ff.c \
-	fat/source/ffsystem.c \
-	fat/source/ffunicode.c
+	$(LIBOPUS_SOURCES) \
+	$(LIBOGG_SOURCES) \
+	$(CJSON_SOURCES) \
+	$(FAT_SOURCES)
 
 HEADERS = \
 	$(wildcard include/*.h) \
 	$(CYCLONE_SOURCES:.c=.h) \
-	cJSON/cJSON.h \
-	cJSON/cJSON_Utils.h \
-	fat/source/ff.h
+	$(LIBOPUS_HEADERS) \
+	$(LIBOGG_HEADERS) \
+	$(CJSON_HEADERS) \
+	$(FAT_HEADERS)
 
 
 #
@@ -171,6 +182,45 @@ HEADERS   += $(HEADERS_$(PLATFORM))
 INCLUDES  += $(INCLUDES_$(PLATFORM))
 CFLAGS    += $(CFLAGS_$(PLATFORM))
 LFLAGS    += $(LFLAGS_$(PLATFORM))
+
+FAT_SOURCES = \
+	fat/source/ff.c \
+	fat/source/ffsystem.c \
+	fat/source/ffunicode.c
+
+FAT_HEADERS =\
+	fat/source/ff.h
+
+CJSON_SOURCES = \
+	cJSON/cJSON.c \
+	cJSON/cJSON_Utils.c
+
+CJSON_HEADERS = \
+	cJSON/cJSON.h \
+	cJSON/cJSON_Utils.h 
+
+LIBOGG_SOURCES = \
+	ogg/src/framing.c \
+	ogg/src/bitwise.c \
+
+include opus/silk_sources.mk
+include opus/celt_sources.mk
+include opus/opus_sources.mk
+include opus/silk_headers.mk
+include opus/celt_headers.mk
+include opus/opus_headers.mk
+
+LIBOPUS_SOURCES = \
+	$(addprefix opus/,$(SILK_SOURCES)) \
+	$(addprefix opus/,$(SILK_SOURCES_FLOAT)) \
+	$(addprefix opus/,$(CELT_SOURCES)) \
+	$(addprefix opus/,$(OPUS_SOURCES)) \
+	$(addprefix opus/,$(OPUS_SOURCES_FLOAT)) 
+
+LIBOPUS_HEADERS = \
+	$(addprefix opus/,$(SILK_HEAD)) \
+	$(addprefix opus/,$(CELT_HEAD)) \
+	$(addprefix opus/,$(OPUS_HEAD)) \
 
 CYCLONE_SOURCES = \
 	cyclone/common/cpu_endian.c \
@@ -231,7 +281,6 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/ecc/ecdh.c \
 	cyclone/cyclone_crypto/ecc/ecdsa.c \
 	cyclone/cyclone_crypto/ecc/eddsa.c \
-	cyclone/cyclone_crypto/mpi/mpi.c \
 	cyclone/cyclone_crypto/encoding/base64.c \
 	cyclone/cyclone_crypto/encoding/asn1.c \
 	cyclone/cyclone_crypto/encoding/oid.c \
@@ -246,12 +295,17 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/pkix/x509_cert_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_cert_validate.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_create.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_format.c \
+	cyclone/cyclone_crypto/pkix/x509_cert_ext_format.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_validate.c \
 	cyclone/cyclone_crypto/pkix/x509_crl_ext_parse.c \
 	cyclone/cyclone_crypto/pkix/x509_common.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_verify.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_parse.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_generate.c \
+	cyclone/cyclone_crypto/pkix/x509_sign_format.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
 	cyclone/cyclone_crypto/rng/yarrow.c
 
@@ -267,6 +321,7 @@ CYCLONE_SOURCES := $(filter-out \
 # and add modified ones
 CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
+	src/cyclone/cyclone_crypto/mpi.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
 	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
@@ -276,6 +331,11 @@ CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
 CFLAGS += ${CFLAGS_VERSION}
 CFLAGS += $(INCLUDES)
+
+# for opus encoder
+CFLAGS += -DUSE_ALLOCA -DOPUS_BUILD
+CFLAGS_linux += -Wno-error=stringop-overflow= -Wno-error=stringop-overread
+
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
 

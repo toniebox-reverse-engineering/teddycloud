@@ -33,6 +33,25 @@
             },
         },
         {
+            "name": "[linux] teddyCloud dencode test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [
+                "DENCODE",
+                "https://download.samplelib.com/mp3/sample-15s.mp3",
+                "data/library/dencode.taf",
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        },
+        {
             "name": "[wsl] teddyCloud",
             "type": "cppdbg",
             "request": "launch",
@@ -49,7 +68,13 @@
             ],
             "pipeTransport": {
                 "pipeProgram": "wsl",
-                "pipeArgs": [ "--cd", "${workspaceFolder}", "-e", "bash", "-c" ]
+                "pipeArgs": [
+                    "--cd",
+                    "${workspaceFolder}",
+                    "-e",
+                    "bash",
+                    "-c"
+                ]
             },
             "preLaunchTask": "[wsl] build",
             "logging": {

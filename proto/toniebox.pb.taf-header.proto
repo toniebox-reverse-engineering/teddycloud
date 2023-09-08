@@ -5,5 +5,5 @@ message TonieboxAudioFileHeader {
   required uint64 num_bytes = 2;
   required uint32 audio_id = 3;
   repeated uint32 track_page_nums = 4 [packed=true];
-//  required bytes _fill = 5;
+  required bytes _fill = 5;
 }
