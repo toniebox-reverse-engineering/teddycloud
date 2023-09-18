@@ -289,10 +289,15 @@ error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *
 {
     error_t error = NO_ERROR;
 
-    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
+    error = httpSendErrorResponse(connection, 404,
+                                  "The requested page could not be found");
 
+    /*
+    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
     error = httpSendResponse(connection, newUri);
     free(newUri);
+    */
+
     return error;
 }
 
