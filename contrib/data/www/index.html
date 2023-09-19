@@ -118,32 +118,39 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
 
-        .button {
-            font-size: 1em;
-            padding: 10px;
-            margin: 5px;
-            color: #fff;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
+        .button,
         .button-red {
             font-size: 1em;
             padding: 10px;
             margin: 5px;
             color: #fff;
-            background-color: #ff0000;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
 
+        .button {
+            background-color: #007BFF;
+        }
+
+        .button-red {
+            background-color: #ff0000;
+        }
+
+        .button:disabled,
+        .button-red:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            color: #888;
+        }
+
         .button:hover {
             background-color: #0056b3;
+        }
+
+        .button-red:hover {
+            background-color: #bf0000;
         }
 
         .app {
@@ -1864,7 +1871,8 @@
                     showStatus: false,
                     showProgress: false,
                     showDownload: false,
-                    showFlash: false
+                    showFlash: false,
+                    connected: false
                 };
                 this.fileInputRef = React.createRef();
             }
@@ -1875,8 +1883,11 @@
 
             loadFlashFile = (e) => {
                 const file = e.target.files[0];
-                const reader = new FileReader();
 
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
                 reader.onload = (e) => {
                     this.setState({ patchedFlash: e.target.result, showFlash: true });
                 };
@@ -1884,11 +1895,11 @@
                 reader.readAsArrayBuffer(file);
             }
 
-            async openPort() {
+            async getPort() {
                 if (this.state.port) {
                     return this.state.port;
                 }
-                this.setState({ showStatus: true, showProgress: false, showFlash: false, progress: 0, state: "Open serial port" });
+                this.setState({ showStatus: true, showProgress: false, progress: 0, state: "Open serial port" });
                 let port = null;
                 try {
                     port = await navigator.serial.requestPort();
@@ -1908,13 +1919,12 @@
             }
 
             async writeFlash() {
-                const port = await this.openPort();
+                const port = await this.getPort();
 
-                if (!port) {
+                if (port == null || this.state.connected) {
                     return;
                 }
-
-                this.setState({ state: `Connecting to ${port.info}` });
+                this.setState({ state: `Connecting to ${port.info}`, connected: true });
 
                 var esploader = null;
                 var flashData = null;
@@ -1925,7 +1935,7 @@
                         baudrate: 921600
                     });
                 } catch (err) {
-                    this.setState({ state: `Failed to connect: ${err.message}` });
+                    this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
                     alert(err.message);
                     await port.close();
                     return;
@@ -1956,12 +1966,12 @@
                     };
 
                     if (flash_size < 0 || flash_size > 16384) {
-                        this.setState({ state: `Flash size error` });
+                        this.setState({ state: `Flash size error`, connected: false });
                         alert(err.message);
                         await port.close();
                         return;
                     }
-                    this.setState({ state: `Writing flash: ${(this.state.patchedFlash.length / 1024 / 1024).toFixed(0)} MiB` });
+                    this.setState({ state: `Preparing ${(this.state.patchedFlash.byteLength / 1024 / 1024).toFixed(0)} MiB flash` });
 
                     /* ugly, but the original esptool.js code uses binary strings  */
                     function arrayBufferToBstr(arrayBuffer) {
@@ -1987,12 +1997,13 @@
                             this.setState({ progress: prog });
                         }
                     };
-                    window.flashOpts = opts;
+
+                    this.setState({ state: `Writing ${(this.state.patchedFlash.byteLength / 1024 / 1024).toFixed(0)} MiB flash` });
                     await esploader.write_flash(opts);
 
-                    this.setState({ state: `Writing finished` });
+                    this.setState({ state: `Writing finished`, connected: false });
                 } catch (err) {
-                    this.setState({ state: `Failed to communicate: ${err.message}` });
+                    this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
                     console.error(err);
                     alert(err.message);
                     await port.close();
@@ -2012,20 +2023,20 @@
                 if (response.ok && response.status == 200) {
                     const arrayBuffer = await response.arrayBuffer();
                     this.setState({ patchedFlash: arrayBuffer, showFlash: true });
-                    this.setState({ state: `Patching successful, ready to flash ${(arrayBuffer.length / 1024 / 1024).toFixed(0)} MiB` });
+                    this.setState({ state: `Patching successful, ready to flash ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(0)} MiB` });
                 } else {
                     this.setState({ state: `Patching failed` });
                 }
             }
 
             async readFlash() {
-                const port = await this.openPort();
+                const port = await this.getPort();
 
-                if (!port) {
+                if (port == null || this.state.connected) {
                     return;
                 }
 
-                this.setState({ state: `Connecting to ${port.info}` });
+                this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
 
                 var esploader = null;
                 var flashData = null;
@@ -2036,7 +2047,7 @@
                         baudrate: 921600
                     });
                 } catch (err) {
-                    this.setState({ state: `Failed to connect: ${err.message}` });
+                    this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
                     alert(err.message);
                     await port.close();
                     return;
@@ -2062,7 +2073,7 @@
                     this.setState({ flashSize: flash_size });
 
                     if (flash_size < 0 || flash_size > 16384) {
-                        this.setState({ state: `Flash size error` });
+                        this.setState({ state: `Flash size error`, connected: false });
                         alert(err.message);
                         await port.close();
                         return;
@@ -2073,9 +2084,9 @@
                         this.setState({ progress: prog });
                     });
 
-                    this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData });
+                    this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData, connected: false });
                 } catch (err) {
-                    this.setState({ state: `Failed to communicate: ${err.message}` });
+                    this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
                     console.error(err);
                     alert(err.message);
                     await port.close();
@@ -2112,20 +2123,25 @@
             }
 
             render() {
+                const webSerialSupported = navigator.serial;
+                const buttonDisabled = this.state.connected;
+
                 return (
                     <div className="tile encoder-tile">
                         <h3>ESP32 box flashing</h3>
 
-                        {!navigator.serial &&
+                        {!webSerialSupported ? (
                             <div>
                                 Your browser does not support WebSerial. Use Chrome or Edge to flash your ESP32 box.
                             </div>
-                        }
-                        {navigator.serial &&
+                        ) : (
                             <div>
 
-                                <button className="button" onClick={() => this.readFlash()}>Read ESP32</button>
-                                <button className="button" onClick={() => this.openFile()}>Load file</button>
+                                {/* Render Buttons */}
+                                <button className="button" disabled={buttonDisabled} onClick={() => this.readFlash()}>Read ESP32</button>
+                                <button className="button" disabled={buttonDisabled} onClick={() => this.openFile()}>Load file</button>
+                                {this.state.showDownload && <button className="button" disabled={buttonDisabled} onClick={() => this.patchFlash()}>Patch image</button>}
+                                {this.state.showFlash && <button className="button-red" disabled={buttonDisabled} onClick={() => this.writeFlash()}>Flash ESP32</button>}
 
                                 {/* Hidden file input to handle file selection */}
                                 <input
@@ -2134,19 +2150,18 @@
                                     ref={this.fileInputRef}
                                     onChange={this.loadFlashFile}
                                 />
-                                {this.state.showDownload &&
-                                    <button className="button" onClick={() => this.patchFlash()}>Patch image</button>}
-                                {this.state.showFlash &&
-                                    <button className="button-red" onClick={() => this.writeFlash()}>Flash ESP32</button>}
 
                                 <div className="center-content">
+                                    {/* Show Status */}
                                     {this.state.showStatus &&
                                         <div className="status">
                                             <p className="monospace">{this.state.state}</p>
                                         </div>
                                     }
+                                    {/* Show Progress */}
                                     {this.state.showProgress &&
                                         <div>
+                                            {/* Info Table */}
                                             <table className="info-table monospace">
                                                 <tbody>
                                                     <tr><td>Chip Type</td><td>{this.state.chipType}</td></tr>
@@ -2157,6 +2172,7 @@
                                                     <tr><td>Flash Size</td><td>{this.state.flashSize} KiB</td></tr>
                                                 </tbody>
                                             </table>
+                                            {/* Progress Bar */}
                                             <div className="progress monospace">
                                                 <div className="progress-bar" style={{ width: `${this.state.progress}%` }}>
                                                     <span className="progress-text">{this.state.progress.toFixed(2)}%</span>
@@ -2166,7 +2182,7 @@
                                     }
                                 </div>
                             </div>
-                        }
+                        )}
                     </div>
                 );
             }
