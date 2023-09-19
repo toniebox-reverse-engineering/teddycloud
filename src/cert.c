@@ -1,6 +1,7 @@
 
 
 #include "debug.h"
+#include "error.h"
 #include "fs_port.h"
 #include "rsa.h"
 #include "yarrow.h"
@@ -35,7 +36,7 @@ static void hex_string_to_bytes(const char *hex_string, uint8_t *output)
     }
 }
 
-int cert_generate(const char *mac, const char *dest)
+error_t cert_generate(const char *mac, const char *dest)
 {
     /*********************************************/
     /*         load server CA certificate        */
@@ -48,14 +49,14 @@ int cert_generate(const char *mac, const char *dest)
     if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
     if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     X509CertInfo issuer_certinfo;
@@ -63,7 +64,7 @@ int cert_generate(const char *mac, const char *dest)
     if (x509ParseCertificateEx(server_ca_der, server_ca_der_size, &issuer_certinfo, true) != NO_ERROR)
     {
         TRACE_ERROR("x509ParseCertificateEx failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     RsaPrivateKey server_ca_priv;
@@ -73,7 +74,7 @@ int cert_generate(const char *mac, const char *dest)
     if (pemImportRsaPrivateKey(server_key, osStrlen(server_key), NULL, &server_ca_priv) != NO_ERROR)
     {
         TRACE_ERROR("pemImportRsaPrivateKey failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     /*********************************************/
@@ -87,20 +88,20 @@ int cert_generate(const char *mac, const char *dest)
     if (rsaGenerateKeyPair(YARROW_PRNG_ALGO, &yarrowContext, 4096, 65537, &cert_privkey, &cert_pubkey) != NO_ERROR)
     {
         TRACE_ERROR("rsaGenerateKeyPair failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     size_t privateKey_der_size = 0;
     if (x509ExportRsaPrivateKey(&cert_privkey, NULL, &privateKey_der_size) != NO_ERROR)
     {
         TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
     uint8_t *der_data = osAllocMem(privateKey_der_size);
     if (x509ExportRsaPrivateKey(&cert_privkey, der_data, &privateKey_der_size) != NO_ERROR)
     {
         TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     /* create and sign the certificate */
@@ -150,21 +151,21 @@ int cert_generate(const char *mac, const char *dest)
     if (x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, &issuer_certinfo, &serial, &validity, &algo, &server_ca_priv, cert_der, &cert_der_size) != NO_ERROR)
     {
         TRACE_ERROR("x509CreateCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     size_t cert_pem_size;
     if (pemExportCertificate(cert_der, cert_der_size, NULL, &cert_pem_size) != NO_ERROR)
     {
         TRACE_ERROR("pemExportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
     char_t *cert_pem = osAllocMem(cert_pem_size + 1);
     if (pemExportCertificate(cert_der, cert_der_size, cert_pem, &cert_pem_size) != NO_ERROR)
     {
         TRACE_ERROR("pemExportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
     cert_pem[cert_pem_size] = 0;
 
@@ -177,7 +178,7 @@ int cert_generate(const char *mac, const char *dest)
         {
             osFreeMem(path);
             TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
+            return ERROR_FAILURE;
         }
         fsWriteFile(file, cert_pem, cert_pem_size);
         fsCloseFile(file);
@@ -193,7 +194,7 @@ int cert_generate(const char *mac, const char *dest)
         {
             osFreeMem(path);
             TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
+            return ERROR_FAILURE;
         }
         fsWriteFile(file, cert_der, cert_der_size);
         fsCloseFile(file);
@@ -209,7 +210,7 @@ int cert_generate(const char *mac, const char *dest)
         {
             osFreeMem(path);
             TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
+            return ERROR_FAILURE;
         }
         fsWriteFile(file, der_data, privateKey_der_size);
         fsCloseFile(file);
@@ -226,5 +227,5 @@ int cert_generate(const char *mac, const char *dest)
     osFreeMem(der_data);
     osFreeMem(cert_pem);
 
-    return 0;
+    return NO_ERROR;
 }
