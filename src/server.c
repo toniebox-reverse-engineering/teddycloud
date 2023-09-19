@@ -74,6 +74,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
 
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},

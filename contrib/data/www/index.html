@@ -884,6 +884,9 @@
                     currentTime: 0,
                     duration: 0,
                     imageUrl: "",
+                    artist: "",
+                    title: "",
+                    album: "",
                     isPlaying: false,  // Track if audio is playing
                     pauseTimer: null,  // Keep track of a timer for the pause event
                 }
@@ -897,6 +900,9 @@
 
             setImageUrl = (url) => {
                 this.setState({ imageUrl: url });
+            }
+            setArtistTitle = (artist, title) => {
+                this.setState({ artist: artist, title: title });
             }
 
             componentDidMount() {
@@ -925,6 +931,28 @@
             updateIsPlaying = () => {
                 clearTimeout(this.state.pauseTimer);
                 this.setState({ isPlaying: true, pauseTimer: null });
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: this.state.title,
+                        artist: this.state.artist,
+                        album: this.state.album,
+                        artwork: [
+                            { src: this.state.imageUrl, sizes: '96x96', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '128x128', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '192x192', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '256x256', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '384x384', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '512x512', type: 'image/png' },
+                        ]
+                    });
+
+                    //navigator.mediaSession.setActionHandler('play', function () { });
+                    //navigator.mediaSession.setActionHandler('pause', function () { });
+                    //navigator.mediaSession.setActionHandler('seekbackward', function () { });
+                    //navigator.mediaSession.setActionHandler('seekforward', function () { });
+                    //navigator.mediaSession.setActionHandler('previoustrack', function () { });
+                    //navigator.mediaSession.setActionHandler('nexttrack', function () { });
+                }
             }
 
             // On pause event, start a timer. If the timer ends, set isPlaying to false
@@ -932,6 +960,9 @@
                 if (this.state.pauseTimer) clearTimeout(this.state.pauseTimer);
                 const timer = setTimeout(() => {
                     this.setState({ isPlaying: false });
+                    if ('mediaSession' in navigator) {
+                        //navigator.mediaSession.metadata = null;
+                    }
                 }, 5000);  // Set a timer for 5 seconds
                 this.setState({ pauseTimer: timer });
             }
@@ -1007,7 +1038,7 @@
                 this.setState({ path: path, mode: mode });
                 this.fetchFileIndex(path, mode);
 
-                fetch("/tonies.json")
+                fetch("/api/toniesJson")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
 
@@ -1348,7 +1379,9 @@
                             let audioId;
                             let audioIdHex;
                             let hashHex;
+                            let tonieArtist = "(unknown)";
                             let tonieTitle = "(unknown)";
+                            let tonieFullName = tonieArtist + " - " + tonieTitle;
                             let toniePic = "img_unknown.png";
                             let tonieModel = "";
                             let custom = false;
@@ -1367,7 +1400,9 @@
 
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
                                 if (matchingTonie) {
-                                    tonieTitle = matchingTonie.title;
+                                    tonieArtist = matchingTonie.series;
+                                    tonieTitle = matchingTonie.episodes;
+                                    tonieFullName = tonieArtist + " - " + tonieTitle;
                                     toniePic = matchingTonie.pic;
                                     tonieModel = matchingTonie.model;
                                 }
@@ -1407,6 +1442,7 @@
                                                         onClick={() => {
                                                             this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                            this.oggPlayerRef.current.setArtistTitle(`${tonieArtist}`, `${tonieTitle}`);
                                                             this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
                                                         }
                                                         } className="small-round-button"
@@ -1419,7 +1455,7 @@
                                                         onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
                                                     />
                                                     <div className="text-section">
-                                                        <span className="desc">{tonieTitle}</span>
+                                                        <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
                                                         <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>

@@ -16,6 +16,8 @@ if [ ! -f "/teddycloud/certs/server/ca.der" ]; then
   fi
 fi
 
+curl -f https://gt-blog.de/JSON/tonies.json?source=teddyCloud-docker -o /teddycloud/config/tonies.json || true
+
 while true
 do
   teddycloud
