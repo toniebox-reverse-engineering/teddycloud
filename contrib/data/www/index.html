@@ -1966,8 +1966,11 @@
                     /* ugly, but the original esptool.js code uses binary strings  */
                     function arrayBufferToBstr(arrayBuffer) {
                         const u8Array = new Uint8Array(arrayBuffer);
-                        const decoder = new TextDecoder('latin1');
-                        return decoder.decode(u8Array);
+                        let binaryString = '';
+                        for (let i = 0; i < u8Array.length; i++) {
+                            binaryString += String.fromCharCode(u8Array[i]);
+                        }
+                        return binaryString;
                     }
 
                     var fileArray = [];
