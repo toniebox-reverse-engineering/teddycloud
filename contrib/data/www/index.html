@@ -1866,14 +1866,51 @@
                     showDownload: false,
                     showFlash: false
                 };
+                this.fileInputRef = React.createRef();
             }
 
-            async writeFlash() {
-                this.setState({ showStatus: true, showProgress: false, progress: 0, state: "Open serial port" });
-                let port = this.state.port;
+            openFile = () => {
+                this.fileInputRef.current.click();
+            }
+
+            loadFlashFile = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    this.setState({ patchedFlash: e.target.result, showFlash: true });
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            async openPort() {
+                if (this.state.port) {
+                    return this.state.port;
+                }
+                this.setState({ showStatus: true, showProgress: false, showFlash: false, progress: 0, state: "Open serial port" });
+                let port = null;
+                try {
+                    port = await navigator.serial.requestPort();
+                } catch (err) {
+                    this.setState({ state: `Error: ${err.message}` });
+                    alert(`Error: ${err.message}`);
+                    return null;
+                }
 
                 if (!port) {
                     this.setState({ state: "Invalid serial port" });
+                    return null;
+                }
+                this.setState({ port: port });
+
+                return port;
+            }
+
+            async writeFlash() {
+                const port = await this.openPort();
+
+                if (!port) {
                     return;
                 }
 
@@ -1924,10 +1961,17 @@
                         await port.close();
                         return;
                     }
-                    this.setState({ state: `Writing flash: ${this.state.patchedFlash.length} bytes` });
+                    this.setState({ state: `Writing flash: ${(this.state.patchedFlash.length / 1024 / 1024).toFixed(0)} MiB` });
+
+                    /* ugly, but the original esptool.js code uses binary strings  */
+                    function arrayBufferToBstr(arrayBuffer) {
+                        const u8Array = new Uint8Array(arrayBuffer);
+                        const decoder = new TextDecoder('latin1');
+                        return decoder.decode(u8Array);
+                    }
 
                     var fileArray = [];
-                    fileArray.push({ data: this.state.patchedFlash, address: 0 });
+                    fileArray.push({ data: arrayBufferToBstr(this.state.patchedFlash), address: 0 });
                     var opts = {
                         fileArray: fileArray,
                         flashSize: "keep",
@@ -1940,6 +1984,7 @@
                             this.setState({ progress: prog });
                         }
                     };
+                    window.flashOpts = opts;
                     await esploader.write_flash(opts);
 
                     this.setState({ state: `Writing finished` });
@@ -1961,40 +2006,23 @@
                 });
                 this.setState({ state: `Payload received` });
 
-                /* ugly, but the original esptool.js code uses binary strings  */
-                function ui8ToBstr(u8Array) {
-                    let binaryString = '';
-                    for (let i = 0; i < u8Array.length; i++) {
-                        binaryString += String.fromCharCode(u8Array[i]);
-                    }
-                    return binaryString;
-                }
-
                 if (response.ok && response.status == 200) {
                     const arrayBuffer = await response.arrayBuffer();
-                    const binaryData = new Uint8Array(arrayBuffer);
-                    this.setState({ state: `Patching successful, ready to flash ${(binaryData.length / 1024 / 1024).toFixed(0)} MiB`, patchedFlash: ui8ToBstr(binaryData), showFlash: true });
+                    this.setState({ patchedFlash: arrayBuffer, showFlash: true });
+                    this.setState({ state: `Patching successful, ready to flash ${(arrayBuffer.length / 1024 / 1024).toFixed(0)} MiB` });
                 } else {
                     this.setState({ state: `Patching failed` });
                 }
             }
 
             async readFlash() {
-                this.setState({ showStatus: true, showProgress: false, showFlash: false, progress: 0, state: "Open serial port" });
-                let port = null;
-                try {
-                    port = await navigator.serial.requestPort();
-                } catch (err) {
-                    this.setState({ state: `Error: ${err.message}` });
-                    alert(`Error: ${err.message}`);
+                const port = await this.openPort();
+
+                if (!port) {
                     return;
                 }
 
-                if (!port) {
-                    this.setState({ state: "Invalid serial port" });
-                    return;
-                }
-                this.setState({ state: `Connecting to ${port.info}`, port: port });
+                this.setState({ state: `Connecting to ${port.info}` });
 
                 var esploader = null;
                 var flashData = null;
@@ -2094,6 +2122,15 @@
                             <div>
 
                                 <button className="button" onClick={() => this.readFlash()}>Read ESP32</button>
+                                <button className="button" onClick={() => this.openFile()}>Load file</button>
+
+                                {/* Hidden file input to handle file selection */}
+                                <input
+                                    type="file"
+                                    style={{ display: 'none' }}
+                                    ref={this.fileInputRef}
+                                    onChange={this.loadFlashFile}
+                                />
                                 {this.state.showDownload &&
                                     <button className="button" onClick={() => this.patchFlash()}>Patch image</button>}
                                 {this.state.showFlash &&
