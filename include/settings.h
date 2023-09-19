@@ -4,6 +4,8 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#define TONIES_JSON_PATH "config/tonies.json"
+#define TONIES_CUSTOM_JSON_PATH "config/tonies.custom.json"
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
 #define CONFIG_VERSION 4
