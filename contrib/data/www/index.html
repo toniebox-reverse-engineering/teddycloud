@@ -1849,8 +1849,7 @@
                 try {
                     esploader = new ESPLoader({
                         port: port,
-                        baudrate: 921600,
-                        romBaudrate: 115200
+                        baudrate: 921600
                     });
                 } catch (err) {
                     this.setState({ state: `Failed to connect: ${err.message}` });
@@ -1873,9 +1872,7 @@
 
                     var flash_id = await esploader.read_flash_id();
                     /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
-                    this.setState({ flashId: flash_id });
-                    this.setState({ flashManuf: flash_id & 0xFF });
-                    this.setState({ flashDevice: (flash_id >> 8) & 0xFF });
+                    this.setState({ flashId: flash_id, flashManuf: flash_id & 0xFF, flashDevice: (flash_id >> 8) & 0xFF });
 
                     var flash_size = await esploader.get_flash_size();
                     this.setState({ flashSize: flash_size });
@@ -1922,9 +1919,11 @@
 
             async patchFlash() {
                 this.setState({ showProgress: false, showFlash: false });
+                this.setState({ state: `Patching flash image... (will likely take 5 minutes)` });
                 const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}`, {
                     method: 'GET'
                 });
+                this.setState({ state: `Payload received` });
 
                 /* ugly, but the original esptool.js code uses binary strings  */
                 function ui8ToBstr(u8Array) {
@@ -1938,11 +1937,9 @@
                 if (response.ok && response.status == 200) {
                     const arrayBuffer = await response.arrayBuffer();
                     const binaryData = new Uint8Array(arrayBuffer);
-                    this.setState({ patchedFlash: ui8ToBstr(binaryData) });
-                    this.setState({ showFlash: true });
-                    this.setState({ state: `Download successful: ${binaryData.length} bytes` });
+                    this.setState({ state: `Download successful: ${binaryData.length} bytes`, patchedFlash: ui8ToBstr(binaryData), showFlash: true });
                 } else {
-                    this.setState({ state: `Download failed` });
+                    this.setState({ state: `Patching failed` });
                 }
             }
 
@@ -1961,8 +1958,7 @@
                     this.setState({ state: "Invalid serial port" });
                     return;
                 }
-                this.setState({ state: `Connecting to ${port.info}` });
-                this.setState({ port: port });
+                this.setState({ state: `Connecting to ${port.info}`, port: port });
 
                 var esploader = null;
                 var flashData = null;
@@ -1970,8 +1966,7 @@
                 try {
                     esploader = new ESPLoader({
                         port: port,
-                        baudrate: 921600,
-                        romBaudrate: 115200
+                        baudrate: 921600
                     });
                 } catch (err) {
                     this.setState({ state: `Failed to connect: ${err.message}` });
@@ -1983,7 +1978,7 @@
                 try {
                     this.setState({ state: `Connecting to ESP` });
                     await esploader.main_fn();
-                    this.setState({ state: `Connected`, showProgress: true });
+                    this.setState({ state: `Connected` });
 
                     var mac = await esploader.chip.read_mac(esploader);
                     this.setState({ chipMac: mac });
@@ -1994,28 +1989,24 @@
 
                     var flash_id = await esploader.read_flash_id();
                     /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
-                    this.setState({ flashId: flash_id });
-                    this.setState({ flashManuf: flash_id & 0xFF });
-                    this.setState({ flashDevice: (flash_id >> 8) & 0xFF });
+                    this.setState({ flashId: flash_id, flashManuf: flash_id & 0xFF, flashDevice: (flash_id >> 8) & 0xFF });
 
                     var flash_size = await esploader.get_flash_size();
                     this.setState({ flashSize: flash_size });
 
-                    const cbr = (packet, progress, totalSize) => {
-                        const prog = (100 * progress / totalSize);
-                        this.setState({ progress: prog });
-                    };
-
-                    this.setState({ state: `Reading flash` });
                     if (flash_size < 0 || flash_size > 16384) {
                         this.setState({ state: `Flash size error` });
                         alert(err.message);
                         await port.close();
                         return;
                     }
-                    flashData = await esploader.read_flash(0, flash_size * 1024, cbr);
-                    this.setState({ originalFlash: flashData });
-                    this.setState({ state: `Reading finished` });
+                    this.setState({ state: `Reading flash`, showProgress: true, progress: 0 });
+                    flashData = await esploader.read_flash(0, flash_size * 1024, (packet, progress, totalSize) => {
+                        const prog = (100 * progress / totalSize);
+                        this.setState({ progress: prog });
+                    });
+
+                    this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData });
                 } catch (err) {
                     this.setState({ state: `Failed to communicate: ${err.message}` });
                     console.error(err);
