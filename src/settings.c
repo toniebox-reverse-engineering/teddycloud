@@ -45,8 +45,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content")
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library")
-    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir' and 'wwwdir' when they are relative")
+    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative")
     OPTION_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", "Directory for placing web content")
+    OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware")
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename")
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates")
@@ -98,6 +99,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
+    OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay")
     OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
@@ -336,18 +338,21 @@ void settings_generate_internal_dirs(settings_t *settings)
     free(settings->internal.librarydirfull);
     free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
+    free(settings->internal.firmwaredirfull);
 
     settings->internal.contentdirrel = osAllocMem(256);
     settings->internal.contentdirfull = osAllocMem(256);
     settings->internal.librarydirfull = osAllocMem(256);
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
+    settings->internal.firmwaredirfull = osAllocMem(256);
 
     char *tmpPath = osAllocMem(256);
 
     settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.cwd);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
     settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);

@@ -583,17 +583,9 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
-typedef struct
-{
-    const char *overlay;
-    const char *root_path;
-    const char filename[256];
-    FsFile *file;
-} cert_save_ctx;
-
 error_t file_save_start(void *in_ctx, const char *name, const char *filename)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (strchr(filename, '\\') || strchr(filename, '/'))
     {
@@ -602,21 +594,19 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
     }
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
-    char *fullPath = custom_asprintf("%s/%s", ctx->root_path, filename);
-    sanitizePath(fullPath, false);
+    ctx->filename = custom_asprintf("%s/%s", ctx->root_path, filename);
+    sanitizePath(ctx->filename, false);
 
-    if (fsFileExists(fullPath))
+    if (fsFileExists(ctx->filename))
     {
-        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", fullPath);
+        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", ctx->filename);
     }
     else
     {
-        TRACE_INFO("Writing to '%s'\r\n", fullPath);
+        TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
     }
 
-    ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
-
-    osFreeMem(fullPath);
+    ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
 
     if (ctx->file == NULL)
     {
@@ -628,7 +618,7 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
 
 error_t file_save_add(void *in_ctx, void *data, size_t length)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
@@ -645,13 +635,14 @@ error_t file_save_add(void *in_ctx, void *data, size_t length)
 
 error_t file_save_end(void *in_ctx)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
         return ERROR_FAILURE;
     }
     fsCloseFile(ctx->file);
+    osFreeMem(ctx->filename);
     ctx->file = NULL;
 
     return NO_ERROR;
@@ -659,7 +650,7 @@ error_t file_save_end(void *in_ctx)
 
 error_t file_save_end_cert(void *in_ctx)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
@@ -669,29 +660,25 @@ error_t file_save_end_cert(void *in_ctx)
     ctx->file = NULL;
 
     /* file was uploaded, this is the cert-specific handler */
-    char *path = custom_asprintf("%s/%s", ctx->root_path, ctx->filename);
-
     if (!osStrcasecmp(ctx->filename, "ca.der"))
     {
-        TRACE_INFO("Set ca.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.ca", path, ctx->overlay);
+        TRACE_INFO("Set ca.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.ca", ctx->filename, ctx->overlay);
     }
     else if (!osStrcasecmp(ctx->filename, "client.der"))
     {
-        TRACE_INFO("Set client.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.crt", path, ctx->overlay);
+        TRACE_INFO("Set client.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.crt", ctx->filename, ctx->overlay);
     }
     else if (!osStrcasecmp(ctx->filename, "private.der"))
     {
-        TRACE_INFO("Set private.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.key", path, ctx->overlay);
+        TRACE_INFO("Set private.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.key", ctx->filename, ctx->overlay);
     }
     else
     {
         TRACE_INFO("Unknown file type %s\r\n", ctx->filename);
     }
-
-    osFreeMem(path);
 
     return NO_ERROR;
 }
@@ -717,7 +704,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     else
     {
         multipart_cbr_t cbr;
-        cert_save_ctx ctx;
+        file_save_ctx ctx;
 
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
@@ -745,6 +732,202 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     connection->response.statusCode = statusCode;
 
     return httpWriteResponseString(connection, message, false);
+}
+
+error_t file_save_start_suffix(void *in_ctx, const char *name, const char *filename)
+{
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
+
+    if (strchr(filename, '\\') || strchr(filename, '/'))
+    {
+        TRACE_ERROR("Filename '%s' contains directory separators!\r\n", filename);
+        return ERROR_DIRECTORY_NOT_FOUND;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    for (int suffix = 0; suffix < 100; suffix++)
+    {
+        if (suffix)
+        {
+            ctx->filename = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
+        }
+        else
+        {
+            ctx->filename = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
+        }
+        sanitizePath(ctx->filename, false);
+
+        if (fsFileExists(ctx->filename))
+        {
+            TRACE_INFO("Filename '%s' already exists, next\r\n", ctx->filename);
+            osFreeMem(ctx->filename);
+            continue;
+        }
+        else
+        {
+            TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
+            break;
+        }
+    }
+
+    ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+
+    if (ctx->file == NULL)
+    {
+        return ERROR_FILE_OPENING_FAILED;
+    }
+
+    return NO_ERROR;
+}
+
+error_t file_save_end_suffix(void *in_ctx)
+{
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
+
+    if (!ctx->file)
+    {
+        return ERROR_FAILURE;
+    }
+    fsCloseFile(ctx->file);
+    ctx->file = NULL;
+
+    return NO_ERROR;
+}
+
+error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint_t statusCode = 500;
+    char message[128];
+    char overlay[128];
+
+    const char *rootPath = get_settings()->internal.firmwaredirfull;
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "core.firmwaredir not set to a valid path: '%s'", rootPath);
+        TRACE_ERROR("%s\r\n", message);
+    }
+    else
+    {
+        multipart_cbr_t cbr;
+        file_save_ctx ctx;
+
+        osMemset(&cbr, 0x00, sizeof(cbr));
+        osMemset(&ctx, 0x00, sizeof(ctx));
+
+        cbr.multipart_start = &file_save_start_suffix;
+        cbr.multipart_add = &file_save_add;
+        cbr.multipart_end = &file_save_end_suffix;
+
+        ctx.root_path = rootPath;
+        ctx.overlay = overlay;
+
+        switch (multipart_handle(connection, &cbr, &ctx))
+        {
+        case NO_ERROR:
+            statusCode = 200;
+            osSnprintf(message, sizeof(message), "%s", &ctx.filename[strlen(ctx.root_path) + 1]);
+            break;
+        default:
+            statusCode = 500;
+            break;
+        }
+
+        osFreeMem(ctx.filename);
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+}
+
+error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = get_settings()->internal.firmwaredirfull;
+
+    TRACE_DEBUG("Query: '%s'\r\n", queryString);
+
+    char filename[255];
+    osStrcpy(filename, "");
+
+    if (!queryGet(queryString, "filename", filename, sizeof(filename)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    char *file_path = custom_asprintf("%s/%s", rootPath, filename);
+
+    TRACE_INFO("Request for '%s'\r\n", file_path);
+
+    error_t error;
+    size_t n;
+    uint32_t length;
+    FsFile *file;
+
+    // Retrieve the size of the specified file
+    error = fsGetFileSize(file_path, &length);
+
+    if (error)
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", file_path);
+        return ERROR_NOT_FOUND;
+    }
+
+    // Open the file for reading
+    file = fsOpenFile(file_path, FS_FILE_MODE_READ);
+    free(file_path);
+
+    // Failed to open the file?
+    if (file == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+
+    connection->response.statusCode = 200;
+    connection->response.contentLength = length;
+    connection->response.contentType = "binary/octet-stream";
+    connection->response.chunkedEncoding = FALSE;
+
+    error = httpWriteHeader(connection);
+
+    if (error)
+    {
+        fsCloseFile(file);
+        return error;
+    }
+
+    while (length > 0)
+    {
+        n = MIN(length, HTTP_SERVER_BUFFER_SIZE);
+
+        error = fsReadFile(file, connection->buffer, n, &n);
+        if (error)
+        {
+            break;
+        }
+
+        error = httpWriteStream(connection, connection->buffer, n);
+        if (error)
+        {
+            break;
+        }
+
+        length -= n;
+    }
+
+    fsCloseFile(file);
+
+    if (error == NO_ERROR || error == ERROR_END_OF_FILE)
+    {
+        if (length == 0)
+        {
+            error = httpFlushStream(connection);
+        }
+    }
+
+    return error;
 }
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -785,7 +968,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     else
     {
         multipart_cbr_t cbr;
-        cert_save_ctx ctx;
+        file_save_ctx ctx;
 
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));

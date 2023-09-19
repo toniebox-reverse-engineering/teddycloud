@@ -68,6 +68,8 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
+    {REQ_POST, "/api/uploadFirmware", &handleApiUploadFirmware},
+    {REQ_GET, "/api/patchFirmware", &handleApiPatchFirmware},
     {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
     {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},

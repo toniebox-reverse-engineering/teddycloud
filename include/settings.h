@@ -151,6 +151,7 @@ typedef struct
     char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
+    char *firmwaredirfull;
 
     char *overlayUniqueId;
     uint8_t overlayNumber;
@@ -177,6 +178,7 @@ typedef struct
     char *host_url;
     char *certdir;
     char *contentdir;
+    char *firmwaredir;
     char *librarydir;
     char *datadir;
     char *wwwdir;
