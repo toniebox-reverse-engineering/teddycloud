@@ -14,6 +14,12 @@
     <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"
         integrity="sha512-pBSlhNUvB+td6sjW1zmR6L7c7kVWR4octUPl4tfHmzO63424nxta8aLmficEcAAswQmRqTiToi63AazDurj/Sg=="
         crossorigin="anonymous"></script>
+    <script>
+        import('./library/esptool.js').then((module) => {
+            /* guess that is not the most clean code ever seen, but feel free to correct this */
+            window.ESPLoader = module.ESPLoader;
+        });
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -118,6 +124,18 @@
             margin: 5px;
             color: #fff;
             background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button-red {
+            font-size: 1em;
+            padding: 10px;
+            margin: 5px;
+            color: #fff;
+            background-color: #ff0000;
             border: none;
             border-radius: 5px;
             cursor: pointer;
@@ -296,6 +314,54 @@
 
         .drag-over {
             margin-top: 50px;
+        }
+
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status {
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .monospace {
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-table {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .info-table td {
+            padding: 0px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .progress {
+            width: 100%;
+            background-color: #f3f3f3;
+            text-align: center;
+        }
+
+        .progress-bar {
+            height: 30px;
+            background-color: #4caf50;
+            position: relative;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            color: black;
+            text-align: center;
+            line-height: 30px;
         }
     </style>
 </head>
@@ -1743,6 +1809,293 @@
             }
         }
 
+        class ESP32Flasher extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    progress: 0,
+                    chipMac: '',
+                    chipType: '',
+                    flashId: '',
+                    flashManuf: '',
+                    flashDevice: '',
+                    flashSize: '',
+                    state: '',
+                    filename: '',
+                    port: null,
+                    originalFlash: null,
+                    patchedFlash: null,
+                    showStatus: false,
+                    showProgress: false,
+                    showDownload: false,
+                    showFlash: false
+                };
+            }
+
+            async writeFlash() {
+                this.setState({ showStatus: true, showProgress: false, progress: 0, state: "Open serial port" });
+                let port = this.state.port;
+
+                if (!port) {
+                    this.setState({ state: "Invalid serial port" });
+                    return;
+                }
+
+                this.setState({ state: `Connecting to ${port.info}` });
+
+                var esploader = null;
+                var flashData = null;
+
+                try {
+                    esploader = new ESPLoader({
+                        port: port,
+                        baudrate: 921600,
+                        romBaudrate: 115200
+                    });
+                } catch (err) {
+                    this.setState({ state: `Failed to connect: ${err.message}` });
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+
+                try {
+                    this.setState({ state: `Connecting to ESP` });
+                    await esploader.main_fn();
+                    this.setState({ state: `Connected`, progress: 0, showProgress: true });
+
+                    var mac = await esploader.chip.read_mac(esploader);
+                    this.setState({ chipMac: mac });
+                    console.log("Chip MAC: " + mac);
+
+                    const type = await esploader.chip.get_chip_description(esploader);
+                    this.setState({ chipType: type });
+
+                    var flash_id = await esploader.read_flash_id();
+                    /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
+                    this.setState({ flashId: flash_id });
+                    this.setState({ flashManuf: flash_id & 0xFF });
+                    this.setState({ flashDevice: (flash_id >> 8) & 0xFF });
+
+                    var flash_size = await esploader.get_flash_size();
+                    this.setState({ flashSize: flash_size });
+
+                    const cbr = (packet, progress, totalSize) => {
+                        const prog = (100 * progress / totalSize);
+                        this.setState({ progress: prog });
+                    };
+
+                    if (flash_size < 0 || flash_size > 16384) {
+                        this.setState({ state: `Flash size error` });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+                    this.setState({ state: `Writing flash: ${this.state.patchedFlash.length} bytes` });
+
+                    var fileArray = [];
+                    fileArray.push({ data: this.state.patchedFlash, address: 0 });
+                    var opts = {
+                        fileArray: fileArray,
+                        flashSize: "keep",
+                        flashMode: "keep",
+                        flashFreq: "keep",
+                        eraseAll: false,
+                        compress: true,
+                        reportProgress: (fileIndex, written, total) => {
+                            const prog = (100 * written / total);
+                            this.setState({ progress: prog });
+                        }
+                    };
+                    await esploader.write_flash(opts);
+
+                    this.setState({ state: `Writing finished` });
+                } catch (err) {
+                    this.setState({ state: `Failed to communicate: ${err.message}` });
+                    console.error(err);
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+                await port.close();
+            }
+
+            async patchFlash() {
+                this.setState({ showProgress: false, showFlash: false });
+                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}`, {
+                    method: 'GET'
+                });
+
+                /* ugly, but the original esptool.js code uses binary strings  */
+                function ui8ToBstr(u8Array) {
+                    let binaryString = '';
+                    for (let i = 0; i < u8Array.length; i++) {
+                        binaryString += String.fromCharCode(u8Array[i]);
+                    }
+                    return binaryString;
+                }
+
+                if (response.ok && response.status == 200) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    const binaryData = new Uint8Array(arrayBuffer);
+                    this.setState({ patchedFlash: ui8ToBstr(binaryData) });
+                    this.setState({ showFlash: true });
+                    this.setState({ state: `Download successful: ${binaryData.length} bytes` });
+                } else {
+                    this.setState({ state: `Download failed` });
+                }
+            }
+
+            async readFlash() {
+                this.setState({ showStatus: true, showProgress: false, showFlash: false, progress: 0, state: "Open serial port" });
+                let port = null;
+                try {
+                    port = await navigator.serial.requestPort();
+                } catch (err) {
+                    this.setState({ state: `Error: ${err.message}` });
+                    alert(`Error: ${err.message}`);
+                    return;
+                }
+
+                if (!port) {
+                    this.setState({ state: "Invalid serial port" });
+                    return;
+                }
+                this.setState({ state: `Connecting to ${port.info}` });
+                this.setState({ port: port });
+
+                var esploader = null;
+                var flashData = null;
+
+                try {
+                    esploader = new ESPLoader({
+                        port: port,
+                        baudrate: 921600,
+                        romBaudrate: 115200
+                    });
+                } catch (err) {
+                    this.setState({ state: `Failed to connect: ${err.message}` });
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+
+                try {
+                    this.setState({ state: `Connecting to ESP` });
+                    await esploader.main_fn();
+                    this.setState({ state: `Connected`, showProgress: true });
+
+                    var mac = await esploader.chip.read_mac(esploader);
+                    this.setState({ chipMac: mac });
+                    console.log("Chip MAC: " + mac);
+
+                    const type = await esploader.chip.get_chip_description(esploader);
+                    this.setState({ chipType: type });
+
+                    var flash_id = await esploader.read_flash_id();
+                    /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
+                    this.setState({ flashId: flash_id });
+                    this.setState({ flashManuf: flash_id & 0xFF });
+                    this.setState({ flashDevice: (flash_id >> 8) & 0xFF });
+
+                    var flash_size = await esploader.get_flash_size();
+                    this.setState({ flashSize: flash_size });
+
+                    const cbr = (packet, progress, totalSize) => {
+                        const prog = (100 * progress / totalSize);
+                        this.setState({ progress: prog });
+                    };
+
+                    this.setState({ state: `Reading flash` });
+                    if (flash_size < 0 || flash_size > 16384) {
+                        this.setState({ state: `Flash size error` });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+                    flashData = await esploader.read_flash(0, flash_size * 1024, cbr);
+                    this.setState({ originalFlash: flashData });
+                    this.setState({ state: `Reading finished` });
+                } catch (err) {
+                    this.setState({ state: `Failed to communicate: ${err.message}` });
+                    console.error(err);
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+                await port.close();
+
+                try {
+                    this.setState({ state: `Uploading` });
+
+                    const formData = new FormData();
+                    const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                    formData.append(sanitizedName, new Blob([flashData.buffer]), sanitizedName);
+
+                    const response = await fetch('/api/uploadFirmware', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok && response.status == 200) {
+                        const filename = await response.text();
+                        this.setState({ showDownload: true });
+                        this.setState({ filename: filename });
+                        this.setState({ state: `Upload successful: saved as ${filename}` });
+                    } else {
+                        this.setState({ state: `Upload failed` });
+                    }
+                } catch (err) {
+                    console.error('There was an error!', err);
+                    this.setState(prevState => ({
+                        files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
+                    }));
+                }
+            }
+
+            render() {
+                return (
+                    <div className="tile encoder-tile">
+                        <h3>ESP32 box flashing</h3>
+
+                        <button className="button" onClick={() => this.readFlash()}>Read ESP32</button>
+                        {this.state.showDownload &&
+                            <button className="button" onClick={() => this.patchFlash()}>Patch image (not yet implemented)</button>}
+                        {this.state.showFlash &&
+                            <button className="button-red" onClick={() => this.writeFlash()}>Flash ESP32</button>}
+
+                        <div className="center-content">
+                            {this.state.showStatus &&
+                                <div className="status">
+                                    <p className="monospace">{this.state.state}</p>
+                                </div>
+                            }
+                            {this.state.showProgress &&
+                                <div>
+                                    <table className="info-table monospace">
+                                        <tbody>
+                                            <tr><td>Chip Type</td><td>{this.state.chipType}</td></tr>
+                                            <tr><td>Chip MAC</td><td>{this.state.chipMac}</td></tr>
+                                            <tr><td>Flash ID</td><td>0x{this.state.flashId.toString(16)}</td></tr>
+                                            <tr><td>Flash Manuf.</td><td>0x{this.state.flashManuf.toString(16)}</td></tr>
+                                            <tr><td>Flash Device</td><td>0x{this.state.flashDevice.toString(16)}</td></tr>
+                                            <tr><td>Flash Size</td><td>{this.state.flashSize} KiB</td></tr>
+                                        </tbody>
+                                    </table>
+                                    <div className="progress monospace">
+                                        <div className="progress-bar" style={{ width: `${this.state.progress}%` }}>
+                                            <span className="progress-text">{this.state.progress.toFixed(2)}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+
         class App extends React.Component {
             constructor(props) {
                 super(props);
@@ -1817,6 +2170,7 @@
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
+                            <ESP32Flasher />
                             <StatsTile />
                             <CertificateUploadTile />
                             <FileViewerTile />
