@@ -1037,11 +1037,11 @@
 
                 this.setState({ path: path, mode: mode });
                 this.fetchFileIndex(path, mode);
-
+                /*
                 fetch("/api/toniesJson")
                     .then(response => response.json())
                     .then(data => this.setState({ tonies: data }));
-
+                */
                 window.addEventListener('popstate', this.handlePopState);
 
                 window.history.replaceState({ path, mode }, '', `?path=${path}&mode=${mode}`);
@@ -1397,7 +1397,7 @@
                                     audioId += 1342177280;
                                     custom = true;
                                 }
-
+                                /*
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
                                 if (matchingTonie) {
                                     tonieArtist = matchingTonie.series;
@@ -1406,7 +1406,7 @@
                                     toniePic = matchingTonie.pic;
                                     tonieModel = matchingTonie.model;
                                 }
-
+                                */
                                 if (custom) {
                                     toniePic = "img_custom.png";
                                 }
