@@ -15,6 +15,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends faketime openssl libubsan1 ffmpeg curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+RUN update-ca-certificates
+
 RUN mkdir -p /teddycloud/certs \
     && mkdir /teddycloud/config \
     && mkdir -p /teddycloud/data/content/default \
