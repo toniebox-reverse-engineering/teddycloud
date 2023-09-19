@@ -918,17 +918,24 @@ error_t httpCloseStream(HttpConnection *connection)
 error_t httpSendResponse(HttpConnection *connection, const char_t *uri) {
    return httpSendResponseStream(connection, uri, false);
 }
-error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bool_t isStream) 
+error_t httpSendResponseUnsafe(HttpConnection *connection, const char_t *uri, const char_t *absolutePath) {
+   return httpSendResponseStreamUnsafe(connection, uri, absolutePath, false);
+}
+error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bool_t isStream) {
+   //Retrieve the full pathname
+   httpGetAbsolutePath(connection, uri, connection->buffer, HTTP_SERVER_BUFFER_SIZE);
+   return httpSendResponseStreamUnsafe(connection, uri, connection->buffer, isStream);
+}
+error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *uri, const char_t *absolutePath, bool_t isStream) 
 {
+   if (connection->buffer != absolutePath) {
+      osStrcpy(connection->buffer, absolutePath);
+   }
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
    error_t error;
    size_t n;
    uint32_t length;
    FsFile *file;
-
-   //Retrieve the full pathname
-   httpGetAbsolutePath(connection, uri, connection->buffer,
-      HTTP_SERVER_BUFFER_SIZE);
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
    //Check whether gzip compression is supported by the client
@@ -991,10 +998,6 @@ error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bo
    error_t error;
    size_t length;
    const uint8_t *data;
-
-   //Retrieve the full pathname
-   httpGetAbsolutePath(connection, uri, connection->buffer,
-      HTTP_SERVER_BUFFER_SIZE);
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
    //Check whether gzip compression is supported by the client
