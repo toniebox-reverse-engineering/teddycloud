@@ -18,6 +18,9 @@
 #include "returncodes.h"
 #include "cJSON.h"
 #include "toniefile.h"
+#include "fs_ext.h"
+#include "cert.h"
+#include "esp32.h"
 
 void sanitizePath(char *path, bool isDir)
 {
@@ -850,14 +853,27 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
 
     char filename[255];
+    char mac[13];
     osStrcpy(filename, "");
+    osStrcpy(mac, "");
 
     if (!queryGet(queryString, "filename", filename, sizeof(filename)))
     {
         return ERROR_FAILURE;
     }
 
+    const char *sep = osStrchr(filename, '_');
+    if (!sep || strlen(&sep[1]) < 12)
+    {
+        TRACE_ERROR("Invalid file pattern '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+    osStrncpy(mac, &sep[1], 12);
+    mac[12] = 0;
+
+    char *cert_path = custom_asprintf("%s/cert_%s/", rootPath, mac);
     char *file_path = custom_asprintf("%s/%s", rootPath, filename);
+    char *patched_path = custom_asprintf("%s/patched_%s.bin", rootPath, mac);
 
     TRACE_INFO("Request for '%s'\r\n", file_path);
 
@@ -866,18 +882,57 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     uint32_t length;
     FsFile *file;
 
-    // Retrieve the size of the specified file
-    error = fsGetFileSize(file_path, &length);
-
-    if (error)
+    if (!fsFileExists(file_path))
     {
         TRACE_ERROR("File does not exist '%s'\r\n", file_path);
         return ERROR_NOT_FOUND;
     }
+    fsCopyFile(file_path, patched_path, true);
+    free(file_path);
+
+    TRACE_INFO("Generating certs for MAC %s into '%s'\r\n", mac, cert_path);
+    if (!fsDirExists(cert_path))
+    {
+        error = fsCreateDir(cert_path);
+        if (error)
+        {
+            TRACE_ERROR("Failed to create '%s'\r\n", cert_path);
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (cert_generate(mac, cert_path) != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to generate certificate\r\n");
+        return ERROR_NOT_FOUND;
+    }
+
+    TRACE_INFO("Injecting certs into '%s'\r\n", patched_path);
+    if (esp32_fat_inject(patched_path, "CERT", cert_path) != NO_ERROR)
+    {
+        free(cert_path);
+        free(patched_path);
+        TRACE_ERROR("Failed to patch image\r\n");
+        return ERROR_NOT_FOUND;
+    }
+    free(cert_path);
+
+    if (esp32_fixup(patched_path, true) != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to fixup image\r\n");
+        return ERROR_NOT_FOUND;
+    }
 
     // Open the file for reading
-    file = fsOpenFile(file_path, FS_FILE_MODE_READ);
-    free(file_path);
+    error = fsGetFileSize(patched_path, &length);
+    if (error)
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", patched_path);
+        return ERROR_NOT_FOUND;
+    }
+
+    file = fsOpenFile(patched_path, FS_FILE_MODE_READ);
+    free(patched_path);
 
     // Failed to open the file?
     if (file == NULL)
