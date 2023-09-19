@@ -1973,7 +1973,7 @@
                 if (response.ok && response.status == 200) {
                     const arrayBuffer = await response.arrayBuffer();
                     const binaryData = new Uint8Array(arrayBuffer);
-                    this.setState({ state: `Download successful: ${binaryData.length} bytes`, patchedFlash: ui8ToBstr(binaryData), showFlash: true });
+                    this.setState({ state: `Patching successful, ready to flash ${(binaryData.length / 1024 / 1024).toFixed(0)} MiB`, patchedFlash: ui8ToBstr(binaryData), showFlash: true });
                 } else {
                     this.setState({ state: `Patching failed` });
                 }
@@ -2085,38 +2085,48 @@
                     <div className="tile encoder-tile">
                         <h3>ESP32 box flashing</h3>
 
-                        <button className="button" onClick={() => this.readFlash()}>Read ESP32</button>
-                        {this.state.showDownload &&
-                            <button className="button" onClick={() => this.patchFlash()}>Patch image (not yet implemented)</button>}
-                        {this.state.showFlash &&
-                            <button className="button-red" onClick={() => this.writeFlash()}>Flash ESP32</button>}
+                        {!navigator.serial &&
+                            <div>
+                                Your browser does not support WebSerial. Use Chrome or Edge to flash your ESP32 box.
+                            </div>
+                        }
+                        {navigator.serial &&
+                            <div>
 
-                        <div className="center-content">
-                            {this.state.showStatus &&
-                                <div className="status">
-                                    <p className="monospace">{this.state.state}</p>
-                                </div>
-                            }
-                            {this.state.showProgress &&
-                                <div>
-                                    <table className="info-table monospace">
-                                        <tbody>
-                                            <tr><td>Chip Type</td><td>{this.state.chipType}</td></tr>
-                                            <tr><td>Chip MAC</td><td>{this.state.chipMac}</td></tr>
-                                            <tr><td>Flash ID</td><td>0x{this.state.flashId.toString(16)}</td></tr>
-                                            <tr><td>Flash Manuf.</td><td>0x{this.state.flashManuf.toString(16)}</td></tr>
-                                            <tr><td>Flash Device</td><td>0x{this.state.flashDevice.toString(16)}</td></tr>
-                                            <tr><td>Flash Size</td><td>{this.state.flashSize} KiB</td></tr>
-                                        </tbody>
-                                    </table>
-                                    <div className="progress monospace">
-                                        <div className="progress-bar" style={{ width: `${this.state.progress}%` }}>
-                                            <span className="progress-text">{this.state.progress.toFixed(2)}%</span>
+                                <button className="button" onClick={() => this.readFlash()}>Read ESP32</button>
+                                {this.state.showDownload &&
+                                    <button className="button" onClick={() => this.patchFlash()}>Patch image</button>}
+                                {this.state.showFlash &&
+                                    <button className="button-red" onClick={() => this.writeFlash()}>Flash ESP32</button>}
+
+                                <div className="center-content">
+                                    {this.state.showStatus &&
+                                        <div className="status">
+                                            <p className="monospace">{this.state.state}</p>
                                         </div>
-                                    </div>
+                                    }
+                                    {this.state.showProgress &&
+                                        <div>
+                                            <table className="info-table monospace">
+                                                <tbody>
+                                                    <tr><td>Chip Type</td><td>{this.state.chipType}</td></tr>
+                                                    <tr><td>Chip MAC</td><td>{this.state.chipMac}</td></tr>
+                                                    <tr><td>Flash ID</td><td>0x{this.state.flashId.toString(16)}</td></tr>
+                                                    <tr><td>Flash Manuf.</td><td>0x{this.state.flashManuf.toString(16)}</td></tr>
+                                                    <tr><td>Flash Device</td><td>0x{this.state.flashDevice.toString(16)}</td></tr>
+                                                    <tr><td>Flash Size</td><td>{this.state.flashSize} KiB</td></tr>
+                                                </tbody>
+                                            </table>
+                                            <div className="progress monospace">
+                                                <div className="progress-bar" style={{ width: `${this.state.progress}%` }}>
+                                                    <span className="progress-text">{this.state.progress.toFixed(2)}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                            }
-                        </div>
+                            </div>
+                        }
                     </div>
                 );
             }
