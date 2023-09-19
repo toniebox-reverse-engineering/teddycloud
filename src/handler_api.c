@@ -1580,6 +1580,5 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    // TBD
-    return NO_ERROR;
+    return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
 }
