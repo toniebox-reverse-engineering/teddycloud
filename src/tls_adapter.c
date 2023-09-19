@@ -2,6 +2,8 @@
 #ifdef WIN32
 #else
 #include <sys/random.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #include "pem_export.h"
@@ -384,6 +386,30 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
     return NO_ERROR;
 }
 
+int getrandom_bytes(void *buf, size_t buflen)
+{
+#ifndef WIN32
+    int urandom_fd = open("/dev/urandom", O_RDONLY);
+    if (urandom_fd == -1)
+    {
+        TRACE_ERROR("Failed to open /dev/urandom");
+        return -1;
+    }
+
+    ssize_t bytes_read = read(urandom_fd, buf, buflen);
+    if (bytes_read == -1)
+    {
+        TRACE_ERROR("Failed to read from /dev/urandom");
+        close(urandom_fd);
+        return -1;
+    }
+
+    close(urandom_fd);
+    return 0;
+#else
+    return -1;
+#endif
+}
 error_t tls_adapter_init()
 {
     uint8_t seed[32];
@@ -391,8 +417,22 @@ error_t tls_adapter_init()
     int ret = getrandom(seed, sizeof(seed), 0);
     if (ret < 0)
     {
-        TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);
-        return ERROR_FAILURE;
+        if (errno == 38)
+        {
+            // Linux Kernel < 3.17
+            TRACE_WARNING("Syscall getrandom not available, fallback to /dev/urandom (%d)\r\n", errno);
+            int ret = getrandom_bytes(seed, sizeof(seed));
+            if (ret < 0)
+            {
+                TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);
+                return ERROR_FAILURE;
+            }
+        }
+        else
+        {
+            TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);
+            return ERROR_FAILURE;
+        }
     }
 
     error_t error = yarrowInit(&yarrowContext);
