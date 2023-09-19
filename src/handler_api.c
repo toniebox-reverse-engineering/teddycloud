@@ -1577,3 +1577,9 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
     return httpWriteResponseString(connection, message, false);
 }
+
+error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    // TBD
+    return NO_ERROR;
+}
