@@ -270,8 +270,8 @@ error_t socketReceive(Socket *socket, void *data_in,
 
         if ((flags & SOCKET_FLAG_BREAK_CHAR) && buff->buffer_used)
         {
-            /* warning: searches outside buffer if binary */
-            const char *ptr = strchr(buff->buffer, flags & 0xFF);
+            const char *hasNull = memchr(buff->buffer, '\0', max_size);
+            const char *ptr = hasNull ? strchr(buff->buffer, flags & 0xFF) : memchr(buff->buffer, flags & 0xFF, max_size);
 
             if (ptr)
             {
