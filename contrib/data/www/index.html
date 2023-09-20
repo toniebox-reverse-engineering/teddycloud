@@ -1899,11 +1899,23 @@
                 let port = null;
                 try {
                     port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: 115200 });
+                    await port.close();
                 } catch (err) {
-                    this.setState({ state: `Error: ${err.message}` });
-                    alert(`Error: ${err.message}`);
+                    if (err.name == "NetworkError") {
+                        this.setState({ state: `Failed to open this port. Already in use?` });
+                        alert(`Failed to open this port. Already in use?`);
+                    }
+                    else if (err.name == "NotFoundError") {
+                        this.setState({ state: `No port available or user aborted` });
+                    }
+                    else {
+                        this.setState({ state: `Error ${err.name}: ${err.message}` });
+                        alert(`Error ${err.name}: ${err.message}`);
+                    }
                     return null;
                 }
+
 
                 if (!port) {
                     this.setState({ state: "Invalid serial port" });
