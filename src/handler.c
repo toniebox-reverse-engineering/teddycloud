@@ -241,60 +241,62 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig._stream = false;
     tonieInfo.contentConfig._streamFile = custom_asprintf("%s.stream", contentPath);
 
-    if (osStrstr(contentPath, ".json") == NULL &&
-        osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
-        (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
-        osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
+    if (osStrstr(contentPath, ".json") == NULL)
     {
-        // TODO: Nice checking if valid tonie path
-        load_content_json(contentPath, &tonieInfo.contentConfig);
-    }
-
-    FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
-    if (file)
-    {
-        uint8_t headerBuffer[TAF_HEADER_SIZE];
-        size_t read_length;
-        fsReadFile(file, headerBuffer, 4, &read_length);
-        if (read_length == 4)
+        if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
+            (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
+            osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
-            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
-            if (protobufSize <= TAF_HEADER_SIZE)
-            {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length);
-                if (read_length == protobufSize)
-                {
-                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                    if (tonieInfo.tafHeader)
-                    {
-                        tonieInfo.valid = true;
+            // TODO: Nice checking if valid tonie path
+            load_content_json(contentPath, &tonieInfo.contentConfig);
+        }
 
-                        if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+        FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
+        if (file)
+        {
+            uint8_t headerBuffer[TAF_HEADER_SIZE];
+            size_t read_length;
+            fsReadFile(file, headerBuffer, 4, &read_length);
+            if (read_length == 4)
+            {
+                uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+                if (protobufSize <= TAF_HEADER_SIZE)
+                {
+                    fsReadFile(file, headerBuffer, protobufSize, &read_length);
+                    if (read_length == protobufSize)
+                    {
+                        tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+                        if (tonieInfo.tafHeader)
                         {
-                            tonieInfo.stream = true;
+                            tonieInfo.valid = true;
+
+                            if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                            {
+                                tonieInfo.stream = true;
+                            }
                         }
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", contentPath, read_length, protobufSize);
                     }
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", contentPath, read_length, protobufSize);
+                    TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", contentPath, protobufSize, TAF_HEADER_SIZE);
                 }
+            }
+            else if (read_length == 0)
+            {
+                // TODO don't send invalid TAF files via API
+                TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", contentPath);
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", contentPath, protobufSize, TAF_HEADER_SIZE);
+                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", contentPath, read_length);
             }
+            fsCloseFile(file);
         }
-        else if (read_length == 0)
-        {
-            // TODO don't send invalid TAF files via API
-            TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", contentPath);
-        }
-        else
-        {
-            TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", contentPath, read_length);
-        }
-        fsCloseFile(file);
     }
     return tonieInfo;
 }
