@@ -16,8 +16,8 @@ void tonies_init()
 {
     toniesJsonCount = 0;
     toniesCustomJsonCount = 0;
-    tonies_readJson(TONIES_CUSTOM_JSON_PATH, toniesJsonCache, &toniesJsonCount);
-    tonies_readJson(TONIES_JSON_PATH, toniesCustomJsonCache, &toniesCustomJsonCount);
+    tonies_readJson(TONIES_CUSTOM_JSON_PATH, &toniesCustomJsonCache, &toniesCustomJsonCount);
+    tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
 }
 
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
@@ -39,13 +39,13 @@ uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
     }
     return 0;
 }
-void tonies_readJson(char *source, toniesJson_item_t *toniesCache, size_t *toniesCount)
+void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
     if (*toniesCount > 0)
     {
         *toniesCount = 0;
-        osFreeMem(toniesCache);
+        osFreeMem(*toniesCache);
     }
 
     size_t fileSize = 0;
@@ -83,11 +83,11 @@ void tonies_readJson(char *source, toniesJson_item_t *toniesCache, size_t *tonie
         {
             size_t line = 0;
             *toniesCount = cJSON_GetArraySize(toniesJson);
-            toniesCache = osAllocMem(*toniesCount * sizeof(toniesJson_item_t));
+            *toniesCache = osAllocMem(*toniesCount * sizeof(toniesJson_item_t));
             cJSON_ArrayForEach(tonieJson, toniesJson)
             {
                 cJSON *arrayJson;
-                toniesJson_item_t *item = &toniesCache[line++];
+                toniesJson_item_t *item = &(*toniesCache)[line++];
                 char *no_str = tonies_jsonGetString(tonieJson, "no");
                 item->no = atoi(no_str);
                 free(no_str);
