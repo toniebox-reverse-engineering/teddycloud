@@ -825,11 +825,15 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
 
         ctx.root_path = rootPath;
         ctx.overlay = overlay;
+        ctx.filename = NULL;
 
         switch (multipart_handle(connection, &cbr, &ctx))
         {
         case NO_ERROR:
             statusCode = 200;
+            TRACE_INFO("Received new file:\r\n");
+            TRACE_INFO("  '%s'\r\n", ctx.root_path);
+            TRACE_INFO("  '%s'\r\n", ctx.filename);
             osSnprintf(message, sizeof(message), "%s", &ctx.filename[strlen(ctx.root_path) + 1]);
             break;
         default:
@@ -850,16 +854,26 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 {
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
+    TRACE_INFO("Patch firmware\r\n");
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
 
+    bool generate_certs = false;
+    bool inject_ca = true;
+    char patch_host[32];
     char filename[255];
     char mac[13];
+    osStrcpy(patch_host, "");
     osStrcpy(filename, "");
     osStrcpy(mac, "");
 
     if (!queryGet(queryString, "filename", filename, sizeof(filename)))
     {
         return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
+    {
+        TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
     }
 
     const char *sep = osStrchr(filename, '_');
@@ -871,7 +885,6 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
 
-    char *cert_path = custom_asprintf("%s/cert_%s/", rootPath, mac);
     char *file_path = custom_asprintf("%s/%s", rootPath, filename);
     char *patched_path = custom_asprintf("%s/patched_%s.bin", rootPath, mac);
 
@@ -890,32 +903,32 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     fsCopyFile(file_path, patched_path, true);
     free(file_path);
 
-    TRACE_INFO("Generating certs for MAC %s into '%s'\r\n", mac, cert_path);
-    if (!fsDirExists(cert_path))
+    if (generate_certs)
     {
-        error = fsCreateDir(cert_path);
-        if (error)
+        if (esp32_inject_cert(rootPath, patched_path, mac) != NO_ERROR)
         {
-            TRACE_ERROR("Failed to create '%s'\r\n", cert_path);
+            TRACE_ERROR("Failed to generate and inject certs\r\n");
             return ERROR_NOT_FOUND;
         }
     }
 
-    if (cert_generate(mac, cert_path) != NO_ERROR)
+    if (inject_ca)
     {
-        TRACE_ERROR("Failed to generate certificate\r\n");
-        return ERROR_NOT_FOUND;
+        if (esp32_inject_ca(rootPath, patched_path, mac) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to generate and inject CA\r\n");
+            return ERROR_NOT_FOUND;
+        }
     }
 
-    TRACE_INFO("Injecting certs into '%s'\r\n", patched_path);
-    if (esp32_fat_inject(patched_path, "CERT", cert_path) != NO_ERROR)
+    if (osStrlen(patch_host) > 0)
     {
-        free(cert_path);
-        free(patched_path);
-        TRACE_ERROR("Failed to patch image\r\n");
-        return ERROR_NOT_FOUND;
+        if (esp32_patch_host(patched_path, patch_host) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
     }
-    free(cert_path);
 
     if (esp32_fixup(patched_path, true) != NO_ERROR)
     {

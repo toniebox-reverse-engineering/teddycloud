@@ -2023,7 +2023,7 @@
             async patchFlash() {
                 this.setState({ showProgress: false, showFlash: false });
                 this.setState({ state: `Patching flash image... (will likely take 5 minutes)` });
-                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}`, {
+                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}`, {
                     method: 'GET'
                 });
                 this.setState({ state: `Payload received` });
@@ -2038,6 +2038,12 @@
             }
 
             async readFlash() {
+                var esploader = null;
+                var flashData = null;
+                var mac = '';
+
+                flashData = new Uint8Array(1024);
+
                 const port = await this.getPort();
 
                 if (port == null || this.state.connected) {
@@ -2046,8 +2052,6 @@
 
                 this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
 
-                var esploader = null;
-                var flashData = null;
 
                 try {
                     esploader = new ESPLoader({
@@ -2066,7 +2070,7 @@
                     await esploader.main_fn();
                     this.setState({ state: `Connected` });
 
-                    var mac = await esploader.chip.read_mac(esploader);
+                    mac = await esploader.chip.read_mac(esploader);
                     this.setState({ chipMac: mac });
                     console.log("Chip MAC: " + mac);
 
@@ -2087,6 +2091,7 @@
                         return;
                     }
                     this.setState({ state: `Reading flash`, showProgress: true, progress: 0 });
+
                     flashData = await esploader.read_flash(0, flash_size * 1024, (packet, progress, totalSize) => {
                         const prog = (100 * progress / totalSize);
                         this.setState({ progress: prog });
@@ -2133,6 +2138,11 @@
             render() {
                 const webSerialSupported = navigator.serial;
                 const buttonDisabled = this.state.connected;
+                const hostname = window.location.hostname;
+
+                const sanitizeHostname = (input) => {
+                    return input.replace(/[^a-zA-Z0-9-.]/g, '').trim();
+                };
 
                 return (
                     <div className="tile encoder-tile">
@@ -2144,22 +2154,49 @@
                             </div>
                         ) : (
                             <div>
-
                                 {/* Render Buttons */}
                                 <button className="button" disabled={buttonDisabled} onClick={() => this.readFlash()}>Read ESP32</button>
                                 <button className="button" disabled={buttonDisabled} onClick={() => this.openFile()}>Load file</button>
                                 {this.state.showDownload && <button className="button" disabled={buttonDisabled} onClick={() => this.patchFlash()}>Patch image</button>}
                                 {this.state.showFlash && <button className="button-red" disabled={buttonDisabled} onClick={() => this.writeFlash()}>Flash ESP32</button>}
 
-                                {/* Hidden file input to handle file selection */}
-                                <input
-                                    type="file"
-                                    style={{ display: 'none' }}
-                                    ref={this.fileInputRef}
-                                    onChange={this.loadFlashFile}
-                                />
-
                                 <div className="center-content">
+                                    {this.state.showDownload && (
+                                        <div>
+                                            <label>
+                                                TeddyCloud hostname:
+                                                <input
+                                                    type="text"
+                                                    defaultValue={hostname}
+                                                    onChange={(e) => {
+                                                        let value = sanitizeHostname(e.target.value);
+                                                        let warningText = '';
+
+                                                        if (value.length > 12) {
+                                                            warningText = 'Hostname length should be less than 13 characters.';
+                                                        } else {
+                                                            warningText = '';
+                                                        }
+
+                                                        this.setState({
+                                                            hostname: value,
+                                                            warningText: warningText
+                                                        });
+                                                    }}
+                                                />
+                                            </label>
+                                            {this.state.warningText && <p style={{ color: '#CC3010' }}>{this.state.warningText}</p>}
+                                        </div>
+                                    )}
+
+                                    {/* Hidden file input to handle file selection */}
+                                    <input
+                                        type="file"
+                                        style={{ display: 'none' }}
+                                        ref={this.fileInputRef}
+                                        onChange={this.loadFlashFile}
+                                    />
+
                                     {/* Show Status */}
                                     {this.state.showStatus &&
                                         <div className="status">
