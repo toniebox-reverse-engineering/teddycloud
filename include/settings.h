@@ -187,6 +187,7 @@ typedef struct
 
     bool flex_enabled;
     char *flex_uid;
+    char *bind_ip;
 } settings_core_t;
 
 typedef struct
