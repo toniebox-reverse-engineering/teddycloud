@@ -39,6 +39,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("core.server", "Server ports")
     OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port")
     OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port")
+    OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to")
 
     OPTION_TREE_DESC("core.server", "HTTP server")
     OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server")
