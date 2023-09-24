@@ -286,7 +286,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
-            mqtt_sendBoxEvent("AudioId", "", client_ctx);
+            mqtt_sendBoxEvent("ContentAudioId", "", client_ctx);
             mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
             char *url = custom_asprintf("%s/img_empty.png", settings_get_string("core.host_url"));
             mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
@@ -333,8 +333,8 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             uint32_t audioId = read_little_endian(rpc->log2->field6.data);
             osSprintf(buffer, "%d", audioId);
             toniesJson_item_t *item = tonies_byAudioId(audioId);
-            sse_sendEvent("AudioId", buffer, true);
-            mqtt_sendBoxEvent("AudioId", buffer, client_ctx);
+            sse_sendEvent("ContentAudioId", buffer, true);
+            mqtt_sendBoxEvent("ContentAudioId", buffer, client_ctx);
             if (item == NULL)
             {
                 sse_sendEvent("ContentTitle", "Unknown", true);
