@@ -461,9 +461,19 @@ void server_init()
     HttpServerSettings https_settings;
     HttpServerContext http_context;
     HttpServerContext https_context;
+    IpAddr listenIpAddr;
 
     /* setup settings for HTTP */
     httpServerGetDefaultSettings(&http_settings);
+
+    const char * bindIp = settings_get_string("core.server.bind_ip");
+
+    if (bindIp != NULL && strlen(bindIp) > 0)
+    {
+        TRACE_INFO("Binding to ip %s only\r\n", bindIp);
+        ipStringToAddr(bindIp, &listenIpAddr);
+        http_settings.ipAddr = listenIpAddr;
+    }
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;
