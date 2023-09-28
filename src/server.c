@@ -16,7 +16,7 @@
 #include "core/tcp.h"
 #include "http/http_server.h"
 #include "http/http_server_misc.h"
-#include "rng/yarrow.h"
+#include "rand.h"
 #include "tls_adapter.h"
 #include "settings.h"
 #include "returncodes.h"
@@ -368,7 +368,7 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Set the PRNG algorithm to be used
-    error = tlsSetPrng(tlsContext, YARROW_PRNG_ALGO, &yarrowContext);
+    error = tlsSetPrng(tlsContext, rand_get_algo(), rand_get_context());
     // Any error to report?
     if (error)
         return error;
@@ -466,7 +466,7 @@ void server_init()
     /* setup settings for HTTP */
     httpServerGetDefaultSettings(&http_settings);
 
-    const char * bindIp = settings_get_string("core.server.bind_ip");
+    const char *bindIp = settings_get_string("core.server.bind_ip");
 
     if (bindIp != NULL && strlen(bindIp) > 0)
     {

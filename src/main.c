@@ -195,7 +195,7 @@ int_t main(int argc, char *argv[])
         }
         else if (!strcasecmp(type, "SERVER_CERTS"))
         {
-            cert_generate_certs();
+            cert_generate_default();
         }
         else if (!strcasecmp(type, "CLOUD"))
         {

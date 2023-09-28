@@ -12,6 +12,7 @@
 
 #include "fs_port.h"
 #include "server_helpers.h"
+#include "cert.h"
 
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
@@ -1143,16 +1144,48 @@ void settings_load_all_certs()
         settings_load_certs_id(id);
     }
 }
-void settings_load_certs_id(uint8_t settingsId)
+
+#define ERR_RETURN(command)    \
+    do                         \
+    {                          \
+        error_t err = command; \
+        if (err != NO_ERROR)   \
+        {                      \
+            return err;        \
+        }                      \
+    } while (0)
+
+error_t settings_try_load_certs_id(uint8_t settingsId)
 {
-    if (get_settings_id(settingsId)->internal.config_used)
+    ERR_RETURN(load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId));
+    ERR_RETURN(load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId));
+    ERR_RETURN(load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId));
+    ERR_RETURN(load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId));
+    ERR_RETURN(load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId));
+    ERR_RETURN(load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId));
+    ERR_RETURN(load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId));
+
+    return NO_ERROR;
+}
+
+error_t settings_load_certs_id(uint8_t settingsId)
+{
+    if (!get_settings_id(settingsId)->internal.config_used)
     {
-        load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId);
-        load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId);
-        load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId);
-        load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId);
-        load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
-        load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
-        load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+        return NO_ERROR;
     }
+
+    if (settings_try_load_certs_id(settingsId) != NO_ERROR)
+    {
+        TRACE_INFO("********************************************\r\n");
+        TRACE_INFO("   No certificates found. Generating.\r\n");
+        TRACE_INFO("   This will take some time...\r\n");
+        TRACE_INFO("********************************************\r\n");
+        cert_generate_default();
+        TRACE_INFO("********************************************\r\n");
+        TRACE_INFO("   FINISHED\r\n");
+        TRACE_INFO("********************************************\r\n");
+    }
+
+    return NO_ERROR;
 }

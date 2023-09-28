@@ -74,7 +74,6 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
  * The root certificate is self-signed, and the server certificate is not self-signed.
  * Both certificates are stored in the file paths specified in the settings.
  */
-
-error_t cert_generate_certs();
+error_t cert_generate_default();
 
 #define CERT_RSA_SIZE 2048

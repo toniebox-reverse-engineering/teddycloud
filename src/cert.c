@@ -4,7 +4,7 @@
 #include "error.h"
 #include "fs_port.h"
 #include "rsa.h"
-#include "yarrow.h"
+#include "rand.h"
 #include "pem_import.h"
 #include "pem_export.h"
 #include "x509_cert_parse.h"
@@ -44,7 +44,7 @@ error_t cert_generate_rsa(int size, RsaPrivateKey *cert_privkey, RsaPublicKey *c
     osMemset(cert_privkey, 0x00, sizeof(RsaPrivateKey));
     osMemset(cert_pubkey, 0x00, sizeof(RsaPublicKey));
 
-    if (rsaGenerateKeyPair(YARROW_PRNG_ALGO, &yarrowContext, size, 65537, cert_privkey, cert_pubkey) != NO_ERROR)
+    if (rsaGenerateKeyPair(rand_get_algo(), rand_get_context(), size, 65537, cert_privkey, cert_pubkey) != NO_ERROR)
     {
         TRACE_ERROR("rsaGenerateKeyPair failed\r\n");
         return ERROR_FAILURE;
@@ -196,7 +196,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     /* create certificate */
     uint8_t *cert_der_data = osAllocMem(8192);
     size_t cert_der_size = 0;
-    error_t error = x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
+    error_t error = x509CreateCertificate(rand_get_algo(), rand_get_context(), &cert_req, NULL, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("x509CreateCertificate failed: %d\r\n", error);
@@ -298,36 +298,73 @@ error_t cert_generate_mac(const char *mac, const char *dest)
     return NO_ERROR;
 }
 
-error_t cert_generate_certs()
+void cert_generate_serial(uint8_t *serial, size_t *serial_length)
+{
+    uint8_t buf[9];
+    time_t cur_time = getCurrentUnixTime();
+    int max_len = sizeof(cur_time);
+
+    buf[0] = 0;
+    /* write the current time in big endian format */
+    for (int pos = 0; pos < max_len; pos++)
+    {
+        buf[1 + pos] = (cur_time >> ((max_len - 1 - pos) * 8)) & 0xFF;
+    }
+
+    /* skip leadin zeroes, except if the next byte is > 127 */
+    int start = 0;
+    while (start < max_len - 1)
+    {
+        /* only skip leading zeroes */
+        if (buf[start])
+        {
+            break;
+        }
+        /* only allow leading zeroes if the next byte would have highest bit set */
+        if (buf[start + 1] & 0x80)
+        {
+            break;
+        }
+
+        start++;
+    }
+
+    *serial_length = max_len - start + 1;
+    memcpy(serial, &buf[start], *serial_length);
+}
+
+error_t cert_generate_default()
 {
     const char *cacert = settings_get_string("core.server_cert.file.ca");
     const char *cacert_key = settings_get_string("core.server_cert.file.ca_key");
-    uint8_t serial;
+    uint8_t serial[9];
+    size_t serial_length;
 
-    /* ToDo: create a proper ASN.1 compatible serial with no leading zeroes */
-    serial = rand();
+    /* Tcreate a proper ASN.1 compatible serial with no leading zeroes */
+    cert_generate_serial(serial, &serial_length);
 
     TRACE_INFO("Generating CA certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud CA Root Certificate", &serial, 1, true, false, cacert, cacert_key) != NO_ERROR)
+    if (cert_generate_signed("TeddyCloud CA Root Certificate", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
     }
 
     /* reload certs to reload the CA cert again */
-    settings_load_all_certs();
+    settings_try_load_certs_id(0);
 
     const char *server_cert = settings_get_string("core.server_cert.file.crt");
     const char *server_key = settings_get_string("core.server_cert.file.key");
 
-    serial = rand();
+    cert_generate_serial(serial, &serial_length);
 
     TRACE_INFO("Generating Server certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud Server", &serial, 1, false, false, server_cert, server_key) != NO_ERROR)
+    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, false, false, server_cert, server_key) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
     }
 
-    return NO_ERROR;
+    /* reload certs to reload the other certs */
+    return settings_try_load_certs_id(0);
 }

@@ -1,5 +1,10 @@
-#include <stdbool.h>
+#pragma once
+
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "debug.h"
+#include "error.h"
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
@@ -508,6 +513,7 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 char *settings_sanitize_box_id(const char *input_id);
 
 void settings_load_all_certs();
-void settings_load_certs_id(uint8_t settingsId);
+error_t settings_try_load_certs_id(uint8_t settingsId);
+error_t settings_load_certs_id(uint8_t settingsId);
 
 #endif

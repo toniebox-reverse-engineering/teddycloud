@@ -18,7 +18,7 @@
 #include "tls_cipher_suites.h"
 #include "cloud_request.h"
 #include "http/http_client.h"
-#include "rng/yarrow.h"
+#include "rand.h"
 #include "debug.h"
 #include "settings.h"
 
@@ -43,7 +43,7 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
         return error;
 
     // Set the PRNG algorithm to be used
-    error = tlsSetPrng(tlsContext, YARROW_PRNG_ALGO, &yarrowContext);
+    error = tlsSetPrng(tlsContext, rand_get_algo(), rand_get_context());
     // Any error to report?
     if (error)
         return error;
