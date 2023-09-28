@@ -14,6 +14,16 @@
 #include "server_helpers.h"
 #include "cert.h"
 
+#define ERR_RETURN(command)    \
+    do                         \
+    {                          \
+        error_t err = command; \
+        if (err != NO_ERROR)   \
+        {                      \
+            return err;        \
+        }                      \
+    } while (0)
+
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
@@ -1145,16 +1155,6 @@ void settings_load_all_certs()
         settings_load_certs_id(id);
     }
 }
-
-#define ERR_RETURN(command)    \
-    do                         \
-    {                          \
-        error_t err = command; \
-        if (err != NO_ERROR)   \
-        {                      \
-            return err;        \
-        }                      \
-    } while (0)
 
 error_t settings_try_load_certs_id(uint8_t settingsId)
 {
