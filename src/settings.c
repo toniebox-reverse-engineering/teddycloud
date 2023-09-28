@@ -1170,7 +1170,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     const char *server_ca_crt = settings_get_string("internal.server.ca");
 
     char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
-    settings_set_string_id("internal.server.cert_chain", chain, 0);
+    settings_set_string_id("internal.server.cert_chain", chain, settingsId);
 
     return NO_ERROR;
 }
