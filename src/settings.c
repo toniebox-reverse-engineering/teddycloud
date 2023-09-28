@@ -85,6 +85,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.server.ca_key", &settings->internal.server.ca_key, "", "Server CA key data")
     OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
     OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
+    OPTION_INTERNAL_STRING("internal.server.cert_chain", &settings->internal.server.cert_chain, "", "TLS certificate chain")
     OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA")
     OPTION_INTERNAL_STRING("internal.client.crt", &settings->internal.client.crt, "", "Client certificate data")
     OPTION_INTERNAL_STRING("internal.client.key", &settings->internal.client.key, "", "Client key data")
@@ -1164,6 +1165,12 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     ERR_RETURN(load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId));
     ERR_RETURN(load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId));
     ERR_RETURN(load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId));
+
+    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *server_ca_crt = settings_get_string("internal.server.ca");
+
+    char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
+    settings_set_string_id("internal.server.cert_chain", chain, 0);
 
     return NO_ERROR;
 }

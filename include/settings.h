@@ -94,6 +94,7 @@ typedef struct
     char *ca_key;
     char *crt;
     char *key;
+    char *cert_chain;
 } settings_cert_t;
 
 typedef struct
