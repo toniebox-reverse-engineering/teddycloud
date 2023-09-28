@@ -866,7 +866,7 @@ error_t esp32_inject_cert(const char *rootPath, const char *patchedPath, const c
             }
         }
 
-        if (cert_generate(mac, cert_path) != NO_ERROR)
+        if (cert_generate_mac(mac, cert_path) != NO_ERROR)
         {
             TRACE_ERROR("Failed to generate certificate\r\n");
             ret = ERROR_NOT_FOUND;

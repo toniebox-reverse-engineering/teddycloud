@@ -193,6 +193,10 @@ int_t main(int argc, char *argv[])
             free(hostname);
             free(uri);
         }
+        else if (!strcasecmp(type, "SERVER_CERTS"))
+        {
+            cert_generate_certs();
+        }
         else if (!strcasecmp(type, "CLOUD"))
         {
             TRACE_WARNING("**********************************\r\n");
@@ -244,7 +248,7 @@ int_t main(int argc, char *argv[])
                 return -1;
             }
 
-            cert_generate(mac, dest);
+            cert_generate_mac(mac, dest);
         }
         else if (!strcasecmp(type, "ESP32CERT"))
         {
