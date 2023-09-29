@@ -167,15 +167,6 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
         cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
     }
 
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length = (mpiGetBitLength(&cert_pubkey.e) / 8) + 1;
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length = (mpiGetBitLength(&cert_pubkey.n) / 8) + 1;
-    uint8_t *rsa_e_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length);
-    uint8_t *rsa_n_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length);
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.value = rsa_e_buf;
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.value = rsa_n_buf;
-    mpiExport(&cert_pubkey.e, rsa_e_buf, cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length, MPI_FORMAT_BIG_ENDIAN);
-    mpiExport(&cert_pubkey.n, rsa_n_buf, cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length, MPI_FORMAT_BIG_ENDIAN);
-
     X509SerialNumber serial;
     osMemset(&serial, 0x00, sizeof(serial));
     serial.length = serial_number_size;
@@ -196,7 +187,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     /* create certificate */
     uint8_t *cert_der_data = osAllocMem(8192);
     size_t cert_der_size = 0;
-    error_t error = x509CreateCertificate(rand_get_algo(), rand_get_context(), &cert_req, NULL, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
+    error_t error = x509CreateCertificate(rand_get_algo(), rand_get_context(), &cert_req, &cert_pubkey, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("x509CreateCertificate failed: %d\r\n", error);
@@ -256,8 +247,6 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
 
     osFreeMem(cert_der_data);
     osFreeMem(cert_pem_data);
-    osFreeMem(rsa_n_buf);
-    osFreeMem(rsa_e_buf);
     osFreeMem(priv_data);
 
     if (!self_sign)
@@ -315,22 +304,20 @@ void cert_truncate_serial(uint8_t *serial, size_t *serial_length)
             break;
         }
         (*serial_length)--;
-        memcpy(&serial[0], &serial[1], *serial_length);
+        osMemmove(&serial[0], &serial[1], *serial_length);
     }
 }
 
 void cert_generate_serial(uint8_t *serial, size_t *serial_length)
 {
     time_t cur_time = getCurrentUnixTime();
-    int max_len = sizeof(cur_time);
 
+    /* write the current time in big endian format with leading zero */
+    *serial_length = 9;
     serial[0] = 0;
-    /* write the current time in big endian format */
-    for (int pos = 0; pos < max_len; pos++)
-    {
-        serial[1 + pos] = (cur_time >> ((max_len - 1 - pos) * 8)) & 0xFF;
-    }
-    *serial_length = max_len;
+    STORE64BE(cur_time, &serial[1]);
+
+    /* now truncate the 9 byte BE buffer to no leading zeroes, except the number would be interpreted as negative */
     cert_truncate_serial(serial, serial_length);
 }
 
@@ -341,7 +328,7 @@ error_t cert_generate_default()
     uint8_t serial[9];
     size_t serial_length;
 
-    /* Tcreate a proper ASN.1 compatible serial with no leading zeroes */
+    /* create a proper ASN.1 compatible serial with no leading zeroes */
     cert_generate_serial(serial, &serial_length);
 
     TRACE_INFO("Generating CA certificate...\r\n");

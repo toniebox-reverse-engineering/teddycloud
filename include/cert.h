@@ -76,4 +76,15 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
  */
 error_t cert_generate_default();
 
+/**
+ * @brief Truncate the serial number to a specified length
+ *
+ * @param serial Pointer to the original serial number in bytes
+ * @param serial_length Pointer to the length of the serial number, will be updated to the new length
+ *
+ * This function truncates the provided serial number to a specific length as per certain rules or specifications.
+ * The length of the truncated serial number is stored back in `serial_length`.
+ */
+void cert_truncate_serial(uint8_t *serial, size_t *serial_length);
+
 #define CERT_RSA_SIZE 2048
