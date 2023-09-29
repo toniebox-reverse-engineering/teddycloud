@@ -28,5 +28,4 @@ jobs:
         # Defining the variables required in our action
         with:
           platform: linux/amd64
-          github:  ${{ github }}
-          secrets: ${{ secrets }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
