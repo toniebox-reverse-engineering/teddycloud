@@ -1,1 +1,27 @@
+name: Docker Image Publish
 
+on:
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - master
+#      - develop
+#    tags:
+#      - tc_nightly*
+#      - tc_v*.*.*
+#  pull_request:
+#    branches: [ "master", "develop" ]
+
+# permissions are needed if pushing to ghcr.io
+permissions: 
+  packages: write
+
+jobs:
+  build-publish-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and push linux/amd64
+        uses: "./.github/templates/publish_docker" #Just need to pass the path from action
+        # Defining the variables required in our action
+        with:
+          platform: linux/amd64
