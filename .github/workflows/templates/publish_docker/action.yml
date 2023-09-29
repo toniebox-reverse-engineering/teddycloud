@@ -9,9 +9,6 @@ runs:
   using: "composite"
   # Defining the action steps(Just one step to be simple)
   steps:
-  - uses: actions/checkout@v3
-    with:
-    submodules: recursive
   - name: Set up QEMU
     uses: docker/setup-qemu-action@v2
   - name: Set up Docker Buildx

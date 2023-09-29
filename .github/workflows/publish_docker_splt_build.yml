@@ -1,4 +1,4 @@
-name: Docker Image Publish
+name: Docker Image Publish parallel
 
 on:
   workflow_dispatch:
@@ -20,6 +20,9 @@ jobs:
   build-publish-container:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: Build and push linux/amd64
         uses: "./.github/templates/publish_docker" #Just need to pass the path from action
         # Defining the variables required in our action
