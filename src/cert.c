@@ -167,8 +167,8 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
         cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
     }
 
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length = mpiGetByteLength(&cert_pubkey.e);
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length = mpiGetByteLength(&cert_pubkey.n);
+    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length = (mpiGetBitLength(&cert_pubkey.e) / 8) + 1;
+    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length = (mpiGetBitLength(&cert_pubkey.n) / 8) + 1;
     uint8_t *rsa_e_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length);
     uint8_t *rsa_n_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length);
     cert_req.subjectPublicKeyInfo.rsaPublicKey.e.value = rsa_e_buf;
@@ -275,19 +275,20 @@ error_t cert_generate_mac(const char *mac, const char *dest)
         return ERROR_FAILURE;
     }
 
-    uint8_t ser[32];
+    uint8_t serial[7];
+    size_t serial_length = 7;
     char_t subj[32];
 
-    ser[0] = 0;
-    ser[1] = 0;
-    hex_string_to_bytes(mac, &ser[2]);
+    serial[0] = 0;
+    hex_string_to_bytes(mac, &serial[1]);
+    cert_truncate_serial(serial, &serial_length);
 
     osSprintf(subj, "b'%s'", mac);
 
     char_t *client_file = custom_asprintf("%s/client.der", dest);
     char_t *private_file = custom_asprintf("%s/private.der", dest);
 
-    if (cert_generate_signed(subj, ser, 7, false, true, client_file, private_file) != NO_ERROR)
+    if (cert_generate_signed(subj, serial, 7, false, true, client_file, private_file) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
@@ -298,39 +299,39 @@ error_t cert_generate_mac(const char *mac, const char *dest)
     return NO_ERROR;
 }
 
-void cert_generate_serial(uint8_t *serial, size_t *serial_length)
+void cert_truncate_serial(uint8_t *serial, size_t *serial_length)
 {
-    uint8_t buf[9];
-    time_t cur_time = getCurrentUnixTime();
-    int max_len = sizeof(cur_time);
-
-    buf[0] = 0;
-    /* write the current time in big endian format */
-    for (int pos = 0; pos < max_len; pos++)
-    {
-        buf[1 + pos] = (cur_time >> ((max_len - 1 - pos) * 8)) & 0xFF;
-    }
-
     /* skip leadin zeroes, except if the next byte is > 127 */
-    int start = 0;
-    while (start < max_len - 1)
+    while (*serial_length > 1)
     {
         /* only skip leading zeroes */
-        if (buf[start])
+        if (serial[0])
         {
             break;
         }
         /* only allow leading zeroes if the next byte would have highest bit set */
-        if (buf[start + 1] & 0x80)
+        if (serial[1] & 0x80)
         {
             break;
         }
-
-        start++;
+        (*serial_length)--;
+        memcpy(&serial[0], &serial[1], *serial_length);
     }
+}
 
-    *serial_length = max_len - start + 1;
-    memcpy(serial, &buf[start], *serial_length);
+void cert_generate_serial(uint8_t *serial, size_t *serial_length)
+{
+    time_t cur_time = getCurrentUnixTime();
+    int max_len = sizeof(cur_time);
+
+    serial[0] = 0;
+    /* write the current time in big endian format */
+    for (int pos = 0; pos < max_len; pos++)
+    {
+        serial[1 + pos] = (cur_time >> ((max_len - 1 - pos) * 8)) & 0xFF;
+    }
+    *serial_length = max_len;
+    cert_truncate_serial(serial, serial_length);
 }
 
 error_t cert_generate_default()
