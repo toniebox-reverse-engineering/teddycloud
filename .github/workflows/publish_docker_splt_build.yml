@@ -17,15 +17,62 @@ permissions:
   packages: write
 
 jobs:
-  build-publish-container:
+  build-publish-container_amd64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Build and push linux/amd64
+      - name: Build and push
         uses: "./.github/templates/publish_docker" #Just need to pass the path from action
-        # Defining the variables required in our action
         with:
           platform: linux/amd64
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-publish-container_armv7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build and push
+        uses: "./.github/templates/publish_docker" #Just need to pass the path from action
+        with:
+          platform: linux/arm/v7
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-publish-container_arm64v8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build and push
+        uses: "./.github/templates/publish_docker" #Just need to pass the path from action
+        with:
+          platform: linux/arm64/v8
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-publish-container_ppc64le:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build and push
+        uses: "./.github/templates/publish_docker" #Just need to pass the path from action
+        with:
+          platform: linux/ppc64le
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-publish-container_s390x:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Build and push
+        uses: "./.github/templates/publish_docker" #Just need to pass the path from action
+        with:
+          platform: linux/s390x
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
