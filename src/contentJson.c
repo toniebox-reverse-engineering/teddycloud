@@ -129,7 +129,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->skip_seconds = content_jsonGetUInt32(contentJson, "skip_seconds");
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
-                content_json->cloud_password = content_jsonGetBytes(contentJson, "cloud_password", &content_json->cloud_password_len);
+                content_json->cloud_auth = content_jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
                 content_json->cloud_valid = true;
 
                 // TODO: use checkCustomTonie to validate
@@ -138,7 +138,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                     // TODO validate rUID
                     content_json->cloud_valid = false;
                 }
-                if (content_json->cloud_password_len != AUTH_TOKEN_LENGTH)
+                if (content_json->cloud_auth_len != AUTH_TOKEN_LENGTH)
                 {
                     content_json->cloud_valid = false;
                 }
@@ -193,7 +193,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     cJSON_AddNumberToObject(contentJson, "skip_seconds", content_json->skip_seconds);
     cJSON_AddBoolToObject(contentJson, "cache", content_json->cache);
     content_AddStringToObject(contentJson, "cloud_ruid", content_json->cloud_ruid);
-    content_AddByteArrayToObject(contentJson, "cloud_password", content_json->cloud_password, content_json->cloud_password_len);
+    content_AddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);
@@ -233,7 +233,7 @@ void free_content_json(contentJson_t *content_json)
 {
     osFreeMem(content_json->source);
     osFreeMem(content_json->cloud_ruid);
-    osFreeMem(content_json->cloud_password);
+    osFreeMem(content_json->cloud_auth);
     osFreeMem(content_json->_streamFile);
-    content_json->cloud_password_len = 0;
+    content_json->cloud_auth_len = 0;
 }

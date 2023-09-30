@@ -223,7 +223,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
         {
             if (tonieInfo.contentConfig.cloud_valid)
             {
-                token = tonieInfo.contentConfig.cloud_password;
+                token = tonieInfo.contentConfig.cloud_auth;
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
                 osMemcpy((char_t *)&uri[RUID_URI_CLAIM_BEGIN], tonieInfo.contentConfig.cloud_ruid, osStrlen(tonieInfo.contentConfig.cloud_ruid));
                 TRACE_INFO("Serve cloud claim from alternative rUID %s, auth %s\r\n", tonieInfo.contentConfig.cloud_ruid, msg);
@@ -447,7 +447,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             if (tonieInfo.contentConfig.cloud_valid)
             {
-                token = tonieInfo.contentConfig.cloud_password;
+                token = tonieInfo.contentConfig.cloud_auth;
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
                 osMemcpy((char_t *)&uri[RUID_URI_CONTENT_BEGIN], tonieInfo.contentConfig.cloud_ruid, osStrlen(tonieInfo.contentConfig.cloud_ruid));
                 TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo.contentConfig.cloud_ruid, msg);

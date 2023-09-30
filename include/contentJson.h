@@ -11,8 +11,8 @@ typedef struct
     size_t skip_seconds;
     bool_t cache;
     char *cloud_ruid;
-    uint8_t *cloud_password;
-    size_t cloud_password_len;
+    uint8_t *cloud_auth;
+    size_t cloud_auth_len;
     bool_t cloud_valid;
 
     bool_t _stream;
