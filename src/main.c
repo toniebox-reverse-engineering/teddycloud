@@ -18,7 +18,6 @@
 #include "cloud_request.h"
 
 #include "settings.h"
-#include "esp32.h"
 #include "mqtt.h"
 #include "cert.h"
 #include "toniefile.h"
@@ -46,7 +45,6 @@ typedef enum
     PROT_HTTP,
     PROT_HTTPS
 } Protocol;
-
 
 bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Protocol *protocol)
 {
