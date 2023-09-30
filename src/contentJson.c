@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "cJSON.h"
 #include "net_config.h"
+#include "server_helpers.h"
 
 char *content_jsonGetString(cJSON *jsonElement, char *name)
 {
@@ -85,11 +86,8 @@ uint32_t content_jsonGetUInt32(cJSON *jsonElement, char *name)
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json)
 {
-    char *jsonPath = osAllocMem(osStrlen(content_path) + 5 + 1);
-    osStrcpy(jsonPath, content_path);
-    osStrcat(jsonPath, ".json");
+    char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
-
     osMemset(content_json, 0, sizeof(contentJson_t));
 
     if (fsFileExists(jsonPath))
@@ -173,7 +171,6 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
     if (error != NO_ERROR)
     {
         error = save_content_json(content_path, content_json);
-        free_content_json(content_json);
     }
 
     osFreeMem(jsonPath);
@@ -183,11 +180,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
 
 error_t save_content_json(const char *content_path, contentJson_t *content_json)
 {
-    char *jsonPath = osAllocMem(osStrlen(content_path) + 5 + 1);
-    osStrcpy(jsonPath, content_path);
-    osStrcat(jsonPath, ".json");
+    char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
-
     cJSON *contentJson = cJSON_CreateObject();
 
     cJSON_AddBoolToObject(contentJson, "live", content_json->live);
@@ -235,9 +229,21 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
 void free_content_json(contentJson_t *content_json)
 {
-    osFreeMem(content_json->source);
-    osFreeMem(content_json->cloud_ruid);
-    osFreeMem(content_json->cloud_auth);
-    osFreeMem(content_json->_streamFile);
+    if (content_json->source)
+    {
+        osFreeMem(content_json->source);
+    }
+    if (content_json->cloud_ruid)
+    {
+        osFreeMem(content_json->cloud_ruid);
+    }
+    if (content_json->cloud_auth)
+    {
+        osFreeMem(content_json->cloud_auth);
+    }
+    if (content_json->_streamFile)
+    {
+        osFreeMem(content_json->_streamFile);
+    }
     content_json->cloud_auth_len = 0;
 }

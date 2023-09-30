@@ -311,10 +311,16 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
         save_content_json(tonieInfo->contentPath, &tonieInfo->contentConfig);
     }
 
-    toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
-    free(tonieInfo->contentPath);
-    tonieInfo->contentPath = NULL;
-    tonieInfo->tafHeader = NULL;
+    if (tonieInfo->tafHeader)
+    {
+        toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
+        tonieInfo->tafHeader = NULL;
+    }
+    if (tonieInfo->contentPath)
+    {
+        osFreeMem(tonieInfo->contentPath);
+        tonieInfo->contentPath = NULL;
+    }
 
     if (tonieInfo->valid)
     {
