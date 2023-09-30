@@ -10,6 +10,10 @@ typedef struct
     char *source;
     size_t skip_seconds;
     bool_t cache;
+    char *cloud_ruid;
+    uint8_t *cloud_password;
+    size_t cloud_password_len;
+    bool_t cloud_valid;
 
     bool_t _stream;
     char *_streamFile;
@@ -18,7 +22,7 @@ typedef struct
 
 } contentJson_t;
 
-#define CONTENT_JSON_VERSION 2
+#define CONTENT_JSON_VERSION 3
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json);
 error_t save_content_json(const char *content_path, contentJson_t *content_json);

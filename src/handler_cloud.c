@@ -15,6 +15,22 @@
 
 #include "toniefile.h"
 
+void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
+{
+    char buffer[4];
+
+    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
+    {
+        if (i > 3 && !logFullAuth)
+        {
+            osStrcat(msg, "...");
+            break;
+        }
+        osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
+        osStrcat(msg, buffer);
+    }
+}
+
 error_t handleCloudTime(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_INFO(" >> respond with current time\r\n");
@@ -171,7 +187,8 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     char ruid[17];
     uint8_t *token = connection->private.authentication_token;
 
-    osStrncpy(ruid, &uri[10], sizeof(ruid));
+#define RUID_URI_CLAIM_BEGIN 10
+    osStrncpy(ruid, &uri[RUID_URI_CLAIM_BEGIN], sizeof(ruid));
     ruid[16] = 0;
 
     if (osStrlen(ruid) != 16)
@@ -179,18 +196,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
-    char buffer[4];
-
-    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
-    {
-        if (i > 3 && !client_ctx->settings->log.logFullAuth)
-        {
-            osStrcat(msg, "...");
-            break;
-        }
-        osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
-        osStrcat(msg, buffer);
-    }
+    convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client claim requested rUID %s, auth %s\r\n", ruid, msg);
 
     char current_time[64];
@@ -206,7 +212,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (!tonieInfo.contentConfig.nocloud)
+    if (!tonieInfo.contentConfig.nocloud && !tonieInfo.contentConfig.cloud_valid)
     {
         if (checkCustomTonie(ruid, token, client_ctx->settings))
         {
@@ -215,6 +221,13 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
         }
         else if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Claim)
         {
+            if (tonieInfo.contentConfig.cloud_valid)
+            {
+                token = tonieInfo.contentConfig.cloud_password;
+                convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
+                osMemcpy((char_t *)&uri[RUID_URI_CLAIM_BEGIN], tonieInfo.contentConfig.cloud_ruid, osStrlen(tonieInfo.contentConfig.cloud_ruid));
+                TRACE_INFO("Serve cloud claim from alternative rUID %s, auth %s\r\n", tonieInfo.contentConfig.cloud_ruid, msg);
+            }
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_CLAIM, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
@@ -242,11 +255,12 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
 
 error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
 {
+#define RUID_URI_CONTENT_BEGIN 12
     char ruid[17];
     error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
-    osStrncpy(ruid, &uri[12], sizeof(ruid));
+    osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
     ruid[16] = 0;
 
     if (connection->request.Range.start != 0)
@@ -263,25 +277,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_WARNING(" >>  invalid URI\r\n");
     }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
-    char buffer[4];
-
-    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
-    {
-        if (i > 3 && !client_ctx->settings->log.logFullAuth)
-        {
-            osStrcat(msg, "...");
-            break;
-        }
-        osSnprintf(buffer, sizeof(buffer), "%02X", token[i]);
-        osStrcat(msg, buffer);
-    }
+    convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
 
     tonie_info_t tonieInfo;
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
-    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings))
+    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_valid)
     {
         TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
         markCustomTonie(&tonieInfo);
@@ -441,6 +444,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         else
         {
             TRACE_INFO("Serve cloud content from %s\r\n", uri);
+
+            if (tonieInfo.contentConfig.cloud_valid)
+            {
+                token = tonieInfo.contentConfig.cloud_password;
+                convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
+                osMemcpy((char_t *)&uri[RUID_URI_CONTENT_BEGIN], tonieInfo.contentConfig.cloud_ruid, osStrlen(tonieInfo.contentConfig.cloud_ruid));
+                TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo.contentConfig.cloud_ruid, msg);
+            }
+
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
