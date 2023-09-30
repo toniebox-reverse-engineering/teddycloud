@@ -362,7 +362,7 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     error_t error;
 
     // Set TX and RX buffer size
-    error = tlsSetBufferSize(tlsContext, 2048, 2048);
+    error = tlsSetBufferSize(tlsContext, TLS_TX_BUFFER_SIZE, TLS_RX_BUFFER_SIZE);
     // Any error to report?
     if (error)
         return error;
