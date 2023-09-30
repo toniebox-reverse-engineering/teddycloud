@@ -16,8 +16,7 @@ char *content_jsonGetString(cJSON *jsonElement, char *name)
     return strdup("");
 }
 
-CJSON_PUBLIC(cJSON *)
-content_AddStringToObject(cJSON *const object, const char *const name, const char *const string)
+cJSON *content_AddStringToObject(cJSON *const object, const char *const name, const char *const string)
 {
     if (string != NULL)
     {
@@ -49,8 +48,7 @@ uint8_t *content_jsonGetBytes(cJSON *jsonElement, char *name, size_t *length)
     return bytes;
 }
 
-CJSON_PUBLIC(cJSON *)
-content_AddByteArrayToObject(cJSON *const object, const char *const name, uint8_t *bytes, size_t bytes_len)
+cJSON *content_AddByteArrayToObject(cJSON *const object, const char *const name, uint8_t *bytes, size_t bytes_len)
 {
     size_t string_len = bytes_len * 2 + 1;
     char *string = osAllocMem(string_len);
