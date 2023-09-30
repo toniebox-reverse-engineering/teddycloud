@@ -122,7 +122,7 @@ int_t main(int argc, char *argv[])
 
     error_t error = 0;
 
-    char cwd[256];
+    char cwd[256] = {0};
     if (getcwd(cwd, sizeof(cwd)) == NULL)
     {
         get_directory_path(argv[0], cwd, sizeof(cwd));
