@@ -617,6 +617,11 @@ error_t settings_load_ovl(bool overlay)
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
+
+    if (overlay)
+    {
+        overlay_settings_init();
+    }
     if (!fsFileExists(config_path))
     {
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
@@ -642,11 +647,6 @@ error_t settings_load_ovl(bool overlay)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
         return ERROR_ABORTED;
-    }
-
-    if (overlay)
-    {
-        overlay_settings_init();
     }
 
     // Buffer to hold the file content

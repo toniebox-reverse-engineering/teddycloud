@@ -240,6 +240,9 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig._updated = false;
     tonieInfo.contentConfig._stream = false;
     tonieInfo.contentConfig._streamFile = custom_asprintf("%s.stream", contentPath);
+    tonieInfo.contentConfig.cloud_ruid = NULL;
+    tonieInfo.contentConfig.cloud_auth = NULL;
+    tonieInfo.contentConfig.cloud_auth_len = 0;
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
