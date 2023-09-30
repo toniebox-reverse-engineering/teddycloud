@@ -7,7 +7,6 @@
 
 char *content_jsonGetString(cJSON *jsonElement, char *name)
 {
-
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
     if (cJSON_IsString(attr))
     {
@@ -15,6 +14,7 @@ char *content_jsonGetString(cJSON *jsonElement, char *name)
     }
     return strdup("");
 }
+
 CJSON_PUBLIC(cJSON *)
 content_AddStringToObject(cJSON *const object, const char *const name, const char *const string)
 {
@@ -62,6 +62,7 @@ content_AddByteArrayToObject(cJSON *const object, const char *const name, uint8_
 
     return cJSON_AddStringToObject(object, name, string);
 }
+
 bool_t content_jsonGetBool(cJSON *jsonElement, char *name)
 {
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
@@ -71,6 +72,7 @@ bool_t content_jsonGetBool(cJSON *jsonElement, char *name)
     }
     return false;
 }
+
 uint32_t content_jsonGetUInt32(cJSON *jsonElement, char *name)
 {
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
@@ -170,14 +172,15 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
 
     if (error != NO_ERROR)
     {
-        free_content_json(content_json);
         error = save_content_json(content_path, content_json);
+        free_content_json(content_json);
     }
 
     osFreeMem(jsonPath);
 
     return error;
 }
+
 error_t save_content_json(const char *content_path, contentJson_t *content_json)
 {
     char *jsonPath = osAllocMem(osStrlen(content_path) + 5 + 1);
@@ -229,6 +232,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     return error;
 }
+
 void free_content_json(contentJson_t *content_json)
 {
     osFreeMem(content_json->source);
