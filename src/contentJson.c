@@ -232,18 +232,22 @@ void free_content_json(contentJson_t *content_json)
     if (content_json->source)
     {
         osFreeMem(content_json->source);
+        content_json->source = NULL;
     }
     if (content_json->cloud_ruid)
     {
         osFreeMem(content_json->cloud_ruid);
+        content_json->cloud_ruid = NULL;
     }
     if (content_json->cloud_auth)
     {
         osFreeMem(content_json->cloud_auth);
+        content_json->cloud_auth = NULL;
     }
     if (content_json->_streamFile)
     {
         osFreeMem(content_json->_streamFile);
+        content_json->_streamFile = NULL;
     }
     content_json->cloud_auth_len = 0;
 }
