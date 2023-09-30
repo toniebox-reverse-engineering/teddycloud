@@ -1044,9 +1044,17 @@
 
                 this.setState({ path: path, mode: mode });
                 this.fetchFileIndex(path, mode);
-                fetch("/api/toniesJson")
-                    .then(response => response.json())
-                    .then(data => this.setState({ tonies: data }));
+                Promise.all([
+                    fetch("/api/toniesJson").then((response) => response.json()),
+                    fetch("/api/toniesCustomJson").then((response) => response.json()),
+                ])
+                    .then(([toniesData, customData]) => {
+                        const combinedTonies = [...customData, ...toniesData];
+                        this.setState({ tonies: combinedTonies });
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching tonies data:", error);
+                    });
                 window.addEventListener('popstate', this.handlePopState);
 
                 window.history.replaceState({ path, mode }, '', `?path=${path}&mode=${mode}`);
@@ -1403,15 +1411,16 @@
                                     custom = true;
                                 }
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
+
+                                if (custom) {
+                                    toniePic = "img_custom.png";
+                                }
                                 if (matchingTonie) {
                                     tonieArtist = matchingTonie.series;
                                     tonieTitle = matchingTonie.episodes;
                                     tonieFullName = tonieArtist + " - " + tonieTitle;
                                     toniePic = matchingTonie.pic;
                                     tonieModel = matchingTonie.model;
-                                }
-                                if (custom) {
-                                    toniePic = "img_custom.png";
                                 }
                             }
 
