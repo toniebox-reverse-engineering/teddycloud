@@ -19,6 +19,7 @@ void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
 {
     char buffer[4];
 
+    msg[0] = '\0';
     for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
     {
         if (i > 3 && !logFullAuth)
@@ -212,9 +213,9 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (!tonieInfo.contentConfig.nocloud && !tonieInfo.contentConfig.cloud_valid)
+    if (!tonieInfo.contentConfig.nocloud || tonieInfo.contentConfig.cloud_valid)
     {
-        if (checkCustomTonie(ruid, token, client_ctx->settings))
+        if (checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_valid)
         {
             TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
             markCustomTonie(&tonieInfo);
