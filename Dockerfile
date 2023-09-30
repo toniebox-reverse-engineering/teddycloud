@@ -12,7 +12,7 @@ FROM ubuntu:latest
 EXPOSE 80 443
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends faketime openssl libubsan1 ffmpeg curl ca-certificates \
+    && apt-get install -y --no-install-recommends libubsan1 ffmpeg curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-ca-certificates
