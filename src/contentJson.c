@@ -137,6 +137,15 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);
+
+    char *dir = strdup(content_path);
+    dir[osStrlen(dir) - 8] = '\0';
+    if (!fsDirExists(dir))
+    {
+        fsCreateDir(dir);
+    }
+    osFreeMem(dir);
+
     FsFile *file = fsOpenFile(jsonPath, FS_FILE_MODE_WRITE);
     if (file != NULL)
     {
