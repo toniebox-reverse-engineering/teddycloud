@@ -1197,9 +1197,11 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     ERR_RETURN(load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId));
     ERR_RETURN(load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId));
     ERR_RETURN(load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId));
-    ERR_RETURN(load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId));
-    ERR_RETURN(load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId));
-    ERR_RETURN(load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId));
+
+    /* do not fail when client-role certs are missing */
+    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
 
     const char *server_crt = settings_get_string("internal.server.crt");
     const char *server_ca_crt = settings_get_string("internal.server.ca");
