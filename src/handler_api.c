@@ -1595,3 +1595,7 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 {
     return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
 }
+error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
+}
