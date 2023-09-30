@@ -348,7 +348,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-void settings_init(char *cwd);
+error_t settings_init(char *cwd);
 
 /**
  * @brief Deinitializes the settings subsystem.
@@ -375,8 +375,8 @@ void settings_deinit_all();
  *    settings_save();
  * @endcode
  */
-void settings_save();
-void settings_save_ovl(bool overlay);
+error_t settings_save();
+error_t settings_save_ovl(bool overlay);
 
 /**
  * @brief Loads settings from a persistent storage (like a file or database).
@@ -395,8 +395,8 @@ void settings_save_ovl(bool overlay);
  *    settings_load();
  * @endcode
  */
-void settings_load();
-void settings_load_ovl(bool overlay);
+error_t settings_load();
+error_t settings_load_ovl(bool overlay);
 
 uint16_t settings_get_size();
 

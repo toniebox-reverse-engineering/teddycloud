@@ -425,7 +425,7 @@ void settings_deinit_all()
     }
 }
 
-void settings_init(char *cwd)
+error_t settings_init(char *cwd)
 {
     option_map_init(0);
 
@@ -485,16 +485,29 @@ void settings_init(char *cwd)
     Settings_Overlay[0].internal.config_used = true;
 
     settings_changed();
-    settings_load();
+
+    return settings_load();
 }
 
-void settings_save()
+error_t settings_save()
 {
-    settings_save_ovl(false);
-    settings_save_ovl(true);
+    error_t err = NO_ERROR;
+
+    err = settings_save_ovl(false);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+    err = settings_save_ovl(true);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    return NO_ERROR;
 }
 
-void settings_save_ovl(bool overlay)
+error_t settings_save_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
 
@@ -502,8 +515,8 @@ void settings_save_ovl(bool overlay)
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
     if (file == NULL)
     {
-        TRACE_WARNING("Failed to open config file for writing\r\n");
-        return;
+        TRACE_ERROR("Failed to open config file for writing\r\n");
+        return ERROR_DIRECTORY_NOT_FOUND;
     }
 
     for (size_t i = 0; i < MAX_OVERLAYS; i++)
@@ -576,15 +589,30 @@ void settings_save_ovl(bool overlay)
     }
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
+
+    return NO_ERROR;
 }
 
-void settings_load()
+error_t settings_load()
 {
-    settings_load_ovl(false);
-    settings_load_ovl(true);
+    error_t err = NO_ERROR;
+
+    err = settings_load_ovl(false);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = settings_load_ovl(true);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    return NO_ERROR;
 }
 
-void settings_load_ovl(bool overlay)
+error_t settings_load_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
 
@@ -592,8 +620,13 @@ void settings_load_ovl(bool overlay)
     if (!fsFileExists(config_path))
     {
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
-        settings_save_ovl(overlay);
-        return;
+
+        error_t err = settings_save_ovl(overlay);
+        if (err != NO_ERROR)
+        {
+            return err;
+        }
+        return NO_ERROR;
     }
 
     uint32_t file_size;
@@ -601,14 +634,14 @@ void settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
-        return;
+        return ERROR_ABORTED;
     }
 
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_READ);
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
-        return;
+        return ERROR_ABORTED;
     }
 
     if (overlay)
@@ -773,6 +806,8 @@ void settings_load_ovl(bool overlay)
             settings_last_load = stat.modified;
         }
     }
+
+    return NO_ERROR;
 }
 
 uint16_t settings_get_size()

@@ -129,7 +129,13 @@ int_t main(int argc, char *argv[])
     }
 
     /* platform specific init */
-    settings_init(cwd);
+    error = settings_init(cwd);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("settings_init() failed with error code %d\r\n", error);
+        TRACE_ERROR("Make sure the config path exists and is writable\r\n");
+        return -1;
+    }
     platform_init();
 
     cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
