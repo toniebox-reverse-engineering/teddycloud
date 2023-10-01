@@ -23,9 +23,8 @@
 #include "toniefile.h"
 
 #ifdef _WIN32
-#include <windows.h>
 #include <direct.h>
-#define PATH_LEN MAX_PATH
+#define PATH_LEN 260
 #else
 #include <unistd.h>
 #include <limits.h>
