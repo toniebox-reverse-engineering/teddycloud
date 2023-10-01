@@ -42,12 +42,17 @@ jobs:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
         password: ${{ secrets.GITHUB_TOKEN }}
-        
+
     - name: Docker meta matrix
       id: matrix_meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY_IMAGE }}
+        tags: |
+          type=sha
+        flavor: |
+          prefix=arch_,onlatest=true
+          suffix=${{ matrix.platform }},onlatest=true
 
     - name: Build docker ${{ matrix.platform }}
       id: build
@@ -55,6 +60,7 @@ jobs:
       with:
         context: .
         platforms: ${{ matrix.platform }}
+        push: ${{ github.event_name != 'pull_request' }}
         #platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
         labels: ${{ steps.matrix_meta.outputs.labels }}
         outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
