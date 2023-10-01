@@ -22,7 +22,7 @@
 #include "cert.h"
 #include "toniefile.h"
 
-#ifdef _WIN32
+#ifdef WIN32
 #include <windows.h>
 #define PATH_LEN MAX_PATH
 #else
@@ -355,7 +355,7 @@ int_t main(int argc, char *argv[])
 
 static char *get_cwd(char *buffer, size_t size)
 {
-#ifdef _WIN32
+#ifdef WIN32
     return _getcwd(buffer, size);
 #else
     return getcwd(buffer, size);
