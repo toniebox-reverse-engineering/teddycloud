@@ -335,7 +335,7 @@ int_t main(int argc, char *argv[])
 #endif
         else
         {
-            TRACE_ERROR("Bad argument provided: %s\r\n", argv[0]);
+            TRACE_ERROR("Bad argument provided: %s\r\n", argv[1]);
             print_usage(argv);
             return -1;
         }
