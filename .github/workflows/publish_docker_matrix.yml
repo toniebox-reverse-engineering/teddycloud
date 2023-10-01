@@ -130,4 +130,4 @@ jobs:
       - name: Inspect image
         if: ${{ github.event_name != 'pull_request' }}
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.teddycloud_meta.outputs.version }}
