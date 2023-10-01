@@ -24,6 +24,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <direct.h>
 #define PATH_LEN MAX_PATH
 #else
 #include <unistd.h>
