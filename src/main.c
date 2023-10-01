@@ -39,6 +39,7 @@ void platform_init(void);
 void platform_deinit(void);
 void server_init(void);
 static char *get_cwd(char *buffer, size_t size);
+static void print_usage(char *argv[]);
 
 typedef enum
 {
@@ -332,6 +333,12 @@ int_t main(int argc, char *argv[])
             return 1;
         }
 #endif
+        else
+        {
+            TRACE_ERROR("Bad argument provided: %s\r\n", argv[0]);
+            print_usage(argv);
+            return -1;
+        }
     }
     else
     {
@@ -353,4 +360,19 @@ static char *get_cwd(char *buffer, size_t size)
 #else
     return getcwd(buffer, size);
 #endif
+}
+
+static void print_usage(char *argv[])
+{
+    printf(
+        "Usage: %s [options]\n\n"
+        "Options:\n"
+        "  GENERIC <url> [hash]                Generic URL test.\r\n"
+        "  SERVER_CERTS                        Generates Server Certs.\r\n"
+        "  CLOUD <request> [hash]              Cloud API test.\r\n"
+        "  CERTGEN <mac_address> <target_dir>  Generate client certs\r\n"
+        "  ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n"
+        "  ESP32FIXUP <esp32-image-bin>\r\n"
+        "  ENCODE_TEST                         Runs an encoding test\r\n",
+        argv[0]);
 }
