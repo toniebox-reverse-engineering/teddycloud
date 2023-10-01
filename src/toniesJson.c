@@ -71,11 +71,14 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
         osFreeMem(data);
         if (toniesJson == NULL)
         {
-            const char *error_ptr = cJSON_GetErrorPtr();
-            TRACE_ERROR("Json parse error");
-            if (error_ptr != NULL)
+            if (fileSize > 0)
             {
-                TRACE_ERROR("before: %s\n", error_ptr);
+                const char *error_ptr = cJSON_GetErrorPtr();
+                TRACE_ERROR("Json parse error\r\n");
+                if (error_ptr != NULL)
+                {
+                    // TRACE_ERROR(" before: %s\r\n", error_ptr); //TODO is crashing
+                }
             }
             cJSON_Delete(toniesJson);
         }
@@ -111,6 +114,20 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                 item->picture = tonies_jsonGetString(tonieJson, "pic");
             }
             cJSON_Delete(toniesJson);
+        }
+    }
+    else
+    {
+        TRACE_INFO("Create empty json file\r\n");
+        FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
+        if (fsFile != NULL)
+        {
+            fsWriteFile(fsFile, "[]", 2);
+            fsCloseFile(fsFile);
+        }
+        else
+        {
+            TRACE_ERROR("...could not create file\r\n");
         }
     }
 #endif
