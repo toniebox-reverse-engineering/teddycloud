@@ -1,5 +1,6 @@
 #include "handler.h"
 #include "server_helpers.h"
+#include "toniesJson.h"
 
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
@@ -272,6 +273,23 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
                         if (tonieInfo.tafHeader)
                         {
                             tonieInfo.valid = true;
+                            toniesJson_item_t *toniesJson = tonies_byAudioId(tonieInfo.tafHeader->audio_id);
+                            if (toniesJson != NULL)
+                            {
+                                if (osStrcmp(tonieInfo.contentConfig.tonie_model, toniesJson->model) != 0)
+                                {
+                                    if (tonieInfo.contentConfig.tonie_model != NULL)
+                                    {
+                                        osFreeMem(tonieInfo.contentConfig.tonie_model);
+                                    }
+                                    tonieInfo.contentConfig.tonie_model = strdup(toniesJson->model);
+                                    tonieInfo.contentConfig._updated = true;
+                                }
+                            }
+                            else if (tonieInfo.contentConfig.tonie_model != NULL)
+                            {
+                                // TODO add to tonies.custom.json + report
+                            }
 
                             if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
                             {

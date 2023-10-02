@@ -128,6 +128,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
                 content_json->cloud_auth = content_jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
+                content_json->tonie_model = content_jsonGetString(contentJson, "tonie_model");
                 content_json->cloud_valid = true;
 
                 // TODO: use checkCustomTonie to validate
@@ -189,6 +190,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     cJSON_AddBoolToObject(contentJson, "cache", content_json->cache);
     content_AddStringToObject(contentJson, "cloud_ruid", content_json->cloud_ruid);
     content_AddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
+    content_AddStringToObject(contentJson, "tonie_model", content_json->tonie_model);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);
@@ -241,6 +243,11 @@ void free_content_json(contentJson_t *content_json)
     {
         osFreeMem(content_json->cloud_auth);
         content_json->cloud_auth = NULL;
+    }
+    if (content_json->tonie_model)
+    {
+        osFreeMem(content_json->tonie_model);
+        content_json->tonie_model = NULL;
     }
     if (content_json->_streamFile)
     {
