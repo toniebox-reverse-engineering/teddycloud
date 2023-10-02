@@ -832,7 +832,6 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
         case NO_ERROR:
             statusCode = 200;
             TRACE_INFO("Received new file:\r\n");
-            TRACE_INFO("  '%s'\r\n", ctx.root_path);
             TRACE_INFO("  '%s'\r\n", ctx.filename);
             osSnprintf(message, sizeof(message), "%s", &ctx.filename[strlen(ctx.root_path) + 1]);
             break;

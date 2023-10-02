@@ -1,0 +1,42 @@
+# This Docker Compose file orchestrates the deployment of the teddycloud service on a Synology DS723+
+#
+# The service is served at a static IP 192.168.1.192 on a macvlan network, allowing it to operate on the host network as a unique entity.
+# Directories from the host are mapped to the container ensuring data persistence across restarts.
+#  - library: where your global library of toniefiles is located at
+#  - content: where your box' toniefiles get stored
+#  - certs: certificates for server and client mode
+#  - firmware: firmware dumps for ESP32 firmware operations
+#
+# The container is configured to restart automatically unless manually stopped, and is granted the NET_ADMIN capability for network-related operations.
+#
+version: '3'
+
+services:
+  teddycloud:
+    mac_address: 66-66-66-00-00-01
+    networks:
+      dockervlan:
+        ipv4_address: 192.168.1.192
+    container_name: teddycloud
+    hostname: teddycloud
+    image: ghcr.io/toniebox-reverse-engineering/teddycloud:develop
+    volumes:
+      - /volume1/docker/teddyCloud/config:/teddycloud/config
+      - /volume1/docker/teddyCloud/certs:/teddycloud/certs
+      - /volume1/docker/teddyCloud/data/content:/teddycloud/data/content
+      - /volume1/docker/data/teddyCloud/firmware:/teddycloud/data/firmware
+      - /volume1/data/Share/Tonies:/teddycloud/data/library
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+networks:
+  dockervlan:
+    name: dockervlan
+    driver: macvlan
+    driver_opts:
+      parent: ovs_eth0
+    ipam: 
+      config:
+        - subnet: "192.168.1.0/24"
+          ip_range: "192.168.1.192/26"
+          gateway: "192.168.1.1"
