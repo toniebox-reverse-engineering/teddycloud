@@ -69,14 +69,13 @@ jobs:
           prefix=arch_,onlatest=true
           suffix=_${{ matrix.platform }},onlatest=true
 
-    - name: Build & push docker ${{ matrix.platform }}
-      id: push
+    - name: Build & push digest docker ${{ matrix.platform }}
+      id: build
       uses: docker/build-push-action@v2
       with:
         context: .
         platforms: ${{ matrix.platform }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.matrix_meta.outputs.tags }}
         labels: ${{ steps.matrix_meta.outputs.labels }}
         outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
         cache-from: type=gha
@@ -85,7 +84,7 @@ jobs:
     - name: Export digest
       run: |
         mkdir -p /tmp/digests/${GITHUB_SHA}
-        digest="${{ steps.push.outputs.digest }}"
+        digest="${{ steps.build.outputs.digest }}"
         touch "/tmp/digests/${GITHUB_SHA}/${digest#sha256:}"
 
     - name: Push docker tags ${{ matrix.platform }}
