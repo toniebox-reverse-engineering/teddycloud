@@ -2137,10 +2137,8 @@
                         this.setState({ state: `Upload failed` });
                     }
                 } catch (err) {
-                    console.error('There was an error!', err);
-                    this.setState(prevState => ({
-                        files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
-                    }));
+                    console.error('There was an error when uploading!', err);
+                    this.setState({ state: `Upload failed` });
                 }
             }
 
