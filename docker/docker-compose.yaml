@@ -12,9 +12,11 @@ services:
       - config:/teddycloud/config
       - content:/teddycloud/data/content
       - library:/teddycloud/data/library
+      - firmware:/teddycloud/data/firmware
     restart: unless-stopped
 volumes:
   certs:
   config:
   content:
   library:
+  firmware:

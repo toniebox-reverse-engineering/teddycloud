@@ -21,6 +21,7 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir /teddycloud/config \
     && mkdir -p /teddycloud/data/content/default \
     && mkdir -p /teddycloud/data/library \
+    && mkdir -p /teddycloud/data/firmware  \
     && mkdir -p /teddycloud/data/www 
 
 COPY --from=buildenv \
@@ -36,6 +37,7 @@ COPY --from=buildenv \
 VOLUME \
     "/teddycloud/data/content" \
     "/teddycloud/data/library" \
+    "/teddycloud/data/firmware" \
     "/teddycloud/certs" \
     "/teddycloud/config"
 
