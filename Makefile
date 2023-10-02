@@ -420,7 +420,7 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
-workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/ data/firmware/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
 
@@ -487,7 +487,6 @@ auto:
 	$(QUIET)$(ECHO) '[ ${CYAN}AUTO${NC} ] Clean up'
 	$(QUIET)screen -ls | grep teddycloud_auto | awk '{print $$1}' | xargs -I % screen -X -S % quit
 	$(QUIET)$(ECHO) '[ ${CYAN}AUTO${NC} ] Build'
-	$(QUIET)make --no-print-directory -j
 	$(QUIET)screen -S teddycloud_auto -dm
 	$(QUIET)screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'
 	$(QUIET)last_build_time=$$(date +%s); \
@@ -495,7 +494,7 @@ auto:
 		modified_time=$$(stat -c "%Y" $(SOURCES) $(HEADERS) $(PROTO_FILES) $(THIS_MAKEFILE) | sort -r | head -n 1); \
 		if [ "$$modified_time" -gt "$$last_build_time" ]; then \
 			screen -S teddycloud_auto -X stuff "^C"; \
-			make --no-print-directory -j; \
+			make --no-print-directory -j || echo; \
 			last_build_time=$$(date +%s); \
 			screen -S teddycloud_auto -X screen bash -c 'valgrind $(EXECUTABLE); exec sh'; \
 		fi; \
