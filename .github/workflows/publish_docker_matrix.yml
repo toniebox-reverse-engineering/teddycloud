@@ -87,7 +87,7 @@ jobs:
         digest="${{ steps.build.outputs.digest }}"
         touch "/tmp/digests/${digest#sha256:}"
 
-    - name: Build docker ${{ matrix.platform }}
+    - name: Push docker tags ${{ matrix.platform }}
       id: push_tags
       uses: docker/build-push-action@v2
       with:
