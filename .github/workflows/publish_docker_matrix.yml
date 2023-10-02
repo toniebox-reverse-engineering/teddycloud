@@ -24,7 +24,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x]
+        platform: [linux/amd64]
+        #platform: [linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -68,32 +69,24 @@ jobs:
           prefix=arch_,onlatest=true
           suffix=_${{ matrix.platform }},onlatest=true
 
-    - name: Build docker ${{ matrix.platform }}
-      id: build
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        platforms: ${{ matrix.platform }}
-        push: false
-        labels: ${{ steps.matrix_meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Push docker ${{ matrix.platform }}
+    - name: Build & push docker ${{ matrix.platform }}
       id: push
       uses: docker/build-push-action@v2
       with:
         context: .
         platforms: ${{ matrix.platform }}
         push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.matrix_meta.outputs.tags }}
         labels: ${{ steps.matrix_meta.outputs.labels }}
         outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
     - name: Export digest
       run: |
-        mkdir -p /tmp/digests
+        mkdir -p /tmp/digests/${GITHUB_SHA}
         digest="${{ steps.push.outputs.digest }}"
-        touch "/tmp/digests/${digest#sha256:}"
+        touch "/tmp/digests/${GITHUB_SHA}/${digest#sha256:}"
 
     - name: Push docker tags ${{ matrix.platform }}
       id: push_tags
@@ -109,7 +102,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: digests
-        path: /tmp/digests/*
+        path: /tmp/digests/${GITHUB_SHA}/*
         if-no-files-found: error
         
   merge-images:
@@ -121,7 +114,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: digests
-          path: /tmp/digests
+          path: /tmp/digests/${GITHUB_SHA}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR
@@ -156,7 +149,7 @@ jobs:
 
       - name: Create manifest list and push
         if: ${{ github.event_name != 'pull_request' }}
-        working-directory: /tmp/digests
+        working-directory: /tmp/digests/${GITHUB_SHA}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)     
