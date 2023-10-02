@@ -342,7 +342,7 @@ error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void 
             error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
             if (error != NO_ERROR)
             {
-                TRACE_ERROR("httpReceive failed\r\n");
+                TRACE_ERROR("httpReceive failed with error %d\r\n", error);
                 return error;
             }
 
@@ -517,81 +517,81 @@ error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void 
 
 error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr)
 {
-   error_t error;
-   int_t i = 0;
-   int_t value = -1;
+    error_t error;
+    int_t i = 0;
+    int_t value = -1;
 
-   //Parse input string
-   while(1)
-   {
-      //Decimal digit found?
-      if(osIsdigit(*str))
-      {
-         //First digit to be decoded?
-         if(value < 0)
-            value = 0;
+    // Parse input string
+    while (1)
+    {
+        // Decimal digit found?
+        if (osIsdigit(*str))
+        {
+            // First digit to be decoded?
+            if (value < 0)
+                value = 0;
 
-         //Update the value of the current byte
-         value = (value * 10) + (*str - '0');
+            // Update the value of the current byte
+            value = (value * 10) + (*str - '0');
 
-         //The resulting value shall be in range 0 to 255
-         if(value > 255)
-         {
-            //The conversion failed
+            // The resulting value shall be in range 0 to 255
+            if (value > 255)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+                break;
+            }
+        }
+        // Dot separator found?
+        else if (*str == '.' && i < 4)
+        {
+            // Each dot must be preceded by a valid number
+            if (value < 0)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+                break;
+            }
+
+            // Save the current byte
+            ((uint8_t *)ipAddr)[i++] = value;
+            // Prepare to decode the next byte
+            value = -1;
+        }
+        // End of string detected?
+        else if (*str == '\0' && i == 3)
+        {
+            // The NULL character must be preceded by a valid number
+            if (value < 0)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+            }
+            else
+            {
+                // Save the last byte of the IPv4 address
+                ((uint8_t *)ipAddr)[i] = value;
+                // The conversion succeeded
+                error = NO_ERROR;
+            }
+
+            // We are done
+            break;
+        }
+        // Invalid character...
+        else
+        {
+            // The conversion failed
             error = ERROR_INVALID_SYNTAX;
             break;
-         }
-      }
-      //Dot separator found?
-      else if(*str == '.' && i < 4)
-      {
-         //Each dot must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
+        }
 
-         //Save the current byte
-         ((uint8_t *) ipAddr)[i++] = value;
-         //Prepare to decode the next byte
-         value = -1;
-      }
-      //End of string detected?
-      else if(*str == '\0' && i == 3)
-      {
-         //The NULL character must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-         }
-         else
-         {
-            //Save the last byte of the IPv4 address
-            ((uint8_t *) ipAddr)[i] = value;
-            //The conversion succeeded
-            error = NO_ERROR;
-         }
+        // Point to the next character
+        str++;
+    }
 
-         //We are done
-         break;
-      }
-      //Invalid character...
-      else
-      {
-         //The conversion failed
-         error = ERROR_INVALID_SYNTAX;
-         break;
-      }
-
-      //Point to the next character
-      str++;
-   }
-
-   //Return status code
-   return error;
+    // Return status code
+    return error;
 }
 
 /**
@@ -603,141 +603,141 @@ error_t ipv4StringToAddr(const char_t *str, Ipv4Addr *ipAddr)
 
 error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
 {
-   error_t error;
-   int_t i = 0;
-   int_t j = -1;
-   int_t k = 0;
-   int32_t value = -1;
+    error_t error;
+    int_t i = 0;
+    int_t j = -1;
+    int_t k = 0;
+    int32_t value = -1;
 
-   //Parse input string
-   while(1)
-   {
-      //Hexadecimal digit found?
-      if(isxdigit((uint8_t) *str))
-      {
-         //First digit to be decoded?
-         if(value < 0)
-            value = 0;
+    // Parse input string
+    while (1)
+    {
+        // Hexadecimal digit found?
+        if (isxdigit((uint8_t)*str))
+        {
+            // First digit to be decoded?
+            if (value < 0)
+                value = 0;
 
-         //Update the value of the current 16-bit word
-         if(osIsdigit(*str))
-         {
-            value = (value * 16) + (*str - '0');
-         }
-         else if(osIsupper(*str))
-         {
-            value = (value * 16) + (*str - 'A' + 10);
-         }
-         else
-         {
-            value = (value * 16) + (*str - 'a' + 10);
-         }
+            // Update the value of the current 16-bit word
+            if (osIsdigit(*str))
+            {
+                value = (value * 16) + (*str - '0');
+            }
+            else if (osIsupper(*str))
+            {
+                value = (value * 16) + (*str - 'A' + 10);
+            }
+            else
+            {
+                value = (value * 16) + (*str - 'a' + 10);
+            }
 
-         //Check resulting value
-         if(value > 0xFFFF)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
-      }
-      //"::" symbol found?
-      else if(!osStrncmp(str, "::", 2))
-      {
-         //The "::" can only appear once in an IPv6 address
-         if(j >= 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-            break;
-         }
+            // Check resulting value
+            if (value > 0xFFFF)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+                break;
+            }
+        }
+        //"::" symbol found?
+        else if (!osStrncmp(str, "::", 2))
+        {
+            // The "::" can only appear once in an IPv6 address
+            if (j >= 0)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+                break;
+            }
 
-         //The "::" symbol is preceded by a number?
-         if(value >= 0)
-         {
-            //Save the current 16-bit word
+            // The "::" symbol is preceded by a number?
+            if (value >= 0)
+            {
+                // Save the current 16-bit word
+                ipAddr->w[i++] = htons(value);
+                // Prepare to decode the next 16-bit word
+                value = -1;
+            }
+
+            // Save the position of the "::" symbol
+            j = i;
+            // Point to the next character
+            str++;
+        }
+        //":" symbol found?
+        else if (*str == ':' && i < 8)
+        {
+            // Each ":" must be preceded by a valid number
+            if (value < 0)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+                break;
+            }
+
+            // Save the current 16-bit word
             ipAddr->w[i++] = htons(value);
-            //Prepare to decode the next 16-bit word
+            // Prepare to decode the next 16-bit word
             value = -1;
-         }
+        }
+        // End of string detected?
+        else if (*str == '\0' && i == 7 && j < 0)
+        {
+            // The NULL character must be preceded by a valid number
+            if (value < 0)
+            {
+                // The conversion failed
+                error = ERROR_INVALID_SYNTAX;
+            }
+            else
+            {
+                // Save the last 16-bit word of the IPv6 address
+                ipAddr->w[i] = htons(value);
+                // The conversion succeeded
+                error = NO_ERROR;
+            }
 
-         //Save the position of the "::" symbol
-         j = i;
-         //Point to the next character
-         str++;
-      }
-      //":" symbol found?
-      else if(*str == ':' && i < 8)
-      {
-         //Each ":" must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
+            // We are done
+            break;
+        }
+        else if (*str == '\0' && i < 7 && j >= 0)
+        {
+            // Save the last 16-bit word of the IPv6 address
+            if (value >= 0)
+                ipAddr->w[i++] = htons(value);
+
+            // Move the part of the address that follows the "::" symbol
+            for (k = 0; k < (i - j); k++)
+            {
+                ipAddr->w[7 - k] = ipAddr->w[i - 1 - k];
+            }
+
+            // A sequence of zeroes can now be written in place of "::"
+            for (k = 0; k < (8 - i); k++)
+            {
+                ipAddr->w[j + k] = 0;
+            }
+
+            // The conversion succeeded
+            error = NO_ERROR;
+            break;
+        }
+        // Invalid character...
+        else
+        {
+            // The conversion failed
             error = ERROR_INVALID_SYNTAX;
             break;
-         }
+        }
 
-         //Save the current 16-bit word
-         ipAddr->w[i++] = htons(value);
-         //Prepare to decode the next 16-bit word
-         value = -1;
-      }
-      //End of string detected?
-      else if(*str == '\0' && i == 7 && j < 0)
-      {
-         //The NULL character must be preceded by a valid number
-         if(value < 0)
-         {
-            //The conversion failed
-            error = ERROR_INVALID_SYNTAX;
-         }
-         else
-         {
-            //Save the last 16-bit word of the IPv6 address
-            ipAddr->w[i] = htons(value);
-            //The conversion succeeded
-            error = NO_ERROR;
-         }
+        // Point to the next character
+        str++;
+    }
 
-         //We are done
-         break;
-      }
-      else if(*str == '\0' && i < 7 && j >= 0)
-      {
-         //Save the last 16-bit word of the IPv6 address
-         if(value >= 0)
-            ipAddr->w[i++] = htons(value);
-
-         //Move the part of the address that follows the "::" symbol
-         for(k = 0; k < (i - j); k++)
-         {
-            ipAddr->w[7 - k] = ipAddr->w[i - 1 - k];
-         }
-
-         //A sequence of zeroes can now be written in place of "::"
-         for(k = 0; k < (8 - i); k++)
-         {
-            ipAddr->w[j + k] = 0;
-         }
-
-         //The conversion succeeded
-         error = NO_ERROR;
-         break;
-      }
-      //Invalid character...
-      else
-      {
-         //The conversion failed
-         error = ERROR_INVALID_SYNTAX;
-         break;
-      }
-
-      //Point to the next character
-      str++;
-   }
-
-   //Return status code
-   return error;
+    // Return status code
+    return error;
 }
 
 /**
@@ -749,37 +749,36 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
 
 error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
 {
-   error_t error;
+    error_t error;
 
 #if (IPV6_SUPPORT == ENABLED)
-   //IPv6 address?
-   if(osStrchr(str, ':') != NULL)
-   {
-      //IPv6 addresses are 16-byte long
-      ipAddr->length = sizeof(Ipv6Addr);
-      //Convert the string to IPv6 address
-      error = ipv6StringToAddr(str, &ipAddr->ipv6Addr);
-   }
-   else
+    // IPv6 address?
+    if (osStrchr(str, ':') != NULL)
+    {
+        // IPv6 addresses are 16-byte long
+        ipAddr->length = sizeof(Ipv6Addr);
+        // Convert the string to IPv6 address
+        error = ipv6StringToAddr(str, &ipAddr->ipv6Addr);
+    }
+    else
 #endif
 #if (IPV4_SUPPORT == ENABLED)
-   //IPv4 address?
-   if(osStrchr(str, '.') != NULL)
-   {
-      //IPv4 addresses are 4-byte long
-      ipAddr->length = sizeof(Ipv4Addr);
-      //Convert the string to IPv4 address
-      error = ipv4StringToAddr(str, &ipAddr->ipv4Addr);
-   }
-   else
+        // IPv4 address?
+        if (osStrchr(str, '.') != NULL)
+        {
+            // IPv4 addresses are 4-byte long
+            ipAddr->length = sizeof(Ipv4Addr);
+            // Convert the string to IPv4 address
+            error = ipv4StringToAddr(str, &ipAddr->ipv4Addr);
+        }
+        else
 #endif
-   //Invalid IP address?
-   {
-      //Report an error
-      error = ERROR_FAILURE;
-   }
+        // Invalid IP address?
+        {
+            // Report an error
+            error = ERROR_FAILURE;
+        }
 
-   //Return status code
-   return error;
+    // Return status code
+    return error;
 }
-
