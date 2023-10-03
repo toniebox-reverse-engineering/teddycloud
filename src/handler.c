@@ -244,6 +244,7 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig.cloud_ruid = NULL;
     tonieInfo.contentConfig.cloud_auth = NULL;
     tonieInfo.contentConfig.cloud_auth_len = 0;
+    tonieInfo.contentConfig.tonie_model = NULL;
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
@@ -274,21 +275,19 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
                         {
                             tonieInfo.valid = true;
                             toniesJson_item_t *toniesJson = tonies_byAudioId(tonieInfo.tafHeader->audio_id);
-                            if (toniesJson != NULL)
+                            if (toniesJson != NULL && osStrcmp(tonieInfo.contentConfig.tonie_model, "") == 0)
                             {
                                 if (osStrcmp(tonieInfo.contentConfig.tonie_model, toniesJson->model) != 0)
                                 {
-                                    if (tonieInfo.contentConfig.tonie_model != NULL)
-                                    {
-                                        osFreeMem(tonieInfo.contentConfig.tonie_model);
-                                    }
+                                    osFreeMem(tonieInfo.contentConfig.tonie_model);
                                     tonieInfo.contentConfig.tonie_model = strdup(toniesJson->model);
                                     tonieInfo.contentConfig._updated = true;
                                 }
                             }
-                            else if (tonieInfo.contentConfig.tonie_model != NULL)
+                            else if (toniesJson == NULL && osStrcmp(tonieInfo.contentConfig.tonie_model, "") != 0)
                             {
                                 // TODO add to tonies.custom.json + report
+                                TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", tonieInfo.tafHeader->audio_id, tonieInfo.contentConfig.tonie_model);
                             }
 
                             if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
