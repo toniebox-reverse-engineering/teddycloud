@@ -14,15 +14,18 @@ typedef struct
     uint8_t *cloud_auth;
     size_t cloud_auth_len;
     bool_t cloud_valid;
+    char *tonie_model;
 
     bool_t _stream;
     char *_streamFile;
     uint32_t _version;
     bool_t _updated;
 
+    bool_t _valid;
+
 } contentJson_t;
 
-#define CONTENT_JSON_VERSION 3
+#define CONTENT_JSON_VERSION 4
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json);
 error_t save_content_json(const char *content_path, contentJson_t *content_json);

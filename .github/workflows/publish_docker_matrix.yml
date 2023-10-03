@@ -49,35 +49,60 @@ jobs:
       with:
         images: ${{ env.REGISTRY_IMAGE }}
         tags: |
-          type=sha
+            type=schedule
+            type=schedule,pattern=nightly
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Germany/Berlin'}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
+            type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
+            type=raw,value=nightly-develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=ref,event=tag
+            type=match,pattern=tc_v(\d+),group=1
+            type=match,pattern=tc_v(\d+.\d+),group=1
+            type=match,pattern=tc_v(\d+.\d+.\d+),group=1
+            type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
         flavor: |
-          prefix=arch-,onlatest=true
-          suffix=-${{ matrix.platform }},onlatest=true
+          prefix=arch_,onlatest=true
+          suffix=_${{ matrix.platform }},onlatest=true
 
-    - name: Build docker ${{ matrix.platform }}
+    - name: Build & push digest docker ${{ matrix.platform }}
       id: build
       uses: docker/build-push-action@v2
-      if: ${{ github.event_name != 'pull_request' }}
       with:
         context: .
         platforms: ${{ matrix.platform }}
-        #platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
+        push: ${{ github.event_name != 'pull_request' }}
         labels: ${{ steps.matrix_meta.outputs.labels }}
-        outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+        outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
     - name: Export digest
       run: |
-        mkdir -p /tmp/digests
+        mkdir -p /tmp/digests/${{ github.sha }}
         digest="${{ steps.build.outputs.digest }}"
-        touch "/tmp/digests/${digest#sha256:}"          
+        commit_sha="${{ github.sha }}"
+        touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
+
+    - name: Push docker tags ${{ matrix.platform }}
+      id: push_tags
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        platforms: ${{ matrix.platform }}
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.matrix_meta.outputs.tags }}
+        labels: ${{ steps.matrix_meta.outputs.labels }}
+
     - name: Upload digest
       uses: actions/upload-artifact@v3
       with:
         name: digests
-        path: /tmp/digests/*
+        path: /tmp/digests/${{ github.sha }}/*
         if-no-files-found: error
-        retention-days: 1
         
   merge-images:
     runs-on: ubuntu-latest
@@ -88,7 +113,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: digests
-          path: /tmp/digests
+          path: /tmp/digests/${{ github.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR
@@ -123,7 +148,7 @@ jobs:
 
       - name: Create manifest list and push
         if: ${{ github.event_name != 'pull_request' }}
-        working-directory: /tmp/digests
+        working-directory: /tmp/digests/${{ github.sha }}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)     

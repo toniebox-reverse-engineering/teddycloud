@@ -7,11 +7,6 @@
 #include <stdint.h>
 #include <math.h>
 
-#ifdef WIN32
-#else
-#include <unistd.h>
-#endif
-
 #include "error.h"
 #include "debug.h"
 #include "cJSON.h"
@@ -23,46 +18,34 @@
 #include "cloud_request.h"
 
 #include "settings.h"
-#include "esp32.h"
 #include "mqtt.h"
 #include "cert.h"
 #include "toniefile.h"
 
+#ifdef _WIN32
+#include <direct.h>
+#define PATH_LEN 260
+#else
+#include <unistd.h>
+#include <limits.h>
+#define PATH_LEN PATH_MAX
+#endif
+
+#define DEFAULT_HTTP_PORT 80
+#define DEFAULT_HTTPS_PORT 443
+#define PORT_MAX 65535
+
 void platform_init(void);
 void platform_deinit(void);
 void server_init(void);
-#define DEFAULT_HTTP_PORT 80
-#define DEFAULT_HTTPS_PORT 443
+static char *get_cwd(char *buffer, size_t size);
+static void print_usage(char *argv[]);
 
 typedef enum
 {
     PROT_HTTP,
     PROT_HTTPS
 } Protocol;
-
-void get_directory_path(const char *filepath, char *dirpath, int maxLen)
-{
-    // Find the last occurrence of '/' or '\' in the file path
-    int lastSlash = -1;
-    for (int i = 0; filepath[i] != '\0'; i++)
-    {
-        if (filepath[i] == '/' || filepath[i] == '\\')
-        {
-            lastSlash = i;
-        }
-    }
-
-    if (lastSlash == -1)
-    {
-        // No directory part found, use an empty string for the directory path
-        dirpath[0] = '\0';
-    }
-    else
-    {
-        // Copy the characters before the last slash to the directory path buffer
-        snprintf(dirpath, maxLen, "%.*s", lastSlash, filepath);
-    }
-}
 
 bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Protocol *protocol)
 {
@@ -98,7 +81,16 @@ bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Pro
         strncpy(*hostname, url, hostname_length);
         (*hostname)[hostname_length] = '\0';
 
-        *port = (uint16_t)atoi(port_start + 1);
+        // ensures port is in a valid range before casting
+        long temp = strtol(port_start + 1, NULL, 10);
+        if ((temp >= 0) && (temp <= PORT_MAX))
+        {
+            *port = (uint16_t)temp;
+        }
+        else
+        {
+            *port = (*protocol == PROT_HTTP) ? DEFAULT_HTTP_PORT : DEFAULT_HTTPS_PORT;
+        }
     }
     else
     {
@@ -122,14 +114,17 @@ int_t main(int argc, char *argv[])
 
     error_t error = 0;
 
-    char cwd[256];
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    char *cwd = calloc(PATH_LEN, sizeof(char));
+
+    if ((cwd == NULL) || (get_cwd(cwd, PATH_LEN) == NULL))
     {
-        get_directory_path(argv[0], cwd, sizeof(cwd));
+        free(cwd);
+        return -1;
     }
 
     /* platform specific init */
     error = settings_init(cwd);
+    free(cwd);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("settings_init() failed with error code %d\r\n", error);
@@ -338,6 +333,12 @@ int_t main(int argc, char *argv[])
             return 1;
         }
 #endif
+        else
+        {
+            TRACE_ERROR("Bad argument provided: %s\r\n", argv[1]);
+            print_usage(argv);
+            return -1;
+        }
     }
     else
     {
@@ -350,4 +351,28 @@ int_t main(int argc, char *argv[])
     settings_deinit_all();
 
     return error;
+}
+
+static char *get_cwd(char *buffer, size_t size)
+{
+#ifdef _WIN32
+    return _getcwd(buffer, size);
+#else
+    return getcwd(buffer, size);
+#endif
+}
+
+static void print_usage(char *argv[])
+{
+    printf(
+        "Usage: %s [options]\n\n"
+        "Options:\n"
+        "  GENERIC <url> [hash]                Generic URL test.\r\n"
+        "  SERVER_CERTS                        Generates Server Certs.\r\n"
+        "  CLOUD <request> [hash]              Cloud API test.\r\n"
+        "  CERTGEN <mac_address> <target_dir>  Generate client certs\r\n"
+        "  ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n"
+        "  ESP32FIXUP <esp32-image-bin>\r\n"
+        "  ENCODE_TEST                         Runs an encoding test\r\n",
+        argv[0]);
 }
