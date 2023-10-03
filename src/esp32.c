@@ -141,10 +141,18 @@ size_t esp32_wl_translate(const struct wl_state *state, size_t sector)
 
 DWORD get_fattime()
 {
-    uint32_t year = 2023;
-    uint32_t mon = 7;
-    uint32_t day = 31;
-    return ((uint32_t)(year - 1980) << 25 | (uint32_t)mon << 21 | (uint32_t)day << 16);
+    // Retrieve current time
+    time_t time = getCurrentUnixTime();
+    DateTime date;
+    convertUnixTimeToDate(time, &date);
+
+    return (
+        (uint32_t)(date.year - 1980) << 25 |
+        (uint32_t)(date.month) << 21 |
+        (uint32_t)(date.day) << 16 |
+        (uint32_t)(date.hours) << 11 |
+        (uint32_t)(date.minutes) << 5 |
+        (uint32_t)(date.seconds) >> 1);
 }
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
