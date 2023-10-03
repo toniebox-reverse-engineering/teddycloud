@@ -1877,7 +1877,8 @@
                     showProgress: false,
                     showDownload: false,
                     showFlash: false,
-                    connected: false
+                    connected: false,
+                    hostname: window.location.hostname
                 };
                 this.fileInputRef = React.createRef();
             }
@@ -1886,15 +1887,20 @@
                 this.fileInputRef.current.click();
             }
 
-            loadFlashFile = (e) => {
+            loadFlashFile = async (e) => {
                 const file = e.target.files[0];
 
                 if (!file) {
                     return;
                 }
+
                 const reader = new FileReader();
-                reader.onload = (e) => {
+                reader.onload = async (e) => {
                     this.setState({ patchedFlash: e.target.result, showFlash: true });
+                    const flashData = new Uint8Array(e.target.result);
+                    /* remove original file extension. server will attach .bin anyway */
+                    const sanitizedName = `loaded_${file.name.replace(/\.[^/.]+$/, "")}`;
+                    await this.uploadFlashData(flashData, sanitizedName);
                 };
 
                 reader.readAsArrayBuffer(file);
@@ -1924,7 +1930,6 @@
                     }
                     return null;
                 }
-
 
                 if (!port) {
                     this.setState({ state: "Invalid serial port" });
@@ -2061,7 +2066,6 @@
 
                 this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
 
-
                 try {
                     esploader = new ESPLoader({
                         port: port,
@@ -2116,11 +2120,15 @@
                 }
                 await port.close();
 
+                const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                uploadFlashData(flashData, sanitizedName);
+            }
+
+            async uploadFlashData(flashData, sanitizedName) {
                 try {
                     this.setState({ state: `Uploading` });
 
                     const formData = new FormData();
-                    const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
                     formData.append(sanitizedName, new Blob([flashData.buffer]), sanitizedName);
 
                     const response = await fetch('/api/uploadFirmware', {
@@ -2130,9 +2138,11 @@
 
                     if (response.ok && response.status == 200) {
                         const filename = await response.text();
-                        this.setState({ showDownload: true });
-                        this.setState({ filename: filename });
-                        this.setState({ state: `Upload successful: saved as ${filename}` });
+                        this.setState({
+                            showDownload: true,
+                            filename: filename,
+                            state: `Upload successful: saved as ${filename}`
+                        });
                     } else {
                         this.setState({ state: `Upload failed` });
                     }
@@ -2150,6 +2160,7 @@
                 const sanitizeHostname = (input) => {
                     return input.replace(/[^a-zA-Z0-9-.]/g, '').trim();
                 };
+
 
                 return (
                     <div className="tile encoder-tile">
