@@ -969,6 +969,12 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
             ret = ERROR_NOT_FOUND;
             break;
         }
+        if (fsRemoveDir(cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to delete directory during clean-up '%s'\r\n", cert_path);
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
     } while (0);
 
     free(cert_path);
