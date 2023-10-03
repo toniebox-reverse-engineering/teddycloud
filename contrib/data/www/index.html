@@ -2153,6 +2153,7 @@
                         this.setState({ progress: prog });
                     });
 
+                    await port.close();
                     this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData, connected: false });
                 } catch (err) {
                     this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
@@ -2161,10 +2162,9 @@
                     await port.close();
                     return;
                 }
-                await port.close();
 
                 const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
-                uploadFlashData(flashData, sanitizedName);
+                await this.uploadFlashData(flashData, sanitizedName);
             }
 
             async uploadFlashData(flashData, sanitizedName) {
