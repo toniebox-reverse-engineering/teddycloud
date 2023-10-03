@@ -279,7 +279,7 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 }
                 TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
                            ((fileInfo.fdate >> 9) & 0x7F) + 1980,
-                           (fileInfo.fdate >> 5) & 0x1F,
+                           (fileInfo.fdate >> 5) & 0x0F,
                            (fileInfo.fdate) & 0x1F,
                            (fileInfo.ftime >> 11) & 0x1F,
                            (fileInfo.ftime >> 5) & 0x3F,
