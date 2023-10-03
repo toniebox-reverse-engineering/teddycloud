@@ -21,6 +21,8 @@ typedef struct
     uint32_t _version;
     bool_t _updated;
 
+    bool_t _valid;
+
 } contentJson_t;
 
 #define CONTENT_JSON_VERSION 4

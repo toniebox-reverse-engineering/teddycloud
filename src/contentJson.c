@@ -174,6 +174,11 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
 
     osFreeMem(jsonPath);
 
+    if (error == NO_ERROR)
+    {
+        content_json->_valid = true;
+    }
+
     return error;
 }
 
@@ -229,6 +234,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
 void free_content_json(contentJson_t *content_json)
 {
+    content_json->_valid = false;
     if (content_json->source)
     {
         osFreeMem(content_json->source);
