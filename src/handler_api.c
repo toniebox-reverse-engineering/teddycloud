@@ -762,7 +762,6 @@ error_t file_save_start_suffix(void *in_ctx, const char *name, const char *filen
 
         if (fsFileExists(ctx->filename))
         {
-            TRACE_INFO("Filename '%s' already exists, next\r\n", ctx->filename);
             osFreeMem(ctx->filename);
             continue;
         }
