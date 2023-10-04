@@ -515,19 +515,19 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[64];
             desc[0] = 0;
-            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
-            if (tafInfo.valid)
+            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            if (tafInfo->valid)
             {
-                osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
-                for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+                osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo->tafHeader->audio_id);
+                for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
             }
             osFreeMem(filePathAbsolute);
-            freeTonieInfo(&tafInfo);
+            freeTonieInfo(tafInfo);
 
             cJSON *jsonEntry = cJSON_CreateObject();
             cJSON_AddStringToObject(jsonEntry, "name", entry.name);
@@ -1119,16 +1119,16 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t tafInfo = getTonieInfo(file_path, client_ctx->settings);
+    tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
 
-    if (tafInfo.valid && tafInfo.stream)
+    if (tafInfo->valid && tafInfo->stream)
     {
         isStream = true;
         length = CONTENT_LENGTH_MAX;
         connection->response.noCache = true;
     }
 
-    freeTonieInfo(&tafInfo);
+    freeTonieInfo(tafInfo);
 
     if (error || length < startOffset)
     {

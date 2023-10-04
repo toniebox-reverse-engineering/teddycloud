@@ -92,12 +92,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
-                getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
-                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
+                ctx->tonieInfo = getTonieInfoFromRuid(ruid, ctx->client_ctx->settings);
 
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
-                char *dir = strdup(ctx->tonieInfo.contentPath);
+                char *dir = strdup(ctx->tonieInfo->contentPath);
                 dir[osStrlen(dir) - 8] = '\0';
                 fsCreateDir(dir);
 
@@ -119,23 +118,23 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             if (error == ERROR_END_OF_STREAM)
             {
                 fsCloseFile(ctx->file);
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
-                fsDeleteFile(ctx->tonieInfo.contentPath);
-                fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
-                if (fsFileExists(ctx->tonieInfo.contentPath))
+                fsDeleteFile(ctx->tonieInfo->contentPath);
+                fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
+                if (fsFileExists(ctx->tonieInfo->contentPath))
                 {
-                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 else
                 {
-                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo.contentPath);
+                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
             }
             if (error != NO_ERROR)
             {
-                freeTonieInfo(&ctx->tonieInfo);
+                freeTonieInfo(ctx->tonieInfo);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
@@ -221,31 +220,33 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->led = settings->toniebox.led;
 }
 
-tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings)
 {
-    tonie_info_t tonieInfo;
+    char *contentPath;
+    getContentPathFromUID(uid, &contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    osFreeMem(contentPath);
+    return tonieInfo;
+}
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings)
+{
+    char *contentPath;
+    getContentPathFromCharRUID(ruid, &contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    osFreeMem(contentPath);
+    return tonieInfo;
+}
+tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
+{
+    tonie_info_t *tonieInfo;
+    tonieInfo = osAllocMem(sizeof(tonie_info_t));
 
-    tonieInfo.valid = false;
-    tonieInfo.updated = false;
-    tonieInfo.stream = false;
-    tonieInfo.tafHeader = NULL;
-    tonieInfo.contentPath = strdup(contentPath);
-    tonieInfo.exists = fsFileExists(contentPath);
-
-    tonieInfo.contentConfig.live = false;
-    tonieInfo.contentConfig.nocloud = false;
-    tonieInfo.contentConfig.source = NULL;
-    tonieInfo.contentConfig.skip_seconds = 0;
-    tonieInfo.contentConfig.cache = false;
-    tonieInfo.contentConfig._updated = false;
-    tonieInfo.contentConfig._stream = false;
-    tonieInfo.contentConfig._streamFile = custom_asprintf("%s.stream", contentPath);
-    tonieInfo.contentConfig.cloud_ruid = NULL;
-    tonieInfo.contentConfig.cloud_auth = NULL;
-    tonieInfo.contentConfig.cloud_auth_len = 0;
-    tonieInfo.contentConfig.cloud_override = false;
-    tonieInfo.contentConfig.tonie_model = NULL;
-    tonieInfo.contentConfig._valid = false;
+    tonieInfo->valid = false;
+    tonieInfo->updated = false;
+    tonieInfo->stream = false;
+    tonieInfo->tafHeader = NULL;
+    tonieInfo->contentPath = strdup(contentPath);
+    tonieInfo->exists = fsFileExists(contentPath);
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
@@ -254,7 +255,7 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
             // TODO: Nice checking if valid tonie path
-            load_content_json(contentPath, &tonieInfo.contentConfig);
+            load_content_json(contentPath, &tonieInfo->json);
         }
 
         FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
@@ -271,14 +272,14 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
                     fsReadFile(file, headerBuffer, protobufSize, &read_length);
                     if (read_length == protobufSize)
                     {
-                        tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                        if (tonieInfo.tafHeader)
+                        tonieInfo->tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+                        if (tonieInfo->tafHeader)
                         {
-                            tonieInfo.valid = true;
-                            content_json_update_model(&tonieInfo.contentConfig, tonieInfo.tafHeader->audio_id);
-                            if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                            tonieInfo->valid = true;
+                            content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id);
+                            if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
                             {
-                                tonieInfo.stream = true;
+                                tonieInfo->stream = true;
                             }
                         }
                     }
@@ -309,9 +310,9 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
 
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
-    if (tonieInfo->contentConfig._updated)
+    if (tonieInfo->json._updated)
     {
-        save_content_json(tonieInfo->contentPath, &tonieInfo->contentConfig);
+        save_content_json(tonieInfo->contentPath, &tonieInfo->json);
     }
 
     if (tonieInfo->tafHeader)
@@ -327,8 +328,9 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
 
     if (tonieInfo->valid)
     {
-        free_content_json(&tonieInfo->contentConfig);
+        free_content_json(&tonieInfo->json);
     }
+    free(tonieInfo);
 }
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)

@@ -88,6 +88,20 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
     osMemset(content_json, 0, sizeof(contentJson_t));
+    content_json->live = false;
+    content_json->nocloud = false;
+    content_json->source = NULL;
+    content_json->skip_seconds = 0;
+    content_json->cache = false;
+    content_json->_updated = false;
+    content_json->_stream = false;
+    content_json->_streamFile = custom_asprintf("%s.stream", content_path);
+    content_json->cloud_ruid = NULL;
+    content_json->cloud_auth = NULL;
+    content_json->cloud_auth_len = 0;
+    content_json->cloud_override = false;
+    content_json->tonie_model = NULL;
+    content_json->_valid = false;
 
     if (fsFileExists(jsonPath))
     {
