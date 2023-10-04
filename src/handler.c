@@ -243,6 +243,7 @@ tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo.contentConfig.cloud_ruid = NULL;
     tonieInfo.contentConfig.cloud_auth = NULL;
     tonieInfo.contentConfig.cloud_auth_len = 0;
+    tonieInfo.contentConfig.cloud_override = false;
     tonieInfo.contentConfig.tonie_model = NULL;
     tonieInfo.contentConfig._valid = false;
 
