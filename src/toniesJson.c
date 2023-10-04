@@ -158,6 +158,39 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
     }
     return tonies_byAudioId_base(audio_id, toniesJsonCache, toniesJsonCount);
 }
+toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
+{
+    if (model == NULL || osStrcmp(model, "") == 0)
+        return NULL;
+#if TONIES_JSON_CACHED == 1
+    for (size_t i = 0; i < toniesCount; i++)
+    {
+        if (osStrcmp(toniesCache[i].model, model) == 0)
+            return &toniesCache[i];
+    }
+#else
+        // cJSON_ParseWithLengthOpts
+#endif
+    return NULL;
+}
+toniesJson_item_t *tonies_byModel(char *model)
+{
+    toniesJson_item_t *item = tonies_byModel_base(model, toniesCustomJsonCache, toniesCustomJsonCount);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
+}
+toniesJson_item_t *tonies_byAudioIdModel(uint32_t audio_id, char *model)
+{
+    toniesJson_item_t *item = tonies_byAudioId(audio_id);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byModel(model);
+}
 void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1

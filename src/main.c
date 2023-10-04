@@ -18,6 +18,7 @@
 #include "cloud_request.h"
 
 #include "settings.h"
+#include "toniebox_state.h"
 #include "mqtt.h"
 #include "cert.h"
 #include "toniefile.h"
@@ -131,6 +132,7 @@ int_t main(int argc, char *argv[])
         TRACE_ERROR("Make sure the config path exists and is writable\r\n");
         return -1;
     }
+    toniebox_state_init();
     platform_init();
 
     cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
