@@ -141,10 +141,18 @@ size_t esp32_wl_translate(const struct wl_state *state, size_t sector)
 
 DWORD get_fattime()
 {
-    uint32_t year = 2023;
-    uint32_t mon = 7;
-    uint32_t day = 31;
-    return ((uint32_t)(year - 1980) << 25 | (uint32_t)mon << 21 | (uint32_t)day << 16);
+    // Retrieve current time
+    time_t time = getCurrentUnixTime();
+    DateTime date;
+    convertUnixTimeToDate(time, &date);
+
+    return (
+        (uint32_t)(date.year - 1980) << 25 |
+        (uint32_t)(date.month) << 21 |
+        (uint32_t)(date.day) << 16 |
+        (uint32_t)(date.hours) << 11 |
+        (uint32_t)(date.minutes) << 5 |
+        (uint32_t)(date.seconds) >> 1);
 }
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
@@ -279,7 +287,7 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 }
                 TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
                            ((fileInfo.fdate >> 9) & 0x7F) + 1980,
-                           (fileInfo.fdate >> 5) & 0x1F,
+                           (fileInfo.fdate >> 5) & 0x0F,
                            (fileInfo.fdate) & 0x1F,
                            (fileInfo.ftime >> 11) & 0x1F,
                            (fileInfo.ftime >> 5) & 0x3F,
@@ -958,6 +966,12 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
         if (fsDeleteFile(ca_file) != NO_ERROR)
         {
             TRACE_ERROR("Failed to delete during clean-up '%s'\r\n", cert_path);
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        if (fsRemoveDir(cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to delete directory during clean-up '%s'\r\n", cert_path);
             ret = ERROR_NOT_FOUND;
             break;
         }

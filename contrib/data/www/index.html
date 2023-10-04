@@ -1870,6 +1870,7 @@
                     flashSize: '',
                     state: '',
                     filename: '',
+                    flashName: '',
                     port: null,
                     originalFlash: null,
                     patchedFlash: null,
@@ -1877,7 +1878,8 @@
                     showProgress: false,
                     showDownload: false,
                     showFlash: false,
-                    connected: false
+                    connected: false,
+                    hostname: window.location.hostname
                 };
                 this.fileInputRef = React.createRef();
             }
@@ -1886,25 +1888,72 @@
                 this.fileInputRef.current.click();
             }
 
-            loadFlashFile = (e) => {
+            loadFlashFile = async (e) => {
                 const file = e.target.files[0];
 
                 if (!file) {
                     return;
                 }
+
+                console.log("Read file '" + file + "'");
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.setState({ patchedFlash: e.target.result, showFlash: true });
+                reader.onload = async (e) => {
+                    console.log("Connecting to ESP32");
+                    const port = await this.getPort('Connecting to read MAC-Address');
+
+                    if (port == null || this.state.connected) {
+                        return;
+                    }
+
+                    this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
+
+                    var esploader = null;
+                    try {
+                        esploader = new ESPLoader({
+                            port: port,
+                            baudrate: 921600
+                        });
+                    } catch (err) {
+                        this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+
+                    try {
+                        this.setState({ state: `Retrieving MAC address...` });
+                        await esploader.main_fn();
+
+                        var mac = await esploader.chip.read_mac(esploader);
+                        this.setState({ chipMac: mac });
+                        console.log("Chip MAC: " + mac);
+                        await port.close();
+
+                        const flashData = new Uint8Array(e.target.result);
+
+                        const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                        await this.uploadFlashData(flashData, sanitizedName);
+
+                        this.setState({ patchedFlash: e.target.result, showFlash: true, connected: false, flashName: 'from file' });
+                        console.log("Done");
+
+                    } catch (err) {
+                        this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
+                        console.error(err);
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
                 };
 
                 reader.readAsArrayBuffer(file);
             }
 
-            async getPort() {
+            async getPort(message) {
                 if (this.state.port) {
                     return this.state.port;
                 }
-                this.setState({ showStatus: true, showProgress: false, progress: 0, state: "Open serial port" });
+                this.setState({ showStatus: true, showProgress: false, progress: 0, state: message ? message : "Open serial port" });
                 let port = null;
                 try {
                     port = await navigator.serial.requestPort();
@@ -1924,7 +1973,6 @@
                     }
                     return null;
                 }
-
 
                 if (!port) {
                     this.setState({ state: "Invalid serial port" });
@@ -2018,6 +2066,7 @@
                     this.setState({ state: `Writing ${(this.state.patchedFlash.byteLength / 1024 / 1024).toFixed(0)} MiB flash` });
                     await esploader.write_flash(opts);
 
+                    await port.close();
                     this.setState({ state: `Writing finished`, connected: false });
                 } catch (err) {
                     this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
@@ -2026,12 +2075,11 @@
                     await port.close();
                     return;
                 }
-                await port.close();
             }
 
             async patchFlash() {
                 this.setState({ showProgress: false, showFlash: false });
-                this.setState({ state: `Patching flash image... (will likely take 5 minutes)` });
+                this.setState({ state: `Patching flash image...` });
                 const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}`, {
                     method: 'GET'
                 });
@@ -2039,7 +2087,7 @@
 
                 if (response.ok && response.status == 200) {
                     const arrayBuffer = await response.arrayBuffer();
-                    this.setState({ patchedFlash: arrayBuffer, showFlash: true });
+                    this.setState({ patchedFlash: arrayBuffer, showFlash: true, flashName: 'patched' });
                     this.setState({ state: `Patching successful, ready to flash ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(0)} MiB` });
                 } else {
                     this.setState({ state: `Patching failed` });
@@ -2060,7 +2108,6 @@
                 }
 
                 this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
-
 
                 try {
                     esploader = new ESPLoader({
@@ -2106,6 +2153,7 @@
                         this.setState({ progress: prog });
                     });
 
+                    await port.close();
                     this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData, connected: false });
                 } catch (err) {
                     this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
@@ -2114,13 +2162,16 @@
                     await port.close();
                     return;
                 }
-                await port.close();
 
+                const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                await this.uploadFlashData(flashData, sanitizedName);
+            }
+
+            async uploadFlashData(flashData, sanitizedName) {
                 try {
                     this.setState({ state: `Uploading` });
 
                     const formData = new FormData();
-                    const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
                     formData.append(sanitizedName, new Blob([flashData.buffer]), sanitizedName);
 
                     const response = await fetch('/api/uploadFirmware', {
@@ -2130,17 +2181,17 @@
 
                     if (response.ok && response.status == 200) {
                         const filename = await response.text();
-                        this.setState({ showDownload: true });
-                        this.setState({ filename: filename });
-                        this.setState({ state: `Upload successful: saved as ${filename}` });
+                        this.setState({
+                            showDownload: true,
+                            filename: filename,
+                            state: `Upload successful: saved as ${filename}`
+                        });
                     } else {
                         this.setState({ state: `Upload failed` });
                     }
                 } catch (err) {
-                    console.error('There was an error!', err);
-                    this.setState(prevState => ({
-                        files: prevState.files.map(file => ({ ...file, status: 'Failed' }))
-                    }));
+                    console.error('There was an error when uploading!', err);
+                    this.setState({ state: `Upload failed` });
                 }
             }
 
@@ -2152,6 +2203,7 @@
                 const sanitizeHostname = (input) => {
                     return input.replace(/[^a-zA-Z0-9-.]/g, '').trim();
                 };
+
 
                 return (
                     <div className="tile encoder-tile">
@@ -2167,7 +2219,15 @@
                                 <button className="button" disabled={buttonDisabled} onClick={() => this.readFlash()}>Read ESP32</button>
                                 <button className="button" disabled={buttonDisabled} onClick={() => this.openFile()}>Load file</button>
                                 {this.state.showDownload && <button className="button" disabled={buttonDisabled} onClick={() => this.patchFlash()}>Patch image</button>}
-                                {this.state.showFlash && <button className="button-red" disabled={buttonDisabled} onClick={() => this.writeFlash()}>Flash ESP32</button>}
+                                {this.state.showFlash && (
+                                    <button
+                                        className="button-red"
+                                        disabled={buttonDisabled}
+                                        onClick={() => this.writeFlash()}
+                                    >
+                                        {`Flash ESP32${this.state.flashName ? ` (${this.state.flashName})` : ''}`}
+                                    </button>
+                                )}
 
                                 <div className="center-content">
                                     {this.state.showDownload && (
