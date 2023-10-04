@@ -167,17 +167,21 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
         error = ERROR_FILE_NOT_FOUND;
     }
 
-    if (error != NO_ERROR)
-    {
-        error = save_content_json(content_path, content_json);
-    }
-
-    osFreeMem(jsonPath);
-
     if (error == NO_ERROR)
     {
         content_json->_valid = true;
     }
+
+    if (error != NO_ERROR)
+    {
+        error = save_content_json(content_path, content_json);
+        if (error == NO_ERROR)
+        {
+            load_content_json(content_path, content_json);
+        }
+    }
+
+    osFreeMem(jsonPath);
 
     return error;
 }
