@@ -247,6 +247,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->exists = fsFileExists(contentPath);
+    osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
