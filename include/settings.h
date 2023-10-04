@@ -13,7 +13,7 @@
 #define TONIES_CUSTOM_JSON_PATH "config/tonies.custom.json"
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
-#define CONFIG_VERSION 4
+#define CONFIG_VERSION 5
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -58,6 +58,7 @@ typedef struct
     bool markCustomTagByPass;
     bool prioCustomContent;
     bool updateOnLowerAudioId;
+    bool dumpRuidAuthContentJson;
 } settings_cloud_t;
 
 typedef struct

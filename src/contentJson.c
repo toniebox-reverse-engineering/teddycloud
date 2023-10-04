@@ -129,18 +129,18 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
                 content_json->cloud_auth = content_jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
+                content_json->cloud_override = content_jsonGetBool(contentJson, "cloud_override");
                 content_json->tonie_model = content_jsonGetString(contentJson, "tonie_model");
-                content_json->cloud_valid = true;
 
                 // TODO: use checkCustomTonie to validate
                 if (osStrlen(content_json->cloud_ruid) != 16)
                 {
                     // TODO validate rUID
-                    content_json->cloud_valid = false;
+                    content_json->cloud_override = false;
                 }
                 if (content_json->cloud_auth_len != AUTH_TOKEN_LENGTH)
                 {
-                    content_json->cloud_valid = false;
+                    content_json->cloud_override = false;
                 }
 
                 if (osStrlen(content_json->source) > 0)
@@ -200,6 +200,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     cJSON_AddBoolToObject(contentJson, "cache", content_json->cache);
     content_AddStringToObject(contentJson, "cloud_ruid", content_json->cloud_ruid);
     content_AddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
+    cJSON_AddBoolToObject(contentJson, "cloud_override", content_json->cloud_override);
     content_AddStringToObject(contentJson, "tonie_model", content_json->tonie_model);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 

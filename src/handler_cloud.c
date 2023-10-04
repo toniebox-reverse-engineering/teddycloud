@@ -171,6 +171,22 @@ void markLiveTonie(tonie_info_t *tonieInfo)
     TRACE_INFO("Marked custom tonie %s\r\n", tonieInfo->contentPath);
 }
 
+void dumpRuidAuth(contentJson_t *content_json, char *ruid, uint8_t *authentication)
+{
+    if (!content_json->cloud_override && osStrlen(content_json->cloud_ruid) == 0)
+    {
+        osFreeMem(content_json->cloud_auth);
+        content_json->cloud_auth_len = AUTH_TOKEN_LENGTH;
+        content_json->cloud_auth = osAllocMem(content_json->cloud_auth_len);
+        osMemcpy(content_json->cloud_auth, authentication, content_json->cloud_auth_len);
+
+        osFreeMem(content_json->cloud_ruid);
+        content_json->cloud_ruid = strdup(ruid);
+        content_json->_updated = true;
+        TRACE_INFO("Dumped rUID %s and auth into content.json\r\n", content_json->cloud_ruid);
+    }
+}
+
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Log)
@@ -213,16 +229,21 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (!tonieInfo.contentConfig.nocloud || tonieInfo.contentConfig.cloud_valid)
+    if (client_ctx->settings->cloud.dumpRuidAuthContentJson)
     {
-        if (checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_valid)
+        dumpRuidAuth(&tonieInfo.contentConfig, ruid, token);
+    }
+
+    if (!tonieInfo.contentConfig.nocloud || tonieInfo.contentConfig.cloud_override)
+    {
+        if (checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_override)
         {
             TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
             markCustomTonie(&tonieInfo);
         }
         else if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Claim)
         {
-            if (tonieInfo.contentConfig.cloud_valid)
+            if (tonieInfo.contentConfig.cloud_override)
             {
                 token = tonieInfo.contentConfig.cloud_auth;
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
@@ -285,13 +306,18 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     getContentPathFromCharRUID(ruid, &tonieInfo.contentPath, client_ctx->settings);
     tonieInfo = getTonieInfo(tonieInfo.contentPath, client_ctx->settings);
 
-    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_valid)
+    if (!tonieInfo.contentConfig.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo.contentConfig.cloud_override)
     {
         TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
         markCustomTonie(&tonieInfo);
     }
 
     settings_t *settings = client_ctx->settings;
+
+    if (client_ctx->settings->cloud.dumpRuidAuthContentJson)
+    {
+        dumpRuidAuth(&tonieInfo.contentConfig, ruid, token);
+    }
 
     bool setLive = false;
     const char *assignFile = NULL;
@@ -446,7 +472,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         {
             TRACE_INFO("Serve cloud content from %s\r\n", uri);
 
-            if (tonieInfo.contentConfig.cloud_valid)
+            if (tonieInfo.contentConfig.cloud_override)
             {
                 token = tonieInfo.contentConfig.cloud_auth;
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
