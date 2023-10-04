@@ -14,6 +14,7 @@
 #include "server_helpers.h"
 
 #include "toniefile.h"
+#include "toniesJson.h"
 
 void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
 {
@@ -507,7 +508,6 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
     return NO_ERROR;
 }
 
-#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
 void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId);
 void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioId)
 {

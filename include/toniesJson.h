@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
+
 typedef struct
 {
     uint16_t no;

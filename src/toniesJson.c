@@ -139,7 +139,8 @@ toniesJson_item_t *tonies_byAudioId_base(uint32_t audio_id, toniesJson_item_t *t
     {
         for (size_t j = 0; j < toniesCache[i].audio_ids_count; j++)
         {
-            if (toniesCache[i].audio_ids[j] == audio_id)
+
+            if (toniesCache[i].audio_ids[j] == audio_id || (audio_id < TEDDY_BENCH_AUDIO_ID_DEDUCT && toniesCache[i].audio_ids[j] == audio_id + TEDDY_BENCH_AUDIO_ID_DEDUCT))
                 return &toniesCache[i];
         }
     }
