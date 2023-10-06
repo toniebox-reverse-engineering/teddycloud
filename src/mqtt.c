@@ -141,7 +141,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     case BOX_UNKNOWN:
         break;
     }
-    if (osStrcmp(hw, ha_box->hw) != 0)
+    if (osStrcmp(hw, ha_box->hw) != 0 && osStrlen(ha_box->hw) == 0)
     {
         osSnprintf(ha_box->hw, sizeof(ha_box->hw), "%s", hw);
         updated = true;
@@ -150,7 +150,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     time_t swUa = client_ctx->settings->internal.toniebox_firmware.uaVersionFirmware;
     char *swEsp = client_ctx->settings->internal.toniebox_firmware.uaEsp32Firmware;
 
-    if (osStrlen(version) > 0 && osStrcmp(version, ha_box->sw) != 0)
+    if (osStrlen(version) > 0 && osStrcmp(version, ha_box->sw) != 0 && osStrlen(ha_box->sw) == 0)
     {
         osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", version);
         updated = true;
@@ -159,7 +159,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     {
         char sw[MAX_LEN];
         osSnprintf(sw, sizeof(sw), "%" PRIuTIME, swUa);
-        if (osStrcmp(sw, ha_box->sw) != 0)
+        if (osStrcmp(sw, ha_box->sw) != 0 && osStrlen(ha_box->sw) == 0)
         {
             osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", sw);
             updated = true;
@@ -167,7 +167,7 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     }
     else if (client_ctx->settings->internal.toniebox_firmware.uaEsp32Firmware != NULL)
     {
-        if (osStrcmp(swEsp, ha_box->sw) != 0)
+        if (osStrcmp(swEsp, ha_box->sw) != 0 && osStrlen(ha_box->sw) == 0)
         {
             osSnprintf(ha_box->sw, sizeof(ha_box->sw), "%s", swEsp);
             updated = true;
