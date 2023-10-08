@@ -128,6 +128,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     client_ctx_t *client_ctx = &connection->private.client_ctx;
     osMemset(client_ctx, 0x00, sizeof(client_ctx_t));
     client_ctx->settings = get_settings();
+    client_ctx->state = get_toniebox_state();
 
     if (connection->tlsContext)
     {
@@ -148,6 +149,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             {
                 client_ctx->settings = get_settings_cn(subject);
             }
+            client_ctx->state = get_toniebox_state_id(client_ctx->settings->internal.overlayNumber);
 
             char *ua = connection->request.userAgent;
             if (ua != NULL && osStrlen(ua) > 3)
@@ -258,8 +260,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             }
         }
     }
-    client_ctx->box_id = client_ctx->settings->commonName;
-    client_ctx->box_name = client_ctx->settings->boxName;
+    client_ctx->state->box.id = client_ctx->settings->commonName;
+    client_ctx->state->box.name = client_ctx->settings->boxName;
     mutex_unlock(MUTEX_CLIENT_CTX);
 
     connection->response.keepAlive = connection->request.keepAlive;

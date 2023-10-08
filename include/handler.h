@@ -26,7 +26,7 @@ typedef struct
     bool_t valid;
     bool_t updated;
     bool_t stream;
-    contentJson_t contentConfig;
+    contentJson_t json;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
 
@@ -67,7 +67,7 @@ typedef struct
     size_t bufferLen;
     uint32_t status;
     FsFile *file;
-    tonie_info_t tonieInfo;
+    tonie_info_t *tonieInfo;
     HttpConnection *connection;
     client_ctx_t *client_ctx;
 } cbr_ctx_t;
@@ -85,7 +85,9 @@ char *strupr(char input[]);
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings);
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
-tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings);
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings);
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings);
+tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength);

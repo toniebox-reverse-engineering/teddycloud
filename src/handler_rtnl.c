@@ -282,6 +282,10 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
             break;
         case RTNL3_TYPE_PLAYBACK_STOPPED:
+            client_ctx->state->tag.audio_id = 0;
+            client_ctx->state->tag.valid = false;
+            client_ctx->state->tag.uid = 0;
+
             sse_sendEvent("playback", "stopped", true);
             mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
@@ -309,8 +313,11 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                 for (size_t i = 0; i < rpc->log2->field6.len; i++)
                 {
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
+                    client_ctx->state->tag.uid += (rpc->log2->field6.data[i] << i);
                 }
             }
+            client_ctx->state->tag.uid = strtoull(buffer, NULL, 16);
+            client_ctx->state->tag.valid = false;
             sse_sendEvent("TagInvalid", buffer, true);
             mqtt_sendBoxEvent("TagInvalid", buffer, client_ctx);
             mqtt_sendBoxEvent("TagValid", "", client_ctx);
@@ -324,6 +331,8 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                     osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[(i + 4) % 8]);
                 }
             }
+            client_ctx->state->tag.uid = strtoull(buffer, NULL, 16);
+            client_ctx->state->tag.valid = true;
             sse_sendEvent("TagValid", buffer, true);
             mqtt_sendBoxEvent("TagValid", buffer, client_ctx);
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
@@ -331,15 +340,27 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID))
         {
             uint32_t audioId = read_little_endian(rpc->log2->field6.data);
+            client_ctx->state->tag.audio_id = audioId;
             osSprintf(buffer, "%d", audioId);
             toniesJson_item_t *item = tonies_byAudioId(audioId);
             sse_sendEvent("ContentAudioId", buffer, true);
             mqtt_sendBoxEvent("ContentAudioId", buffer, client_ctx);
+
+            if (item == NULL)
+            {
+                tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, client_ctx->settings);
+                if (tonieInfo->valid)
+                {
+                    item = tonies_byModel(tonieInfo->json.tonie_model);
+                }
+                freeTonieInfo(tonieInfo);
+            }
+
             if (item == NULL)
             {
                 sse_sendEvent("ContentTitle", "Unknown", true);
                 mqtt_sendBoxEvent("ContentTitle", "Unknown", client_ctx);
-                if (audioId < 0x50000000)
+                if (audioId < TEDDY_BENCH_AUDIO_ID_DEDUCT)
                 {
                     /* custom tonie */
                     char *url = custom_asprintf("%s/img_custom.png", settings_get_string("core.host_url"));

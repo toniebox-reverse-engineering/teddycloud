@@ -667,8 +667,8 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
 error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
-    const char *box_id = client_ctx->box_id;
-    const char *box_name = client_ctx->box_name;
+    const char *box_id = client_ctx->state->box.id;
+    const char *box_name = client_ctx->state->box.name;
 
     if (!box_id)
     {
@@ -888,7 +888,7 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 {
     t_ha_info *ret = NULL;
 
-    const char *box_id = client_ctx->box_id;
+    const char *box_id = client_ctx->state->box.id;
 
     char *name = custom_asprintf("%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
 

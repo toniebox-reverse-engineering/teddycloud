@@ -5,6 +5,7 @@
 #include "cJSON.h"
 #include "net_config.h"
 #include "server_helpers.h"
+#include "toniesJson.h"
 
 char *content_jsonGetString(cJSON *jsonElement, char *name)
 {
@@ -87,6 +88,20 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
     osMemset(content_json, 0, sizeof(contentJson_t));
+    content_json->live = false;
+    content_json->nocloud = false;
+    content_json->source = NULL;
+    content_json->skip_seconds = 0;
+    content_json->cache = false;
+    content_json->_updated = false;
+    content_json->_stream = false;
+    content_json->_streamFile = custom_asprintf("%s.stream", content_path);
+    content_json->cloud_ruid = NULL;
+    content_json->cloud_auth = NULL;
+    content_json->cloud_auth_len = 0;
+    content_json->cloud_override = false;
+    content_json->tonie_model = NULL;
+    content_json->_valid = false;
 
     if (fsFileExists(jsonPath))
     {
@@ -128,18 +143,18 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
                 content_json->cloud_auth = content_jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
+                content_json->cloud_override = content_jsonGetBool(contentJson, "cloud_override");
                 content_json->tonie_model = content_jsonGetString(contentJson, "tonie_model");
-                content_json->cloud_valid = true;
 
                 // TODO: use checkCustomTonie to validate
                 if (osStrlen(content_json->cloud_ruid) != 16)
                 {
                     // TODO validate rUID
-                    content_json->cloud_valid = false;
+                    content_json->cloud_override = false;
                 }
                 if (content_json->cloud_auth_len != AUTH_TOKEN_LENGTH)
                 {
-                    content_json->cloud_valid = false;
+                    content_json->cloud_override = false;
                 }
 
                 if (osStrlen(content_json->source) > 0)
@@ -167,17 +182,21 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
         error = ERROR_FILE_NOT_FOUND;
     }
 
-    if (error != NO_ERROR)
-    {
-        error = save_content_json(content_path, content_json);
-    }
-
-    osFreeMem(jsonPath);
-
     if (error == NO_ERROR)
     {
         content_json->_valid = true;
     }
+
+    if (error != NO_ERROR)
+    {
+        error = save_content_json(content_path, content_json);
+        if (error == NO_ERROR)
+        {
+            load_content_json(content_path, content_json);
+        }
+    }
+
+    osFreeMem(jsonPath);
 
     return error;
 }
@@ -195,6 +214,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     cJSON_AddBoolToObject(contentJson, "cache", content_json->cache);
     content_AddStringToObject(contentJson, "cloud_ruid", content_json->cloud_ruid);
     content_AddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
+    cJSON_AddBoolToObject(contentJson, "cloud_override", content_json->cloud_override);
     content_AddStringToObject(contentJson, "tonie_model", content_json->tonie_model);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
@@ -230,6 +250,28 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     }
 
     return error;
+}
+
+void content_json_update_model(contentJson_t *content_json, uint32_t audio_id)
+{
+    toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
+    if (content_json->_valid)
+    {
+        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, "") == 0)
+        {
+            if (osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
+            {
+                osFreeMem(content_json->tonie_model);
+                content_json->tonie_model = strdup(toniesJson->model);
+                content_json->_updated = true;
+            }
+        }
+        else if (toniesJson == NULL && osStrcmp(content_json->tonie_model, "") != 0)
+        {
+            // TODO add to tonies.custom.json + report
+            TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
+        }
+    }
 }
 
 void free_content_json(contentJson_t *content_json)

@@ -32,13 +32,13 @@
 #define _NET_CONFIG_H
 
 #include "settings.h"
+#include "toniebox_state.h"
 #define AUTH_TOKEN_LENGTH 32
 
 typedef struct
 {
     settings_t *settings;
-    const char *box_id;
-    const char *box_name;
+    toniebox_state_t *state;
 } client_ctx_t;
 
 typedef struct
