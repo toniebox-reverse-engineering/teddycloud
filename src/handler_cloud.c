@@ -503,7 +503,7 @@ error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, cons
     }
     else
     {
-        TRACE_WARNING("Missing auth for content v2: %s", uri);
+        TRACE_WARNING("Missing auth for content v2: %s\r\n", uri);
     }
     return NO_ERROR;
 }
@@ -551,7 +551,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size %zu bigger than buffer size %i bytes", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size %zu bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
