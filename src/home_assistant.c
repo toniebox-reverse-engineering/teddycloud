@@ -54,7 +54,7 @@ void ha_addstrarray(char *json_str, const char *name, const char *value, bool la
 
 void ha_addstr(char *json_str, const char *name, const char *value, bool last)
 {
-    char tmp_buf[128];
+    char tmp_buf[512];
 
     if (value)
     {
@@ -65,7 +65,7 @@ void ha_addstr(char *json_str, const char *name, const char *value, bool last)
 
 void ha_addmqtt(t_ha_info *ha_info, char *json_str, const char *name, const char *value, t_ha_entity *entity, bool last)
 {
-    char tmp_buf[128];
+    char tmp_buf[512];
 
     if (value && strlen(value) > 0)
     {
