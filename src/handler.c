@@ -186,11 +186,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     if (ctx->customDataLen > freshResp->n_tonie_marked)
                     {
                         freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshRespCloud->tonie_marked[i];
-                        TRACE_INFO("Marked UID %" PRIx64 " as updated from cloud\r\n", freshRespCloud->tonie_marked[i]);
+                        TRACE_INFO("Marked UID %016" PRIX64 " as updated from cloud\r\n", freshRespCloud->tonie_marked[i]);
                     }
                     else
                     {
-                        TRACE_WARNING("Could not add UID %" PRIx64 " to freshnessCheck response, as not enough slots allocated!\r\n", freshRespCloud->tonie_marked[i]);
+                        TRACE_WARNING("Could not add UID %016" PRIX64 " to freshnessCheck response, as not enough slots allocated!\r\n", freshRespCloud->tonie_marked[i]);
                     }
                 }
             }
