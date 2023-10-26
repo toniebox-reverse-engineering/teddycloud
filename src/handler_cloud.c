@@ -663,23 +663,24 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             {
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
-                tonie_freshness_check_request__free_unpacked(freshReq, NULL);
-
-                osFreeMem(freshReqCloud.tonie_infos);
-                osFreeMem(freshResp.tonie_marked);
 
                 cbr_ctx_t ctx;
+                ctx.customData = (void *)&freshResp;
+                ctx.customDataLen = freshReq->n_tonie_infos; // Allocated slots
                 req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx, client_ctx);
                 if (!cloud_request_post(NULL, 0, "/v1/freshness-check", queryString, data, dataLen, NULL, &cbr))
                 {
+                    tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+                    osFreeMem(freshReqCloud.tonie_infos);
+                    osFreeMem(freshResp.tonie_marked);
                     return NO_ERROR;
                 }
             }
-            else
+            tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+            if (client_ctx->settings->toniebox.overrideCloud)
             {
-                tonie_freshness_check_request__free_unpacked(freshReq, NULL);
+                setTonieboxSettings(&freshResp, client_ctx->settings);
             }
-            setTonieboxSettings(&freshResp, client_ctx->settings);
 
             size_t dataLen = tonie_freshness_check_response__get_packed_size(&freshResp);
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);

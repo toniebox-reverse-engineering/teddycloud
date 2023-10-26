@@ -68,6 +68,8 @@ typedef struct
     uint32_t status;
     FsFile *file;
     tonie_info_t *tonieInfo;
+    void *customData;
+    size_t customDataLen;
     HttpConnection *connection;
     client_ctx_t *client_ctx;
 } cbr_ctx_t;

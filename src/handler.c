@@ -37,20 +37,30 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
 
-    if (header)
+    switch (ctx->api)
     {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
+    case V1_FRESHNESS_CHECK:
+        if (!header || osStrcmp(header, "Content-Length") == 0) // Skip empty line at the and + contentlen
+        {
+            break;
+        }
+    default:
+        char line[128];
+        if (header)
+        {
+            TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+            osSprintf(line, "%s: %s\r\n", header, value);
+        }
+        else
+        {
+            TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
+            osStrcpy(line, "\r\n");
+        }
 
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+        httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+        break;
+    }
     ctx->status = PROX_STATUS_HEAD;
 }
 
@@ -142,21 +152,63 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
     case V1_FRESHNESS_CHECK:
         if (ctx->client_ctx->settings->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
-            TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
-            setTonieboxSettings(freshResp, ctx->client_ctx->settings);
-            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
+            TonieFreshnessCheckResponse *freshResp = (TonieFreshnessCheckResponse *)ctx->customData;
+            TonieFreshnessCheckResponse *freshRespCloud = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
+            if (ctx->client_ctx->settings->toniebox.overrideCloud)
+            {
+                setTonieboxSettings(freshResp, ctx->client_ctx->settings);
+            }
+            else
+            {
+                freshResp->max_vol_spk = freshRespCloud->max_vol_spk;
+                freshResp->max_vol_hdp = freshRespCloud->max_vol_hdp;
+                freshResp->slap_en = freshRespCloud->slap_en;
+                freshResp->slap_dir = freshRespCloud->slap_dir;
+                freshResp->led = freshRespCloud->led;
+                freshResp->field2 = freshRespCloud->field2;
+                freshResp->field6 = freshRespCloud->field6;
+            }
 
-            // TODO: Check if size is stable and this is obsolete
-            // TODO Add live tonies here, too : freshResp.tonie_marked
+            for (size_t i = 0; i < freshRespCloud->n_tonie_marked; i++)
+            {
+                bool found = false;
+                for (size_t j = 0; j < freshResp->n_tonie_marked; j++)
+                {
+                    if (freshRespCloud->tonie_marked[i] == freshResp->tonie_marked[j])
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    // handleCloudFreshnessCheck allocated space for all in freshResp.tonie_marked
+                    if (ctx->customDataLen > freshResp->n_tonie_marked)
+                    {
+                        freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshRespCloud->tonie_marked[i];
+                        TRACE_INFO("Marked UID %" PRIx64 " as updated from cloud\r\n", freshRespCloud->tonie_marked[i]);
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Could not add UID %" PRIx64 " to freshnessCheck response, as not enough slots allocated!\r\n", freshRespCloud->tonie_marked[i]);
+                    }
+                }
+            }
+            tonie_freshness_check_response__free_unpacked(freshRespCloud, NULL);
+
+            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
             if (ctx->bufferLen < packSize)
             {
-                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
                 osFreeMem(ctx->buffer);
                 ctx->bufferLen = packSize;
                 ctx->buffer = osAllocMem(ctx->bufferLen);
             }
             tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
-            tonie_freshness_check_response__free_unpacked(freshResp, NULL);
+
+            char line[128];
+            osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
+            httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
             osFreeMem(ctx->buffer);
         }
