@@ -56,7 +56,7 @@ void ha_addstr(char *json_str, const char *name, const char *value, bool last)
 {
     char tmp_buf[128];
 
-    if (value && strlen(value) > 0)
+    if (value)
     {
         osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, value, (last ? ' ' : ','));
         osStrcat(json_str, tmp_buf);
