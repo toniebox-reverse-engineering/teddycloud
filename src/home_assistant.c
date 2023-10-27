@@ -8,65 +8,37 @@
 #include "macros.h"
 #include "mqtt.h"
 
-void ha_addstrarray(char *json_str, const char *name, const char *value, bool last)
-{
-    char tmp_buf[256];
+#include "cJSON.h"
 
+void ha_addstrarray(cJSON *json_obj, const char *name, const char *value)
+{
     if (value && strlen(value) > 0)
     {
-        int pos = 0;
-        char values_buf[128];
-        int out_pos = 0;
+        char *tmp_value = osAllocMem(osStrlen(value) + 1);
+        osStrcpy(tmp_value, value);
+        cJSON *json_arr = cJSON_AddArrayToObject(json_obj, name);
 
-        values_buf[out_pos++] = '"';
-
-        bool done = false;
-        while (!done && out_pos < sizeof(values_buf))
+        char *token = strtok(tmp_value, ";");
+        while (token != NULL)
         {
-            switch (value[pos])
-            {
-            case ';':
-                values_buf[out_pos++] = '"';
-                if (value[pos + 1])
-                {
-                    values_buf[out_pos++] = ',';
-                    values_buf[out_pos++] = '"';
-                }
-                break;
-
-            case 0:
-                values_buf[out_pos++] = '"';
-                done = true;
-                break;
-
-            default:
-                values_buf[out_pos++] = value[pos];
-                break;
-            }
-            pos++;
+            cJSON_AddItemToArray(json_arr, cJSON_CreateString(token));
+            token = strtok(NULL, ";");
         }
-        values_buf[out_pos++] = '\000';
 
-        osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": [%s]%c ", name, values_buf, (last ? ' ' : ','));
-        osStrcat(json_str, tmp_buf);
+        osFreeMem(tmp_value);
     }
 }
 
-void ha_addstr(char *json_str, const char *name, const char *value, bool last)
+void ha_addstr(cJSON *json_obj, const char *name, const char *value)
 {
-    char tmp_buf[512];
-
     if (value)
     {
-        osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, value, (last ? ' ' : ','));
-        osStrcat(json_str, tmp_buf);
+        cJSON_AddStringToObject(json_obj, name, value);
     }
 }
 
-void ha_addmqtt(t_ha_info *ha_info, char *json_str, const char *name, const char *value, t_ha_entity *entity, bool last)
+void ha_addmqtt(t_ha_info *ha_info, cJSON *json_obj, const char *name, const char *value, t_ha_entity *entity)
 {
-    char tmp_buf[512];
-
     if (value && strlen(value) > 0)
     {
         char path_buffer[64];
@@ -79,30 +51,22 @@ void ha_addmqtt(t_ha_info *ha_info, char *json_str, const char *name, const char
         {
             osSnprintf(path_buffer, sizeof(path_buffer), value, ha_info->base_topic);
         }
-        osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%s\"%c ", name, path_buffer, (last ? ' ' : ','));
-        osStrcat(json_str, tmp_buf);
+        cJSON_AddStringToObject(json_obj, name, path_buffer);
     }
 }
 
-void ha_addfloat(char *json_str, const char *name, float value, bool last)
+void ha_addfloat(cJSON *json_obj, const char *name, float value)
 {
-    char tmp_buf[64];
-
-    osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%f\"%c ", name, value, (last ? ' ' : ','));
-    osStrcat(json_str, tmp_buf);
+    cJSON_AddNumberToObject(json_obj, name, value);
 }
 
-void ha_addint(char *json_str, const char *name, int value, bool last)
+void ha_addint(cJSON *json_obj, const char *name, int value)
 {
-    char tmp_buf[64];
-
-    osSnprintf(tmp_buf, sizeof(tmp_buf), "\"%s\": \"%d\"%c ", name, value, (last ? ' ' : ','));
-    osStrcat(json_str, tmp_buf);
+    cJSON_AddNumberToObject(json_obj, name, value);
 }
 
 void ha_publish(t_ha_info *ha_info)
 {
-    char *json_str = (char *)osAllocMem(1024);
     char mqtt_path[2 * MAX_LEN + 1];
     char uniq_id[2 * MAX_LEN + 1];
 
@@ -160,66 +124,66 @@ void ha_publish(t_ha_info *ha_info)
 
         // TRACE_INFO("[HA]   mqtt_path %s\n", mqtt_path);
 
-        osStrcpy(json_str, "{");
-        ha_addstr(json_str, "name", ha_info->entities[pos].name, false);
-        ha_addstr(json_str, "uniq_id", uniq_id, false);
-        ha_addstr(json_str, "dev_cla", ha_info->entities[pos].dev_class, false);
-        ha_addstr(json_str, "stat_cla", ha_info->entities[pos].state_class, false);
-        ha_addstr(json_str, "ic", ha_info->entities[pos].ic, false);
-        ha_addstr(json_str, "mode", ha_info->entities[pos].mode, false);
-        ha_addstr(json_str, "ent_cat", ha_info->entities[pos].ent_cat, false);
-        ha_addstr(json_str, "avty_t", ha_info->availability_topic, false);
-        ha_addmqtt(ha_info, json_str, "cmd_t", ha_info->entities[pos].cmd_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "stat_t", ha_info->entities[pos].stat_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "rgbw_cmd_t", ha_info->entities[pos].rgbw_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "rgb_cmd_t", ha_info->entities[pos].rgb_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "fx_cmd_t", ha_info->entities[pos].fx_cmd_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "fx_stat_t", ha_info->entities[pos].fx_stat_t, &ha_info->entities[pos], false);
-        ha_addmqtt(ha_info, json_str, "url_t", ha_info->entities[pos].url_t, &ha_info->entities[pos], false);
-        ha_addstrarray(json_str, "fx_list", ha_info->entities[pos].fx_list, false);
-        ha_addstrarray(json_str, "evt_typ", ha_info->entities[pos].event_types, false);
-        ha_addmqtt(ha_info, json_str, "val_tpl", ha_info->entities[pos].val_tpl, &ha_info->entities[pos], false);
-        ha_addstrarray(json_str, "ops", ha_info->entities[pos].options, false);
-        ha_addstr(json_str, "unit_of_meas", ha_info->entities[pos].unit_of_meas, false);
+        cJSON *json_obj = cJSON_CreateObject();
+        ha_addstr(json_obj, "name", ha_info->entities[pos].name);
+        ha_addstr(json_obj, "uniq_id", uniq_id);
+        ha_addstr(json_obj, "dev_cla", ha_info->entities[pos].dev_class);
+        ha_addstr(json_obj, "stat_cla", ha_info->entities[pos].state_class);
+        ha_addstr(json_obj, "ic", ha_info->entities[pos].ic);
+        ha_addstr(json_obj, "mode", ha_info->entities[pos].mode);
+        ha_addstr(json_obj, "ent_cat", ha_info->entities[pos].ent_cat);
+        ha_addstr(json_obj, "avty_t", ha_info->availability_topic);
+        ha_addmqtt(ha_info, json_obj, "cmd_t", ha_info->entities[pos].cmd_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "stat_t", ha_info->entities[pos].stat_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "rgbw_cmd_t", ha_info->entities[pos].rgbw_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "rgb_cmd_t", ha_info->entities[pos].rgb_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "fx_cmd_t", ha_info->entities[pos].fx_cmd_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "fx_stat_t", ha_info->entities[pos].fx_stat_t, &ha_info->entities[pos]);
+        ha_addmqtt(ha_info, json_obj, "url_t", ha_info->entities[pos].url_t, &ha_info->entities[pos]);
+        ha_addstrarray(json_obj, "fx_list", ha_info->entities[pos].fx_list);
+        ha_addstrarray(json_obj, "evt_typ", ha_info->entities[pos].event_types);
+        ha_addmqtt(ha_info, json_obj, "val_tpl", ha_info->entities[pos].val_tpl, &ha_info->entities[pos]);
+        ha_addstrarray(json_obj, "ops", ha_info->entities[pos].options);
+        ha_addstr(json_obj, "unit_of_meas", ha_info->entities[pos].unit_of_meas);
 
         switch (ha_info->entities[pos].type)
         {
         case ha_number:
-            ha_addint(json_str, "min", ha_info->entities[pos].min, false);
-            ha_addint(json_str, "max", ha_info->entities[pos].max, false);
+            ha_addint(json_obj, "min", ha_info->entities[pos].min);
+            ha_addint(json_obj, "max", ha_info->entities[pos].max);
             break;
         case ha_switch:
-            ha_addstr(json_str, "pl_on", "TRUE", false);
-            ha_addstr(json_str, "pl_off", "FALSE", false);
+            ha_addstr(json_obj, "pl_on", "TRUE");
+            ha_addstr(json_obj, "pl_off", "FALSE");
             break;
         default:
             break;
         }
 
-        osStrcat(json_str, "\"dev\": {");
-        ha_addstr(json_str, "name", ha_info->name, false);
-        ha_addstr(json_str, "ids", ha_info->id, false);
-        ha_addstr(json_str, "cu", ha_info->cu, false);
-        ha_addstr(json_str, "mf", ha_info->mf, false);
-        ha_addstr(json_str, "mdl", ha_info->mdl, false);
+        cJSON *json_dev_obj = cJSON_AddObjectToObject(json_obj, "dev");
+        ha_addstr(json_dev_obj, "name", ha_info->name);
+        ha_addstr(json_dev_obj, "ids", ha_info->id);
+        ha_addstr(json_dev_obj, "cu", ha_info->cu);
+        ha_addstr(json_dev_obj, "mf", ha_info->mf);
+        ha_addstr(json_dev_obj, "mdl", ha_info->mdl);
         if (osStrlen(ha_info->via))
         {
-            ha_addstr(json_str, "via_device", ha_info->via, false);
+            ha_addstr(json_dev_obj, "via_device", ha_info->via);
         }
-        ha_addstr(json_str, "sw", ha_info->sw, false);
-        ha_addstr(json_str, "hw", ha_info->hw, true);
-        osStrcat(json_str, "}}");
+        ha_addstr(json_dev_obj, "sw", ha_info->sw);
+        ha_addstr(json_dev_obj, "hw", ha_info->hw);
 
         // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
         // TRACE_INFO("[HA]    content '%s'\n", json_str);
 
+        char *json_str = cJSON_PrintUnformatted(json_obj);
+        cJSON_Delete(json_obj);
         if (!mqtt_publish(mqtt_path, json_str))
         {
             TRACE_INFO("[HA] publish failed\n");
         }
+        osFreeMem(json_str);
     }
-
-    osFreeMem(json_str);
 }
 
 void ha_received(t_ha_info *ha_info, char *topic, const char *payload)

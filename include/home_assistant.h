@@ -119,7 +119,6 @@ bool ha_loop(t_ha_info *ha_info);
 void ha_transmit_all(t_ha_info *ha_info);
 void ha_publish(t_ha_info *ha_info);
 void ha_add(t_ha_info *ha_info, t_ha_entity *entity);
-void ha_addmqtt(t_ha_info *ha_info, char *json_str, const char *name, const char *value, t_ha_entity *entity, bool last);
 void ha_received(t_ha_info *ha_info, char *topic, const char *payload);
 void ha_transmit(t_ha_info *ha_info, const t_ha_entity *entity, const char *value);
 void ha_transmit_topic(t_ha_info *ha_info, const char *stat_t, const char *value);
