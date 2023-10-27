@@ -864,7 +864,6 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.name = "Content Audio Id";
     entity.type = ha_sensor;
     entity.stat_t = "%s/ContentAudioId";
-    entity.dev_class = "timestamp";
     ha_add(ha_box_instance, &entity);
 
     memset(&entity, 0x00, sizeof(entity));
