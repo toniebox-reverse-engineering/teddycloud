@@ -680,7 +680,9 @@ error_t httpWriteStream(HttpConnection *connection,
 error_t httpCloseStream(HttpConnection *connection);
 
 error_t httpSendResponse(HttpConnection *connection, const char_t *uri);
+error_t httpSendResponseUnsafe(HttpConnection *connection, const char_t *uri, const char_t *absolutePath);
 error_t httpSendResponseStream(HttpConnection *connection, const char_t *uri, bool_t isStream);
+error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *uri, const char_t *absolutePath, bool_t isStream);
 
 error_t httpSendErrorResponse(HttpConnection *connection,
    uint_t statusCode, const char_t *message);

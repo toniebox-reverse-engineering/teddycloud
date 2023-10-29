@@ -9,5 +9,6 @@
     },
     "C_Cpp.autocompleteAddParentheses": true,
     "editor.formatOnSave": true,
-    "editor.formatOnType": false
+    "editor.formatOnType": false,
+    "cmake.configureOnOpen": false
 }

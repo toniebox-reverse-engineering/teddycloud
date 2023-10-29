@@ -16,7 +16,7 @@
 #include "core/tcp.h"
 #include "http/http_server.h"
 #include "http/http_server_misc.h"
-#include "rng/yarrow.h"
+#include "rand.h"
 #include "tls_adapter.h"
 #include "settings.h"
 #include "returncodes.h"
@@ -68,10 +68,14 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
+    {REQ_POST, "/api/uploadFirmware", &handleApiUploadFirmware},
+    {REQ_GET, "/api/patchFirmware", &handleApiPatchFirmware},
     {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
     {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
+    {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
 
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
@@ -124,6 +128,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     client_ctx_t *client_ctx = &connection->private.client_ctx;
     osMemset(client_ctx, 0x00, sizeof(client_ctx_t));
     client_ctx->settings = get_settings();
+    client_ctx->state = get_toniebox_state();
 
     if (connection->tlsContext)
     {
@@ -144,6 +149,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             {
                 client_ctx->settings = get_settings_cn(subject);
             }
+            client_ctx->state = get_toniebox_state_id(client_ctx->settings->internal.overlayNumber);
 
             char *ua = connection->request.userAgent;
             if (ua != NULL && osStrlen(ua) > 3)
@@ -254,8 +260,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             }
         }
     }
-    client_ctx->box_id = client_ctx->settings->commonName;
-    client_ctx->box_name = client_ctx->settings->boxName;
+    client_ctx->state->box.id = client_ctx->settings->commonName;
+    client_ctx->state->box.name = client_ctx->settings->boxName;
     mutex_unlock(MUTEX_CLIENT_CTX);
 
     connection->response.keepAlive = connection->request.keepAlive;
@@ -289,10 +295,15 @@ error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *
 {
     error_t error = NO_ERROR;
 
-    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
+    error = httpSendErrorResponse(connection, 404,
+                                  "The requested page could not be found");
 
+    /*
+    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
     error = httpSendResponse(connection, newUri);
     free(newUri);
+    */
+
     return error;
 }
 
@@ -354,13 +365,13 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     error_t error;
 
     // Set TX and RX buffer size
-    error = tlsSetBufferSize(tlsContext, 2048, 2048);
+    error = tlsSetBufferSize(tlsContext, TLS_TX_BUFFER_SIZE, TLS_RX_BUFFER_SIZE);
     // Any error to report?
     if (error)
         return error;
 
     // Set the PRNG algorithm to be used
-    error = tlsSetPrng(tlsContext, YARROW_PRNG_ALGO, &yarrowContext);
+    error = tlsSetPrng(tlsContext, rand_get_algo(), rand_get_context());
     // Any error to report?
     if (error)
         return error;
@@ -380,16 +391,16 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
         return error;
 
     // Import server's certificate
-    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *cert_chain = settings_get_string("internal.server.cert_chain");
     const char *server_key = settings_get_string("internal.server.key");
 
-    if (!server_crt || !server_key)
+    if (!cert_chain || !server_key)
     {
         TRACE_ERROR("Failed to get certificates\r\n");
         return ERROR_FAILURE;
     }
 
-    error = tlsAddCertificate(tlsContext, server_crt, strlen(server_crt), server_key, strlen(server_key));
+    error = tlsLoadCertificate(tlsContext, 0, cert_chain, strlen(cert_chain), server_key, strlen(server_key), NULL);
 
     if (error)
     {
@@ -453,9 +464,19 @@ void server_init()
     HttpServerSettings https_settings;
     HttpServerContext http_context;
     HttpServerContext https_context;
+    IpAddr listenIpAddr;
 
     /* setup settings for HTTP */
     httpServerGetDefaultSettings(&http_settings);
+
+    const char *bindIp = settings_get_string("core.server.bind_ip");
+
+    if (bindIp != NULL && strlen(bindIp) > 0)
+    {
+        TRACE_INFO("Binding to ip %s only\r\n", bindIp);
+        ipStringToAddr(bindIp, &listenIpAddr);
+        http_settings.ipAddr = listenIpAddr;
+    }
 
     http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
     http_settings.connections = httpConnections;

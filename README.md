@@ -34,7 +34,8 @@ This also generates the replacement CA for the toniebox ```certs/server/ca.der``
 If you are using docker, this will happen automatically.
 
 ### Dump certificates of your toniebox
-You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/client/*```
+You'll need the ```flash:/cert/ca.der``` (Boxine CA), ```flash:/cert/client.der``` (Client Cert) and ```flash:/cert/private.der``` (Client private key). Place those files under ```/certs/client/*```. You can either power the box with the battery (be sure it is note empty) or with the power supply. (recommended)
+
 #### CC3200
 You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3200tool) to dump your certificates over the Tag Connect debug port of the box. If you have installed the HackieboxNG Bootloader you should already have those files in your backup.
 ```
@@ -47,13 +48,31 @@ You can use the [cc3200tool](https://github.com/toniebox-reverse-engineering/cc3
 cc3200tool -if cc32xx-flash.bin -d cc32xx read_all_files extract/
 ```
 #### ESP32
-You can extract the flash memory via the debug port of the box and the esptool. Keep your backup!
+You can extract the flash memory via the debug port of the box and the esptool. Keep your backup! Please use a recent version of esptool. (>v4.4)
 Please connect the jumper J100 (Boot) and reset the box to put it into the required mode. Connect your 3.3V UART to J103 (TxD, RxD, GND).
+If connected with the Boot jumper, the box just start in "DOWNLOAD (USB/UART0)" mode. (Check with a serial monitor). Beware, if the serial monitor is open it will block esptool.py from accessing the esp. If you get a "BROWNOUT_RST" check your power supply / battery. "SPI_FAST_FLASH_BOOT" indicates a boot without the J100 jumper. 
 
+##### Browser based
+You can use the build in ESP32 box flashing tool in the webinterface of teddyCloud to backup your box with "Read ESP32".
+After that you can manually extract them into the ```/certs/client/``` directory.
 ```
+# Please check the filename of your backup
+teddycloud ESP32CERT extract data/firmware/ESP32_<mac>.bin certs/client
+```
+
+##### Legacy
+```
+# extract firmware
 esptool.py -b 921600 read_flash 0x0 0x800000 tb.esp32.bin
+# extract certficates from firmware
 mkdir certs/client/esp32
-bin/teddycloud ESP32CERT extract tb.esp32.bin certs/client/esp32
+teddycloud ESP32CERT extract tb.esp32.bin certs/client/esp32
+# Copy box certificates to teddyCloud
+cp certs/client/esp32/CLIENT.DER  certs/client/client.der
+cp certs/client/esp32/PRIVATE.DER  certs/client/private.der
+cp certs/client/esp32/CA.DER  certs/client/ca.der
+
+# Copy certificates to temporary dir
 mkdir certs/client/esp32-fakeca
 cp certs/client/esp32/CLIENT.DER certs/client/esp32-fakeca/
 cp certs/client/esp32/PRIVATE.DER certs/client/esp32-fakeca/
@@ -75,11 +94,19 @@ cc3200tool -if cc32xx-flash.bin -of cc32xx-flash.customca.bin -d cc32xx customca
 ```
 
 #### ESP32
+##### Browser based
+With teddyCloud you can also write a new image with your custom CA and a DNS/IP so the box connects to teddyCloud.
+If you have a Fritzbox you can set it to tc.fritz.box (see CC3200 how to configure the hostname on your Fritzbox), if not set it to the IP of teddyCloud.
+
+##### Legacy
 Replace the original CA within your flash dump with esptool.
 
 ```
+# copy firmware backup
 cp tb.esp32.bin tb.esp32.fakeca.bin
-bin/teddycloud ESP32CERT inject tb.esp32.fakeca.bin certs/client/esp32-fakeca
+# inject new CA into firmware
+teddycloud ESP32CERT inject tb.esp32.fakeca.bin certs/client/esp32-fakeca
+# flash firmware with new CA
 esptool.py -b 921600 write_flash 0x0 tb.esp32.fakeca.bin
 ```
 
@@ -90,7 +117,7 @@ If you have a fritzbox you can use the [altUrl tc.fritz.box](https://github.com/
 ).
 You may also edit the patch yourself to set the ip-address directly. Please beware, it should not be longer than the original url, which is 12 characters.
 
-#### CC3235 / ESP32
+#### CC3235
 Set the DNS entries for ```prod.de.tbs.toys``` and ```rtnl.bxcl.de``` to the TeddyCloud servers ip-address. Beware, this will cut off the connection of all tonieboxes within your network, which arn't patched with your replacement CA!
 As an alternative you can set the gateway for the tonieboxes to the ip of teddyCloud. With OpenWRT it works this way:
 ```
@@ -105,6 +132,9 @@ uci set dhcp.@host[-1].tag="teddycloud"
 uci commit dhcp
 /etc/init.d/dnsmasq restart
 ```
+
+#### ESP32
+You can either set the IP/DNS within the image or you may do it like on the CC3235.
 
 ### Content
 Please put your content into the ```/data/content/default/``` in the same structure as on your toniebox. You can edit ```500304E0.json``` file beside the content files to mark them as live or you can prevent the usage of the Boxine cloud for that tag with the nocloud parameter. By setting a source teddyCloud can stream any content that ffmpeg can decode (urls and files).

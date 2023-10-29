@@ -14,6 +14,12 @@
     <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"
         integrity="sha512-pBSlhNUvB+td6sjW1zmR6L7c7kVWR4octUPl4tfHmzO63424nxta8aLmficEcAAswQmRqTiToi63AazDurj/Sg=="
         crossorigin="anonymous"></script>
+    <script>
+        import('./library/esptool.js').then((module) => {
+            /* guess that is not the most clean code ever seen, but feel free to correct this */
+            window.ESPLoader = module.ESPLoader;
+        });
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -112,20 +118,39 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
 
-        .button {
+        .button,
+        .button-red {
             font-size: 1em;
             padding: 10px;
             margin: 5px;
             color: #fff;
-            background-color: #007BFF;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
 
+        .button {
+            background-color: #007BFF;
+        }
+
+        .button-red {
+            background-color: #ff0000;
+        }
+
+        .button:disabled,
+        .button-red:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            color: #888;
+        }
+
         .button:hover {
             background-color: #0056b3;
+        }
+
+        .button-red:hover {
+            background-color: #bf0000;
         }
 
         .app {
@@ -296,6 +321,54 @@
 
         .drag-over {
             margin-top: 50px;
+        }
+
+        .center-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status {
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .monospace {
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-table {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .info-table td {
+            padding: 0px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .progress {
+            width: 100%;
+            background-color: #f3f3f3;
+            text-align: center;
+        }
+
+        .progress-bar {
+            height: 30px;
+            background-color: #4caf50;
+            position: relative;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            color: black;
+            text-align: center;
+            line-height: 30px;
         }
     </style>
 </head>
@@ -818,6 +891,9 @@
                     currentTime: 0,
                     duration: 0,
                     imageUrl: "",
+                    artist: "",
+                    title: "",
+                    album: "",
                     isPlaying: false,  // Track if audio is playing
                     pauseTimer: null,  // Keep track of a timer for the pause event
                 }
@@ -831,6 +907,9 @@
 
             setImageUrl = (url) => {
                 this.setState({ imageUrl: url });
+            }
+            setArtistTitle = (artist, title) => {
+                this.setState({ artist: artist, title: title });
             }
 
             componentDidMount() {
@@ -859,6 +938,28 @@
             updateIsPlaying = () => {
                 clearTimeout(this.state.pauseTimer);
                 this.setState({ isPlaying: true, pauseTimer: null });
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: this.state.title,
+                        artist: this.state.artist,
+                        album: this.state.album,
+                        artwork: [
+                            { src: this.state.imageUrl, sizes: '96x96', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '128x128', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '192x192', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '256x256', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '384x384', type: 'image/png' },
+                            { src: this.state.imageUrl, sizes: '512x512', type: 'image/png' },
+                        ]
+                    });
+
+                    //navigator.mediaSession.setActionHandler('play', function () { });
+                    //navigator.mediaSession.setActionHandler('pause', function () { });
+                    //navigator.mediaSession.setActionHandler('seekbackward', function () { });
+                    //navigator.mediaSession.setActionHandler('seekforward', function () { });
+                    //navigator.mediaSession.setActionHandler('previoustrack', function () { });
+                    //navigator.mediaSession.setActionHandler('nexttrack', function () { });
+                }
             }
 
             // On pause event, start a timer. If the timer ends, set isPlaying to false
@@ -866,6 +967,9 @@
                 if (this.state.pauseTimer) clearTimeout(this.state.pauseTimer);
                 const timer = setTimeout(() => {
                     this.setState({ isPlaying: false });
+                    if ('mediaSession' in navigator) {
+                        //navigator.mediaSession.metadata = null;
+                    }
                 }, 5000);  // Set a timer for 5 seconds
                 this.setState({ pauseTimer: timer });
             }
@@ -940,11 +1044,17 @@
 
                 this.setState({ path: path, mode: mode });
                 this.fetchFileIndex(path, mode);
-
-                fetch("/tonies.json")
-                    .then(response => response.json())
-                    .then(data => this.setState({ tonies: data }));
-
+                Promise.all([
+                    fetch("/api/toniesJson").then((response) => response.json()),
+                    fetch("/api/toniesCustomJson").then((response) => response.json()),
+                ])
+                    .then(([toniesData, customData]) => {
+                        const combinedTonies = [...customData, ...toniesData];
+                        this.setState({ tonies: combinedTonies });
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching tonies data:", error);
+                    });
                 window.addEventListener('popstate', this.handlePopState);
 
                 window.history.replaceState({ path, mode }, '', `?path=${path}&mode=${mode}`);
@@ -1282,7 +1392,9 @@
                             let audioId;
                             let audioIdHex;
                             let hashHex;
+                            let tonieArtist = "(unknown)";
                             let tonieTitle = "(unknown)";
+                            let tonieFullName = tonieArtist + " - " + tonieTitle;
                             let toniePic = "img_unknown.png";
                             let tonieModel = "";
                             let custom = false;
@@ -1298,16 +1410,17 @@
                                     audioId += 1342177280;
                                     custom = true;
                                 }
-
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
-                                if (matchingTonie) {
-                                    tonieTitle = matchingTonie.title;
-                                    toniePic = matchingTonie.pic;
-                                    tonieModel = matchingTonie.model;
-                                }
 
                                 if (custom) {
                                     toniePic = "img_custom.png";
+                                }
+                                if (matchingTonie) {
+                                    tonieArtist = matchingTonie.series;
+                                    tonieTitle = matchingTonie.episodes;
+                                    tonieFullName = tonieArtist + " - " + tonieTitle;
+                                    toniePic = matchingTonie.pic;
+                                    tonieModel = matchingTonie.model;
                                 }
                             }
 
@@ -1341,6 +1454,7 @@
                                                         onClick={() => {
                                                             this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
                                                             this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                            this.oggPlayerRef.current.setArtistTitle(`${tonieArtist}`, `${tonieTitle}`);
                                                             this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
                                                         }
                                                         } className="small-round-button"
@@ -1353,7 +1467,7 @@
                                                         onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
                                                     />
                                                     <div className="text-section">
-                                                        <span className="desc">{tonieTitle}</span>
+                                                        <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
                                                         <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
@@ -1743,6 +1857,452 @@
             }
         }
 
+        class ESP32Flasher extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    progress: 0,
+                    chipMac: '',
+                    chipType: '',
+                    flashId: '',
+                    flashManuf: '',
+                    flashDevice: '',
+                    flashSize: '',
+                    state: '',
+                    filename: '',
+                    flashName: '',
+                    port: null,
+                    originalFlash: null,
+                    patchedFlash: null,
+                    showStatus: false,
+                    showProgress: false,
+                    showDownload: false,
+                    showFlash: false,
+                    connected: false,
+                    hostname: window.location.hostname
+                };
+                this.fileInputRef = React.createRef();
+            }
+
+            openFile = () => {
+                this.fileInputRef.current.click();
+            }
+
+            loadFlashFile = async (e) => {
+                const file = e.target.files[0];
+
+                if (!file) {
+                    return;
+                }
+
+                console.log("Read file '" + file + "'");
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    console.log("Connecting to ESP32");
+                    const port = await this.getPort('Connecting to read MAC-Address');
+
+                    if (port == null || this.state.connected) {
+                        return;
+                    }
+
+                    this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
+
+                    var esploader = null;
+                    try {
+                        esploader = new ESPLoader({
+                            port: port,
+                            baudrate: 921600
+                        });
+                    } catch (err) {
+                        this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+
+                    try {
+                        this.setState({ state: `Retrieving MAC address...` });
+                        await esploader.main_fn();
+
+                        var mac = await esploader.chip.read_mac(esploader);
+                        this.setState({ chipMac: mac });
+                        console.log("Chip MAC: " + mac);
+                        await port.close();
+
+                        const flashData = new Uint8Array(e.target.result);
+
+                        const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                        await this.uploadFlashData(flashData, sanitizedName);
+
+                        this.setState({ patchedFlash: e.target.result, showFlash: true, connected: false, flashName: 'from file' });
+                        console.log("Done");
+
+                    } catch (err) {
+                        this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
+                        console.error(err);
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            async getPort(message) {
+                if (this.state.port) {
+                    return this.state.port;
+                }
+                this.setState({ showStatus: true, showProgress: false, progress: 0, state: message ? message : "Open serial port" });
+                let port = null;
+                try {
+                    port = await navigator.serial.requestPort();
+                    await port.open({ baudRate: 115200 });
+                    await port.close();
+                } catch (err) {
+                    if (err.name == "NetworkError") {
+                        this.setState({ state: `Failed to open this port. Already in use?` });
+                        alert(`Failed to open this port. Already in use?`);
+                    }
+                    else if (err.name == "NotFoundError") {
+                        this.setState({ state: `No port available or user aborted` });
+                    }
+                    else {
+                        this.setState({ state: `Error ${err.name}: ${err.message}` });
+                        alert(`Error ${err.name}: ${err.message}`);
+                    }
+                    return null;
+                }
+
+                if (!port) {
+                    this.setState({ state: "Invalid serial port" });
+                    return null;
+                }
+                this.setState({ port: port });
+
+                return port;
+            }
+
+            async writeFlash() {
+                const port = await this.getPort();
+
+                if (port == null || this.state.connected) {
+                    return;
+                }
+                this.setState({ state: `Connecting to ${port.info}`, connected: true });
+
+                var esploader = null;
+                var flashData = null;
+
+                try {
+                    esploader = new ESPLoader({
+                        port: port,
+                        baudrate: 921600
+                    });
+                } catch (err) {
+                    this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+
+                try {
+                    this.setState({ state: `Connecting to ESP` });
+                    await esploader.main_fn();
+                    this.setState({ state: `Connected`, progress: 0, showProgress: true });
+
+                    var mac = await esploader.chip.read_mac(esploader);
+                    this.setState({ chipMac: mac });
+                    console.log("Chip MAC: " + mac);
+
+                    const type = await esploader.chip.get_chip_description(esploader);
+                    this.setState({ chipType: type });
+
+                    var flash_id = await esploader.read_flash_id();
+                    /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
+                    this.setState({ flashId: flash_id, flashManuf: flash_id & 0xFF, flashDevice: (flash_id >> 8) & 0xFF });
+
+                    var flash_size = await esploader.get_flash_size();
+                    this.setState({ flashSize: flash_size });
+
+                    const cbr = (packet, progress, totalSize) => {
+                        const prog = (100 * progress / totalSize);
+                        this.setState({ progress: prog });
+                    };
+
+                    if (flash_size < 0 || flash_size > 16384) {
+                        this.setState({ state: `Flash size error`, connected: false });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+                    this.setState({ state: `Preparing ${(this.state.patchedFlash.byteLength / 1024 / 1024).toFixed(0)} MiB flash` });
+
+                    /* ugly, but the original esptool.js code uses binary strings  */
+                    function arrayBufferToBstr(arrayBuffer) {
+                        const u8Array = new Uint8Array(arrayBuffer);
+                        let binaryString = '';
+                        for (let i = 0; i < u8Array.length; i++) {
+                            binaryString += String.fromCharCode(u8Array[i]);
+                        }
+                        return binaryString;
+                    }
+
+                    var fileArray = [];
+                    fileArray.push({ data: arrayBufferToBstr(this.state.patchedFlash), address: 0 });
+                    var opts = {
+                        fileArray: fileArray,
+                        flashSize: "keep",
+                        flashMode: "keep",
+                        flashFreq: "keep",
+                        eraseAll: false,
+                        compress: true,
+                        reportProgress: (fileIndex, written, total) => {
+                            const prog = (100 * written / total);
+                            this.setState({ progress: prog });
+                        }
+                    };
+
+                    this.setState({ state: `Writing ${(this.state.patchedFlash.byteLength / 1024 / 1024).toFixed(0)} MiB flash` });
+                    await esploader.write_flash(opts);
+
+                    await port.close();
+                    this.setState({ state: `Writing finished`, connected: false });
+                } catch (err) {
+                    this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
+                    console.error(err);
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+            }
+
+            async patchFlash() {
+                this.setState({ showProgress: false, showFlash: false });
+                this.setState({ state: `Patching flash image...` });
+                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}`, {
+                    method: 'GET'
+                });
+                this.setState({ state: `Payload received` });
+
+                if (response.ok && response.status == 200) {
+                    const arrayBuffer = await response.arrayBuffer();
+                    this.setState({ patchedFlash: arrayBuffer, showFlash: true, flashName: 'patched' });
+                    this.setState({ state: `Patching successful, ready to flash ${(arrayBuffer.byteLength / 1024 / 1024).toFixed(0)} MiB` });
+                } else {
+                    this.setState({ state: `Patching failed` });
+                }
+            }
+
+            async readFlash() {
+                var esploader = null;
+                var flashData = null;
+                var mac = '';
+
+                flashData = new Uint8Array(1024);
+
+                const port = await this.getPort();
+
+                if (port == null || this.state.connected) {
+                    return;
+                }
+
+                this.setState({ state: `Connecting to ${port.info}`, showFlash: false, connected: true });
+
+                try {
+                    esploader = new ESPLoader({
+                        port: port,
+                        baudrate: 921600
+                    });
+                } catch (err) {
+                    this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+
+                try {
+                    this.setState({ state: `Connecting to ESP` });
+                    await esploader.main_fn();
+                    this.setState({ state: `Connected` });
+
+                    mac = await esploader.chip.read_mac(esploader);
+                    this.setState({ chipMac: mac });
+                    console.log("Chip MAC: " + mac);
+
+                    const type = await esploader.chip.get_chip_description(esploader);
+                    this.setState({ chipType: type });
+
+                    var flash_id = await esploader.read_flash_id();
+                    /* maybe parse from https://github.com/jhcloos/flashrom/blob/master/flashchips.h */
+                    this.setState({ flashId: flash_id, flashManuf: flash_id & 0xFF, flashDevice: (flash_id >> 8) & 0xFF });
+
+                    var flash_size = await esploader.get_flash_size();
+                    this.setState({ flashSize: flash_size });
+
+                    if (flash_size < 0 || flash_size > 16384) {
+                        this.setState({ state: `Flash size error`, connected: false });
+                        alert(err.message);
+                        await port.close();
+                        return;
+                    }
+                    this.setState({ state: `Reading flash`, showProgress: true, progress: 0 });
+
+                    flashData = await esploader.read_flash(0, flash_size * 1024, (packet, progress, totalSize) => {
+                        const prog = (100 * progress / totalSize);
+                        this.setState({ progress: prog });
+                    });
+
+                    await port.close();
+                    this.setState({ state: `Reading finished`, progress: 100, originalFlash: flashData, connected: false });
+                } catch (err) {
+                    this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
+                    console.error(err);
+                    alert(err.message);
+                    await port.close();
+                    return;
+                }
+
+                const sanitizedName = `ESP32_${mac.replace(/:/g, "")}`;
+                await this.uploadFlashData(flashData, sanitizedName);
+            }
+
+            async uploadFlashData(flashData, sanitizedName) {
+                try {
+                    this.setState({ state: `Uploading` });
+
+                    const formData = new FormData();
+                    formData.append(sanitizedName, new Blob([flashData.buffer]), sanitizedName);
+
+                    const response = await fetch('/api/uploadFirmware', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok && response.status == 200) {
+                        const filename = await response.text();
+                        this.setState({
+                            showDownload: true,
+                            filename: filename,
+                            state: `Upload successful: saved as ${filename}`
+                        });
+                    } else {
+                        this.setState({ state: `Upload failed` });
+                    }
+                } catch (err) {
+                    console.error('There was an error when uploading!', err);
+                    this.setState({ state: `Upload failed` });
+                }
+            }
+
+            render() {
+                const webSerialSupported = navigator.serial;
+                const buttonDisabled = this.state.connected;
+                const hostname = window.location.hostname;
+
+                const sanitizeHostname = (input) => {
+                    return input.replace(/[^a-zA-Z0-9-.]/g, '').trim();
+                };
+
+
+                return (
+                    <div className="tile encoder-tile">
+                        <h3>ESP32 box flashing</h3>
+
+                        {!webSerialSupported ? (
+                            <div>
+                                Your browser does not support WebSerial. Use Chrome or Edge to flash your ESP32 box.
+                            </div>
+                        ) : (
+                            <div>
+                                {/* Render Buttons */}
+                                <button className="button" disabled={buttonDisabled} onClick={() => this.readFlash()}>Read ESP32</button>
+                                <button className="button" disabled={buttonDisabled} onClick={() => this.openFile()}>Load file</button>
+                                {this.state.showDownload && <button className="button" disabled={buttonDisabled} onClick={() => this.patchFlash()}>Patch image</button>}
+                                {this.state.showFlash && (
+                                    <button
+                                        className="button-red"
+                                        disabled={buttonDisabled}
+                                        onClick={() => this.writeFlash()}
+                                    >
+                                        {`Flash ESP32${this.state.flashName ? ` (${this.state.flashName})` : ''}`}
+                                    </button>
+                                )}
+
+                                <div className="center-content">
+                                    {this.state.showDownload && (
+                                        <div>
+                                            <label>
+                                                TeddyCloud hostname:
+                                                <input
+                                                    type="text"
+                                                    defaultValue={hostname}
+                                                    onChange={(e) => {
+                                                        let value = sanitizeHostname(e.target.value);
+                                                        let warningText = '';
+
+                                                        if (value.length > 12) {
+                                                            warningText = 'Hostname length should be less than 13 characters.';
+                                                        } else {
+                                                            warningText = '';
+                                                        }
+
+                                                        this.setState({
+                                                            hostname: value,
+                                                            warningText: warningText
+                                                        });
+                                                    }}
+                                                />
+                                            </label>
+                                            {this.state.warningText && <p style={{ color: '#CC3010' }}>{this.state.warningText}</p>}
+                                        </div>
+                                    )}
+
+                                    {/* Hidden file input to handle file selection */}
+                                    <input
+                                        type="file"
+                                        style={{ display: 'none' }}
+                                        ref={this.fileInputRef}
+                                        onChange={this.loadFlashFile}
+                                    />
+
+                                    {/* Show Status */}
+                                    {this.state.showStatus &&
+                                        <div className="status">
+                                            <p className="monospace">{this.state.state}</p>
+                                        </div>
+                                    }
+                                    {/* Show Progress */}
+                                    {this.state.showProgress &&
+                                        <div>
+                                            {/* Info Table */}
+                                            <table className="info-table monospace">
+                                                <tbody>
+                                                    <tr><td>Chip Type</td><td>{this.state.chipType}</td></tr>
+                                                    <tr><td>Chip MAC</td><td>{this.state.chipMac}</td></tr>
+                                                    <tr><td>Flash ID</td><td>0x{this.state.flashId.toString(16)}</td></tr>
+                                                    <tr><td>Flash Manuf.</td><td>0x{this.state.flashManuf.toString(16)}</td></tr>
+                                                    <tr><td>Flash Device</td><td>0x{this.state.flashDevice.toString(16)}</td></tr>
+                                                    <tr><td>Flash Size</td><td>{this.state.flashSize} KiB</td></tr>
+                                                </tbody>
+                                            </table>
+                                            {/* Progress Bar */}
+                                            <div className="progress monospace">
+                                                <div className="progress-bar" style={{ width: `${this.state.progress}%` }}>
+                                                    <span className="progress-text">{this.state.progress.toFixed(2)}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+        }
+
+
         class App extends React.Component {
             constructor(props) {
                 super(props);
@@ -1817,6 +2377,7 @@
                         <h1>TeddyCloud administration interface</h1>
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
+                            <ESP32Flasher />
                             <StatsTile />
                             <CertificateUploadTile />
                             <FileViewerTile />

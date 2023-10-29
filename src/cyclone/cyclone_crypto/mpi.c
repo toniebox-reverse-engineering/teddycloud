@@ -37,7 +37,7 @@
 #include "core/crypto.h"
 #include "mpi/mpi.h"
 #include "debug.h"
-#include "yarrow.h"
+#include "rand.h"
 #include "tls_adapter.h"
 
 // Check crypto library configuration
@@ -711,7 +711,7 @@ __weak_func error_t mpiCheckProbablePrime(const Mpi *a)
    }
 
    /* hardcoded to tls_adapter's PRNG  (╯°□°）╯︵ ┻━┻ */
-   if (mpiCheckProbablePrimeWorker(a, k, YARROW_PRNG_ALGO, &yarrowContext))
+   if (mpiCheckProbablePrimeWorker(a, k, rand_get_algo(), rand_get_context()))
    {
       return NO_ERROR;
    }

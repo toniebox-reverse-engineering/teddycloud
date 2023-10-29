@@ -37,20 +37,30 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
 
-    if (header)
+    switch (ctx->api)
     {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
-        osSprintf(line, "%s: %s\r\n", header, value);
-    }
-    else
-    {
-        TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
-        osStrcpy(line, "\r\n");
-    }
+    case V1_FRESHNESS_CHECK:
+        if (!header || osStrcmp(header, "Content-Length") == 0) // Skip empty line at the and + contentlen
+        {
+            break;
+        }
+    default:
+        char line[128];
+        if (header)
+        {
+            TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+            osSprintf(line, "%s: %s\r\n", header, value);
+        }
+        else
+        {
+            TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
+            osStrcpy(line, "\r\n");
+        }
 
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+        httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+        break;
+    }
     ctx->status = PROX_STATUS_HEAD;
 }
 
@@ -92,12 +102,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 char ruid[17];
                 osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
                 ruid[16] = 0;
-                getContentPathFromCharRUID(ruid, &ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
-                ctx->tonieInfo = getTonieInfo(ctx->tonieInfo.contentPath, ctx->client_ctx->settings);
+                ctx->tonieInfo = getTonieInfoFromRuid(ruid, ctx->client_ctx->settings);
 
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
-                char *dir = strdup(ctx->tonieInfo.contentPath);
+                char *dir = strdup(ctx->tonieInfo->contentPath);
                 dir[osStrlen(dir) - 8] = '\0';
                 fsCreateDir(dir);
 
@@ -119,23 +128,23 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             if (error == ERROR_END_OF_STREAM)
             {
                 fsCloseFile(ctx->file);
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo.contentPath);
+                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
-                fsDeleteFile(ctx->tonieInfo.contentPath);
-                fsRenameFile(tmpPath, ctx->tonieInfo.contentPath);
-                if (fsFileExists(ctx->tonieInfo.contentPath))
+                fsDeleteFile(ctx->tonieInfo->contentPath);
+                fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
+                if (fsFileExists(ctx->tonieInfo->contentPath))
                 {
-                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo.contentPath);
+                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 else
                 {
-                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo.contentPath);
+                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
             }
             if (error != NO_ERROR)
             {
-                freeTonieInfo(&ctx->tonieInfo);
+                freeTonieInfo(ctx->tonieInfo);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
@@ -143,21 +152,63 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
     case V1_FRESHNESS_CHECK:
         if (ctx->client_ctx->settings->toniebox.overrideCloud && length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
-            TonieFreshnessCheckResponse *freshResp = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
-            setTonieboxSettings(freshResp, ctx->client_ctx->settings);
-            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
+            TonieFreshnessCheckResponse *freshResp = (TonieFreshnessCheckResponse *)ctx->customData;
+            TonieFreshnessCheckResponse *freshRespCloud = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
+            if (ctx->client_ctx->settings->toniebox.overrideCloud)
+            {
+                setTonieboxSettings(freshResp, ctx->client_ctx->settings);
+            }
+            else
+            {
+                freshResp->max_vol_spk = freshRespCloud->max_vol_spk;
+                freshResp->max_vol_hdp = freshRespCloud->max_vol_hdp;
+                freshResp->slap_en = freshRespCloud->slap_en;
+                freshResp->slap_dir = freshRespCloud->slap_dir;
+                freshResp->led = freshRespCloud->led;
+                freshResp->field2 = freshRespCloud->field2;
+                freshResp->field6 = freshRespCloud->field6;
+            }
 
-            // TODO: Check if size is stable and this is obsolete
-            // TODO Add live tonies here, too : freshResp.tonie_marked
+            for (size_t i = 0; i < freshRespCloud->n_tonie_marked; i++)
+            {
+                bool found = false;
+                for (size_t j = 0; j < freshResp->n_tonie_marked; j++)
+                {
+                    if (freshRespCloud->tonie_marked[i] == freshResp->tonie_marked[j])
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    // handleCloudFreshnessCheck allocated space for all in freshResp.tonie_marked
+                    if (ctx->customDataLen > freshResp->n_tonie_marked)
+                    {
+                        freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshRespCloud->tonie_marked[i];
+                        TRACE_INFO("Marked UID %016" PRIX64 " as updated from cloud\r\n", freshRespCloud->tonie_marked[i]);
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Could not add UID %016" PRIX64 " to freshnessCheck response, as not enough slots allocated!\r\n", freshRespCloud->tonie_marked[i]);
+                    }
+                }
+            }
+            tonie_freshness_check_response__free_unpacked(freshRespCloud, NULL);
+
+            size_t packSize = tonie_freshness_check_response__get_packed_size(freshResp);
             if (ctx->bufferLen < packSize)
             {
-                TRACE_WARNING(">> cbrCloudBodyPassthrough V1_FRESHNESS_CHECK: %zu / %zu\r\n", ctx->bufferLen, packSize);
                 osFreeMem(ctx->buffer);
                 ctx->bufferLen = packSize;
                 ctx->buffer = osAllocMem(ctx->bufferLen);
             }
             tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
-            tonie_freshness_check_response__free_unpacked(freshResp, NULL);
+
+            char line[128];
+            osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
+            httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
             osFreeMem(ctx->buffer);
         }
@@ -221,100 +272,118 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->led = settings->toniebox.led;
 }
 
-tonie_info_t getTonieInfo(const char *contentPath, settings_t *settings)
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings)
 {
-    tonie_info_t tonieInfo;
+    char *contentPath;
+    getContentPathFromUID(uid, &contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    osFreeMem(contentPath);
+    return tonieInfo;
+}
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings)
+{
+    char *contentPath;
+    getContentPathFromCharRUID(ruid, &contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    osFreeMem(contentPath);
+    return tonieInfo;
+}
+tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
+{
+    tonie_info_t *tonieInfo;
+    tonieInfo = osAllocMem(sizeof(tonie_info_t));
 
-    tonieInfo.valid = false;
-    tonieInfo.updated = false;
-    tonieInfo.stream = false;
-    tonieInfo.tafHeader = NULL;
-    tonieInfo.contentPath = strdup(contentPath);
-    tonieInfo.exists = fsFileExists(contentPath);
+    tonieInfo->valid = false;
+    tonieInfo->updated = false;
+    tonieInfo->stream = false;
+    tonieInfo->tafHeader = NULL;
+    tonieInfo->contentPath = strdup(contentPath);
+    tonieInfo->exists = fsFileExists(contentPath);
+    osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
-    tonieInfo.contentConfig.live = false;
-    tonieInfo.contentConfig.nocloud = false;
-    tonieInfo.contentConfig.source = NULL;
-    tonieInfo.contentConfig.skip_seconds = 0;
-    tonieInfo.contentConfig.cache = false;
-    tonieInfo.contentConfig._updated = false;
-    tonieInfo.contentConfig._stream = false;
-    tonieInfo.contentConfig._streamFile = custom_asprintf("%s.stream", contentPath);
-
-    if (osStrstr(contentPath, ".json") == NULL &&
-        osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
-        (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
-        osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
+    if (osStrstr(contentPath, ".json") == NULL)
     {
-        // TODO: Nice checking if valid tonie path
-        load_content_json(contentPath, &tonieInfo.contentConfig);
-    }
-
-    FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
-    if (file)
-    {
-        uint8_t headerBuffer[TAF_HEADER_SIZE];
-        size_t read_length;
-        fsReadFile(file, headerBuffer, 4, &read_length);
-        if (read_length == 4)
+        if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
+            (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
+            osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
-            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
-            if (protobufSize <= TAF_HEADER_SIZE)
-            {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length);
-                if (read_length == protobufSize)
-                {
-                    tonieInfo.tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                    if (tonieInfo.tafHeader)
-                    {
-                        tonieInfo.valid = true;
+            // TODO: Nice checking if valid tonie path
+            load_content_json(contentPath, &tonieInfo->json);
+        }
 
-                        if (tonieInfo.tafHeader->num_bytes == TONIE_LENGTH_MAX)
+        FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
+        if (file)
+        {
+            uint8_t headerBuffer[TAF_HEADER_SIZE];
+            size_t read_length;
+            fsReadFile(file, headerBuffer, 4, &read_length);
+            if (read_length == 4)
+            {
+                uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+                if (protobufSize <= TAF_HEADER_SIZE)
+                {
+                    fsReadFile(file, headerBuffer, protobufSize, &read_length);
+                    if (read_length == protobufSize)
+                    {
+                        tonieInfo->tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+                        if (tonieInfo->tafHeader)
                         {
-                            tonieInfo.stream = true;
+                            tonieInfo->valid = true;
+                            content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id);
+                            if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                            {
+                                tonieInfo->stream = true;
+                            }
                         }
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", contentPath, read_length, protobufSize);
                     }
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", contentPath, read_length, protobufSize);
+                    TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", contentPath, protobufSize, TAF_HEADER_SIZE);
                 }
+            }
+            else if (read_length == 0)
+            {
+                // TODO don't send invalid TAF files via API
+                TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", contentPath);
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", contentPath, protobufSize, TAF_HEADER_SIZE);
+                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", contentPath, read_length);
             }
+            fsCloseFile(file);
         }
-        else if (read_length == 0)
-        {
-            // TODO don't send invalid TAF files via API
-            TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", contentPath);
-        }
-        else
-        {
-            TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", contentPath, read_length);
-        }
-        fsCloseFile(file);
     }
     return tonieInfo;
 }
 
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
-    if (tonieInfo->contentConfig._updated)
+    if (tonieInfo->json._updated)
     {
-        save_content_json(tonieInfo->contentPath, &tonieInfo->contentConfig);
+        save_content_json(tonieInfo->contentPath, &tonieInfo->json);
     }
 
-    toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
-    free(tonieInfo->contentPath);
-    tonieInfo->contentPath = NULL;
-    tonieInfo->tafHeader = NULL;
+    if (tonieInfo->tafHeader)
+    {
+        toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
+        tonieInfo->tafHeader = NULL;
+    }
+    if (tonieInfo->contentPath)
+    {
+        osFreeMem(tonieInfo->contentPath);
+        tonieInfo->contentPath = NULL;
+    }
 
     if (tonieInfo->valid)
     {
-        free_content_json(&tonieInfo->contentConfig);
+        free_content_json(&tonieInfo->json);
     }
+    free(tonieInfo);
 }
 
 void httpPrepareHeader(HttpConnection *connection, const void *contentType, size_t contentLength)

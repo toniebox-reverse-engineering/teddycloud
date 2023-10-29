@@ -12,6 +12,17 @@
 
 #include "fs_port.h"
 #include "server_helpers.h"
+#include "cert.h"
+
+#define ERR_RETURN(command)    \
+    do                         \
+    {                          \
+        error_t err = command; \
+        if (err != NO_ERROR)   \
+        {                      \
+            return err;        \
+        }                      \
+    } while (0)
 
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
@@ -39,14 +50,16 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("core.server", "Server ports")
     OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port")
     OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port")
+    OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to")
 
     OPTION_TREE_DESC("core.server", "HTTP server")
     OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content")
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library")
-    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir' and 'wwwdir' when they are relative")
-    OPTION_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", "Directory for placing web content")
+    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative")
+    OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir")
+    OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware")
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename")
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates")
@@ -57,9 +70,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.server_cert.file.key", &settings->core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key", "Server key")
     OPTION_TREE_DESC("core.server_cert.data", "Raw certificates")
     OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "CA certificate data", "CA certificate data")
-    OPTION_STRING("core.server_cert.data.ca_key", &settings->core.server_cert.data.ca_key, "", "CA key data", "CA key data")
-    OPTION_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data", "Server certificate data")
-    OPTION_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data", "Server key data")
+    OPTION_INTERNAL_STRING("core.server_cert.data.ca_key", &settings->core.server_cert.data.ca_key, "", "CA key data")
+    OPTION_INTERNAL_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data")
+    OPTION_INTERNAL_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data")
 
     /* settings for HTTPS/cloud client */
     OPTION_TREE_DESC("core.client_cert", "Cloud client certificates")
@@ -68,9 +81,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.client_cert.file.crt", &settings->core.client_cert.file.crt, "certs/client/client.der", "Client certificate", "Client certificate")
     OPTION_STRING("core.client_cert.file.key", &settings->core.client_cert.file.key, "certs/client/private.der", "Client key", "Client key")
     OPTION_TREE_DESC("core.client_cert.data", "Raw certificates")
-    OPTION_STRING("core.client_cert.data.ca", &settings->core.client_cert.data.ca, "", "Client CA", "Client CA")
-    OPTION_STRING("core.client_cert.data.crt", &settings->core.client_cert.data.crt, "", "Client certificate data", "Client certificate data")
-    OPTION_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data", "Client key data")
+    OPTION_INTERNAL_STRING("core.client_cert.data.ca", &settings->core.client_cert.data.ca, "", "Client CA")
+    OPTION_INTERNAL_STRING("core.client_cert.data.crt", &settings->core.client_cert.data.crt, "", "Client certificate data")
+    OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data")
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header")
 
@@ -82,6 +95,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.server.ca_key", &settings->internal.server.ca_key, "", "Server CA key data")
     OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
     OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
+    OPTION_INTERNAL_STRING("internal.server.cert_chain", &settings->internal.server.cert_chain, "", "TLS certificate chain")
     OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA")
     OPTION_INTERNAL_STRING("internal.client.crt", &settings->internal.client.crt, "", "Client certificate data")
     OPTION_INTERNAL_STRING("internal.client.key", &settings->internal.client.key, "", "Client key data")
@@ -98,6 +112,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
+    OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)")
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay")
     OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
@@ -151,7 +166,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, FALSE, "Cache content", "Cache cloud content on local server")
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password")
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)")
-    OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id")
+    OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, FALSE, "Update content on lower audio id", "Update content on a lower audio id")
+    OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, FALSE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.")
 
     OPTION_TREE_DESC("toniebox", "Toniebox")
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings")
@@ -336,18 +352,21 @@ void settings_generate_internal_dirs(settings_t *settings)
     free(settings->internal.librarydirfull);
     free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
+    free(settings->internal.firmwaredirfull);
 
     settings->internal.contentdirrel = osAllocMem(256);
     settings->internal.contentdirfull = osAllocMem(256);
     settings->internal.librarydirfull = osAllocMem(256);
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
+    settings->internal.firmwaredirfull = osAllocMem(256);
 
     char *tmpPath = osAllocMem(256);
 
     settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.cwd);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
     settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
@@ -407,7 +426,7 @@ void settings_deinit_all()
     }
 }
 
-void settings_init(char *cwd)
+error_t settings_init(char *cwd)
 {
     option_map_init(0);
 
@@ -467,16 +486,29 @@ void settings_init(char *cwd)
     Settings_Overlay[0].internal.config_used = true;
 
     settings_changed();
-    settings_load();
+
+    return settings_load();
 }
 
-void settings_save()
+error_t settings_save()
 {
-    settings_save_ovl(false);
-    settings_save_ovl(true);
+    error_t err = NO_ERROR;
+
+    err = settings_save_ovl(false);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+    err = settings_save_ovl(true);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    return NO_ERROR;
 }
 
-void settings_save_ovl(bool overlay)
+error_t settings_save_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
 
@@ -484,8 +516,8 @@ void settings_save_ovl(bool overlay)
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
     if (file == NULL)
     {
-        TRACE_WARNING("Failed to open config file for writing\r\n");
-        return;
+        TRACE_ERROR("Failed to open config file for writing\r\n");
+        return ERROR_DIRECTORY_NOT_FOUND;
     }
 
     for (size_t i = 0; i < MAX_OVERLAYS; i++)
@@ -558,24 +590,49 @@ void settings_save_ovl(bool overlay)
     }
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
+
+    return NO_ERROR;
 }
 
-void settings_load()
+error_t settings_load()
 {
-    settings_load_ovl(false);
-    settings_load_ovl(true);
+    error_t err = NO_ERROR;
+
+    err = settings_load_ovl(false);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = settings_load_ovl(true);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    return NO_ERROR;
 }
 
-void settings_load_ovl(bool overlay)
+error_t settings_load_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
+
+    if (overlay)
+    {
+        overlay_settings_init();
+    }
     if (!fsFileExists(config_path))
     {
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
-        settings_save_ovl(overlay);
-        return;
+
+        error_t err = settings_save_ovl(overlay);
+        if (err != NO_ERROR)
+        {
+            return err;
+        }
+        return NO_ERROR;
     }
 
     uint32_t file_size;
@@ -583,19 +640,14 @@ void settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
-        return;
+        return ERROR_ABORTED;
     }
 
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_READ);
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
-        return;
-    }
-
-    if (overlay)
-    {
-        overlay_settings_init();
+        return ERROR_ABORTED;
     }
 
     // Buffer to hold the file content
@@ -755,6 +807,8 @@ void settings_load_ovl(bool overlay)
             settings_last_load = stat.modified;
         }
     }
+
+    return NO_ERROR;
 }
 
 uint16_t settings_get_size()
@@ -1137,16 +1191,46 @@ void settings_load_all_certs()
         settings_load_certs_id(id);
     }
 }
-void settings_load_certs_id(uint8_t settingsId)
+
+error_t settings_try_load_certs_id(uint8_t settingsId)
 {
-    if (get_settings_id(settingsId)->internal.config_used)
+    ERR_RETURN(load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId));
+    ERR_RETURN(load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId));
+    ERR_RETURN(load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId));
+    ERR_RETURN(load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId));
+
+    /* do not fail when client-role certs are missing */
+    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+
+    const char *server_crt = settings_get_string("internal.server.crt");
+    const char *server_ca_crt = settings_get_string("internal.server.ca");
+
+    char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
+    settings_set_string_id("internal.server.cert_chain", chain, settingsId);
+
+    return NO_ERROR;
+}
+
+error_t settings_load_certs_id(uint8_t settingsId)
+{
+    if (!get_settings_id(settingsId)->internal.config_used)
     {
-        load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId);
-        load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", settingsId);
-        load_cert("internal.server.crt", "core.server_cert.file.crt", "core.server_cert.data.crt", settingsId);
-        load_cert("internal.server.key", "core.server_cert.file.key", "core.server_cert.data.key", settingsId);
-        load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
-        load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
-        load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+        return NO_ERROR;
     }
+
+    if (settings_try_load_certs_id(settingsId) != NO_ERROR)
+    {
+        TRACE_INFO("********************************************\r\n");
+        TRACE_INFO("   No certificates found. Generating.\r\n");
+        TRACE_INFO("   This will take some time...\r\n");
+        TRACE_INFO("********************************************\r\n");
+        cert_generate_default();
+        TRACE_INFO("********************************************\r\n");
+        TRACE_INFO("   FINISHED\r\n");
+        TRACE_INFO("********************************************\r\n");
+    }
+
+    return NO_ERROR;
 }

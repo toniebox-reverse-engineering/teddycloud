@@ -12,6 +12,9 @@
 
 #include "ff.h"
 #include "diskio.h"
+#include "server_helpers.h"
+#include "cert.h"
+#include "pem_import.h"
 
 #define ESP_PARTITION_TYPE_APP 0
 #define ESP_PARTITION_TYPE_DATA 1
@@ -138,10 +141,18 @@ size_t esp32_wl_translate(const struct wl_state *state, size_t sector)
 
 DWORD get_fattime()
 {
-    uint32_t year = 2023;
-    uint32_t mon = 7;
-    uint32_t day = 31;
-    return ((uint32_t)(year - 1980) << 25 | (uint32_t)mon << 21 | (uint32_t)day << 16);
+    // Retrieve current time
+    time_t time = getCurrentUnixTime();
+    DateTime date;
+    convertUnixTimeToDate(time, &date);
+
+    return (
+        (uint32_t)(date.year - 1980) << 25 |
+        (uint32_t)(date.month) << 21 |
+        (uint32_t)(date.day) << 16 |
+        (uint32_t)(date.hours) << 11 |
+        (uint32_t)(date.minutes) << 5 |
+        (uint32_t)(date.seconds) >> 1);
 }
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void *buff)
@@ -276,7 +287,7 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 }
                 TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
                            ((fileInfo.fdate >> 9) & 0x7F) + 1980,
-                           (fileInfo.fdate >> 5) & 0x1F,
+                           (fileInfo.fdate >> 5) & 0x0F,
                            (fileInfo.fdate) & 0x1F,
                            (fileInfo.ftime >> 11) & 0x1F,
                            (fileInfo.ftime >> 5) & 0x3F,
@@ -799,4 +810,244 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
     fsCloseFile(file);
 
     return NO_ERROR;
+}
+
+/**
+ * @brief Replaces all occurrences of a pattern string with a replacement string in a given buffer.
+ *
+ * This function searches the buffer for the C-string 'pattern' and replaces all its occurrences with the
+ * C-string 'replace'. It doesn't check if the sizes of the two strings differ and overwrites the original
+ * string beyond its end if needed. It makes sure not to read or write beyond the buffer end.
+ *
+ * @param buffer The buffer in which to replace occurrences of 'pattern'.
+ * @param buffer_len The length of the buffer.
+ * @param pattern The pattern string to search for.
+ * @param replace The replacement string.
+ * @return The number of replacements made.
+ */
+uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, const char *replace)
+{
+    int replaced = 0;
+    size_t pattern_len = strlen(pattern) + 1;
+    size_t replace_len = strlen(replace) + 1;
+
+    if (pattern_len == 0 || buffer_len == 0)
+    {
+        return 0;
+    }
+
+    for (size_t i = 0; i <= buffer_len - pattern_len; ++i)
+    {
+        if (memcmp(&buffer[i], pattern, pattern_len) == 0)
+        {
+            // Make sure we don't write beyond buffer end
+            size_t end_index = i + replace_len;
+            if (end_index > buffer_len)
+            {
+                break;
+            }
+
+            memcpy(&buffer[i], replace, replace_len);
+            i += (pattern_len - 1); // Skip ahead
+            replaced++;
+        }
+    }
+
+    return replaced;
+}
+
+error_t esp32_inject_cert(const char *rootPath, const char *patchedPath, const char *mac)
+{
+    error_t ret = NO_ERROR;
+    char *cert_path = custom_asprintf("%s/cert_%s/", rootPath, mac);
+    TRACE_INFO("Generating certs for MAC %s into '%s'\r\n", mac, cert_path);
+
+    do
+    {
+        if (!fsDirExists(cert_path))
+        {
+            if (fsCreateDir(cert_path) != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to create '%s'\r\n", cert_path);
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+        }
+
+        if (cert_generate_mac(mac, cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to generate certificate\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+
+        TRACE_INFO("Injecting certs into '%s'\r\n", patchedPath);
+        if (esp32_fat_inject(patchedPath, "CERT", cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch image\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+    } while (0);
+
+    free(cert_path);
+
+    return ret;
+}
+
+error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const char *mac)
+{
+    error_t ret = NO_ERROR;
+    char *cert_path = custom_asprintf("%s/cert_%s/", rootPath, mac);
+    char *ca_file = custom_asprintf("%s/ca.der", cert_path);
+
+    TRACE_INFO("Writing CA into '%s'\r\n", ca_file);
+
+    do
+    {
+        if (!fsDirExists(cert_path))
+        {
+            if (fsCreateDir(cert_path) != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to create '%s'\r\n", cert_path);
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+        }
+
+        const char *server_ca = settings_get_string("internal.server.ca");
+        size_t server_ca_der_size = 0;
+
+        TRACE_INFO("Convert CA certificate...\r\n");
+        if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
+        {
+            TRACE_ERROR("pemImportCertificate failed\r\n");
+            return ERROR_FAILURE;
+        }
+        uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
+        if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
+        {
+            TRACE_ERROR("pemImportCertificate failed\r\n");
+            return ERROR_FAILURE;
+        }
+
+        if (fsFileExists(ca_file))
+        {
+            if (fsDeleteFile(ca_file) != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to delete pre-existing '%s'\r\n", cert_path);
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+        }
+
+        FsFile *ca = fsOpenFile(ca_file, FS_FILE_MODE_WRITE);
+        if (!ca)
+        {
+            TRACE_ERROR("Failed to create CA file\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        if (fsWriteFile(ca, server_ca_der, server_ca_der_size) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to write CA file\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        fsCloseFile(ca);
+
+        TRACE_INFO("Injecting CA into '%s'\r\n", patchedPath);
+        if (esp32_fat_inject(patchedPath, "CERT", cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch image\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        if (fsDeleteFile(ca_file) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to delete during clean-up '%s'\r\n", cert_path);
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        if (fsRemoveDir(cert_path) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to delete directory during clean-up '%s'\r\n", cert_path);
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+    } while (0);
+
+    free(cert_path);
+    free(ca_file);
+
+    return ret;
+}
+
+error_t esp32_patch_host(const char *patchedPath, const char *hostname)
+{
+    error_t ret = NO_ERROR;
+
+    TRACE_INFO("Patching hostnames in '%s'\r\n", patchedPath);
+
+    do
+    {
+        uint32_t bin_size = 0;
+        size_t total = 0;
+
+        if (fsGetFileSize(patchedPath, &bin_size))
+        {
+            TRACE_ERROR("File does not exist '%s'\r\n", patchedPath);
+            return ERROR_NOT_FOUND;
+        }
+
+        uint8_t *bin_data = osAllocMem(bin_size);
+
+        FsFile *bin = fsOpenFile(patchedPath, FS_FILE_MODE_READ);
+        if (!bin)
+        {
+            TRACE_ERROR("Failed to open firmware\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+
+        while (total < bin_size)
+        {
+            size_t read = 0;
+            if (fsReadFile(bin, &bin_data[total], bin_size - total, &read) != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to read firmware\r\n");
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+
+            if (read > 0)
+            {
+                total += read;
+            }
+        }
+        fsCloseFile(bin);
+
+        int replaced = mem_replace(bin_data, bin_size, "rtnl.bxcl.de", hostname);
+        TRACE_INFO(" replaced RTNL host %d times\r\n", replaced);
+        replaced = mem_replace(bin_data, bin_size, "prod.de.tbs.toys", hostname);
+        TRACE_INFO(" replaced API host %d times\r\n", replaced);
+
+        bin = fsOpenFile(patchedPath, FS_FILE_MODE_WRITE);
+        if (!bin)
+        {
+            TRACE_ERROR("Failed to open firmware for writing\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        if (fsWriteFile(bin, bin_data, bin_size) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to write firmware\r\n");
+            ret = ERROR_NOT_FOUND;
+            break;
+        }
+        fsCloseFile(bin);
+
+    } while (0);
+
+    return ret;
 }

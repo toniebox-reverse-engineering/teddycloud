@@ -31,6 +31,9 @@
 #ifndef _TLS_CONFIG_H
 #define _TLS_CONFIG_H
 
+#define TLS_TX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
+#define TLS_RX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
+
 #define TLS_PRIVATE_CONTEXT       \
     char client_cert_issuer[128]; \
     char client_cert_subject[32]; \

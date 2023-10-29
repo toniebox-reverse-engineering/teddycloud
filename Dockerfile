@@ -12,13 +12,16 @@ FROM ubuntu:latest
 EXPOSE 80 443
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends faketime openssl libubsan1 ffmpeg \
+    && apt-get install -y --no-install-recommends libubsan1 ffmpeg curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+RUN update-ca-certificates
 
 RUN mkdir -p /teddycloud/certs \
     && mkdir /teddycloud/config \
     && mkdir -p /teddycloud/data/content/default \
     && mkdir -p /teddycloud/data/library \
+    && mkdir -p /teddycloud/data/firmware  \
     && mkdir -p /teddycloud/data/www 
 
 COPY --from=buildenv \
@@ -34,6 +37,7 @@ COPY --from=buildenv \
 VOLUME \
     "/teddycloud/data/content" \
     "/teddycloud/data/library" \
+    "/teddycloud/data/firmware" \
     "/teddycloud/certs" \
     "/teddycloud/config"
 

@@ -6,14 +6,18 @@
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
-static size_t toniesCount;
+static size_t toniesJsonCount;
 static toniesJson_item_t *toniesJsonCache;
+static size_t toniesCustomJsonCount;
+static toniesJson_item_t *toniesCustomJsonCache;
 #endif
 
 void tonies_init()
 {
-    toniesCount = 0;
-    tonies_readJson();
+    toniesJsonCount = 0;
+    toniesCustomJsonCount = 0;
+    tonies_readJson(TONIES_CUSTOM_JSON_PATH, &toniesCustomJsonCache, &toniesCustomJsonCount);
+    tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
 }
 
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
@@ -35,26 +39,20 @@ uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
     }
     return 0;
 }
-void tonies_readJson()
+void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
-    if (toniesCount > 0)
+    if (*toniesCount > 0)
     {
-        toniesCount = 0;
-        osFreeMem(toniesJsonCache);
+        *toniesCount = 0;
+        osFreeMem(*toniesCache);
     }
 
-    char jsonPath[256];
     size_t fileSize = 0;
-    osStrcpy(jsonPath, get_settings()->internal.datadirfull);
-    osStrcat(jsonPath, "/");
-    osStrcat(jsonPath, get_settings()->core.wwwdir);
-    osStrcat(jsonPath, "/");
-    osStrcat(jsonPath, "tonies.json");
-    fsGetFileSize(jsonPath, (uint32_t *)(&fileSize));
-    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", jsonPath, fileSize);
+    fsGetFileSize(source, (uint32_t *)(&fileSize));
+    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", source, fileSize);
 
-    FsFile *fsFile = fsOpenFile(jsonPath, FS_FILE_MODE_READ);
+    FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_READ);
     if (fsFile != NULL)
     {
         size_t sizeRead;
@@ -73,23 +71,26 @@ void tonies_readJson()
         osFreeMem(data);
         if (toniesJson == NULL)
         {
-            const char *error_ptr = cJSON_GetErrorPtr();
-            TRACE_ERROR("Json parse error");
-            if (error_ptr != NULL)
+            if (fileSize > 0)
             {
-                TRACE_ERROR("before: %s\n", error_ptr);
+                const char *error_ptr = cJSON_GetErrorPtr();
+                TRACE_ERROR("Json parse error\r\n");
+                if (error_ptr != NULL)
+                {
+                    // TRACE_ERROR(" before: %s\r\n", error_ptr); //TODO is crashing
+                }
             }
             cJSON_Delete(toniesJson);
         }
         else
         {
             size_t line = 0;
-            toniesCount = cJSON_GetArraySize(toniesJson);
-            toniesJsonCache = osAllocMem(toniesCount * sizeof(toniesJson_item_t));
+            *toniesCount = cJSON_GetArraySize(toniesJson);
+            *toniesCache = osAllocMem(*toniesCount * sizeof(toniesJson_item_t));
             cJSON_ArrayForEach(tonieJson, toniesJson)
             {
                 cJSON *arrayJson;
-                toniesJson_item_t *item = &toniesJsonCache[line++];
+                toniesJson_item_t *item = &(*toniesCache)[line++];
                 char *no_str = tonies_jsonGetString(tonieJson, "no");
                 item->no = atoi(no_str);
                 free(no_str);
@@ -115,17 +116,32 @@ void tonies_readJson()
             cJSON_Delete(toniesJson);
         }
     }
+    else
+    {
+        TRACE_INFO("Create empty json file\r\n");
+        FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
+        if (fsFile != NULL)
+        {
+            fsWriteFile(fsFile, "[]", 2);
+            fsCloseFile(fsFile);
+        }
+        else
+        {
+            TRACE_ERROR("...could not create file\r\n");
+        }
+    }
 #endif
 }
-toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
+toniesJson_item_t *tonies_byAudioId_base(uint32_t audio_id, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
     for (size_t i = 0; i < toniesCount; i++)
     {
-        for (size_t j = 0; j < toniesJsonCache[i].audio_ids_count; j++)
+        for (size_t j = 0; j < toniesCache[i].audio_ids_count; j++)
         {
-            if (toniesJsonCache[i].audio_ids[j] == audio_id)
-                return &toniesJsonCache[i];
+
+            if (toniesCache[i].audio_ids[j] == audio_id || (audio_id < TEDDY_BENCH_AUDIO_ID_DEDUCT && toniesCache[i].audio_ids[j] == audio_id + TEDDY_BENCH_AUDIO_ID_DEDUCT))
+                return &toniesCache[i];
         }
     }
 #else
@@ -133,12 +149,54 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 #endif
     return NULL;
 }
-void tonies_deinit()
+toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
+    toniesJson_item_t *item = tonies_byAudioId_base(audio_id, toniesCustomJsonCache, toniesCustomJsonCount);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byAudioId_base(audio_id, toniesJsonCache, toniesJsonCount);
+}
+toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
+{
+    if (model == NULL || osStrcmp(model, "") == 0)
+        return NULL;
 #if TONIES_JSON_CACHED == 1
     for (size_t i = 0; i < toniesCount; i++)
     {
-        toniesJson_item_t *item = &toniesJsonCache[i];
+        if (osStrcmp(toniesCache[i].model, model) == 0)
+            return &toniesCache[i];
+    }
+#else
+        // cJSON_ParseWithLengthOpts
+#endif
+    return NULL;
+}
+toniesJson_item_t *tonies_byModel(char *model)
+{
+    toniesJson_item_t *item = tonies_byModel_base(model, toniesCustomJsonCache, toniesCustomJsonCount);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
+}
+toniesJson_item_t *tonies_byAudioIdModel(uint32_t audio_id, char *model)
+{
+    toniesJson_item_t *item = tonies_byAudioId(audio_id);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byModel(model);
+}
+void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
+{
+#if TONIES_JSON_CACHED == 1
+    for (size_t i = 0; i < *toniesCount; i++)
+    {
+        toniesJson_item_t *item = &toniesCache[i];
         osFreeMem(item->model);
         osFreeMem(item->audio_ids);
         osFreeMem(item->title);
@@ -147,7 +205,12 @@ void tonies_deinit()
         osFreeMem(item->category);
         osFreeMem(item->picture);
     }
-    toniesCount = 0;
-    osFreeMem(toniesJsonCache);
+    *toniesCount = 0;
+    osFreeMem(toniesCache);
 #endif
+}
+void tonies_deinit()
+{
+    tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
+    tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
 }

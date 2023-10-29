@@ -18,6 +18,9 @@
 #include "returncodes.h"
 #include "cJSON.h"
 #include "toniefile.h"
+#include "fs_ext.h"
+#include "cert.h"
+#include "esp32.h"
 
 void sanitizePath(char *path, bool isDir)
 {
@@ -512,19 +515,19 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[64];
             desc[0] = 0;
-            tonie_info_t tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
-            if (tafInfo.valid)
+            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            if (tafInfo->valid)
             {
-                osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo.tafHeader->audio_id);
-                for (int pos = 0; pos < tafInfo.tafHeader->sha1_hash.len; pos++)
+                osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo->tafHeader->audio_id);
+                for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo.tafHeader->sha1_hash.data[pos]);
+                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
             }
             osFreeMem(filePathAbsolute);
-            freeTonieInfo(&tafInfo);
+            freeTonieInfo(tafInfo);
 
             cJSON *jsonEntry = cJSON_CreateObject();
             cJSON_AddStringToObject(jsonEntry, "name", entry.name);
@@ -583,17 +586,9 @@ error_t handleApiStats(HttpConnection *connection, const char_t *uri, const char
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
-typedef struct
-{
-    const char *overlay;
-    const char *root_path;
-    const char filename[256];
-    FsFile *file;
-} cert_save_ctx;
-
 error_t file_save_start(void *in_ctx, const char *name, const char *filename)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (strchr(filename, '\\') || strchr(filename, '/'))
     {
@@ -602,21 +597,19 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
     }
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
-    char *fullPath = custom_asprintf("%s/%s", ctx->root_path, filename);
-    sanitizePath(fullPath, false);
+    ctx->filename = custom_asprintf("%s/%s", ctx->root_path, filename);
+    sanitizePath(ctx->filename, false);
 
-    if (fsFileExists(fullPath))
+    if (fsFileExists(ctx->filename))
     {
-        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", fullPath);
+        TRACE_INFO("Filename '%s' already exists, overwriting\r\n", ctx->filename);
     }
     else
     {
-        TRACE_INFO("Writing to '%s'\r\n", fullPath);
+        TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
     }
 
-    ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
-
-    osFreeMem(fullPath);
+    ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
 
     if (ctx->file == NULL)
     {
@@ -628,7 +621,7 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
 
 error_t file_save_add(void *in_ctx, void *data, size_t length)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
@@ -645,13 +638,14 @@ error_t file_save_add(void *in_ctx, void *data, size_t length)
 
 error_t file_save_end(void *in_ctx)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
         return ERROR_FAILURE;
     }
     fsCloseFile(ctx->file);
+    osFreeMem(ctx->filename);
     ctx->file = NULL;
 
     return NO_ERROR;
@@ -659,7 +653,7 @@ error_t file_save_end(void *in_ctx)
 
 error_t file_save_end_cert(void *in_ctx)
 {
-    cert_save_ctx *ctx = (cert_save_ctx *)in_ctx;
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
 
     if (!ctx->file)
     {
@@ -669,29 +663,25 @@ error_t file_save_end_cert(void *in_ctx)
     ctx->file = NULL;
 
     /* file was uploaded, this is the cert-specific handler */
-    char *path = custom_asprintf("%s/%s", ctx->root_path, ctx->filename);
-
     if (!osStrcasecmp(ctx->filename, "ca.der"))
     {
-        TRACE_INFO("Set ca.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.ca", path, ctx->overlay);
+        TRACE_INFO("Set ca.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.ca", ctx->filename, ctx->overlay);
     }
     else if (!osStrcasecmp(ctx->filename, "client.der"))
     {
-        TRACE_INFO("Set client.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.crt", path, ctx->overlay);
+        TRACE_INFO("Set client.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.crt", ctx->filename, ctx->overlay);
     }
     else if (!osStrcasecmp(ctx->filename, "private.der"))
     {
-        TRACE_INFO("Set private.der to %s\r\n", path);
-        settings_set_string_ovl("core.client_cert.file.key", path, ctx->overlay);
+        TRACE_INFO("Set private.der to %s\r\n", ctx->filename);
+        settings_set_string_ovl("core.client_cert.file.key", ctx->filename, ctx->overlay);
     }
     else
     {
         TRACE_INFO("Unknown file type %s\r\n", ctx->filename);
     }
-
-    osFreeMem(path);
 
     return NO_ERROR;
 }
@@ -717,7 +707,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     else
     {
         multipart_cbr_t cbr;
-        cert_save_ctx ctx;
+        file_save_ctx ctx;
 
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
@@ -745,6 +735,265 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     connection->response.statusCode = statusCode;
 
     return httpWriteResponseString(connection, message, false);
+}
+
+error_t file_save_start_suffix(void *in_ctx, const char *name, const char *filename)
+{
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
+
+    if (strchr(filename, '\\') || strchr(filename, '/'))
+    {
+        TRACE_ERROR("Filename '%s' contains directory separators!\r\n", filename);
+        return ERROR_DIRECTORY_NOT_FOUND;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    for (int suffix = 0; suffix < 100; suffix++)
+    {
+        if (suffix)
+        {
+            ctx->filename = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
+        }
+        else
+        {
+            ctx->filename = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
+        }
+        sanitizePath(ctx->filename, false);
+
+        if (fsFileExists(ctx->filename))
+        {
+            osFreeMem(ctx->filename);
+            continue;
+        }
+        else
+        {
+            TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
+            break;
+        }
+    }
+
+    ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+
+    if (ctx->file == NULL)
+    {
+        return ERROR_FILE_OPENING_FAILED;
+    }
+
+    return NO_ERROR;
+}
+
+error_t file_save_end_suffix(void *in_ctx)
+{
+    file_save_ctx *ctx = (file_save_ctx *)in_ctx;
+
+    if (!ctx->file)
+    {
+        return ERROR_FAILURE;
+    }
+    fsCloseFile(ctx->file);
+    ctx->file = NULL;
+
+    return NO_ERROR;
+}
+
+error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint_t statusCode = 500;
+    char message[128];
+    char overlay[128];
+
+    const char *rootPath = get_settings()->internal.firmwaredirfull;
+
+    if (rootPath == NULL || !fsDirExists(rootPath))
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "core.firmwaredir not set to a valid path: '%s'", rootPath);
+        TRACE_ERROR("%s\r\n", message);
+    }
+    else
+    {
+        multipart_cbr_t cbr;
+        file_save_ctx ctx;
+
+        osMemset(&cbr, 0x00, sizeof(cbr));
+        osMemset(&ctx, 0x00, sizeof(ctx));
+
+        cbr.multipart_start = &file_save_start_suffix;
+        cbr.multipart_add = &file_save_add;
+        cbr.multipart_end = &file_save_end_suffix;
+
+        ctx.root_path = rootPath;
+        ctx.overlay = overlay;
+        ctx.filename = NULL;
+
+        switch (multipart_handle(connection, &cbr, &ctx))
+        {
+        case NO_ERROR:
+            statusCode = 200;
+            TRACE_INFO("Received new file:\r\n");
+            TRACE_INFO("  '%s'\r\n", ctx.filename);
+            osSnprintf(message, sizeof(message), "%s", &ctx.filename[strlen(ctx.root_path) + 1]);
+            break;
+        default:
+            statusCode = 500;
+            break;
+        }
+
+        osFreeMem(ctx.filename);
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+}
+
+error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = get_settings()->internal.firmwaredirfull;
+
+    TRACE_INFO("Patch firmware\r\n");
+    TRACE_DEBUG("Query: '%s'\r\n", queryString);
+
+    bool generate_certs = false;
+    bool inject_ca = true;
+    char patch_host[32];
+    char filename[255];
+    char mac[13];
+    osStrcpy(patch_host, "");
+    osStrcpy(filename, "");
+    osStrcpy(mac, "");
+
+    if (!queryGet(queryString, "filename", filename, sizeof(filename)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
+    {
+        TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
+    }
+
+    const char *sep = osStrchr(filename, '_');
+    if (!sep || strlen(&sep[1]) < 12)
+    {
+        TRACE_ERROR("Invalid file pattern '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+    osStrncpy(mac, &sep[1], 12);
+    mac[12] = 0;
+
+    char *file_path = custom_asprintf("%s/%s", rootPath, filename);
+    char *patched_path = custom_asprintf("%s/patched_%s.bin", rootPath, mac);
+
+    TRACE_INFO("Request for '%s'\r\n", file_path);
+
+    error_t error;
+    size_t n;
+    uint32_t length;
+    FsFile *file;
+
+    if (!fsFileExists(file_path))
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", file_path);
+        return ERROR_NOT_FOUND;
+    }
+    fsCopyFile(file_path, patched_path, true);
+    free(file_path);
+
+    if (generate_certs)
+    {
+        if (esp32_inject_cert(rootPath, patched_path, mac) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to generate and inject certs\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (inject_ca)
+    {
+        if (esp32_inject_ca(rootPath, patched_path, mac) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to generate and inject CA\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (osStrlen(patch_host) > 0)
+    {
+        if (esp32_patch_host(patched_path, patch_host) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (esp32_fixup(patched_path, true) != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to fixup image\r\n");
+        return ERROR_NOT_FOUND;
+    }
+
+    // Open the file for reading
+    error = fsGetFileSize(patched_path, &length);
+    if (error)
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", patched_path);
+        return ERROR_NOT_FOUND;
+    }
+
+    file = fsOpenFile(patched_path, FS_FILE_MODE_READ);
+    free(patched_path);
+
+    // Failed to open the file?
+    if (file == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+
+    connection->response.statusCode = 200;
+    connection->response.contentLength = length;
+    connection->response.contentType = "binary/octet-stream";
+    connection->response.chunkedEncoding = FALSE;
+
+    error = httpWriteHeader(connection);
+
+    if (error)
+    {
+        fsCloseFile(file);
+        return error;
+    }
+
+    while (length > 0)
+    {
+        n = MIN(length, HTTP_SERVER_BUFFER_SIZE);
+
+        error = fsReadFile(file, connection->buffer, n, &n);
+        if (error)
+        {
+            break;
+        }
+
+        error = httpWriteStream(connection, connection->buffer, n);
+        if (error)
+        {
+            break;
+        }
+
+        length -= n;
+    }
+
+    fsCloseFile(file);
+
+    if (error == NO_ERROR || error == ERROR_END_OF_FILE)
+    {
+        if (length == 0)
+        {
+            error = httpFlushStream(connection);
+        }
+    }
+
+    return error;
 }
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -785,7 +1034,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     else
     {
         multipart_cbr_t cbr;
-        cert_save_ctx ctx;
+        file_save_ctx ctx;
 
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
@@ -869,16 +1118,16 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t tafInfo = getTonieInfo(file_path, client_ctx->settings);
+    tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
 
-    if (tafInfo.valid && tafInfo.stream)
+    if (tafInfo->valid && tafInfo->stream)
     {
         isStream = true;
         length = CONTENT_LENGTH_MAX;
         connection->response.noCache = true;
     }
 
-    freeTonieInfo(&tafInfo);
+    freeTonieInfo(tafInfo);
 
     if (error || length < startOffset)
     {
@@ -1338,4 +1587,13 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     osFreeMem(pathAbsolute);
 
     return httpWriteResponseString(connection, message, false);
+}
+
+error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
+}
+error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
 }

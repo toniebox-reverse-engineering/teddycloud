@@ -2,10 +2,12 @@
 #ifdef WIN32
 #else
 #include <sys/random.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #include "pem_export.h"
-#include "rng/yarrow.h"
+#include "rand.h"
 #include "tls_adapter.h"
 #include "error.h"
 #include "debug.h"
@@ -26,10 +28,9 @@
 #include "pkix/x509_cert_validate.h"
 #include "pkix/x509_key_parse.h"
 #include "debug.h"
+#include "cert.h"
 
 TlsCache *tlsCache;
-
-YarrowContext yarrowContext;
 
 /**
  * @enum eDerType
@@ -345,9 +346,6 @@ void tls_context_key_log_init(TlsContext *context)
 
 error_t tls_adapter_deinit()
 {
-    // Release PRNG context
-    yarrowRelease(&yarrowContext);
-
     return NO_ERROR;
 }
 
@@ -386,31 +384,13 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
 
 error_t tls_adapter_init()
 {
-    uint8_t seed[32];
-
-    int ret = getrandom(seed, sizeof(seed), 0);
-    if (ret < 0)
-    {
-        TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);
-        return ERROR_FAILURE;
-    }
-
-    error_t error = yarrowInit(&yarrowContext);
+    TRACE_INFO("Loading certificates...\r\n");
+    error_t error = settings_load_certs_id(0);
     if (error)
     {
-        TRACE_ERROR("Error: PRNG initialization failed (%d)\r\n", error);
-        return ERROR_FAILURE;
-    }
-
-    error = yarrowSeed(&yarrowContext, seed, sizeof(seed));
-    if (error)
-    {
-        TRACE_ERROR("Error: Failed to seed PRNG (%d)\r\n", error);
+        TRACE_ERROR("Error: Failed to load certs (%d)\r\n", error);
         return error;
     }
-
-    TRACE_INFO("Loading certificates...\r\n");
-    settings_load_certs_id(0);
 
     // TLS session cache initialization
     tlsCache = tlsInitCache(8);

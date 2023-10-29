@@ -1,14 +1,16 @@
 
 
 #include "debug.h"
+#include "error.h"
 #include "fs_port.h"
 #include "rsa.h"
-#include "yarrow.h"
+#include "rand.h"
 #include "pem_import.h"
 #include "pem_export.h"
 #include "x509_cert_parse.h"
 #include "x509_cert_create.h"
 #include "x509_key_format.h"
+#include "server_helpers.h"
 
 #include "tls_adapter.h"
 #include "settings.h"
@@ -35,103 +37,140 @@ static void hex_string_to_bytes(const char *hex_string, uint8_t *output)
     }
 }
 
-int cert_generate(const char *mac, const char *dest)
+error_t cert_generate_rsa(int size, RsaPrivateKey *cert_privkey, RsaPublicKey *cert_pubkey)
 {
-    /*********************************************/
-    /*         load server CA certificate        */
-    /*********************************************/
+    TRACE_INFO("Generating RSA Key... (slow!)\r\n");
+
+    osMemset(cert_privkey, 0x00, sizeof(RsaPrivateKey));
+    osMemset(cert_pubkey, 0x00, sizeof(RsaPublicKey));
+
+    if (rsaGenerateKeyPair(rand_get_algo(), rand_get_context(), size, 65537, cert_privkey, cert_pubkey) != NO_ERROR)
+    {
+        TRACE_ERROR("rsaGenerateKeyPair failed\r\n");
+        return ERROR_FAILURE;
+    }
+    return NO_ERROR;
+}
+
+error_t cert_get_rsa_priv(RsaPrivateKey *cert_privkey, uint8_t **priv_data, size_t *priv_size)
+{
+    if (x509ExportRsaPrivateKey(cert_privkey, NULL, priv_size) != NO_ERROR)
+    {
+        TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
+        return ERROR_FAILURE;
+    }
+
+    *priv_data = osAllocMem(*priv_size);
+
+    if (x509ExportRsaPrivateKey(cert_privkey, *priv_data, priv_size) != NO_ERROR)
+    {
+        TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
+        return ERROR_FAILURE;
+    }
+    return NO_ERROR;
+}
+
+error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
+{
     const char *server_ca = settings_get_string("internal.server.ca");
     const char *server_key = settings_get_string("internal.server.ca_key");
 
-    size_t server_ca_der_size = 0;
+    size_t ca_size = 0;
     TRACE_INFO("Load CA certificate...\r\n");
-    if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
+    if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &ca_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
-    uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
-    if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
+    uint8_t *server_ca_der = osAllocMem(ca_size);
+    if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &ca_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
-    X509CertInfo issuer_certinfo;
-    osMemset(&issuer_certinfo, 0x00, sizeof(issuer_certinfo));
-    if (x509ParseCertificateEx(server_ca_der, server_ca_der_size, &issuer_certinfo, true) != NO_ERROR)
+    osMemset(cert, 0x00, sizeof(X509CertInfo));
+    if (x509ParseCertificateEx(server_ca_der, ca_size, cert, true) != NO_ERROR)
     {
         TRACE_ERROR("x509ParseCertificateEx failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
-    RsaPrivateKey server_ca_priv;
-    osMemset(&server_ca_priv, 0x00, sizeof(server_ca_priv));
+    /* now export private key */
+    osMemset(cert_priv, 0x00, sizeof(RsaPrivateKey));
 
     TRACE_INFO("Load CA key...\r\n");
-    if (pemImportRsaPrivateKey(server_key, osStrlen(server_key), NULL, &server_ca_priv) != NO_ERROR)
+    if (pemImportRsaPrivateKey(server_key, osStrlen(server_key), NULL, cert_priv) != NO_ERROR)
     {
         TRACE_ERROR("pemImportRsaPrivateKey failed\r\n");
-        return -1;
+        return ERROR_FAILURE;
     }
 
-    /*********************************************/
-    /* now generate a RSA key for the new client */
-    /*********************************************/
-    TRACE_INFO("Generating RSA Key...\r\n");
+    /* we must not free this DER because the parsed certificate seems to point there */
+    // osFreeMem(server_ca_der);
+
+    return NO_ERROR;
+}
+
+error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file)
+{
+    /* load server CA certificate */
+    X509CertInfo issuer_cert;
+    RsaPrivateKey issuer_priv;
+
+    if (!self_sign)
+    {
+        if (cert_load_ca(&issuer_cert, &issuer_priv) != NO_ERROR)
+        {
+            TRACE_ERROR("cert_load_ca failed\r\n");
+            return ERROR_FAILURE;
+        }
+    }
+
+    /* generate RSA key */
     RsaPrivateKey cert_privkey;
     RsaPublicKey cert_pubkey;
-    osMemset(&cert_privkey, 0x00, sizeof(cert_privkey));
-    osMemset(&cert_pubkey, 0x00, sizeof(cert_pubkey));
-    if (rsaGenerateKeyPair(YARROW_PRNG_ALGO, &yarrowContext, 4096, 65537, &cert_privkey, &cert_pubkey) != NO_ERROR)
-    {
-        TRACE_ERROR("rsaGenerateKeyPair failed\r\n");
-        return -1;
-    }
+    size_t priv_size = 0;
+    uint8_t *priv_data = NULL;
 
-    size_t privateKey_der_size = 0;
-    if (x509ExportRsaPrivateKey(&cert_privkey, NULL, &privateKey_der_size) != NO_ERROR)
+    if (cert_generate_rsa(CERT_RSA_SIZE, &cert_privkey, &cert_pubkey) != NO_ERROR)
     {
-        TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
-        return -1;
+        TRACE_ERROR("cert_generate_rsa failed\r\n");
+        return ERROR_FAILURE;
     }
-    uint8_t *der_data = osAllocMem(privateKey_der_size);
-    if (x509ExportRsaPrivateKey(&cert_privkey, der_data, &privateKey_der_size) != NO_ERROR)
+    if (cert_get_rsa_priv(&cert_privkey, &priv_data, &priv_size) != NO_ERROR)
     {
-        TRACE_ERROR("x509ExportRsaPrivateKey failed\r\n");
-        return -1;
+        TRACE_ERROR("cert_get_rsa_priv failed\r\n");
+        return ERROR_FAILURE;
     }
 
     /* create and sign the certificate */
-    char_t subj[32];
-    osSprintf(subj, "b'%s'", mac);
-
     X509CertRequestInfo cert_req;
     osMemset(&cert_req, 0x00, sizeof(cert_req));
     cert_req.version = X509_VERSION_1;
-    cert_req.subject.commonName.value = subj;
-    cert_req.subject.commonName.length = osStrlen(subj);
+    cert_req.subject.name.value = subject;
+    cert_req.subject.name.length = osStrlen(subject);
+    cert_req.subject.commonName.value = subject;
+    cert_req.subject.commonName.length = osStrlen(subject);
     cert_req.subjectPublicKeyInfo.oid.value = RSA_ENCRYPTION_OID;
     cert_req.subjectPublicKeyInfo.oid.length = sizeof(RSA_ENCRYPTION_OID);
 
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length = mpiGetByteLength(&cert_pubkey.e);
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length = mpiGetByteLength(&cert_pubkey.n);
-    uint8_t *rsa_e_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length);
-    uint8_t *rsa_n_buf = osAllocMem(cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length);
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.e.value = rsa_e_buf;
-    cert_req.subjectPublicKeyInfo.rsaPublicKey.n.value = rsa_n_buf;
-    mpiExport(&cert_pubkey.e, rsa_e_buf, cert_req.subjectPublicKeyInfo.rsaPublicKey.e.length, MPI_FORMAT_BIG_ENDIAN);
-    mpiExport(&cert_pubkey.n, rsa_n_buf, cert_req.subjectPublicKeyInfo.rsaPublicKey.n.length, MPI_FORMAT_BIG_ENDIAN);
+    cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_DIGITAL_SIGNATURE;
+    cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_NON_REPUDIATION;
+    cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_SERVER_AUTH;
+    cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_CLIENT_AUTH;
 
-    uint8_t ser[32];
-    ser[0] = 0;
-    hex_string_to_bytes(mac, &ser[1]);
+    if (self_sign)
+    {
+        cert_req.attributes.extensionReq.basicConstraints.cA = true;
+        cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
+    }
 
     X509SerialNumber serial;
     osMemset(&serial, 0x00, sizeof(serial));
-    serial.length = 7;
-    serial.value = ser;
+    serial.length = serial_number_size;
+    serial.value = serial_number;
 
     X509Validity validity;
     osMemset(&validity, 0x00, sizeof(validity));
@@ -145,86 +184,175 @@ int cert_generate(const char *mac, const char *dest)
     algo.oid.value = SHA256_WITH_RSA_ENCRYPTION_OID;
     algo.oid.length = sizeof(SHA256_WITH_RSA_ENCRYPTION_OID);
 
-    uint8_t *cert_der = osAllocMem(8192);
+    /* create certificate */
+    uint8_t *cert_der_data = osAllocMem(8192);
     size_t cert_der_size = 0;
-    if (x509CreateCertificate(YARROW_PRNG_ALGO, &yarrowContext, &cert_req, NULL, &issuer_certinfo, &serial, &validity, &algo, &server_ca_priv, cert_der, &cert_der_size) != NO_ERROR)
+    error_t error = x509CreateCertificate(rand_get_algo(), rand_get_context(), &cert_req, &cert_pubkey, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
+    if (error != NO_ERROR)
     {
-        TRACE_ERROR("x509CreateCertificate failed\r\n");
-        return -1;
-    }
-
-    size_t cert_pem_size;
-    if (pemExportCertificate(cert_der, cert_der_size, NULL, &cert_pem_size) != NO_ERROR)
-    {
-        TRACE_ERROR("pemExportCertificate failed\r\n");
-        return -1;
-    }
-
-    char_t *cert_pem = osAllocMem(cert_pem_size + 1);
-    if (pemExportCertificate(cert_der, cert_der_size, cert_pem, &cert_pem_size) != NO_ERROR)
-    {
-        TRACE_ERROR("pemExportCertificate failed\r\n");
-        return -1;
-    }
-    cert_pem[cert_pem_size] = 0;
-
-    /* save the cert as pem */
-    {
-        char_t *path = osAllocMem(osStrlen(dest) + 32);
-        osSprintf(path, "%s/client.pem", dest);
-        FsFile *file = fsOpenFile(path, FS_FILE_MODE_WRITE);
-        if (!file)
-        {
-            osFreeMem(path);
-            TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
-        }
-        fsWriteFile(file, cert_pem, cert_pem_size);
-        fsCloseFile(file);
-        osFreeMem(path);
-    }
-
-    /* save the cert as der */
-    {
-        char_t *path = osAllocMem(osStrlen(dest) + 32);
-        osSprintf(path, "%s/client.der", dest);
-        FsFile *file = fsOpenFile(path, FS_FILE_MODE_WRITE);
-        if (!file)
-        {
-            osFreeMem(path);
-            TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
-        }
-        fsWriteFile(file, cert_der, cert_der_size);
-        fsCloseFile(file);
-        osFreeMem(path);
-    }
-
-    /* save the private key */
-    {
-        char_t *path = osAllocMem(osStrlen(dest) + 32);
-        osSprintf(path, "%s/private.der", dest);
-        FsFile *file = fsOpenFile(path, FS_FILE_MODE_WRITE);
-        if (!file)
-        {
-            osFreeMem(path);
-            TRACE_ERROR("fsOpenFile failed\r\n");
-            return -1;
-        }
-        fsWriteFile(file, der_data, privateKey_der_size);
-        fsCloseFile(file);
-        osFreeMem(path);
+        TRACE_ERROR("x509CreateCertificate failed: %d\r\n", error);
+        return ERROR_FAILURE;
     }
 
     rsaFreePublicKey(&cert_pubkey);
     rsaFreePrivateKey(&cert_privkey);
 
-    osFreeMem(server_ca_der);
-    osFreeMem(cert_der);
-    osFreeMem(rsa_n_buf);
-    osFreeMem(rsa_e_buf);
-    osFreeMem(der_data);
-    osFreeMem(cert_pem);
+    /* export certificate */
+    size_t cert_pem_size;
+    if (pemExportCertificate(cert_der_data, cert_der_size, NULL, &cert_pem_size) != NO_ERROR)
+    {
+        TRACE_ERROR("pemExportCertificate failed\r\n");
+        return ERROR_FAILURE;
+    }
 
-    return 0;
+    char_t *cert_pem_data = osAllocMem(cert_pem_size + 1);
+    if (pemExportCertificate(cert_der_data, cert_der_size, cert_pem_data, &cert_pem_size) != NO_ERROR)
+    {
+        TRACE_ERROR("pemExportCertificate failed\r\n");
+        return ERROR_FAILURE;
+    }
+
+    if (cert_file)
+    {
+        /* save the cert as pem */
+        FsFile *file = fsOpenFile(cert_file, FS_FILE_MODE_WRITE);
+        if (!file)
+        {
+            TRACE_ERROR("fsOpenFile failed\r\n");
+            return ERROR_FAILURE;
+        }
+        if (!cert_der_format)
+        {
+            fsWriteFile(file, cert_pem_data, cert_pem_size);
+        }
+        else
+        {
+            fsWriteFile(file, cert_der_data, cert_der_size);
+        }
+        fsCloseFile(file);
+    }
+
+    if (priv_file)
+    {
+        /* save the private key */
+        FsFile *file = fsOpenFile(priv_file, FS_FILE_MODE_WRITE);
+        if (!file)
+        {
+            TRACE_ERROR("fsOpenFile failed\r\n");
+            return ERROR_FAILURE;
+        }
+        fsWriteFile(file, priv_data, priv_size);
+        fsCloseFile(file);
+    }
+
+    osFreeMem(cert_der_data);
+    osFreeMem(cert_pem_data);
+    osFreeMem(priv_data);
+
+    if (!self_sign)
+    {
+        rsaFreePrivateKey(&issuer_priv);
+    }
+
+    return NO_ERROR;
+}
+
+error_t cert_generate_mac(const char *mac, const char *dest)
+{
+    if (!dest || osStrlen(mac) != 12)
+    {
+        return ERROR_FAILURE;
+    }
+
+    uint8_t serial[7];
+    size_t serial_length = 7;
+    char_t subj[32];
+
+    serial[0] = 0;
+    hex_string_to_bytes(mac, &serial[1]);
+    cert_truncate_serial(serial, &serial_length);
+
+    osSprintf(subj, "b'%s'", mac);
+
+    char_t *client_file = custom_asprintf("%s/client.der", dest);
+    char_t *private_file = custom_asprintf("%s/private.der", dest);
+
+    if (cert_generate_signed(subj, serial, 7, false, true, client_file, private_file) != NO_ERROR)
+    {
+        TRACE_ERROR("cert_generate_signed failed\r\n");
+        return ERROR_FAILURE;
+    }
+    osFreeMem(client_file);
+    osFreeMem(private_file);
+
+    return NO_ERROR;
+}
+
+void cert_truncate_serial(uint8_t *serial, size_t *serial_length)
+{
+    /* skip leadin zeroes, except if the next byte is > 127 */
+    while (*serial_length > 1)
+    {
+        /* only skip leading zeroes */
+        if (serial[0])
+        {
+            break;
+        }
+        /* only allow leading zeroes if the next byte would have highest bit set */
+        if (serial[1] & 0x80)
+        {
+            break;
+        }
+        (*serial_length)--;
+        osMemmove(&serial[0], &serial[1], *serial_length);
+    }
+}
+
+void cert_generate_serial(uint8_t *serial, size_t *serial_length)
+{
+    time_t cur_time = getCurrentUnixTime();
+
+    /* write the current time in big endian format with leading zero */
+    *serial_length = 9;
+    serial[0] = 0;
+    STORE64BE(cur_time, &serial[1]);
+
+    /* now truncate the 9 byte BE buffer to no leading zeroes, except the number would be interpreted as negative */
+    cert_truncate_serial(serial, serial_length);
+}
+
+error_t cert_generate_default()
+{
+    const char *cacert = settings_get_string("core.server_cert.file.ca");
+    const char *cacert_key = settings_get_string("core.server_cert.file.ca_key");
+    uint8_t serial[9];
+    size_t serial_length;
+
+    /* create a proper ASN.1 compatible serial with no leading zeroes */
+    cert_generate_serial(serial, &serial_length);
+
+    TRACE_INFO("Generating CA certificate...\r\n");
+    if (cert_generate_signed("TeddyCloud CA Root Certificate", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
+    {
+        TRACE_ERROR("cert_generate_signed failed\r\n");
+        return ERROR_FAILURE;
+    }
+
+    /* reload certs to reload the CA cert again */
+    settings_try_load_certs_id(0);
+
+    const char *server_cert = settings_get_string("core.server_cert.file.crt");
+    const char *server_key = settings_get_string("core.server_cert.file.key");
+
+    cert_generate_serial(serial, &serial_length);
+
+    TRACE_INFO("Generating Server certificate...\r\n");
+    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, false, false, server_cert, server_key) != NO_ERROR)
+    {
+        TRACE_ERROR("cert_generate_signed failed\r\n");
+        return ERROR_FAILURE;
+    }
+
+    /* reload certs to reload the other certs */
+    return settings_try_load_certs_id(0);
 }

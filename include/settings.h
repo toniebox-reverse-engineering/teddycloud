@@ -1,12 +1,19 @@
-#include <stdbool.h>
+#pragma once
+
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "debug.h"
+#include "error.h"
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#define TONIES_JSON_PATH "config/tonies.json"
+#define TONIES_CUSTOM_JSON_PATH "config/tonies.custom.json"
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
-#define CONFIG_VERSION 4
+#define CONFIG_VERSION 5
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -51,6 +58,7 @@ typedef struct
     bool markCustomTagByPass;
     bool prioCustomContent;
     bool updateOnLowerAudioId;
+    bool dumpRuidAuthContentJson;
 } settings_cloud_t;
 
 typedef struct
@@ -87,6 +95,7 @@ typedef struct
     char *ca_key;
     char *crt;
     char *key;
+    char *cert_chain;
 } settings_cert_t;
 
 typedef struct
@@ -151,6 +160,7 @@ typedef struct
     char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
+    char *firmwaredirfull;
 
     char *overlayUniqueId;
     uint8_t overlayNumber;
@@ -177,6 +187,7 @@ typedef struct
     char *host_url;
     char *certdir;
     char *contentdir;
+    char *firmwaredir;
     char *librarydir;
     char *datadir;
     char *wwwdir;
@@ -187,6 +198,7 @@ typedef struct
 
     bool flex_enabled;
     char *flex_uid;
+    char *bind_ip;
 } settings_core_t;
 
 typedef struct
@@ -337,7 +349,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-void settings_init(char *cwd);
+error_t settings_init(char *cwd);
 
 /**
  * @brief Deinitializes the settings subsystem.
@@ -364,8 +376,8 @@ void settings_deinit_all();
  *    settings_save();
  * @endcode
  */
-void settings_save();
-void settings_save_ovl(bool overlay);
+error_t settings_save();
+error_t settings_save_ovl(bool overlay);
 
 /**
  * @brief Loads settings from a persistent storage (like a file or database).
@@ -384,8 +396,8 @@ void settings_save_ovl(bool overlay);
  *    settings_load();
  * @endcode
  */
-void settings_load();
-void settings_load_ovl(bool overlay);
+error_t settings_load();
+error_t settings_load_ovl(bool overlay);
 
 uint16_t settings_get_size();
 
@@ -503,6 +515,7 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 char *settings_sanitize_box_id(const char *input_id);
 
 void settings_load_all_certs();
-void settings_load_certs_id(uint8_t settingsId);
+error_t settings_try_load_certs_id(uint8_t settingsId);
+error_t settings_load_certs_id(uint8_t settingsId);
 
 #endif

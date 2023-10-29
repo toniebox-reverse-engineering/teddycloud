@@ -40,9 +40,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "os_port.h"
 #include "os_port_windows.h"
-#include "debug.h"
 
 
 /**
