@@ -5,7 +5,7 @@ set -o pipefail
 set -o nounset
 # set -o xtrace
 
-curl -f https://gt-blog.de/JSON/tonies.json?source=teddyCloud-docker -o /teddycloud/config/tonies.json || true
+curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /teddycloud/config/tonies.json || true
 
 while true
 do
