@@ -308,7 +308,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
             // TODO: Nice checking if valid tonie path
-            load_content_json(contentPath, &tonieInfo->json);
+            load_content_json(contentPath, &tonieInfo->json, true);
         }
 
         FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
