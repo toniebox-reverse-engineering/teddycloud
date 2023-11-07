@@ -255,18 +255,15 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 void content_json_update_model(contentJson_t *content_json, uint32_t audio_id)
 {
     toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
-    if (content_json->_valid)
+    if (content_json->_valid && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
     {
-        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, "") == 0)
+        if (toniesJson != NULL)
         {
-            if (osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
-            {
-                osFreeMem(content_json->tonie_model);
-                content_json->tonie_model = strdup(toniesJson->model);
-                content_json->_updated = true;
-            }
+            osFreeMem(content_json->tonie_model);
+            content_json->tonie_model = strdup(toniesJson->model);
+            content_json->_updated = true;
         }
-        else if (toniesJson == NULL && osStrcmp(content_json->tonie_model, "") != 0)
+        else
         {
             // TODO add to tonies.custom.json + report
             TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
