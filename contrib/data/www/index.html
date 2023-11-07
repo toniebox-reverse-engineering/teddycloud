@@ -1144,6 +1144,7 @@
                     const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${mode}`);
                     if (response.ok) {
                         const data = await response.json();
+                        data.files.sort((a, b) => a.name.localeCompare(b.name));
                         this.setState({ files: data.files, path, selectedFiles: [] });
                         if (scroll) {
                             this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
