@@ -1442,7 +1442,13 @@
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}?special=${this.state.mode}`} target="_blank" rel="noopener noreferrer">
+                                            <a
+                                                href={file.name.endsWith(".json")
+                                                    ? `/content/json${this.state.path}${file.name}?special=${this.state.mode}`
+                                                    : `/content${this.state.path}${file.name}?special=${this.state.mode}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>

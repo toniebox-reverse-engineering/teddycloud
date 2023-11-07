@@ -1597,3 +1597,25 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
 {
     return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
 }
+error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char special[16];
+    osStrcpy(special, "");
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_DEBUG("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
+    char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
+    return httpSendResponseUnsafe(connection, uri, file_path);
+}
