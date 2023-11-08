@@ -645,12 +645,11 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                                       date_buffer_server,
                                       custom_server ? ", custom" : "");
                 }
-                else
+                TRACE_INFO_RESUME("\r\n");
+                if (!tonieInfo->valid)
                 {
                     content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id);
                 }
-
-                TRACE_INFO_RESUME("\r\n");
 
                 if (tonieInfo->json.live || tonieInfo->updated || tonieInfo->stream || isFlex)
                 {
