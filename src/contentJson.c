@@ -254,10 +254,10 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
 void content_json_update_model(contentJson_t *content_json, uint32_t audio_id)
 {
-    toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
-    if (content_json->_valid && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
+    if (content_json->_valid)
     {
-        if (toniesJson != NULL)
+        toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
+        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
         {
             osFreeMem(content_json->tonie_model);
             content_json->tonie_model = strdup(toniesJson->model);
