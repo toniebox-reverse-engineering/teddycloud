@@ -62,6 +62,7 @@ request_type_t request_paths[] = {
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
+    {REQ_GET, "/content/json/", &handleApiContentJson},
     {REQ_GET, "/content/", &handleApiContent},
     /* custom API */
     {REQ_POST, "/api/fileDelete", &handleApiFileDelete},

@@ -18,6 +18,7 @@
 #include "returncodes.h"
 #include "cJSON.h"
 #include "toniefile.h"
+#include "toniesJson.h"
 #include "fs_ext.h"
 #include "cert.h"
 #include "esp32.h"
@@ -503,7 +504,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             {
                 continue;
             }
-
+            bool isDir = (entry.attributes & FS_FILE_ATTR_DIRECTORY);
             char dateString[64];
 
             osSnprintf(dateString, sizeof(dateString), " %04" PRIu16 "-%02" PRIu8 "-%02" PRIu8 ",  %02" PRIu8 ":%02" PRIu8 ":%02" PRIu8,
@@ -513,9 +514,16 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             char *filePathAbsolute = custom_asprintf("%s/%s", pathAbsolute, entry.name);
             pathSafeCanonicalize(filePathAbsolute);
 
+            cJSON *jsonEntry = cJSON_CreateObject();
+            cJSON_AddStringToObject(jsonEntry, "name", entry.name);
+            cJSON_AddStringToObject(jsonEntry, "date", dateString);
+            cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
+            cJSON_AddBoolToObject(jsonEntry, "isDirectory", isDir);
+
             char desc[64];
             desc[0] = 0;
             tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            toniesJson_item_t *item = NULL;
             if (tafInfo->valid)
             {
                 osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo->tafHeader->audio_id);
@@ -525,15 +533,63 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
-            }
-            osFreeMem(filePathAbsolute);
-            freeTonieInfo(tafInfo);
 
-            cJSON *jsonEntry = cJSON_CreateObject();
-            cJSON_AddStringToObject(jsonEntry, "name", entry.name);
-            cJSON_AddStringToObject(jsonEntry, "date", dateString);
-            cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
-            cJSON_AddBoolToObject(jsonEntry, "isDirectory", (entry.attributes & FS_FILE_ATTR_DIRECTORY));
+                item = tonies_byAudioIdModel(tafInfo->tafHeader->audio_id, tafInfo->json.tonie_model);
+                freeTonieInfo(tafInfo);
+            }
+            else
+            {
+                char *json_extension = NULL;
+                contentJson_t contentJson;
+                if (isDir)
+                {
+                    char *filePathAbsoluteSub = NULL;
+                    FsDir *subdir = fsOpenDir(filePathAbsolute);
+                    FsDirEntry subentry;
+                    if (subdir != NULL)
+                    {
+                        while (true)
+                        {
+                            if (fsReadDir(subdir, &subentry) != NO_ERROR || item != NULL)
+                            {
+                                fsCloseDir(subdir);
+                                break;
+                            }
+                            filePathAbsoluteSub = custom_asprintf("%s/%s", filePathAbsolute, subentry.name);
+
+                            json_extension = osStrstr(filePathAbsoluteSub, ".json");
+                            if (json_extension != NULL)
+                            {
+                                *json_extension = '\0';
+                            }
+
+                            load_content_json(filePathAbsoluteSub, &contentJson, false);
+                            item = tonies_byModel(contentJson.tonie_model);
+                            osFreeMem(filePathAbsoluteSub);
+                        }
+                    }
+                }
+                else
+                {
+                    json_extension = osStrstr(filePathAbsolute, ".json");
+                    if (json_extension != NULL)
+                    {
+                        *json_extension = '\0';
+                    }
+                    load_content_json(filePathAbsolute, &contentJson, false);
+                    item = tonies_byModel(contentJson.tonie_model);
+                }
+            }
+            if (item != NULL)
+            {
+                cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
+                cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
+                cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
+                cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
+                cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+            }
+
+            osFreeMem(filePathAbsolute);
             cJSON_AddStringToObject(jsonEntry, "desc", desc);
 
             cJSON_AddItemToArray(jsonArray, jsonEntry);
@@ -1596,4 +1652,26 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
+}
+error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *rootPath = settings_get_string("internal.contentdirfull");
+    char special[16];
+    osStrcpy(special, "");
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_DEBUG("requested index for special '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            rootPath = settings_get_string("internal.librarydirfull");
+
+            if (rootPath == NULL || !fsDirExists(rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
+                return ERROR_FAILURE;
+            }
+        }
+    }
+    char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
+    return httpSendResponseUnsafe(connection, uri, file_path);
 }

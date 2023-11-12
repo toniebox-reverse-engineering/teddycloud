@@ -107,6 +107,7 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                 // TODO Hashes
                 item->title = tonies_jsonGetString(tonieJson, "title");
                 item->episodes = tonies_jsonGetString(tonieJson, "episodes");
+                item->series = tonies_jsonGetString(tonieJson, "series");
                 // TODO Tracks
                 item->release = atoi(tonies_jsonGetString(tonieJson, "release"));
                 item->language = tonies_jsonGetString(tonieJson, "language");

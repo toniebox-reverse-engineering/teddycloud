@@ -65,15 +65,15 @@
         }
 
         .image-resize {
-            width: 32px;
             height: 32px;
+            width: auto;
             transition: all 0.3s ease-in-out;
             margin-left: 40px;
         }
 
         .parent:hover .image-resize {
-            width: 128px;
             height: 128px;
+            width: auto;
         }
 
         .parent {
@@ -1143,6 +1143,7 @@
                     const response = await fetch(`/api/fileIndex?path=${encodeURIComponent(path)}&special=${mode}`);
                     if (response.ok) {
                         const data = await response.json();
+                        data.files.sort((a, b) => a.name.localeCompare(b.name));
                         this.setState({ files: data.files, path, selectedFiles: [] });
                         if (scroll) {
                             this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -1423,6 +1424,14 @@
                                     tonieModel = matchingTonie.model;
                                 }
                             }
+                            // Should replace the matchingTonie search from above
+                            if (file.tonieInfo) {
+                                tonieArtist = file.tonieInfo.series;
+                                tonieTitle = file.tonieInfo.episode;
+                                tonieFullName = tonieArtist + " - " + tonieTitle;
+                                toniePic = file.tonieInfo.picture;
+                                tonieModel = file.tonieInfo.model;
+                            }
 
                             return (
                                 <pre key={index} style={{ fontFamily: 'monospace' }}>
@@ -1439,28 +1448,52 @@
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date}</span>
                                             <span>{'-'.padStart(10)}</span>
+                                            {file.tonieInfo &&
+                                                <div className="parent">
+                                                    <img
+                                                        className="image-resize"
+                                                        src={toniePic}
+                                                        onError={(e) => { e.target.onerror = null; e.target.src = "img_unknown.png" }}
+                                                    />
+                                                    <div className="text-section">
+                                                        <span className="desc">{tonieFullName}</span>
+                                                        <span className="audio-time"> </span>
+                                                        <span className="audio-time">Model: {tonieModel}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
+                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                    </div>
+                                                </div>
+                                            }
                                         </React.Fragment >
                                     ) : (
                                         <React.Fragment>
-                                            <a href={`/content${this.state.path}${file.name}?special=${this.state.mode}`} target="_blank" rel="noopener noreferrer">
+                                            <a
+                                                href={file.name.endsWith(".json")
+                                                    ? `/content/json${this.state.path}${file.name}?special=${this.state.mode}`
+                                                    : `/content${this.state.path}${file.name}?special=${this.state.mode}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
                                                 {filename}
                                             </a >
                                             <span>{' '.repeat(maxLen - filename.length)}</span>
                                             <span>{file.date.padEnd(10)}</span>
                                             <span>{file.size.toString().padStart(10)}</span>
-                                            {file.desc.startsWith('TAF:') &&
+                                            {(file.desc.startsWith('TAF:') || file.tonieInfo) &&
                                                 <div className="parent">
-                                                    <button
-                                                        onClick={() => {
-                                                            this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
-                                                            this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
-                                                            this.oggPlayerRef.current.setArtistTitle(`${tonieArtist}`, `${tonieTitle}`);
-                                                            this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
-                                                        }
-                                                        } className="small-round-button"
-                                                    >
-                                                        &#9654;
-                                                    </button>
+                                                    {file.desc.startsWith('TAF:') &&
+                                                        <button
+                                                            onClick={() => {
+                                                                this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
+                                                                this.oggPlayerRef.current.setImageUrl(`${toniePic}`);
+                                                                this.oggPlayerRef.current.setArtistTitle(`${tonieArtist}`, `${tonieTitle}`);
+                                                                this.fileBrowserRef.current.scrollIntoView({ behavior: 'smooth' });
+                                                            }
+                                                            } className="small-round-button"
+                                                        >
+                                                            &#9654;
+                                                        </button>
+                                                    }
                                                     <img
                                                         className="image-resize"
                                                         src={toniePic}

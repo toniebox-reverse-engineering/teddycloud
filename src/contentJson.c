@@ -83,7 +83,7 @@ uint32_t content_jsonGetUInt32(cJSON *jsonElement, char *name)
     return 0;
 }
 
-error_t load_content_json(const char *content_path, contentJson_t *content_json)
+error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing)
 {
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
@@ -187,12 +187,12 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json)
         content_json->_valid = true;
     }
 
-    if (error != NO_ERROR)
+    if (error != NO_ERROR && (error != ERROR_FILE_NOT_FOUND || create_if_missing))
     {
         error = save_content_json(content_path, content_json);
         if (error == NO_ERROR)
         {
-            load_content_json(content_path, content_json);
+            load_content_json(content_path, content_json, true);
         }
     }
 
@@ -254,19 +254,16 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
 void content_json_update_model(contentJson_t *content_json, uint32_t audio_id)
 {
-    toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
     if (content_json->_valid)
     {
-        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, "") == 0)
+        toniesJson_item_t *toniesJson = tonies_byAudioId(audio_id);
+        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
         {
-            if (osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
-            {
-                osFreeMem(content_json->tonie_model);
-                content_json->tonie_model = strdup(toniesJson->model);
-                content_json->_updated = true;
-            }
+            osFreeMem(content_json->tonie_model);
+            content_json->tonie_model = strdup(toniesJson->model);
+            content_json->_updated = true;
         }
-        else if (toniesJson == NULL && osStrcmp(content_json->tonie_model, "") != 0)
+        else
         {
             // TODO add to tonies.custom.json + report
             TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
