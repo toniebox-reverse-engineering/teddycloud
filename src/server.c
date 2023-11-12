@@ -62,6 +62,7 @@ request_type_t request_paths[] = {
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
+    {REQ_GET, "/content/download/", &handleApiContentDownload},
     {REQ_GET, "/content/json/", &handleApiContentJson},
     {REQ_GET, "/content/", &handleApiContent},
     /* custom API */
@@ -77,7 +78,6 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/stats", &handleApiStats},
     {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
-
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
     {REQ_GET, "/api/getBoxes", &handleApiGetBoxes},
