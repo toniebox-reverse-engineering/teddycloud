@@ -99,11 +99,6 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     TRACE_ERROR(">> ctx->uri is too short\r\n");
                     return;
                 }
-                char ruid[17];
-                osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
-                ruid[16] = 0;
-                ctx->tonieInfo = getTonieInfoFromRuid(ruid, ctx->client_ctx->settings);
-
                 char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
                 char *dir = strdup(ctx->tonieInfo->contentPath);
@@ -141,10 +136,6 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
-            }
-            if (error != NO_ERROR)
-            {
-                freeTonieInfo(ctx->tonieInfo);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);

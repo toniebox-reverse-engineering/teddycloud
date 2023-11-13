@@ -481,6 +481,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
+            ctx.tonieInfo = tonieInfo;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
