@@ -453,9 +453,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo->json.nocloud)
+        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override))
         {
-            if (tonieInfo->json.nocloud)
+            if (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override)
             {
                 TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
             }
