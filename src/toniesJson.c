@@ -104,7 +104,21 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                     cJSON *arrayItemJson = cJSON_GetArrayItem(arrayJson, i);
                     item->audio_ids[i] = atoi(arrayItemJson->valuestring);
                 }
-                // TODO Hashes
+                arrayJson = cJSON_GetObjectItem(tonieJson, "hash");
+                item->hashes_count = (uint8_t)cJSON_GetArraySize(arrayJson);
+                item->hashes = osAllocMem(item->hashes_count * sizeof(uint8_t) * 20);
+                for (size_t i = 0; i < item->hashes_count; i++)
+                {
+                    cJSON *arrayItemJson = cJSON_GetArrayItem(arrayJson, i);
+                    if (arrayItemJson->valuestring == NULL || osStrlen(arrayItemJson->valuestring) != 40)
+                    {
+                        break;
+                    }
+                    for (size_t j = 0; j < 20; j++)
+                    {
+                        sscanf(&arrayItemJson->valuestring[j * 2], "%2hhx", &item->hashes[(i * 20) + j]);
+                    }
+                }
                 item->title = tonies_jsonGetString(tonieJson, "title");
                 item->episodes = tonies_jsonGetString(tonieJson, "episodes");
                 item->series = tonies_jsonGetString(tonieJson, "series");
@@ -133,16 +147,21 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
     }
 #endif
 }
-toniesJson_item_t *tonies_byAudioId_base(uint32_t audio_id, toniesJson_item_t *toniesCache, size_t toniesCount)
+toniesJson_item_t *tonies_byAudioIdHash_base(uint32_t audio_id, uint8_t *hash, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
     for (size_t i = 0; i < toniesCount; i++)
     {
         for (size_t j = 0; j < toniesCache[i].audio_ids_count; j++)
         {
-
             if (toniesCache[i].audio_ids[j] == audio_id || (audio_id < TEDDY_BENCH_AUDIO_ID_DEDUCT && toniesCache[i].audio_ids[j] == audio_id + TEDDY_BENCH_AUDIO_ID_DEDUCT))
-                return &toniesCache[i];
+            {
+                for (size_t k = 0; k < toniesCache[i].hashes_count; k++)
+                {
+                    if (hash == NULL || osMemcmp(toniesCache[i].hashes + (k * 20), hash, 20) == 0)
+                        return &toniesCache[i];
+                }
+            }
         }
     }
 #else
@@ -152,12 +171,21 @@ toniesJson_item_t *tonies_byAudioId_base(uint32_t audio_id, toniesJson_item_t *t
 }
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
-    toniesJson_item_t *item = tonies_byAudioId_base(audio_id, toniesCustomJsonCache, toniesCustomJsonCount);
+    toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, NULL, toniesCustomJsonCache, toniesCustomJsonCount);
     if (item)
     {
         return item;
     }
-    return tonies_byAudioId_base(audio_id, toniesJsonCache, toniesJsonCount);
+    return tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
+}
+toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
+{
+    toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, hash, toniesCustomJsonCache, toniesCustomJsonCount);
+    if (item)
+    {
+        return item;
+    }
+    return tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
 }
 toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
@@ -183,9 +211,9 @@ toniesJson_item_t *tonies_byModel(char *model)
     }
     return tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
 }
-toniesJson_item_t *tonies_byAudioIdModel(uint32_t audio_id, char *model)
+toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model)
 {
-    toniesJson_item_t *item = tonies_byAudioId(audio_id);
+    toniesJson_item_t *item = tonies_byAudioIdHash(audio_id, hash);
     if (item)
     {
         return item;
@@ -200,6 +228,7 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         toniesJson_item_t *item = &toniesCache[i];
         osFreeMem(item->model);
         osFreeMem(item->audio_ids);
+        osFreeMem(item->hashes);
         osFreeMem(item->title);
         osFreeMem(item->episodes);
         osFreeMem(item->language);

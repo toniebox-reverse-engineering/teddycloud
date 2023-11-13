@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
+#define SPECIAL_AUDIO_ID_ONE 1
 
 typedef struct
 {
@@ -11,7 +12,8 @@ typedef struct
     char *model;
     uint32_t *audio_ids;
     uint8_t audio_ids_count;
-    //* hashes;
+    uint8_t *hashes;
+    uint8_t hashes_count;
     char *title;
     char *series;
     char *episodes;
@@ -25,6 +27,7 @@ typedef struct
 void tonies_init();
 void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount);
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id);
+toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash);
 toniesJson_item_t *tonies_byModel(char *model);
-toniesJson_item_t *tonies_byAudioIdModel(uint32_t audio_id, char *model);
+toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model);
 void tonies_deinit();

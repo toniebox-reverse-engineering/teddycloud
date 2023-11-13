@@ -648,7 +648,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 TRACE_INFO_RESUME("\r\n");
                 if (!tonieInfo->valid)
                 {
-                    content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id);
+                    content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id, NULL);
                 }
 
                 if (tonieInfo->json.live || tonieInfo->updated || tonieInfo->stream || isFlex)

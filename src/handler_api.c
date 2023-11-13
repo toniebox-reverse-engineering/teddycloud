@@ -534,7 +534,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osStrcat(desc, tmp);
                 }
 
-                item = tonies_byAudioIdModel(tafInfo->tafHeader->audio_id, tafInfo->json.tonie_model);
+                item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
                 freeTonieInfo(tafInfo);
             }
             else

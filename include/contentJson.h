@@ -30,5 +30,5 @@ typedef struct
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing);
 error_t save_content_json(const char *content_path, contentJson_t *content_json);
-void content_json_update_model(contentJson_t *content_json, uint32_t audio_id);
+void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, uint8_t *hash);
 void free_content_json(contentJson_t *content_json);

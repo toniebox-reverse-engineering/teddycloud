@@ -346,7 +346,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             sse_sendEvent("ContentAudioId", buffer, true);
             mqtt_sendBoxEvent("ContentAudioId", buffer, client_ctx);
 
-            if (item == NULL)
+            if (item == NULL || audioId == SPECIAL_AUDIO_ID_ONE)
             {
                 tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, client_ctx->settings);
                 if (tonieInfo->valid)
