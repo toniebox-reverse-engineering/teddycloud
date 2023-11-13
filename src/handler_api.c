@@ -1354,11 +1354,18 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     }
     ruid[16] = '\0';
 
-    osSprintf((char *)uri, "/v2/content/%s", ruid);
     osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
     free_content_json(&contentJson);
-
-    return handleCloudContent(connection, uri, queryString, client_ctx, false);
+    if (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0')
+    {
+        osSprintf((char *)uri, "/v1/content/%s", ruid);
+        return handleCloudContent(connection, uri, queryString, client_ctx, true);
+    }
+    else
+    {
+        osSprintf((char *)uri, "/v2/content/%s", ruid);
+        return handleCloudContent(connection, uri, queryString, client_ctx, false);
+    }
 }
 
 typedef struct
