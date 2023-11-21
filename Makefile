@@ -131,6 +131,7 @@ SOURCES_windows = \
 	src/cyclone/common/fs_port_windows.c 
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
+CFLAGS_windows += -DFFMPEG_DECODING
 
 
 ## generic headers/sources
