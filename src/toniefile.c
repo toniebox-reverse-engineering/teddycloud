@@ -13,6 +13,7 @@
 #include "path.h"
 #include "fs_port.h"
 #include "os_port.h"
+#include "os_ext.h"
 #include "debug.h"
 #include "opus.h"
 #include "ogg/ogg.h"
@@ -452,7 +453,7 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
     FILE *ffmpeg_pipe = NULL;
 
     // Open a pipe to execute the FFmpeg command
-    ffmpeg_pipe = popen(ffmpeg_command, "r");
+    ffmpeg_pipe = osPopen(ffmpeg_command, "r");
     if (ffmpeg_pipe == NULL)
     {
         TRACE_ERROR("Could not open FFmpeg pipe\n");
@@ -498,7 +499,7 @@ error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
         TRACE_ERROR_RESUME("%s", "\r\n");
     }*/
     // Close the FFmpeg pipe
-    pclose(ffmpeg_pipe);
+    osPclose(ffmpeg_pipe);
     return NO_ERROR;
 #else
     return ERROR_NOT_IMPLEMENTED;
