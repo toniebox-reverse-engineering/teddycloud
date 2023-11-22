@@ -537,11 +537,11 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
 error_t ffmpeg_convert(char *source, char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
-    return ffmpeg_stream(source, target_taf, skip_seconds, &active);
+    return ffmpeg_stream(source, target_taf, skip_seconds, 0, &active);
 }
-error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_t *active)
+error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, size_t wait_buffer_ms, bool_t *active)
 {
-    TRACE_INFO("Encode source %s as TAF to %s and skip %" PRIuSIZE " seconds\r\n", source, target_taf, skip_seconds);
+    TRACE_INFO("Encode source %s as TAF to %s, buffer %" PRIuSIZE "ms and skip %" PRIuSIZE " seconds\r\n", source, target_taf, wait_buffer_ms, skip_seconds);
 
     FILE *ffmpeg_pipe = NULL;
     error_t error = NO_ERROR;
@@ -563,7 +563,7 @@ error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_
     size_t samples = sizeof(sample_buffer) / sizeof(uint16_t);
     size_t blocks_read = 0;
 
-    osDelayTask(5000); // buffer incomming stream
+    osDelayTask(wait_buffer_ms); // buffer incomming stream
 
     *active = true;
     while (*active)
@@ -600,7 +600,7 @@ void ffmpeg_stream_task(void *param)
 {
     ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
 
-    ctx->error = ffmpeg_stream(ctx->source, ctx->targetFile, ctx->skip_seconds, &ctx->active);
+    ctx->error = ffmpeg_stream(ctx->source, ctx->targetFile, ctx->skip_seconds, ctx->wait_buffer_ms, &ctx->active);
     ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }
