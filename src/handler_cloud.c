@@ -413,7 +413,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         ffmpeg_ctx.quit = false;
         ffmpeg_ctx.source = tonieInfo->json.source;
         ffmpeg_ctx.skip_seconds = tonieInfo->json.skip_seconds;
-        ffmpeg_ctx.wait_buffer_ms = client_ctx->settings->cloud.ffmpeg_stream_buffer_ms;
         ffmpeg_ctx.targetFile = tonieInfo->json._streamFile;
         ffmpeg_ctx.error = NO_ERROR;
         ffmpeg_ctx.taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, &ffmpeg_ctx, 10 * 1024, 0);
@@ -424,6 +423,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         if (ffmpeg_ctx.error == NO_ERROR)
         {
+            uint32_t delay = client_ctx->settings->cloud.ffmpeg_stream_buffer_ms;
+            TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
+            osDelayTask(delay);
             error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
             if (error)
             {
