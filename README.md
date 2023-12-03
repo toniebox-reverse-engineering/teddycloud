@@ -85,7 +85,7 @@ It is recommended to flash the replacement CA to /cert/c2.der and use the hackie
 ```
 cc3200tool -p COM3 write_file certs/server/ca.der /cert/c2.der
 ```
-**Beware** The ```blockCheckRemove.310```, ```noCerts.305``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them by removing them in the [```ngCfg.json```](https://github.com/toniebox-reverse-engineering/hackiebox_cfw_ng/wiki/Bootloader#configuration) on the SD card.
+**Beware** The ```blockCheckRemove.310```, ```noCerts.305``` and the ```noHide.308``` patch breaks the content passthrough to Boxine. If you are using firmware 3.1.0_BF4 isn't compatible with many patches, except the alt* ones. Please disable them by removing them in the [```ngCfg.json```](https://toniebox-reverse-engineering.github.io/docs/custom-firmware/cc3200/hackieboxng-bl/bootloader/#configuration) on the SD card.
 
 #### CC3235
 Replace the original CA within your flash dump with the replacement CA and reflash it to your box. I recommend flashrom for that
