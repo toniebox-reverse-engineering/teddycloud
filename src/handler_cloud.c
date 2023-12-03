@@ -525,7 +525,7 @@ void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioI
     }
     else
     {
-        /* custom tonies from TeddyBench have the audio id reduced by a constant */
+        /* custom tonies from teddyBench have the audio id reduced by a constant */
         if (unix_time < TEDDY_BENCH_AUDIO_ID_DEDUCT)
         {
             unix_time += TEDDY_BENCH_AUDIO_ID_DEDUCT;

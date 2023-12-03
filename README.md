@@ -25,7 +25,7 @@ Currently implemented are:
 * [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
 
 ## Planned
-* TeddyBench integration
+* teddyBench integration
 
 ## Preparation
 ### Generate certificates
