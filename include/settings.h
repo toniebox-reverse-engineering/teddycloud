@@ -93,6 +93,7 @@ typedef struct
 typedef struct
 {
     char *ca;
+    char *ca_der;
     char *ca_key;
     char *crt;
     char *key;
