@@ -73,6 +73,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
+        file: DockerfileUbuntu
         platforms: ${{ matrix.platform }}
         push: ${{ github.event_name != 'pull_request' }}
         labels: ${{ steps.matrix_meta.outputs.labels }}
@@ -145,6 +146,8 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
+          flavor: |
+            suffix=_ubuntu,onlatest=false
 
       - name: Create manifest list and push
         if: ${{ github.event_name != 'pull_request' }}
