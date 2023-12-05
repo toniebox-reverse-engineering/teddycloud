@@ -118,8 +118,11 @@ CFLAGS_linux += -ggdb
 CFLAGS_linux += -DFFMPEG_DECODING
 
 # for now enable extensive error checking
-CFLAGS_linux += -fsanitize=undefined -fsanitize=address 
-LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
+# Add flags for extensive error checking if NO_SANITIZERS is not set to 1
+ifneq ($(NO_SANITIZERS),1)
+	CFLAGS_linux += -fsanitize=undefined -fsanitize=address 
+	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
+endif
 CFLAGS_linux += $(OPTI_LEVEL)
 
 ## win32 specific headers/sources
@@ -168,7 +171,7 @@ SOURCES = \
 
 HEADERS = \
 	$(wildcard include/*.h) \
-	$(CYCLONE_SOURCES:.c=.h) \
+	$(CYCLONE_HEADERS) \
 	$(LIBOPUS_HEADERS) \
 	$(LIBOGG_HEADERS) \
 	$(CJSON_HEADERS) \
