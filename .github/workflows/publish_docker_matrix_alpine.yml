@@ -1,4 +1,4 @@
-name: Docker Image Publish Matrix (Ubuntu)
+name: Docker Image Publish Matrix (Alpine)
 
 on:
   workflow_dispatch:
