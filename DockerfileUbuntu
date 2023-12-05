@@ -42,6 +42,6 @@ VOLUME \
     "/teddycloud/certs" \
     "/teddycloud/config"
 
-COPY docker/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+COPY docker/docker-entrypoint.sh /
+RUN chmod +rx /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]

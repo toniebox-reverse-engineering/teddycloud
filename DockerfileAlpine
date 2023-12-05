@@ -7,8 +7,8 @@ RUN apk --no-cache add gcc protobuf-c-dev build-base git
 # Copy source code and build
 COPY . /buildenv
 WORKDIR /buildenv
-# No libsanitizie support in alpine
-RUN make preinstall NO_SANITIZERS=1
+# No libsanitizie support in alpine and wrong definitions for PRIuTIME
+RUN make preinstall NO_WARN_FAIL=1 NO_SANITIZERS=1
 #RUN make preinstall
 
 # Use Alpine Linux as base image for the final image
@@ -16,7 +16,7 @@ FROM alpine:latest
 EXPOSE 80 443
 
 # Install necessary runtime dependencies
-RUN apk --no-cache add ffmpeg curl ca-certificates
+RUN apk --no-cache add ffmpeg curl ca-certificates bash
 
 # Update CA certificates
 RUN update-ca-certificates
@@ -44,8 +44,6 @@ VOLUME \
     "/teddycloud/config"
 
 # Copy entrypoint script and set permissions
-COPY docker/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +rx /usr/local/bin/docker-entrypoint.sh
-
-# Set the entry point
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+COPY docker/docker-entrypoint.sh /
+RUN chmod +rx /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
