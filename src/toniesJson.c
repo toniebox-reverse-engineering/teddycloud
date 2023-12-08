@@ -123,7 +123,9 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                 item->episodes = tonies_jsonGetString(tonieJson, "episodes");
                 item->series = tonies_jsonGetString(tonieJson, "series");
                 // TODO Tracks
-                item->release = atoi(tonies_jsonGetString(tonieJson, "release"));
+                char *releaseString = tonies_jsonGetString(tonieJson, "release");
+                item->release = atoi(releaseString);
+                osFreeMem(releaseString);
                 item->language = tonies_jsonGetString(tonieJson, "language");
                 item->category = tonies_jsonGetString(tonieJson, "category");
                 item->picture = tonies_jsonGetString(tonieJson, "pic");
@@ -231,6 +233,7 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         osFreeMem(item->hashes);
         osFreeMem(item->title);
         osFreeMem(item->episodes);
+        osFreeMem(item->series);
         osFreeMem(item->language);
         osFreeMem(item->category);
         osFreeMem(item->picture);
