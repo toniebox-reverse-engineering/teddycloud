@@ -2,7 +2,7 @@
 FROM alpine:latest as buildenv
 
 # Install necessary dependencies
-RUN apk --no-cache add gcc protobuf-c-dev build-base git
+RUN apk --no-cache add gcc protobuf-c-dev build-base git zip
 
 # Copy source code and build
 COPY . /buildenv
