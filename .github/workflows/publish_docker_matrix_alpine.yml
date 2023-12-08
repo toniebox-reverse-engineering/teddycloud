@@ -81,6 +81,10 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Run docker image and extract zipfile
+      run: |
+        docker run --rm --name extract-container ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} cat /tmp/teddycloud.zip > /tmp/teddycloud.${{ matrix.platform }}.release.zip
+
     - name: Export digest
       run: |
         mkdir -p /tmp/digests/${{ github.sha }}
@@ -104,6 +108,12 @@ jobs:
       with:
         name: digests
         path: /tmp/digests/${{ github.sha }}/*
+        if-no-files-found: error
+    - name: Upload release file
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-${{ matrix.platform }}
+        path: /tmp/teddycloud.${{ matrix.platform }}.release.zip
         if-no-files-found: error
         
   merge-images:
