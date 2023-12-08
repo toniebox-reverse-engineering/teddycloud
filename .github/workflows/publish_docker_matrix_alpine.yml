@@ -88,7 +88,7 @@ jobs:
         echo "platform=$platform" >> $$GITHUB_OUTPUT
     - name: Run docker image and extract zipfile
       run: |
-        docker run --rm --name extract-container ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} cat /tmp/teddycloud.zip > /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
+        docker run --rm --name extract-container ${{ env.REGISTRY_IMAGE }}@sha256:${{ steps.build.outputs.digest }} cat /tmp/teddycloud.zip > /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
 
     - name: Export digest
       run: |
