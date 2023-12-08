@@ -450,7 +450,7 @@ bool sanityChecks()
     return ret;
 }
 
-void server_init()
+void server_init(bool test)
 {
     mutex_manager_init();
     if (!sanityChecks())
@@ -574,6 +574,10 @@ void server_init()
                     internal->online = false;
                 }
             }
+        }
+        if (test == TRUE)
+        {
+            settings_set_bool("internal.exit", TRUE);
         }
     }
     tonies_deinit();

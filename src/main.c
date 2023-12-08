@@ -38,7 +38,7 @@
 
 void platform_init(void);
 void platform_deinit(void);
-void server_init(void);
+void server_init(bool test);
 static char *get_cwd(char *buffer, size_t size);
 static void print_usage(char *argv[]);
 
@@ -314,6 +314,12 @@ int_t main(int argc, char *argv[])
 
             return 1;
         }
+        else if (!strcasecmp(type, "DOCKER_TEST"))
+        {
+            printf("Docker container started teddyCloud for testing, running smoke test.");
+            mqtt_init();
+            server_init(true);
+        }
 #ifdef FFMPEG_DECODING
         else if (!strcasecmp(type, "DENCODE"))
         {
@@ -345,7 +351,7 @@ int_t main(int argc, char *argv[])
     else
     {
         mqtt_init();
-        server_init();
+        server_init(false);
     }
 
     tls_adapter_deinit();
@@ -375,6 +381,7 @@ static void print_usage(char *argv[])
         "  CERTGEN <mac_address> <target_dir>  Generate client certs\r\n"
         "  ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n"
         "  ESP32FIXUP <esp32-image-bin>\r\n"
-        "  ENCODE_TEST                         Runs an encoding test\r\n",
+        "  ENCODE_TEST                         Runs an encoding test\r\n"
+        "  DOCKER_TEST                         Runs a test to ensure the docker image is fine\r\n",
         argv[0]);
 }
