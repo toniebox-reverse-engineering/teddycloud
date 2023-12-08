@@ -94,7 +94,7 @@ jobs:
         original_tags="${{ steps.matrix_meta.outputs.tags }}"
         modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
         all_tags="$original_tags $modified_tags"
-        echo "ALL_TAGS=$all_tags" >> $GITHUB_ENV
+        echo "all_tags=$all_tags" >> $$GITHUB_OUTPUT
 
     - name: Push docker tags ${{ matrix.platform }}
       id: push_tags
@@ -104,7 +104,7 @@ jobs:
         file: DockerfileUbuntu
         platforms: ${{ matrix.platform }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ env.ALL_TAGS }}
+        tags: ${{ steps.modify_tags.outputs.all_tags }}
         labels: ${{ steps.matrix_meta.outputs.labels }}
 
     - name: Upload digest
