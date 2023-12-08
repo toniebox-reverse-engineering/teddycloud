@@ -154,8 +154,14 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)     
+          # Extract original tags
+          original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          # Remove _ubuntu suffix and create a modified tag list
+          modified_tags=$(jq -cr '.tags | map("-t " + sub("_ubuntu$"; "")) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          # Combine original and modified tags
+          all_tags="$original_tags $modified_tags"
+          docker buildx imagetools create $all_tags \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)  
       - name: Inspect image
         if: ${{ github.event_name != 'pull_request' }}
         run: |
