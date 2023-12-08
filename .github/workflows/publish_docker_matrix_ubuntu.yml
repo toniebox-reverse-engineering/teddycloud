@@ -75,7 +75,7 @@ jobs:
         modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
         all_tags="$original_tags $modified_tags"
         echo "all_tags=$all_tags"
-        echo "all_tags=$all_tags" >> $$GITHUB_OUTPUT
+        echo "all_tags=$all_tags" >> $GITHUB_OUTPUT
 
     - name: Build & push digest docker ${{ matrix.platform }}
       id: build
@@ -95,7 +95,7 @@ jobs:
       run: |
         platform=$(echo "${{ matrix.platform }}" | tr '/' '_')
         echo "platform=$platform"
-        echo "platform=$platform" >> $$GITHUB_OUTPUT
+        echo "platform=$platform" >> $GITHUB_OUTPUT
     - name: Run docker image test and extract zipfile
       run: |
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
