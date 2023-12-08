@@ -99,11 +99,6 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     TRACE_ERROR(">> ctx->uri is too short\r\n");
                     return;
                 }
-                char ruid[17];
-                osStrncpy(ruid, &ctx->uri[12], sizeof(ruid));
-                ruid[16] = 0;
-                ctx->tonieInfo = getTonieInfoFromRuid(ruid, ctx->client_ctx->settings);
-
                 char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
                 char *dir = strdup(ctx->tonieInfo->contentPath);
@@ -141,10 +136,6 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
-            }
-            if (error != NO_ERROR)
-            {
-                freeTonieInfo(ctx->tonieInfo);
             }
         }
         httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
@@ -328,11 +319,18 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                         tonieInfo->tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
                         if (tonieInfo->tafHeader)
                         {
-                            tonieInfo->valid = true;
-                            content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id);
-                            if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                            if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
-                                tonieInfo->stream = true;
+                                tonieInfo->valid = true;
+                                content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
+                                if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                                {
+                                    tonieInfo->stream = true;
+                                }
+                            }
+                            else
+                            {
+                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", contentPath, tonieInfo->tafHeader->sha1_hash.len);
                             }
                         }
                     }

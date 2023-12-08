@@ -321,6 +321,68 @@ void cert_generate_serial(uint8_t *serial, size_t *serial_length)
     cert_truncate_serial(serial, serial_length);
 }
 
+error_t convert_PEM_to_DER(const char *pem_data, const char *der_target_file)
+{
+    size_t pem_data_len = strlen(pem_data);
+
+    // Call pemDecodeFile to get the DER data size
+    size_t der_data_len = 0;
+    PemHeader pem_header;
+    size_t consumed;
+    error_t error = pemDecodeFile(pem_data, pem_data_len, "CERTIFICATE", NULL, &der_data_len, &pem_header, &consumed);
+
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Error: Unable to decode PEM data for size.\r\n");
+        return error;
+    }
+
+    // Allocate memory for the DER data
+    uint8_t *der_data = osAllocMem(der_data_len);
+    if (!der_data)
+    {
+        TRACE_ERROR("Error: Memory allocation failed.\r\n");
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    // Call pemDecodeFile again to get the DER data
+    error = pemDecodeFile(pem_data, pem_data_len, "CERTIFICATE", der_data, &der_data_len, &pem_header, &consumed);
+
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Error: Unable to decode PEM data.\r\n");
+        osFreeMem(der_data);
+        return error;
+    }
+
+    // Open the DER file for writing
+    FsFile *der_file = fsOpenFile(der_target_file, FS_FILE_MODE_WRITE);
+    if (!der_file)
+    {
+        TRACE_ERROR("Error opening DER file for writing.\r\n");
+        osFreeMem(der_data);
+        return ERROR_FILE_OPENING_FAILED;
+    }
+
+    // Write DER content to the file
+    error = fsWriteFile(der_file, der_data, der_data_len);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Error writing DER data to file.\r\n");
+        fsCloseFile(der_file);
+        osFreeMem(der_data);
+        return error;
+    }
+
+    // Close the file
+    fsCloseFile(der_file);
+
+    // Clean up
+    osFreeMem(der_data);
+
+    return NO_ERROR;
+}
+
 error_t cert_generate_default()
 {
     const char *cacert = settings_get_string("core.server_cert.file.ca");
@@ -340,6 +402,15 @@ error_t cert_generate_default()
 
     /* reload certs to reload the CA cert again */
     settings_try_load_certs_id(0);
+
+    /* generate ca.der */
+    const char *cacert_data = settings_get_string("internal.server.ca");
+    const char *cacert_der = settings_get_string("core.server_cert.file.ca_der");
+    if (convert_PEM_to_DER(cacert_data, cacert_der) != NO_ERROR)
+    {
+        TRACE_ERROR("ca.pem to ca.der conversion failed\r\n");
+        return ERROR_FAILURE;
+    }
 
     const char *server_cert = settings_get_string("core.server_cert.file.crt");
     const char *server_key = settings_get_string("core.server_cert.file.key");

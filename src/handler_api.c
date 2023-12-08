@@ -534,7 +534,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osStrcat(desc, tmp);
                 }
 
-                item = tonies_byAudioIdModel(tafInfo->tafHeader->audio_id, tafInfo->json.tonie_model);
+                item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
                 freeTonieInfo(tafInfo);
             }
             else
@@ -578,7 +578,13 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     }
                     load_content_json(filePathAbsolute, &contentJson, false);
                     item = tonies_byModel(contentJson.tonie_model);
+
+                    if (!fsFileExists(filePathAbsolute) && contentJson.cloud_ruid != NULL && osStrlen(contentJson.cloud_ruid) == 16 && contentJson.cloud_auth_len == 32)
+                    {
+                        cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
+                    }
                 }
+                free_content_json(&contentJson);
             }
             if (item != NULL)
             {
@@ -1295,6 +1301,71 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     }
 
     return error;
+}
+error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    // TODO Rewrite URL
+    // Use RUID/Azth from content.json
+    // set connection->private.authentication_token
+    // TODO Remove JSON suffix
+
+    // http://dev11.lan/content/download/3D8C0F13/500304E0.json
+    // http://dev11.lan/v2/content/3d8c0f13500304e0
+
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    if (osStrlen(uri) < 34)
+    {
+        return NO_ERROR;
+    }
+
+    char *json_extension = osStrstr(uri, ".json");
+    if (json_extension != NULL)
+    {
+        *json_extension = '\0';
+    }
+
+    char *path = (char *)uri + 1 + 7 + 1 + 8 + 1;
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+
+    char ruid[17];
+
+    contentJson_t contentJson;
+    load_content_json(pathAbsolute, &contentJson, false);
+    osFreeMem(pathAbsolute);
+
+    if (contentJson.cloud_auth_len != 32)
+    {
+        free_content_json(&contentJson);
+        return NO_ERROR;
+    }
+
+    osStrncpy(ruid, path, 8);
+    osStrncpy(ruid + 8, path + 9, 8);
+    for (uint8_t i = 0; i < 16; i++)
+    {
+        ruid[i] = osTolower(ruid[i]);
+    }
+    ruid[16] = '\0';
+
+    osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
+    free_content_json(&contentJson);
+    if (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0')
+    {
+        osSprintf((char *)uri, "/v1/content/%s", ruid);
+        return handleCloudContent(connection, uri, queryString, client_ctx, true);
+    }
+    else
+    {
+        osSprintf((char *)uri, "/v2/content/%s", ruid);
+        return handleCloudContent(connection, uri, queryString, client_ctx, false);
+    }
 }
 
 typedef struct

@@ -37,9 +37,9 @@
 #define OS_STATIC_TASK_SUPPORT DISABLED
 
 //Invalid task identifier
-#define OS_INVALID_TASK_ID -1
+#define OS_INVALID_TASK_ID (OsTaskId)(-1)
 //Self task identifier
-#define OS_SELF_TASK_ID -1
+#define OS_SELF_TASK_ID (OsTaskId)(-1)
 
 //Task priority (normal)
 #ifndef OS_TASK_PRIORITY_NORMAL

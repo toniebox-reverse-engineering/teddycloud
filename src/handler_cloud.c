@@ -423,6 +423,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         if (ffmpeg_ctx.error == NO_ERROR)
         {
+            uint32_t delay = client_ctx->settings->cloud.ffmpeg_stream_buffer_ms;
+            TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
+            osDelayTask(delay);
             error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
             if (error)
             {
@@ -453,9 +456,9 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || tonieInfo->json.nocloud)
+        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override))
         {
-            if (tonieInfo->json.nocloud)
+            if (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override)
             {
                 TRACE_INFO("Content marked as no cloud and no content locally available\r\n");
             }
@@ -481,6 +484,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
+            ctx.tonieInfo = tonieInfo;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
@@ -521,7 +525,7 @@ void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioI
     }
     else
     {
-        /* custom tonies from TeddyBench have the audio id reduced by a constant */
+        /* custom tonies from teddyBench have the audio id reduced by a constant */
         if (unix_time < TEDDY_BENCH_AUDIO_ID_DEDUCT)
         {
             unix_time += TEDDY_BENCH_AUDIO_ID_DEDUCT;
@@ -648,7 +652,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 TRACE_INFO_RESUME("\r\n");
                 if (!tonieInfo->valid)
                 {
-                    content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id);
+                    content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id, NULL);
                 }
 
                 if (tonieInfo->json.live || tonieInfo->updated || tonieInfo->stream || isFlex)

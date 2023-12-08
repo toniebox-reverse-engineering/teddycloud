@@ -59,6 +59,7 @@ typedef struct
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
+    uint32_t ffmpeg_stream_buffer_ms;
 } settings_cloud_t;
 
 typedef struct
@@ -92,6 +93,7 @@ typedef struct
 typedef struct
 {
     char *ca;
+    char *ca_der;
     char *ca_key;
     char *crt;
     char *key;

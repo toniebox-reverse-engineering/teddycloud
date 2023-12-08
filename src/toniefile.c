@@ -13,6 +13,7 @@
 #include "path.h"
 #include "fs_port.h"
 #include "os_port.h"
+#include "os_ext.h"
 #include "debug.h"
 #include "opus.h"
 #include "ogg/ogg.h"
@@ -445,6 +446,8 @@ FILE *ffmpeg_decode_audio_start(const char *input_source)
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds)
 {
 #ifdef FFMPEG_DECODING
+    TRACE_INFO("Start ffmpeg for decoding...\r\n");
+
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
     snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", input_source, skip_seconds);
@@ -452,7 +455,7 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
     FILE *ffmpeg_pipe = NULL;
 
     // Open a pipe to execute the FFmpeg command
-    ffmpeg_pipe = popen(ffmpeg_command, "r");
+    ffmpeg_pipe = osPopen(ffmpeg_command, "r");
     if (ffmpeg_pipe == NULL)
     {
         TRACE_ERROR("Could not open FFmpeg pipe\n");
@@ -498,7 +501,9 @@ error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
         TRACE_ERROR_RESUME("%s", "\r\n");
     }*/
     // Close the FFmpeg pipe
-    pclose(ffmpeg_pipe);
+    int error_code = osPclose(ffmpeg_pipe);
+
+    TRACE_INFO("Stopped ffmpeg with error code=%i...\r\n", error_code);
     return NO_ERROR;
 #else
     return ERROR_NOT_IMPLEMENTED;
@@ -508,14 +513,20 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
 {
     if (ffmpeg_pipe == NULL)
         return ERROR_ABORTED;
+
     *blocks_read = 0;
+    size_t chunk_size = 4096; // Adjust the chunk size as needed
     // Read and process audio data from the FFmpeg pipe
     while (*blocks_read < size)
     {
+        // Determine how many samples to read in the current iteration
+        size_t remaining_samples = size - *blocks_read;
+        size_t samples_to_read = (remaining_samples < chunk_size) ? remaining_samples : chunk_size;
+
         // Read a chunk of audio data from the pipe
-        int16_t sample;
-        size_t read = fread(&sample, sizeof(int16_t), 1, ffmpeg_pipe);
-        if (read != 1)
+        size_t read = fread(&buffer[*blocks_read], sizeof(int16_t), samples_to_read, ffmpeg_pipe);
+
+        if (read == 0)
         {
             if (*blocks_read > 0)
             {
@@ -526,8 +537,6 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
                 return ERROR_END_OF_STREAM; // End of audio data
             }
         }
-        // Store the audio sample in the buffer
-        buffer[*blocks_read] = sample;
         *blocks_read += read;
     }
     return NO_ERROR;
@@ -561,8 +570,6 @@ error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_
     int16_t sample_buffer[2 * 4096];
     size_t samples = sizeof(sample_buffer) / sizeof(uint16_t);
     size_t blocks_read = 0;
-
-    osDelayTask(5000); // buffer incomming stream
 
     *active = true;
     while (*active)

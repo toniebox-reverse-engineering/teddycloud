@@ -1481,7 +1481,7 @@
                                             <span>{file.size.toString().padStart(10)}</span>
                                             {(file.desc.startsWith('TAF:') || file.tonieInfo) &&
                                                 <div className="parent">
-                                                    {file.desc.startsWith('TAF:') &&
+                                                    {file.desc.startsWith('TAF:') ? (
                                                         <button
                                                             onClick={() => {
                                                                 this.oggPlayerRef.current.setUrl(`/content${this.state.path}${file.name}?ogg=true&special=${this.state.mode}`);
@@ -1493,7 +1493,28 @@
                                                         >
                                                             &#9654;
                                                         </button>
-                                                    }
+                                                    ) : file.has_cloud_auth && (
+                                                        <button
+                                                            onClick={() => {
+                                                                const downloadUrl = `/content/download${this.state.path}${file.name}`;
+                                                                fetch(downloadUrl, {
+                                                                    method: 'GET',
+                                                                    headers: {
+                                                                        'Content-Type': 'application/octet-stream', // Set the appropriate content type
+                                                                        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate', // Add cache control headers
+                                                                    },
+                                                                }).then(response => {
+                                                                    this.showSuccess(response.ok);
+                                                                }).catch(() => {
+                                                                    alert("Catch");
+                                                                    this.showSuccess(false);
+                                                                });
+                                                            }}
+                                                            className="small-round-button"
+                                                        >
+                                                            &#8681;
+                                                        </button>
+                                                    )}
                                                     <img
                                                         className="image-resize"
                                                         src={toniePic}
@@ -2244,7 +2265,7 @@
 
                         {!webSerialSupported ? (
                             <div>
-                                Your browser does not support WebSerial. Use Chrome or Edge to flash your ESP32 box.
+                                Your browser does not support WebSerial. Use Chrome or Edge and HTTPS to flash your ESP32 box.
                             </div>
                         ) : (
                             <div>
