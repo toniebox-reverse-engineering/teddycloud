@@ -68,6 +68,15 @@ jobs:
           prefix=arch_,onlatest=true
           suffix=_${{ matrix.platform }}_ubuntu,onlatest=true
 
+    - name: Modify tags
+      id: modify_tags
+      run: |
+        original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+        modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
+        all_tags="$original_tags $modified_tags"
+        echo "all_tags=$all_tags"
+        echo "all_tags=$all_tags" >> $$GITHUB_OUTPUT
+
     - name: Build & push digest docker ${{ matrix.platform }}
       id: build
       uses: docker/build-push-action@v5
@@ -87,14 +96,6 @@ jobs:
         digest="${{ steps.build.outputs.digest }}"
         commit_sha="${{ github.sha }}"
         touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
-
-    - name: Modify tags
-      id: modify_tags
-      run: |
-        original_tags="${{ steps.matrix_meta.outputs.tags }}"
-        modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
-        all_tags="$original_tags $modified_tags"
-        echo "all_tags=$all_tags" >> $$GITHUB_OUTPUT
 
     - name: Push docker tags ${{ matrix.platform }}
       id: push_tags
