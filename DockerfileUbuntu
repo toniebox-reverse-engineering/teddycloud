@@ -7,7 +7,7 @@ RUN apt-get update \
 COPY . /buildenv
 WORKDIR /buildenv
 
-RUN make preinstall
+RUN make zip
 
 FROM ubuntu:latest
 EXPOSE 80 443
@@ -23,7 +23,8 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/content/default \
     && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/firmware  \
-    && mkdir -p /teddycloud/data/www 
+    && mkdir -p /teddycloud/data/www   \
+    && mkdir -p /tmp
 
 COPY --from=buildenv \
     /buildenv/install/pre/certs/ /teddycloud/certs/
@@ -34,6 +35,8 @@ COPY --from=buildenv \
     /buildenv/install/pre/*.sh /usr/local/bin/
 COPY --from=buildenv \
     /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+
+COPY --from=buildenv /buildenv/install/zip/release.zip /tmp/teddycloud.zip
 
 VOLUME \
     "/teddycloud/data/content" \
