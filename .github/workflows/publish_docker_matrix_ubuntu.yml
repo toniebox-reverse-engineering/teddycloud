@@ -90,6 +90,15 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Platform name strip for filename
+      id: platform_strip
+      run: |
+        platform=$(echo "${{ matrix.platform }}" | tr '/' '_')
+        echo "platform=$platform" >> $$GITHUB_OUTPUT
+    - name: Run docker image and extract zipfile
+      run: |
+        docker run --rm --name extract-container ${{ env.REGISTRY_IMAGE }}:${{ github.sha }} cat /tmp/teddycloud.zip > /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
+
     - name: Export digest
       run: |
         mkdir -p /tmp/digests/${{ github.sha }}
@@ -114,6 +123,12 @@ jobs:
       with:
         name: digests
         path: /tmp/digests/${{ github.sha }}/*
+        if-no-files-found: error
+    - name: Upload release file
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-${{ steps.platform_strip.outputs.platform }}
+        path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
         if-no-files-found: error
         
   merge-images:
