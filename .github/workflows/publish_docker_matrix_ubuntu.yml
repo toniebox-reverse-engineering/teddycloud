@@ -71,7 +71,7 @@ jobs:
     - name: Modify tags
       id: modify_tags
       run: |
-        original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+        original_tags=$(jq -cr '.tags | map(.) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
         modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
         all_tags="$original_tags $modified_tags"
         echo "all_tags=$all_tags"
