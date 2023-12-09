@@ -316,7 +316,7 @@ int_t main(int argc, char *argv[])
         }
         else if (!strcasecmp(type, "DOCKER_TEST"))
         {
-            printf("Docker container started teddyCloud for testing, running smoke test.");
+            printf("Docker container started teddyCloud for testing, running smoke test.\r\n");
             mqtt_init();
             server_init(true);
         }
