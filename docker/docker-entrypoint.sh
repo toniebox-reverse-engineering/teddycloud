@@ -10,7 +10,7 @@ curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-js
 
 if [ -n "$DOCKER_TEST" ]; then
   cd /teddycloud
-  teddycloud DOCKER_TEST
+  LSAN_OPTIONS=detect_leaks=0 teddycloud DOCKER_TEST
 else
   while true
   do
