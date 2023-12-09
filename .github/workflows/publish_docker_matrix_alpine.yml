@@ -88,7 +88,7 @@ jobs:
         echo "platform=$platform"
         echo "platform=$platform" >> $GITHUB_OUTPUT
     - name: Run docker image test and extract release zip
-      if: ${{ matrix.platform != 'linux/s390x' }}
+      if: ${{ matrix.platform != 'linux/s390x' }} # some overflow makes it run forever
       run: |
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
         docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
