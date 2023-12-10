@@ -5,8 +5,6 @@ set -o pipefail
 set -o nounset
 # set -o xtrace
 
-curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /teddycloud/config/tonies.json || true
-
 
 if [ -n "$DOCKER_TEST" ]; then
   cd /teddycloud
@@ -14,6 +12,7 @@ if [ -n "$DOCKER_TEST" ]; then
 else
   while true
   do
+    curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /teddycloud/config/tonies.json || true
     cd /teddycloud
     teddycloud
     retVal=$?
