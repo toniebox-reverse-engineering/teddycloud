@@ -20,6 +20,15 @@ void tonies_init()
     tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
 }
 
+void tonies_update()
+{
+    // https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/install/pre/config/tonies.json
+    // HttpClientContext httpClientContext;
+    // httpClientInit(&httpClientContext);
+    tonies_deinit();
+    tonies_init();
+}
+
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
 {
 

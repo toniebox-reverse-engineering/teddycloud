@@ -25,6 +25,7 @@ typedef struct
 } toniesJson_item_t;
 
 void tonies_init();
+void tonies_update();
 void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount);
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id);
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash);
