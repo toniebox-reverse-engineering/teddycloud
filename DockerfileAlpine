@@ -2,11 +2,12 @@
 FROM alpine:latest as buildenv
 
 # Install necessary dependencies
-RUN apk --no-cache add gcc protobuf-c-dev build-base git zip
+RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl
 
 # Copy source code and build
 COPY . /buildenv
 WORKDIR /buildenv
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/install/pre/config/tonies.json || true
 # No libsanitizie support in alpine and wrong definitions for PRIuTIME
 RUN make zip NO_WARN_FAIL=1 NO_SANITIZERS=1
 #RUN make preinstall
