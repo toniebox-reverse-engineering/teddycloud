@@ -6,7 +6,7 @@ set -o nounset
 # set -o xtrace
 
 
-if [ -n "$DOCKER_TEST" ]; then
+if [ -n "${DOCKER_TEST:-}" ]; then
   cd /teddycloud
   LSAN_OPTIONS=detect_leaks=0 teddycloud DOCKER_TEST
 else
