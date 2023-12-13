@@ -90,6 +90,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface")
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned")
+    OPTION_BOOL("core.tonies_json_auto_update", &settings->core.tonies_json_auto_update, TRUE, "Auto-Update tonies.json", "Auto-Update tonies.json for Tonies information and images.")
 
     OPTION_TREE_DESC("internal", "Internal")
     OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data")

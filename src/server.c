@@ -76,6 +76,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/toniesJsonUpdate", &handleApiToniesJsonUpdate},
     {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
@@ -459,7 +460,6 @@ void server_init(bool test)
     }
     settings_set_bool("internal.exit", FALSE);
     sse_init();
-    tonies_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_settings;
@@ -518,6 +518,12 @@ void server_init(bool test)
         TRACE_ERROR("httpServerStart() for HTTPS failed\r\n");
         return;
     }
+
+    if (get_settings()->core.tonies_json_auto_update || test)
+    {
+        tonies_update();
+    }
+    tonies_init();
 
     systime_t last = osGetSystemTime();
     size_t openConnectionsLast = 0;

@@ -1720,6 +1720,14 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 {
     return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
 }
+error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char *message = "Triggered tonies.json update";
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    httpWriteResponseString(connection, message, false);
+    return tonies_update();
+}
+
 error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);

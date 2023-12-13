@@ -12,7 +12,7 @@ if [ -n "$DOCKER_TEST" ]; then
 else
   while true
   do
-    curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /teddycloud/config/tonies.json || true
+    #curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /teddycloud/config/tonies.json || true
     cd /teddycloud
     teddycloud
     retVal=$?

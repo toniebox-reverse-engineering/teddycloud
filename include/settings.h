@@ -10,10 +10,11 @@
 #define SETTINGS_H
 
 #define TONIES_JSON_PATH "config/tonies.json"
+#define TONIES_JSON_TMP_PATH TONIES_JSON_PATH ".tmp"
 #define TONIES_CUSTOM_JSON_PATH "config/tonies.custom.json"
 #define CONFIG_PATH "config/config.ini"
 #define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
-#define CONFIG_VERSION 5
+#define CONFIG_VERSION 6
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -201,6 +202,8 @@ typedef struct
     bool flex_enabled;
     char *flex_uid;
     char *bind_ip;
+
+    bool tonies_json_auto_update;
 } settings_core_t;
 
 typedef struct

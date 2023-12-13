@@ -30,8 +30,8 @@
 
 #include "handler_cloud.h"
 
-error_t httpClientTlsInitCallback(HttpClientContext *context,
-                                  TlsContext *tlsContext)
+error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
+                                      TlsContext *tlsContext, const char *client_ca, const char *client_crt, const char *client_key)
 {
     TRACE_INFO("Initializing TLS...\r\n");
     error_t error;
@@ -48,6 +48,39 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
     if (error)
         return error;
 
+    if (client_ca != NULL)
+    {
+        // Import the list of trusted CA certificates
+        error = tlsSetTrustedCaList(tlsContext, client_ca, strlen(client_ca));
+        // Any error to report?
+        if (error)
+            return error;
+    }
+
+    if (client_crt != NULL && client_key != NULL)
+    {
+        // Import the client's certificate
+        error = tlsAddCertificate(tlsContext, client_crt, strlen(client_crt), client_key, strlen(client_key));
+        // Any error to report?
+        if (error)
+            return error;
+    }
+
+    tls_context_key_log_init(tlsContext);
+
+    TRACE_INFO("Initializing TLS done\r\n");
+
+    // Successful processing
+    return NO_ERROR;
+}
+error_t httpClientTlsInitCallbackNoCA(HttpClientContext *context,
+                                      TlsContext *tlsContext)
+{
+    return httpClientTlsInitCallbackBase(context, tlsContext, NULL, NULL, NULL);
+}
+error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
+                                                  TlsContext *tlsContext)
+{
     // TODO fix code duplication with server.c
     req_cbr_t *cbr_ctx = context->sourceCtx;
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
@@ -62,26 +95,7 @@ error_t httpClientTlsInitCallback(HttpClientContext *context,
         TRACE_ERROR("Failed to get certificates\r\n");
         return ERROR_FAILURE;
     }
-
-    // Import the list of trusted CA certificates
-    error = tlsSetTrustedCaList(tlsContext, client_ca, strlen(client_ca));
-    // Any error to report?
-    if (error)
-        return error;
-
-    // Import the client's certificate
-    error = tlsAddCertificate(tlsContext, client_crt, strlen(client_crt), client_key, strlen(client_key));
-
-    // Any error to report?
-    if (error)
-        return error;
-
-    tls_context_key_log_init(tlsContext);
-
-    TRACE_INFO("Initializing TLS done\r\n");
-
-    // Successful processing
-    return NO_ERROR;
+    return httpClientTlsInitCallbackBase(context, tlsContext, client_ca, client_crt, client_key);
 }
 
 int_t cloud_request_get(const char *server, int port, const char *uri, const char *queryString, const uint8_t *hash, req_cbr_t *cbr)
@@ -98,41 +112,60 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 
 int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
+    return web_request(server, port, https, uri, queryString, method, body, bodyLen, hash, cbr, true, true);
+}
+error_t web_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr, bool isCloud, bool printTextData)
+{
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr->ctx)->client_ctx;
-    settings_t *settings = client_ctx->settings;
+    settings_t *settings;
+    error_t error = NO_ERROR;
 
-    if (!settings->cloud.enabled)
+    if (client_ctx == NULL)
     {
-        TRACE_INFO("Cloud requests generally blocked in settings\r\n");
-        stats_update("cloud_blocked", 1);
-        return ERROR_ADDRESS_NOT_FOUND;
+        settings = get_settings();
+    }
+    else
+    {
+        settings = client_ctx->settings;
     }
 
-    mqtt_sendEvent("CloudRequest", uri, client_ctx);
+    if (isCloud)
+    {
+        if (!settings->cloud.enabled)
+        {
+            TRACE_INFO("Cloud requests generally blocked in settings\r\n");
+            stats_update("cloud_blocked", 1);
+            return ERROR_ADDRESS_NOT_FOUND;
+        }
 
+        mqtt_sendEvent("CloudRequest", uri, client_ctx);
+    }
     HttpClientContext httpClientContext;
 
-    if (!server)
+    if (isCloud)
     {
-        server = settings->cloud.remote_hostname;
-    }
-    if (port <= 0)
-    {
-        port = settings->cloud.remote_port;
-    }
+        if (!server)
+        {
+            server = settings->cloud.remote_hostname;
+        }
+        if (port <= 0)
+        {
+            port = settings->cloud.remote_port;
+        }
 
-    stats_update("cloud_requests", 1);
-
+        stats_update("cloud_requests", 1);
+    }
     TRACE_INFO("Connecting to HTTP server %s:%d...\r\n",
                server, port);
 
     httpClientInit(&httpClientContext);
     httpClientContext.sourceCtx = cbr;
-    error_t error;
     if (https)
     {
-        error = httpClientRegisterTlsInitCallback(&httpClientContext,
-                                                  httpClientTlsInitCallback);
+        HttpClientTlsInitCallback callback = httpClientTlsInitCallbackNoCA;
+        if (isCloud)
+            callback = httpClientTlsInitCallbackClientAuthTonies;
+        error = httpClientRegisterTlsInitCallback(&httpClientContext, callback);
         if (error)
         {
             return error;
@@ -154,7 +187,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
     if (!resolve_ctx)
     {
         TRACE_ERROR("Failed to resolve ipv4 address!\r\n");
-        stats_update("cloud_failed", 1);
+        if (isCloud)
+            stats_update("cloud_failed", 1);
         return ERROR_ADDRESS_NOT_FOUND;
     }
 
@@ -182,7 +216,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             {
                 // Debug message
                 TRACE_ERROR("Failed to connect to HTTP server! Error=%u\r\n", error);
-                stats_update("cloud_failed", 1);
+                if (isCloud)
+                    stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -198,7 +233,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                 {
                     // Debug message
                     TRACE_ERROR("Failed to set content length! Error=%u\r\n", error);
-                    stats_update("cloud_failed", 1);
+                    if (isCloud)
+                        stats_update("cloud_failed", 1);
                     break;
                 }
             }
@@ -230,7 +266,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             {
                 // Debug message
                 TRACE_ERROR("Failed to write HTTP request header, error=%u!\r\n", error);
-                stats_update("cloud_failed", 1);
+                if (isCloud)
+                    stats_update("cloud_failed", 1);
                 break;
             }
             // Send HTTP request body
@@ -243,7 +280,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                 {
                     // Debug message
                     TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
-                    stats_update("cloud_failed", 1);
+                    if (isCloud)
+                        stats_update("cloud_failed", 1);
                     break;
                 }
             }
@@ -255,7 +293,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             {
                 // Debug message
                 TRACE_ERROR("Failed to read HTTP response header!\r\n");
-                stats_update("cloud_failed", 1);
+                if (isCloud)
+                    stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -266,7 +305,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 
             if (status)
             {
-                TRACE_INFO("HTTP code from cloud: %u\r\n", status);
+                TRACE_INFO("HTTP code: %u\r\n", status);
             }
 
             if (cbr && cbr->response)
@@ -339,7 +378,7 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
                 // Check status code
                 if (!error)
                 {
-                    if (!binary)
+                    if (printTextData && !binary)
                     {
                         // Properly terminate the string with a NULL character
                         buffer[length] = '\0';
@@ -362,7 +401,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
             {
                 // Debug message
                 TRACE_INFO("Failed to read HTTP response trailer!\r\n");
-                stats_update("cloud_failed", 1);
+                if (isCloud)
+                    stats_update("cloud_failed", 1);
                 break;
             }
 
@@ -387,5 +427,5 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
     // Release HTTP client context
     httpClientDeinit(&httpClientContext);
 
-    return 0;
+    return error;
 }

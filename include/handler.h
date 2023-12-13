@@ -74,6 +74,7 @@ typedef struct
     client_ctx_t *client_ctx;
 } cbr_ctx_t;
 
+void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
 void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
