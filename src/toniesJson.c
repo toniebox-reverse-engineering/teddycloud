@@ -3,21 +3,81 @@
 #include "settings.h"
 #include "debug.h"
 #include "cJSON.h"
+#include "handler.h"
+#include "cloud_request.h"
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
-static size_t toniesJsonCount;
+static bool toniesJsonInitialized = false;
+static size_t toniesJsonCount = 0;
 static toniesJson_item_t *toniesJsonCache;
-static size_t toniesCustomJsonCount;
+static size_t toniesCustomJsonCount = 0;
 static toniesJson_item_t *toniesCustomJsonCache;
 #endif
 
 void tonies_init()
 {
-    toniesJsonCount = 0;
-    toniesCustomJsonCount = 0;
-    tonies_readJson(TONIES_CUSTOM_JSON_PATH, &toniesCustomJsonCache, &toniesCustomJsonCount);
-    tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
+    if (!toniesJsonInitialized)
+    {
+        toniesCustomJsonCount = 0;
+        tonies_readJson(TONIES_CUSTOM_JSON_PATH, &toniesCustomJsonCache, &toniesCustomJsonCount);
+        tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
+        toniesJsonInitialized = true;
+    }
+}
+
+void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+
+    if (httpClientContext->statusCode == 200)
+    {
+        if (ctx->file == NULL)
+        {
+            ctx->file = fsOpenFile(TONIES_JSON_TMP_PATH, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+        }
+        fsWriteFile(ctx->file, (void *)payload, length);
+        if (error == ERROR_END_OF_STREAM)
+        {
+            fsCloseFile(ctx->file);
+        }
+    }
+}
+
+error_t tonies_update()
+{
+    TRACE_INFO("Updating tonies.json from GitHub...\r\n");
+    cbr_ctx_t ctx;
+    client_ctx_t client_ctx = {
+        .settings = get_settings(),
+    };
+
+    const char *uri = "/toniebox-reverse-engineering/tonies-json/release/tonies.json";
+    const char *queryString = NULL;
+    fillBaseCtx(NULL, uri, queryString, V1_LOG, &ctx, &client_ctx);
+    req_cbr_t cbr = {
+        .ctx = &ctx,
+        .body = &tonies_downloadBody,
+    };
+
+    ctx.file = NULL;
+    fsDeleteFile(TONIES_JSON_TMP_PATH);
+    // TODO: Be sure HTTPS CA is checked!
+    error_t error = web_request("raw.githubusercontent.com", 443, true, uri, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    if (error == NO_ERROR)
+    {
+        fsDeleteFile(TONIES_JSON_PATH);
+        fsRenameFile(TONIES_JSON_TMP_PATH, TONIES_JSON_PATH);
+        TRACE_INFO("... success updating tonies.json from GitHub, reloading\r\n");
+        tonies_deinit();
+        tonies_init();
+    }
+    else
+    {
+        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
+    }
+    return error;
 }
 
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
@@ -123,7 +183,9 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                 item->episodes = tonies_jsonGetString(tonieJson, "episodes");
                 item->series = tonies_jsonGetString(tonieJson, "series");
                 // TODO Tracks
-                item->release = atoi(tonies_jsonGetString(tonieJson, "release"));
+                char *releaseString = tonies_jsonGetString(tonieJson, "release");
+                item->release = atoi(releaseString);
+                osFreeMem(releaseString);
                 item->language = tonies_jsonGetString(tonieJson, "language");
                 item->category = tonies_jsonGetString(tonieJson, "category");
                 item->picture = tonies_jsonGetString(tonieJson, "pic");
@@ -223,7 +285,9 @@ toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, c
 void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
-    for (size_t i = 0; i < *toniesCount; i++)
+    size_t count = *toniesCount;
+    *toniesCount = 0;
+    for (size_t i = 0; i < count; i++)
     {
         toniesJson_item_t *item = &toniesCache[i];
         osFreeMem(item->model);
@@ -231,11 +295,11 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         osFreeMem(item->hashes);
         osFreeMem(item->title);
         osFreeMem(item->episodes);
+        osFreeMem(item->series);
         osFreeMem(item->language);
         osFreeMem(item->category);
         osFreeMem(item->picture);
     }
-    *toniesCount = 0;
     osFreeMem(toniesCache);
 #endif
 }
@@ -243,4 +307,5 @@ void tonies_deinit()
 {
     tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
     tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
+    toniesJsonInitialized = false;
 }

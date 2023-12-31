@@ -1,7 +1,7 @@
 #include "handler.h"
 #include "server_helpers.h"
 
-req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
     ctx->uri = uri;
     ctx->queryString = queryString;
@@ -12,6 +12,10 @@ req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_
     ctx->status = PROX_STATUS_IDLE;
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
+}
+req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+{
+    fillBaseCtx(connection, uri, queryString, api, ctx, client_ctx);
 
     req_cbr_t cbr = {
         .ctx = ctx,

@@ -2,13 +2,14 @@
 FROM alpine:latest as buildenv
 
 # Install necessary dependencies
-RUN apk --no-cache add gcc protobuf-c-dev build-base git
+RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl
 
 # Copy source code and build
 COPY . /buildenv
 WORKDIR /buildenv
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/install/pre/config/tonies.json || true
 # No libsanitizie support in alpine and wrong definitions for PRIuTIME
-RUN make preinstall NO_WARN_FAIL=1 NO_SANITIZERS=1
+RUN make zip NO_WARN_FAIL=1 NO_SANITIZERS=1
 #RUN make preinstall
 
 # Use Alpine Linux as base image for the final image
@@ -27,13 +28,15 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/content/default \
     && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/firmware  \
-    && mkdir -p /teddycloud/data/www 
+    && mkdir -p /teddycloud/data/www   \
+    && mkdir -p /tmp
 
 # Copy files from the build environment
 COPY --from=buildenv /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv /buildenv/install/pre/data/www/ /teddycloud/data/www/
 COPY --from=buildenv /buildenv/install/pre/*.sh /usr/local/bin/
 COPY --from=buildenv /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+COPY --from=buildenv /buildenv/install/zip/release.zip /tmp/teddycloud.zip
 
 # Set up volumes
 VOLUME \
