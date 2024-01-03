@@ -5,6 +5,7 @@ set -o pipefail
 set -o nounset
 # set -o xtrace
 
+mkdir -p /teddycloud/certs/server /teddycloud/certs/client
 
 if [ -n "${DOCKER_TEST:-}" ]; then
   cd /teddycloud
