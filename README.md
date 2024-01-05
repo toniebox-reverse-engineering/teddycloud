@@ -28,11 +28,12 @@ Currently implemented are:
 * teddyBench integration
 
 ## Where to start?
-
 If you want to get started, please follow our [guide on our website](https://toniebox-reverse-engineering.github.io/docs/tools/teddycloud/).
 
-## Attribution
+## Development and bulding
+Please use the [develop](tree/develop) for your development and pull requests. Stable builds are available from the master branch. Don't forget to clone the submodules with --recurse-submodules.
 
+## Attribution
 The icons used are from here:
 * img_empty.png: https://www.flaticon.com/free-icon/ask_1372671
 * img_unknown.png: https://www.flaticon.com/free-icon/ask_1923795
