@@ -279,6 +279,27 @@ int_t main(int argc, char *argv[])
             }
             esp32_fixup((const char *)argv[2], true);
         }
+#ifdef FFMPEG_DECODING
+        else if (!strcasecmp(type, "ENCODE"))
+        {
+            if (argc != 4 && argc != 5)
+            {
+                TRACE_ERROR("Usage: %s ENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
+                return -1;
+            }
+            char *source = argv[2];
+            char *taf_file = argv[3];
+            size_t skip_seconds = 0;
+            if (argc == 5)
+            {
+                skip_seconds = atoi(argv[4]);
+            }
+
+            ffmpeg_convert(source, taf_file, skip_seconds);
+
+            return 1;
+        }
+#endif
         else if (!strcasecmp(type, "ENCODE_TEST"))
         {
             toniefile_t *taf = toniefile_create("test2.ogg", 0xDEAFBEEF);
@@ -320,27 +341,6 @@ int_t main(int argc, char *argv[])
             mqtt_init();
             server_init(true);
         }
-#ifdef FFMPEG_DECODING
-        else if (!strcasecmp(type, "DENCODE"))
-        {
-            if (argc != 4 && argc != 5)
-            {
-                TRACE_ERROR("Usage: %s DENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
-                return -1;
-            }
-            char *source = argv[2];
-            char *taf_file = argv[3];
-            size_t skip_seconds = 0;
-            if (argc == 5)
-            {
-                skip_seconds = atoi(argv[4]);
-            }
-
-            ffmpeg_convert(source, taf_file, skip_seconds);
-
-            return 1;
-        }
-#endif
         else
         {
             TRACE_ERROR("Bad argument provided: %s\r\n", argv[1]);
@@ -375,6 +375,7 @@ static void print_usage(char *argv[])
     printf(
         "Usage: %s [options]\n\n"
         "Options:\n"
+        "  ENCODE <source> <taf_file> [skip_secondes]\r\n"
         "  GENERIC <url> [hash]                Generic URL test.\r\n"
         "  SERVER_CERTS                        Generates Server Certs.\r\n"
         "  CLOUD <request> [hash]              Cloud API test.\r\n"
