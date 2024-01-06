@@ -307,8 +307,8 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS_CN);
 
-                free(boxId);
-                free(boxName);
+                osFreeMem(boxId);
+                osFreeMem(boxName);
                 return &Settings_Overlay[i];
             }
         }
