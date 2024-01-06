@@ -1212,6 +1212,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
 
     char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
     settings_set_string_id("internal.server.cert_chain", chain, settingsId);
+    osFreeMem(chain);
 
     return NO_ERROR;
 }
