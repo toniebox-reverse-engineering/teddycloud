@@ -307,8 +307,8 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS_CN);
 
-                free(boxId);
-                free(boxName);
+                osFreeMem(boxId);
+                osFreeMem(boxName);
                 return &Settings_Overlay[i];
             }
         }
@@ -1212,6 +1212,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
 
     char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
     settings_set_string_id("internal.server.cert_chain", chain, settingsId);
+    osFreeMem(chain);
 
     return NO_ERROR;
 }

@@ -279,6 +279,49 @@ int_t main(int argc, char *argv[])
             }
             esp32_fixup((const char *)argv[2], true);
         }
+        else if (!strcasecmp(type, "ESP32HOST"))
+        {
+            char *oldrtnl = "rtnl.bxcl.de";
+            char *oldapi = "prod.de.tbs.toys";
+
+            if (argc < 4 || argc > 6)
+            {
+                TRACE_ERROR("Usage: %s ESP32HOST <esp32-image-bin> <hostname> [oldrtnlhost] [oldapihost]\r\n", argv[0]);
+                return -1;
+            }
+            if (argc == 5)
+            {
+                oldrtnl = argv[4];
+                oldapi = argv[4];
+            }
+            if (argc == 6)
+            {
+                oldrtnl = argv[4];
+                oldapi = argv[5];
+            }
+            esp32_patch_host((const char *)argv[2],(const char *)argv[3], oldrtnl, oldapi);
+        }
+#ifdef FFMPEG_DECODING
+        else if (!strcasecmp(type, "ENCODE"))
+        {
+            if (argc != 4 && argc != 5)
+            {
+                TRACE_ERROR("Usage: %s ENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
+                return -1;
+            }
+            char *source = argv[2];
+            char *taf_file = argv[3];
+            size_t skip_seconds = 0;
+            if (argc == 5)
+            {
+                skip_seconds = atoi(argv[4]);
+            }
+
+            ffmpeg_convert(source, taf_file, skip_seconds);
+
+            return 1;
+        }
+#endif
         else if (!strcasecmp(type, "ENCODE_TEST"))
         {
             toniefile_t *taf = toniefile_create("test2.ogg", 0xDEAFBEEF);
@@ -320,27 +363,6 @@ int_t main(int argc, char *argv[])
             mqtt_init();
             server_init(true);
         }
-#ifdef FFMPEG_DECODING
-        else if (!strcasecmp(type, "DENCODE"))
-        {
-            if (argc != 4 && argc != 5)
-            {
-                TRACE_ERROR("Usage: %s DENCODE <source> <taf_file> [skip_secondes]\r\n", argv[0]);
-                return -1;
-            }
-            char *source = argv[2];
-            char *taf_file = argv[3];
-            size_t skip_seconds = 0;
-            if (argc == 5)
-            {
-                skip_seconds = atoi(argv[4]);
-            }
-
-            ffmpeg_convert(source, taf_file, skip_seconds);
-
-            return 1;
-        }
-#endif
         else
         {
             TRACE_ERROR("Bad argument provided: %s\r\n", argv[1]);
@@ -375,12 +397,14 @@ static void print_usage(char *argv[])
     printf(
         "Usage: %s [options]\n\n"
         "Options:\n"
+        "  ENCODE <source> <taf_file> [skip_secondes]\r\n"
         "  GENERIC <url> [hash]                Generic URL test.\r\n"
         "  SERVER_CERTS                        Generates Server Certs.\r\n"
         "  CLOUD <request> [hash]              Cloud API test.\r\n"
         "  CERTGEN <mac_address> <target_dir>  Generate client certs\r\n"
         "  ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n"
         "  ESP32FIXUP <esp32-image-bin>\r\n"
+        "  ESP32HOST <esp32-image-bin> <hostname> [oldrtnlhost] [oldapihost]   Patch hostname\r\n"
         "  ENCODE_TEST                         Runs an encoding test\r\n"
         "  DOCKER_TEST                         Runs a test to ensure the docker image is fine\r\n",
         argv[0]);

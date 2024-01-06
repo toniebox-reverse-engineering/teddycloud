@@ -14,6 +14,6 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
 error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char *in_path);
 error_t esp32_inject_cert(const char *rootPath, const char *patchedPath, const char *mac);
 error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const char *mac);
-error_t esp32_patch_host(const char *patchedPath, const char *hostname);
+error_t esp32_patch_host(const char *patchedPath, const char *hostname, const char *oldrtnl, const char *oldapi);
 
 uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, const char *replace);

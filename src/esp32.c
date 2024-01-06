@@ -983,7 +983,7 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
     return ret;
 }
 
-error_t esp32_patch_host(const char *patchedPath, const char *hostname)
+error_t esp32_patch_host(const char *patchedPath, const char *hostname, const char *oldrtnl, const char *oldapi)
 {
     error_t ret = NO_ERROR;
 
@@ -1026,11 +1026,20 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname)
             }
         }
         fsCloseFile(bin);
+        
+        if (!strcmp(oldrtnl,oldapi))
+        {
+            int replaced = mem_replace(bin_data, bin_size, oldrtnl, hostname);
+            TRACE_INFO(" replaced hostname %d times\r\n", replaced);
+        }
+        else
+        {
+            int replaced = mem_replace(bin_data, bin_size, oldrtnl, hostname);
+            TRACE_INFO(" replaced RTNL host %d times\r\n", replaced);
+            replaced = mem_replace(bin_data, bin_size, oldapi, hostname);
+            TRACE_INFO(" replaced API host %d times\r\n", replaced);
+        }
 
-        int replaced = mem_replace(bin_data, bin_size, "rtnl.bxcl.de", hostname);
-        TRACE_INFO(" replaced RTNL host %d times\r\n", replaced);
-        replaced = mem_replace(bin_data, bin_size, "prod.de.tbs.toys", hostname);
-        TRACE_INFO(" replaced API host %d times\r\n", replaced);
 
         bin = fsOpenFile(patchedPath, FS_FILE_MODE_WRITE);
         if (!bin)
