@@ -983,7 +983,9 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 
     if (osStrlen(patch_host) > 0)
     {
-        if (esp32_patch_host(patched_path, patch_host) != NO_ERROR)
+        char *oldrtnl = "rtnl.bxcl.de";
+        char *oldapi = "prod.de.tbs.toys";
+        if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
             return ERROR_NOT_FOUND;

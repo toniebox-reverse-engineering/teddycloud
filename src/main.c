@@ -279,6 +279,28 @@ int_t main(int argc, char *argv[])
             }
             esp32_fixup((const char *)argv[2], true);
         }
+        else if (!strcasecmp(type, "ESP32HOST"))
+        {
+            char *oldrtnl = "rtnl.bxcl.de";
+            char *oldapi = "prod.de.tbs.toys";
+
+            if (argc < 4 || argc > 6)
+            {
+                TRACE_ERROR("Usage: %s ESP32HOST <esp32-image-bin> <hostname> [oldrtnlhost] [oldapihost]\r\n", argv[0]);
+                return -1;
+            }
+            if (argc == 5)
+            {
+                oldrtnl = argv[4];
+                oldapi = argv[4];
+            }
+            if (argc == 6)
+            {
+                oldrtnl = argv[4];
+                oldapi = argv[5];
+            }
+            esp32_patch_host((const char *)argv[2],(const char *)argv[3], oldrtnl, oldapi);
+        }
 #ifdef FFMPEG_DECODING
         else if (!strcasecmp(type, "ENCODE"))
         {
@@ -382,6 +404,7 @@ static void print_usage(char *argv[])
         "  CERTGEN <mac_address> <target_dir>  Generate client certs\r\n"
         "  ESP32CERT (extract/inject) <esp32-image-bin> <source/target-dir>\r\n"
         "  ESP32FIXUP <esp32-image-bin>\r\n"
+        "  ESP32HOST <esp32-image-bin> <hostname> [oldrtnlhost] [oldapihost]   Patch hostname\r\n"
         "  ENCODE_TEST                         Runs an encoding test\r\n"
         "  DOCKER_TEST                         Runs a test to ensure the docker image is fine\r\n",
         argv[0]);
