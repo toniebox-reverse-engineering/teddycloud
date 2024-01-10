@@ -1393,6 +1393,9 @@
                             let audioId;
                             let audioIdHex;
                             let hashHex;
+                            let hashHexLowercase = '';
+                            let audioSize;
+                            let audioTracks;
                             let tonieArtist = "(unknown)";
                             let tonieTitle = "(unknown)";
                             let tonieFullName = tonieArtist + " - " + tonieTitle;
@@ -1404,6 +1407,11 @@
                                 let fileDescParts = file.desc.split(':');
                                 audioIdHex = fileDescParts[1];
                                 hashHex = fileDescParts[2];
+                                if (hashHex) {
+                                    hashHexLowercase = hashHex.toLowerCase();
+                                }
+                                audioSize = fileDescParts[3];
+                                audioTracks = fileDescParts[4];
                                 audioId = parseInt(audioIdHex, 16).toString();
 
                                 audioId = Number(audioId);
@@ -1411,6 +1419,15 @@
                                     audioId += 1342177280;
                                     custom = true;
                                 }
+
+                                let tonies_yaml_text = `
+ - audio-id: ${audioId}
+  hash: ${hashHex}
+  size: ${audioSize}
+  tracks: ${audioTracks}
+  confidence: 0
+`;
+
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
 
                                 if (custom) {
@@ -1459,8 +1476,7 @@
                                                         <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
-                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
-                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()} ({audioId})</span>
                                                     </div>
                                                 </div>
                                             }
@@ -1524,8 +1540,9 @@
                                                         <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
-                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()}</span>
-                                                        <span className="audio-time">Hash: {hashHex}</span>
+                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()} ({audioId})</span>
+                                                        <span className="audio-time">Hash: {hashHexLowercase}</span>
+                                                        <span className="audio-time">Audio Size/Tracks: {audioSize}/{audioTracks}</span>
                                                     </div>
                                                 </div>
                                             }

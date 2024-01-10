@@ -520,7 +520,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
             cJSON_AddBoolToObject(jsonEntry, "isDirectory", isDir);
 
-            char desc[64];
+            char desc[3 + 1 + 8 + 1 + 40 + 1 + 64 + 1 + 64];
             desc[0] = 0;
             tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
             toniesJson_item_t *item = NULL;
@@ -533,6 +533,9 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
+                char extraDesc[1 + 64 + 1 + 64];
+                osSnprintf(extraDesc, sizeof(extraDesc), ":%" PRIu64 ":%" PRIuSIZE, tafInfo->tafHeader->num_bytes, tafInfo->tafHeader->n_track_page_nums);
+                osStrcat(desc, extraDesc);
 
                 item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
                 freeTonieInfo(tafInfo);
