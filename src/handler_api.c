@@ -1520,7 +1520,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        char *filename = custom_asprintf("%s/%s.taf", pathAbsolute, name);
+        char *filename = custom_asprintf("%s/%s", pathAbsolute, name);
 
         if (!filename)
         {
