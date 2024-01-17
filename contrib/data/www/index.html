@@ -1391,6 +1391,8 @@
 
                             let matchingTonie;
                             let audioId;
+                            let audioIdFixed;
+                            let audioIdFixedAsDateString = '';
                             let audioIdHex;
                             let hashHex;
                             let hashHexLowercase = '';
@@ -1400,6 +1402,7 @@
                             let tonieTitle = "(unknown)";
                             let tonieFullName = tonieArtist + " - " + tonieTitle;
                             let toniePic = "img_unknown.png";
+                            let tonieCustomStr = '';
                             let tonieModel = "";
                             let custom = false;
 
@@ -1415,10 +1418,12 @@
                                 audioId = parseInt(audioIdHex, 16).toString();
 
                                 audioId = Number(audioId);
-                                if (audioId < 1342177280) {
-                                    audioId += 1342177280;
+                                audioIdFixed = audioId;
+                                if (audioId < 1342177280 && audioId > 1) {
+                                    audioIdFixed += 1342177280;
                                     custom = true;
                                 }
+                                audioIdFixedAsDateString = new Date(audioIdFixed * 1000).toLocaleString();
 
                                 let tonies_yaml_text = `
  - audio-id: ${audioId}
@@ -1429,9 +1434,9 @@
 `;
 
                                 matchingTonie = this.state.tonies.find(tonie => tonie.hash.includes(hashHex));
-
                                 if (custom) {
                                     toniePic = "img_custom.png";
+                                    tonieCustomStr = ', custom';
                                 }
                                 if (matchingTonie) {
                                     tonieArtist = matchingTonie.series;
@@ -1476,7 +1481,6 @@
                                                         <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
-                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()} ({audioId})</span>
                                                     </div>
                                                 </div>
                                             }
@@ -1540,7 +1544,7 @@
                                                         <span className="desc">{tonieFullName}</span>
                                                         <span className="audio-time"> </span>
                                                         <span className="audio-time">Model: {tonieModel}</span>
-                                                        <span className="audio-time">Audio timestamp: {new Date(audioId * 1000).toLocaleString()} ({audioId})</span>
+                                                        <span className="audio-time">Audio timestamp: {audioIdFixedAsDateString}{tonieCustomStr} ({audioId})</span>
                                                         <span className="audio-time">Hash: {hashHexLowercase}</span>
                                                         <span className="audio-time">Audio Size/Tracks: {audioSize}/{audioTracks}</span>
                                                     </div>
