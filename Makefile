@@ -99,8 +99,8 @@ ifeq ($(PLATFORM),windows)
 		$(info )
 		$(error   Aborting)
 	endif
-	CC ?= cl.exe
-	LD ?= link.exe
+	CC = cl.exe
+	LD = link.exe
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)lib\$(VSCMD_ARG_TGT_ARCH)"
