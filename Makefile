@@ -10,8 +10,6 @@ WEB_SRC_DIR    = teddycloud_web
 WEB_BUILD_DIR  = build
 WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
-DEFAULT_CONF_DIR ?= config
-DEFAULT_DATA_DIR ?= data
 
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
