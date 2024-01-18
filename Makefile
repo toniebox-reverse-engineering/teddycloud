@@ -10,6 +10,8 @@ WEB_SRC_DIR    = teddycloud_web
 WEB_BUILD_DIR  = build
 WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
+DEFAULT_CONF_DIR ?= config
+DEFAULT_DATA_DIR ?= data
 
 EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
@@ -79,8 +81,8 @@ ifeq ($(PLATFORM),linux)
 	CC_IN_OPT      = -c
 	OBJ_EXT        = $(OBJ_EXT)
 	LINK_LO_OPT    = @$(LINK_LO_FILE)
-	CC             = gcc
-	LD             = gcc
+	CC            ?= gcc
+	LD             = $(CC)
 	OBJ_EXT        = .o
 endif
 
@@ -99,8 +101,8 @@ ifeq ($(PLATFORM),windows)
 		$(info )
 		$(error   Aborting)
 	endif
-	CC = cl.exe
-	LD = link.exe
+	CC ?= cl.exe
+	LD ?= link.exe
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\um\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(WindowsSdkDir)lib\$(WindowsSDKLibVersion)\ucrt\$(VSCMD_ARG_TGT_ARCH)"
 	LFLAGS += /LIBPATH:"$(VCToolsInstallDir)lib\$(VSCMD_ARG_TGT_ARCH)"
