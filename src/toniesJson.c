@@ -5,6 +5,7 @@
 #include "cJSON.h"
 #include "handler.h"
 #include "cloud_request.h"
+#include "server_helpers.h"
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
@@ -13,6 +14,9 @@ static size_t toniesJsonCount = 0;
 static toniesJson_item_t *toniesJsonCache;
 static size_t toniesCustomJsonCount = 0;
 static toniesJson_item_t *toniesCustomJsonCache;
+static char *tonies_json_path;
+static char *tonies_custom_json_path;
+static char *tonies_json_tmp_path;
 #endif
 
 void tonies_init()
@@ -20,8 +24,12 @@ void tonies_init()
     if (!toniesJsonInitialized)
     {
         toniesCustomJsonCount = 0;
-        tonies_readJson(TONIES_CUSTOM_JSON_PATH, &toniesCustomJsonCache, &toniesCustomJsonCount);
-        tonies_readJson(TONIES_JSON_PATH, &toniesJsonCache, &toniesJsonCount);
+        tonies_json_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_FILE);
+        tonies_custom_json_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_CUSTOM_JSON_FILE);
+        tonies_json_tmp_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_TMP_FILE);
+
+        tonies_readJson(tonies_custom_json_path, &toniesCustomJsonCache, &toniesCustomJsonCount);
+        tonies_readJson(tonies_json_path, &toniesJsonCache, &toniesJsonCount);
         toniesJsonInitialized = true;
     }
 }
@@ -35,7 +43,7 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
     {
         if (ctx->file == NULL)
         {
-            ctx->file = fsOpenFile(TONIES_JSON_TMP_PATH, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            ctx->file = fsOpenFile(tonies_json_tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
         }
         fsWriteFile(ctx->file, (void *)payload, length);
         if (error == ERROR_END_OF_STREAM)
@@ -44,7 +52,6 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         }
     }
 }
-
 error_t tonies_update()
 {
     TRACE_INFO("Updating tonies.json from GitHub...\r\n");
@@ -62,14 +69,51 @@ error_t tonies_update()
     };
 
     ctx.file = NULL;
-    fsDeleteFile(TONIES_JSON_TMP_PATH);
+    fsDeleteFile(tonies_json_tmp_path);
     // TODO: Be sure HTTPS CA is checked!
     error_t error = web_request("raw.githubusercontent.com", 443, true, uri, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
     if (error == NO_ERROR)
     {
-        fsDeleteFile(TONIES_JSON_PATH);
-        fsRenameFile(TONIES_JSON_TMP_PATH, TONIES_JSON_PATH);
+        fsDeleteFile(tonies_json_path);
+        fsRenameFile(tonies_json_tmp_path, tonies_json_path);
         TRACE_INFO("... success updating tonies.json from GitHub, reloading\r\n");
+        tonies_deinit();
+        tonies_init();
+    }
+    else
+    {
+        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
+    }
+    return error;
+}
+
+error_t tonies_update_new()
+{
+    TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
+    cbr_ctx_t ctx;
+    client_ctx_t client_ctx = {
+        .settings = get_settings(),
+    };
+
+    const char *uri_base = "api.revvox.de";
+    const char *uri_path = "/tonies.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
+    const char *queryString = NULL;
+    fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    req_cbr_t cbr = {
+        .ctx = &ctx,
+        .body = &tonies_downloadBody,
+    };
+
+    ctx.file = NULL;
+    fsDeleteFile(tonies_json_tmp_path);
+    // TODO: Be sure HTTPS CA is checked!
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+
+    if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
+    {
+        fsDeleteFile(tonies_json_path);
+        fsRenameFile(tonies_json_tmp_path, tonies_json_path);
+        TRACE_INFO("... success updating tonies.json from api.revvox.de, reloading\r\n");
         tonies_deinit();
         tonies_init();
     }
@@ -307,5 +351,10 @@ void tonies_deinit()
 {
     tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
     tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
+
+    osFreeMem(tonies_json_path);
+    osFreeMem(tonies_custom_json_path);
+    osFreeMem(tonies_json_tmp_path);
+
     toniesJsonInitialized = false;
 }

@@ -761,13 +761,13 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
     }
-    const char *rootPath = settings_get_string_ovl("core.certdir", overlay);
+    const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "core.certdir not set to a valid path");
-        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        osSnprintf(message, sizeof(message), "internal.certdirfull not set to a valid path");
+        TRACE_ERROR("internal.certdirfull not set to a valid path\r\n");
     }
     else
     {
@@ -1723,7 +1723,11 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
+    char *tonies_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_FILE);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
+    osFreeMem(tonies_path);
+    return err;
 }
 error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -1735,7 +1739,11 @@ error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
+    char *tonies_custom_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_CUSTOM_JSON_FILE);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, tonies_custom_path);
+    osFreeMem(tonies_custom_path);
+    return err;
 }
 error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {

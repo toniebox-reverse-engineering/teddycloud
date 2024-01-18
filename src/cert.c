@@ -214,11 +214,15 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
 
     if (cert_file)
     {
+        char *cert_file_full = osAllocMem(256);
+        settings_resolve_dir(&cert_file_full, (char *)cert_file, get_settings()->internal.basedirfull);
+
         /* save the cert as pem */
-        FsFile *file = fsOpenFile(cert_file, FS_FILE_MODE_WRITE);
+        FsFile *file = fsOpenFile(cert_file_full, FS_FILE_MODE_WRITE);
         if (!file)
         {
             TRACE_ERROR("fsOpenFile failed\r\n");
+            osFreeMem(cert_file_full);
             return ERROR_FAILURE;
         }
         if (!cert_der_format)
@@ -229,18 +233,24 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
         {
             fsWriteFile(file, cert_der_data, cert_der_size);
         }
+        osFreeMem(cert_file_full);
         fsCloseFile(file);
     }
 
     if (priv_file)
     {
+        char *priv_file_full = osAllocMem(256);
+        settings_resolve_dir(&priv_file_full, (char *)priv_file, get_settings()->internal.basedirfull);
+
         /* save the private key */
-        FsFile *file = fsOpenFile(priv_file, FS_FILE_MODE_WRITE);
+        FsFile *file = fsOpenFile(priv_file_full, FS_FILE_MODE_WRITE);
         if (!file)
         {
             TRACE_ERROR("fsOpenFile failed\r\n");
+            osFreeMem(priv_file_full);
             return ERROR_FAILURE;
         }
+        osFreeMem(priv_file_full);
         fsWriteFile(file, priv_data, priv_size);
         fsCloseFile(file);
     }

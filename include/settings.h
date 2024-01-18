@@ -9,11 +9,19 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#define TONIES_JSON_PATH "config/tonies.json"
-#define TONIES_JSON_TMP_PATH TONIES_JSON_PATH ".tmp"
-#define TONIES_CUSTOM_JSON_PATH "config/tonies.custom.json"
-#define CONFIG_PATH "config/config.ini"
-#define CONFIG_OVERLAY_PATH "config/config.overlay.ini"
+#ifndef BASE_PATH
+#define BASE_PATH ""
+#endif
+
+#ifndef CONFIG_BASE_PATH
+#define CONFIG_BASE_PATH "config"
+#endif
+
+#define TONIES_JSON_FILE "tonies.json"
+#define TONIES_JSON_TMP_FILE TONIES_JSON_FILE ".tmp"
+#define TONIES_CUSTOM_JSON_FILE "tonies.custom.json"
+#define CONFIG_FILE "config.ini"
+#define CONFIG_OVERLAY_FILE "config.overlay.ini"
 #define CONFIG_VERSION 6
 #define MAX_OVERLAYS 16 + 1
 
@@ -157,7 +165,11 @@ typedef struct
     bool config_changed;
     bool logColorSupport;
 
+    char *basedir;
+    char *basedirfull;
     char *cwd;
+    char *certdirfull;
+    char *configdirfull;
     char *contentdirrel;
     char *contentdirfull;
     char *librarydirfull;
@@ -189,6 +201,7 @@ typedef struct
     uint32_t https_port;
     char *host_url;
     char *certdir;
+    char *configdir;
     char *contentdir;
     char *firmwaredir;
     char *librarydir;
@@ -354,7 +367,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(char *cwd);
+error_t settings_init(char *cwd, char *base_path);
 
 /**
  * @brief Deinitializes the settings subsystem.
