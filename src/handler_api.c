@@ -147,7 +147,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-        settings_set_string_ovl("internal.assign_unknown", pathAbsolute, overlay);
+        settings_set_string("internal.assign_unknown", pathAbsolute);
         osFreeMem(pathAbsolute);
     }
 
