@@ -1,0 +1,36 @@
+{
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  //"image": "mcr.microsoft.com/devcontainers/javascript-node:0-18",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+  "name": "teddycloud_build",
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "ms-vscode.makefile-tools",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode.cpptools-extension-pack"
+      ]
+    }
+  },
+  "forwardPorts": [
+    80,
+    443
+  ],
+  "portsAttributes": {
+    "80": {
+      "label": "Teddycloud webinterface",
+      "onAutoForward": "notify"
+    },
+    "443": {
+      "label": "Teddycloud boxinterface",
+      "onAutoForward": "notify"
+    },
+  }
+  //"postCreateCommand": "yarn install"
+  // "remoteUser": "root"
+}
