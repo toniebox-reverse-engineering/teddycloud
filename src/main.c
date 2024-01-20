@@ -123,23 +123,7 @@ int_t main(int argc, char *argv[])
         return -1;
     }
 
-    /* platform specific init */
     char *base_path = strdup(BASE_PATH);
-    if (osStrlen(base_path) == 0)
-    {
-        char *linux_usrlocaletc = "/usr/local/etc/teddycloud";
-        char *linux_etc = "/etc/teddycloud";
-        if (fsDirExists(linux_usrlocaletc))
-        {
-            free(base_path);
-            base_path = strdup(linux_usrlocaletc);
-        }
-        else if (fsDirExists(linux_etc))
-        {
-            free(base_path);
-            base_path = strdup(linux_etc);
-        }
-    }
 
     error = settings_init(cwd, base_path); // TODO: dynamicly read from cli
     free(base_path);

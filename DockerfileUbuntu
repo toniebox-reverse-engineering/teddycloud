@@ -7,7 +7,7 @@ COPY . /buildenv
 WORKDIR /buildenv
 
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/install/pre/config/tonies.json || true
-RUN make zip
+RUN make zip RUNTIME_BASE_PATH=/teddycloud
 
 FROM ubuntu:latest
 EXPOSE 80 443
@@ -25,8 +25,6 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/firmware  \
     && mkdir -p /teddycloud/data/www   \
     && mkdir -p /tmp
-
-RUN ln -s /teddycloud /etc/teddycloud
 
 COPY --from=buildenv \
     /buildenv/install/pre/certs/ /teddycloud/certs/
