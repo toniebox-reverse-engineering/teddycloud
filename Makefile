@@ -79,8 +79,8 @@ ifeq ($(PLATFORM),linux)
 	CC_IN_OPT      = -c
 	OBJ_EXT        = $(OBJ_EXT)
 	LINK_LO_OPT    = @$(LINK_LO_FILE)
-	CC             = gcc
-	LD             = gcc
+	CC            ?= gcc
+	LD             = $(CC)
 	OBJ_EXT        = .o
 endif
 
