@@ -366,7 +366,10 @@ error_t convert_PEM_to_DER(const char *pem_data, const char *der_target_file)
     }
 
     // Open the DER file for writing
-    FsFile *der_file = fsOpenFile(der_target_file, FS_FILE_MODE_WRITE);
+    char *der_target_file_full = osAllocMem(256);
+    settings_resolve_dir(&der_target_file_full, (char *)der_target_file, get_settings()->internal.basedirfull);
+    FsFile *der_file = fsOpenFile(der_target_file_full, FS_FILE_MODE_WRITE);
+    osFreeMem(der_target_file_full);
     if (!der_file)
     {
         TRACE_ERROR("Error opening DER file for writing.\r\n");
