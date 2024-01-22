@@ -147,7 +147,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-        settings_set_string_ovl("internal.assign_unknown", pathAbsolute, overlay);
+        settings_set_string("internal.assign_unknown", pathAbsolute);
         osFreeMem(pathAbsolute);
     }
 
@@ -520,7 +520,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
             cJSON_AddBoolToObject(jsonEntry, "isDirectory", isDir);
 
-            char desc[64];
+            char desc[3 + 1 + 8 + 1 + 40 + 1 + 64 + 1 + 64];
             desc[0] = 0;
             tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
             toniesJson_item_t *item = NULL;
@@ -533,6 +533,9 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
                     osStrcat(desc, tmp);
                 }
+                char extraDesc[1 + 64 + 1 + 64];
+                osSnprintf(extraDesc, sizeof(extraDesc), ":%" PRIu64 ":%" PRIuSIZE, tafInfo->tafHeader->num_bytes, tafInfo->tafHeader->n_track_page_nums);
+                osStrcat(desc, extraDesc);
 
                 item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
                 freeTonieInfo(tafInfo);
@@ -758,13 +761,13 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
     }
-    const char *rootPath = settings_get_string_ovl("core.certdir", overlay);
+    const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
 
     if (rootPath == NULL || !fsDirExists(rootPath))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "core.certdir not set to a valid path");
-        TRACE_ERROR("core.certdir not set to a valid path\r\n");
+        osSnprintf(message, sizeof(message), "internal.certdirfull not set to a valid path");
+        TRACE_ERROR("internal.certdirfull not set to a valid path\r\n");
     }
     else
     {
@@ -1517,7 +1520,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        char *filename = custom_asprintf("%s/%s.taf", pathAbsolute, name);
+        char *filename = custom_asprintf("%s/%s", pathAbsolute, name);
 
         if (!filename)
         {
@@ -1720,7 +1723,11 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return httpSendResponseUnsafe(connection, uri, TONIES_JSON_PATH);
+    char *tonies_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_FILE);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
+    osFreeMem(tonies_path);
+    return err;
 }
 error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -1732,7 +1739,11 @@ error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return httpSendResponseUnsafe(connection, uri, TONIES_CUSTOM_JSON_PATH);
+    char *tonies_custom_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_CUSTOM_JSON_FILE);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, tonies_custom_path);
+    osFreeMem(tonies_custom_path);
+    return err;
 }
 error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {

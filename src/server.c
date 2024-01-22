@@ -435,11 +435,10 @@ bool sanityChecks()
 {
     bool ret = true;
 
-    ret &= sanityCheckDir("core.datadir");
     ret &= sanityCheckDir("internal.datadirfull");
     ret &= sanityCheckDir("internal.wwwdirfull");
     ret &= sanityCheckDir("internal.contentdirfull");
-    ret &= sanityCheckDir("core.certdir");
+    ret &= sanityCheckDir("internal.certdirfull");
 
     if (!ret)
     {

@@ -31,6 +31,8 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/www   \
     && mkdir -p /tmp
 
+RUN ln -s /teddycloud /etc/teddycloud
+
 # Copy files from the build environment
 COPY --from=buildenv /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv /buildenv/install/pre/data/www/ /teddycloud/data/www/

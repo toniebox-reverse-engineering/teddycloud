@@ -176,8 +176,14 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     osMemset(&validity, 0x00, sizeof(validity));
     getCurrentDate(&validity.notBefore);
     getCurrentDate(&validity.notAfter);
-    validity.notBefore.year -= 20;
-    validity.notAfter.year += 20;
+
+    validity.notBefore.year = 2015;
+    validity.notBefore.month = 11;
+    validity.notBefore.day = 3;
+
+    validity.notAfter.year = 2040;
+    validity.notAfter.month = 6;
+    validity.notAfter.day = 24;
 
     X509SignAlgoId algo;
     osMemset(&algo, 0x00, sizeof(algo));
@@ -214,8 +220,12 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
 
     if (cert_file)
     {
+        char *cert_file_full = osAllocMem(256);
+        settings_resolve_dir(&cert_file_full, (char *)cert_file, get_settings()->internal.basedirfull);
+
         /* save the cert as pem */
-        FsFile *file = fsOpenFile(cert_file, FS_FILE_MODE_WRITE);
+        FsFile *file = fsOpenFile(cert_file_full, FS_FILE_MODE_WRITE);
+        osFreeMem(cert_file_full);
         if (!file)
         {
             TRACE_ERROR("fsOpenFile failed\r\n");
@@ -234,8 +244,12 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
 
     if (priv_file)
     {
+        char *priv_file_full = osAllocMem(256);
+        settings_resolve_dir(&priv_file_full, (char *)priv_file, get_settings()->internal.basedirfull);
+
         /* save the private key */
-        FsFile *file = fsOpenFile(priv_file, FS_FILE_MODE_WRITE);
+        FsFile *file = fsOpenFile(priv_file_full, FS_FILE_MODE_WRITE);
+        osFreeMem(priv_file_full);
         if (!file)
         {
             TRACE_ERROR("fsOpenFile failed\r\n");
@@ -356,7 +370,10 @@ error_t convert_PEM_to_DER(const char *pem_data, const char *der_target_file)
     }
 
     // Open the DER file for writing
-    FsFile *der_file = fsOpenFile(der_target_file, FS_FILE_MODE_WRITE);
+    char *der_target_file_full = osAllocMem(256);
+    settings_resolve_dir(&der_target_file_full, (char *)der_target_file, get_settings()->internal.basedirfull);
+    FsFile *der_file = fsOpenFile(der_target_file_full, FS_FILE_MODE_WRITE);
+    osFreeMem(der_target_file_full);
     if (!der_file)
     {
         TRACE_ERROR("Error opening DER file for writing.\r\n");
@@ -406,11 +423,16 @@ error_t cert_generate_default()
     /* generate ca.der */
     const char *cacert_data = settings_get_string("internal.server.ca");
     const char *cacert_der = settings_get_string("core.server_cert.file.ca_der");
-    if (convert_PEM_to_DER(cacert_data, cacert_der) != NO_ERROR)
+
+    char *cacert_der_full = osAllocMem(256);
+    settings_resolve_dir(&cacert_der_full, (char *)cacert_der, get_settings()->internal.basedirfull);
+    if (convert_PEM_to_DER(cacert_data, cacert_der_full) != NO_ERROR)
     {
         TRACE_ERROR("ca.pem to ca.der conversion failed\r\n");
+        free(cacert_der_full);
         return ERROR_FAILURE;
     }
+    free(cacert_der_full);
 
     const char *server_cert = settings_get_string("core.server_cert.file.crt");
     const char *server_key = settings_get_string("core.server_cert.file.key");

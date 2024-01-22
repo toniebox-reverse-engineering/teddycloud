@@ -28,6 +28,8 @@
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
 static uint16_t settings_size = 0;
+static char *config_file_path = NULL;
+static char *config_overlay_file_path = NULL;
 DateTime settings_last_load;
 DateTime settings_last_load_ovl;
 
@@ -55,6 +57,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("core.server", "HTTP server")
     OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server")
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates")
+    OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir")
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content")
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library")
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative")
@@ -108,7 +111,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?")
     OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
     OPTION_INTERNAL_BOOL("internal.logColorSupport", &settings->internal.logColorSupport, FALSE, "Terminal supports color (log)")
+    OPTION_INTERNAL_STRING("internal.basedir", &settings->internal.basedir, BASE_PATH, "basedir")
+    OPTION_INTERNAL_STRING("internal.basedirfull", &settings->internal.basedirfull, "", "basedirfull")
     OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
+    OPTION_INTERNAL_STRING("internal.certdirfull", &settings->internal.certdirfull, "", "Directory where the certs are placed (absolute)")
+    OPTION_INTERNAL_STRING("internal.configdirfull", &settings->internal.configdirfull, "", "Directory where the config is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
     OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
@@ -344,12 +351,22 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     }
     else
     {
-        snprintf(*resolvedPath, 255, "%s/%s", basePath, path);
+        if (path[0] == '\0')
+        {
+            snprintf(*resolvedPath, 255, "%s", basePath);
+        }
+        else
+        {
+            snprintf(*resolvedPath, 255, "%s/%s", basePath, path);
+        }
     }
 }
 
 void settings_generate_internal_dirs(settings_t *settings)
 {
+    free(settings->internal.basedirfull);
+    free(settings->internal.certdirfull);
+    free(settings->internal.configdirfull);
     free(settings->internal.contentdirrel);
     free(settings->internal.contentdirfull);
     free(settings->internal.librarydirfull);
@@ -357,6 +374,9 @@ void settings_generate_internal_dirs(settings_t *settings)
     free(settings->internal.wwwdirfull);
     free(settings->internal.firmwaredirfull);
 
+    settings->internal.basedirfull = osAllocMem(256);
+    settings->internal.certdirfull = osAllocMem(256);
+    settings->internal.configdirfull = osAllocMem(256);
     settings->internal.contentdirrel = osAllocMem(256);
     settings->internal.contentdirfull = osAllocMem(256);
     settings->internal.librarydirfull = osAllocMem(256);
@@ -365,8 +385,11 @@ void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.firmwaredirfull = osAllocMem(256);
 
     char *tmpPath = osAllocMem(256);
+    settings_resolve_dir(&settings->internal.basedirfull, settings->internal.basedir, settings->internal.cwd);
 
-    settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.cwd);
+    settings_resolve_dir(&settings->internal.certdirfull, settings->core.certdir, settings->internal.basedirfull);
+    settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.basedirfull);
+    settings_resolve_dir(&settings->internal.configdirfull, settings->core.configdir, settings->internal.basedirfull);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
@@ -385,6 +408,12 @@ void settings_changed()
 {
     Settings_Overlay[0].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings());
+    if (config_file_path != NULL)
+        osFreeMem(config_file_path);
+    if (config_overlay_file_path != NULL)
+        osFreeMem(config_overlay_file_path);
+    config_file_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), CONFIG_FILE);
+    config_overlay_file_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), CONFIG_OVERLAY_FILE);
     settings_load_ovl(true);
 }
 
@@ -417,6 +446,12 @@ void settings_deinit(uint8_t overlayNumber)
     }
     Settings_Overlay[overlayNumber].internal.config_init = false;
 
+    if (overlayNumber == 0)
+    {
+        osFreeMem(config_file_path);
+        osFreeMem(config_overlay_file_path);
+    }
+
     osFreeMem(Option_Map_Overlay[overlayNumber]);
     Option_Map_Overlay[overlayNumber] = NULL;
 }
@@ -429,7 +464,7 @@ void settings_deinit_all()
     }
 }
 
-error_t settings_init(char *cwd)
+error_t settings_init(char *cwd, char *base_dir)
 {
     option_map_init(0);
 
@@ -470,6 +505,7 @@ error_t settings_init(char *cwd)
         pos++;
     }
     settings_set_string("internal.cwd", cwd);
+    settings_set_string("internal.basedir", base_dir);
 
     settings_set_string("internal.version.id", BUILD_VERSION);
     settings_set_string("internal.version.git_sha_short", BUILD_GIT_SHORT_SHA);
@@ -513,7 +549,7 @@ error_t settings_save()
 
 error_t settings_save_ovl(bool overlay)
 {
-    char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
+    char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
@@ -618,7 +654,7 @@ error_t settings_load()
 
 error_t settings_load_ovl(bool overlay)
 {
-    char_t *config_path = (!overlay ? CONFIG_PATH : CONFIG_OVERLAY_PATH);
+    char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
 
@@ -1146,7 +1182,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
 void settings_loop()
 {
     FsFileStat stat;
-    if (fsGetFileStat(CONFIG_PATH, &stat) == NO_ERROR)
+    if (fsGetFileStat(config_file_path, &stat) == NO_ERROR)
     {
         if (compareDateTime(&stat.modified, &settings_last_load))
         {
@@ -1154,7 +1190,7 @@ void settings_loop()
             settings_load();
         }
     }
-    if (fsGetFileStat(CONFIG_OVERLAY_PATH, &stat) == NO_ERROR)
+    if (fsGetFileStat(config_overlay_file_path, &stat) == NO_ERROR)
     {
         if (compareDateTime(&stat.modified, &settings_last_load_ovl))
         {

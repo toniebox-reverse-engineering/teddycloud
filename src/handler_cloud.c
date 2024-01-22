@@ -319,13 +319,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     bool setLive = false;
+    const char *assignUnknown = settings_get_string("internal.assign_unknown");
     const char *assignFile = NULL;
 
-    if (osStrlen(settings->internal.assign_unknown) > 0)
+    if (osStrlen(assignUnknown) > 0)
     {
         if (!tonieInfo->exists)
         {
-            assignFile = settings->internal.assign_unknown;
+            assignFile = assignUnknown;
             TRACE_INFO(" >> this is a unknown tonie, assigning '%s'\r\n", assignFile);
         }
 
@@ -339,7 +340,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uid[16] = 0;
             if (!osStrcasecmp(uid, settings->core.flex_uid))
             {
-                assignFile = settings->internal.assign_unknown;
+                assignFile = assignUnknown;
                 setLive = true;
                 TRACE_INFO(" >> this is the defined flex tonie, assigning '%s'\r\n", assignFile);
             }

@@ -26,6 +26,8 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/www   \
     && mkdir -p /tmp
 
+RUN ln -s /teddycloud /etc/teddycloud
+
 COPY --from=buildenv \
     /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv \

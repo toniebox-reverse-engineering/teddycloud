@@ -361,20 +361,27 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
     else
     {
         const char *src_filename = settings_get_string_id(src_file, settingsId);
+
+        char *src_filename_full = osAllocMem(256);
+        settings_resolve_dir(&src_filename_full, (char *)src_filename, get_settings()->internal.basedirfull);
+
         if (!src_filename)
         {
             TRACE_ERROR("Failed to look up '%s'\r\n", src_file);
+            osFreeMem(src_filename_full);
             return ERROR_FAILURE;
         }
         char_t *serverCert = NULL;
         size_t serverCertLen = 0;
-        error_t error = read_certificate(src_filename, &serverCert, &serverCertLen);
+        error_t error = read_certificate(src_filename_full, &serverCert, &serverCertLen);
 
         if (error)
         {
-            TRACE_ERROR("Loading cert '%s' failed\r\n", src_filename);
+            TRACE_ERROR("Loading cert '%s' failed\r\n", src_filename_full);
+            osFreeMem(src_filename_full);
             return error;
         }
+        osFreeMem(src_filename_full);
         settings_set_string_id(dest_var, serverCert, settingsId);
         free(serverCert);
     }

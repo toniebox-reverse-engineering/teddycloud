@@ -124,7 +124,25 @@ int_t main(int argc, char *argv[])
     }
 
     /* platform specific init */
-    error = settings_init(cwd);
+    char *base_path = strdup(BASE_PATH);
+    if (osStrlen(base_path) == 0)
+    {
+        char *linux_usrlocaletc = "/usr/local/etc/teddycloud";
+        char *linux_etc = "/etc/teddycloud";
+        if (fsDirExists(linux_usrlocaletc))
+        {
+            free(base_path);
+            base_path = strdup(linux_usrlocaletc);
+        }
+        else if (fsDirExists(linux_etc))
+        {
+            free(base_path);
+            base_path = strdup(linux_etc);
+        }
+    }
+
+    error = settings_init(cwd, base_path); // TODO: dynamicly read from cli
+    free(base_path);
     free(cwd);
     if (error != NO_ERROR)
     {
@@ -299,7 +317,7 @@ int_t main(int argc, char *argv[])
                 oldrtnl = argv[4];
                 oldapi = argv[5];
             }
-            esp32_patch_host((const char *)argv[2],(const char *)argv[3], oldrtnl, oldapi);
+            esp32_patch_host((const char *)argv[2], (const char *)argv[3], oldrtnl, oldapi);
         }
 #ifdef FFMPEG_DECODING
         else if (!strcasecmp(type, "ENCODE"))
