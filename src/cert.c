@@ -176,8 +176,14 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     osMemset(&validity, 0x00, sizeof(validity));
     getCurrentDate(&validity.notBefore);
     getCurrentDate(&validity.notAfter);
-    validity.notBefore.year -= 20;
-    validity.notAfter.year += 20;
+
+    validity.notBefore.year = 2015;
+    validity.notBefore.month = 11;
+    validity.notBefore.day = 3;
+
+    validity.notAfter.year = 2040;
+    validity.notAfter.month = 6;
+    validity.notAfter.day = 24;
 
     X509SignAlgoId algo;
     osMemset(&algo, 0x00, sizeof(algo));
