@@ -425,11 +425,16 @@ error_t cert_generate_default()
     /* generate ca.der */
     const char *cacert_data = settings_get_string("internal.server.ca");
     const char *cacert_der = settings_get_string("core.server_cert.file.ca_der");
-    if (convert_PEM_to_DER(cacert_data, cacert_der) != NO_ERROR)
+
+    char *cacert_der_full = osAllocMem(256);
+    settings_resolve_dir(&cacert_der_full, (char *)cacert_der, get_settings()->internal.basedirfull);
+    if (convert_PEM_to_DER(cacert_data, cacert_der_full) != NO_ERROR)
     {
         TRACE_ERROR("ca.pem to ca.der conversion failed\r\n");
+        free(cacert_der_full);
         return ERROR_FAILURE;
     }
+    free(cacert_der_full);
 
     const char *server_cert = settings_get_string("core.server_cert.file.crt");
     const char *server_key = settings_get_string("core.server_cert.file.key");
