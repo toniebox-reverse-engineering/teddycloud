@@ -17,10 +17,6 @@
 #define CONFIG_BASE_PATH "config"
 #endif
 
-#ifndef DATA_BASE_PATH
-#define DATA_BASE_PATH "data"
-#endif
-
 #define TONIES_JSON_FILE "tonies.json"
 #define TONIES_JSON_TMP_FILE TONIES_JSON_FILE ".tmp"
 #define TONIES_CUSTOM_JSON_FILE "tonies.custom.json"

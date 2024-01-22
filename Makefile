@@ -26,6 +26,14 @@ else
 	build_arch:="$(shell arch)"
 endif
 
+
+ifdef RUNTIME_BASE_PATH
+	CFLAGS+=-DBASE_PATH=\"$(RUNTIME_BASE_PATH)\"
+endif
+ifdef CONFIG_RUNTIME_BASE_PATH
+	CFLAGS+=-DCONFIG_BASE_PATH=\"$(CONFIG_RUNTIME_BASE_PATH)\"
+endif
+
 ifeq ($(SHELL_ENV),cmd)
 build_rawDateTime:="${shell date /t} ${shell time /t}"
 else
