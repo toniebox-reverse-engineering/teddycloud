@@ -416,7 +416,6 @@ int_t main(int argc, char *argv[])
 
         settings_set_bool("cloud.enabled", true);
 
-        void cbr_response(void *ctx, HttpClientContext *cloud_ctx) {}
         void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
         {
             if (header)
@@ -424,8 +423,6 @@ int_t main(int argc, char *argv[])
                 printf("%s:%s\n", header, value);
             }
         }
-        void cbr_body(void *ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error) {}
-        void cbr_disconnect(void *ctx, HttpClientContext *cloud_ctx) {}
 
         /* it's getting a bit complicated now */
         client_ctx_t client_ctx = {
@@ -434,10 +431,7 @@ int_t main(int argc, char *argv[])
             .client_ctx = &client_ctx};
         req_cbr_t cbr = {
             .ctx = &ctx,
-            .response = &cbr_response,
-            .header = &cbr_header,
-            .body = &cbr_body,
-            .disconnect = &cbr_disconnect};
+            .header = &cbr_header};
 
         int_t error = cloud_request(hostname, port, protocol == PROT_HTTPS, uri, "", "GET", NULL, 0, (uint8_t *)options.hash, &cbr);
 
