@@ -443,6 +443,7 @@ FILE *ffmpeg_decode_audio_start(const char *input_source)
 {
     return ffmpeg_decode_audio_start_skip(input_source, 0);
 }
+
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds)
 {
 #ifdef FFMPEG_DECODING
@@ -466,6 +467,7 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
     return NULL;
 #endif
 }
+
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
 {
 #ifdef FFMPEG_DECODING
@@ -509,6 +511,7 @@ error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
     return ERROR_NOT_IMPLEMENTED;
 #endif
 }
+
 error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *blocks_read)
 {
     if (ffmpeg_pipe == NULL)
@@ -542,12 +545,13 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
     return NO_ERROR;
 }
 
-error_t ffmpeg_convert(char *source, char *target_taf, size_t skip_seconds)
+error_t ffmpeg_convert(const char *source, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
     return ffmpeg_stream(source, target_taf, skip_seconds, &active);
 }
-error_t ffmpeg_stream(char *source, char *target_taf, size_t skip_seconds, bool_t *active)
+
+error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_seconds, bool_t *active)
 {
     TRACE_INFO("Encode source %s as TAF to %s and skip %" PRIuSIZE " seconds\r\n", source, target_taf, skip_seconds);
 

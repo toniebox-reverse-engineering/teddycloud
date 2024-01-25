@@ -452,6 +452,11 @@ bool sanityChecks()
 
 void server_init(bool test)
 {
+    if (test)
+    {
+        printf("Docker container started teddyCloud for testing, running smoke test.\r\n");
+    }
+
     mutex_manager_init();
     if (!sanityChecks())
     {

@@ -10,7 +10,7 @@
 #define SETTINGS_H
 
 #ifndef BASE_PATH
-#define BASE_PATH ""
+#define BASE_PATH "./"
 #endif
 
 #ifndef CONFIG_BASE_PATH
@@ -367,7 +367,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(char *cwd, char *base_path);
+error_t settings_init(const char *cwd, const char *base_path);
 
 /**
  * @brief Deinitializes the settings subsystem.

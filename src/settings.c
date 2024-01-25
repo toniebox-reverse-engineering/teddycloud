@@ -464,7 +464,7 @@ void settings_deinit_all()
     }
 }
 
-error_t settings_init(char *cwd, char *base_dir)
+error_t settings_init(const char *cwd, const char *base_dir)
 {
     option_map_init(0);
 
