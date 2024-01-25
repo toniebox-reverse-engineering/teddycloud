@@ -523,11 +523,11 @@ void server_init(bool test)
         return;
     }
 
+    tonies_init();
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
     }
-    tonies_init();
 
     systime_t last = osGetSystemTime();
     size_t openConnectionsLast = 0;
