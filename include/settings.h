@@ -368,7 +368,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(const char *cwd, const char *base_path, bool autogen_certs);
+error_t settings_init(const char *cwd, const char *base_path);
 
 /**
  * @brief Deinitializes the settings subsystem.

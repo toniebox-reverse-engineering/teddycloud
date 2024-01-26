@@ -465,8 +465,9 @@ void settings_deinit_all()
     }
 }
 
-error_t settings_init(const char *cwd, const char *base_dir, bool autogen_certs)
+error_t settings_init(const char *cwd, const char *base_dir)
 {
+    bool autogen_certs = Settings_Overlay[0].internal.autogen_certs;
     option_map_init(0);
 
     Settings_Overlay[0].log.level = LOGLEVEL_INFO;

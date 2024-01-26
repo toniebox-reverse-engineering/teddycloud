@@ -129,7 +129,7 @@ bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Pro
     return true;
 }
 
-void main_init_settings(const char *cwd, const char *base_path, bool autogen_certs)
+void main_init_settings(const char *cwd, const char *base_path)
 {
     int_t error = 0;
     /* try to find base path */
@@ -150,7 +150,7 @@ void main_init_settings(const char *cwd, const char *base_path, bool autogen_cer
 
         if (fsDirExists(path))
         {
-            error = settings_init(cwd, path, autogen_certs);
+            error = settings_init(cwd, path);
             if (error == NO_ERROR)
             {
                 settings_initialized = true;
@@ -290,12 +290,14 @@ int_t main(int argc, char *argv[])
 
     if (options.url_test || options.cloud_test)
     {
-        main_init_settings(cwd, options.base_path, true);
+        get_settings()->internal.autogen_certs = true;
+        main_init_settings(cwd, options.base_path);
         tls_init();
     }
     else
     {
-        main_init_settings(cwd, options.base_path, false);
+        get_settings()->internal.autogen_certs = false;
+        main_init_settings(cwd, options.base_path);
     }
 
     toniebox_state_init();
@@ -512,7 +514,8 @@ int_t main(int argc, char *argv[])
         exit(1);
     }
 
-    main_init_settings(cwd, options.base_path, true);
+    // TODO: Fix double initialization of settings
+    main_init_settings(cwd, options.base_path);
     tls_init();
 
     mqtt_init();
