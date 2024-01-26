@@ -192,7 +192,6 @@ int_t main(int argc, char *argv[])
         return -1;
     }
 
-    const char *base_path = BASE_PATH;
     struct
     {
         const char *base_path;
@@ -215,6 +214,8 @@ int_t main(int argc, char *argv[])
         const char *oldrtnlhost;
         const char *oldapihost;
     } options = {0};
+
+    options.base_path = BASE_PATH;
 
     do
     {
@@ -239,11 +240,12 @@ int_t main(int argc, char *argv[])
                 {"cloud-test", required_argument, 0, 'C'},
                 {"hash", required_argument, 0, 'H'},
                 {"hostname", required_argument, 0, 'h'},
+                {"help", no_argument, 0, '?'},
                 {0, 0, 0, 0}};
 
         /* getopt_long stores the option index here. */
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:C:H:h:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:C:H:h:?", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
@@ -288,12 +290,12 @@ int_t main(int argc, char *argv[])
 
     if (options.url_test || options.cloud_test)
     {
-        main_init_settings(cwd, base_path, true);
+        main_init_settings(cwd, options.base_path, true);
         tls_init();
     }
     else
     {
-        main_init_settings(cwd, base_path, false);
+        main_init_settings(cwd, options.base_path, false);
     }
 
     toniebox_state_init();
@@ -510,7 +512,7 @@ int_t main(int argc, char *argv[])
         exit(1);
     }
 
-    main_init_settings(cwd, base_path, true);
+    main_init_settings(cwd, options.base_path, true);
     tls_init();
 
     mqtt_init();
