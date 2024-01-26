@@ -192,7 +192,6 @@ int_t main(int argc, char *argv[])
         return -1;
     }
 
-    const char *base_path = BASE_PATH;
     struct
     {
         const char *base_path;
@@ -215,6 +214,8 @@ int_t main(int argc, char *argv[])
         const char *oldrtnlhost;
         const char *oldapihost;
     } options = {0};
+
+    options.base_path = BASE_PATH;
 
     do
     {
@@ -286,7 +287,7 @@ int_t main(int argc, char *argv[])
         }
     } while (true);
 
-    main_init_settings(cwd, base_path);
+    main_init_settings(cwd, options.base_path);
 
     toniebox_state_init();
     platform_init();
