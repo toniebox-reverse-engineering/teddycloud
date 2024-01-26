@@ -129,7 +129,7 @@ bool parse_url(const char *url, char **hostname, uint16_t *port, char **uri, Pro
     return true;
 }
 
-void main_init_settings(const char *cwd, const char *base_path)
+void main_init_settings(const char *cwd, const char *base_path, bool autogen_certs)
 {
     int_t error = 0;
     /* try to find base path */
@@ -150,7 +150,7 @@ void main_init_settings(const char *cwd, const char *base_path)
 
         if (fsDirExists(path))
         {
-            error = settings_init(cwd, path);
+            error = settings_init(cwd, path, autogen_certs);
             if (error == NO_ERROR)
             {
                 settings_initialized = true;
@@ -286,7 +286,15 @@ int_t main(int argc, char *argv[])
         }
     } while (true);
 
-    main_init_settings(cwd, base_path);
+    if (options.url_test || options.cloud_test)
+    {
+        main_init_settings(cwd, base_path, true);
+        tls_init();
+    }
+    else
+    {
+        main_init_settings(cwd, base_path, false);
+    }
 
     toniebox_state_init();
     platform_init();
@@ -394,7 +402,6 @@ int_t main(int argc, char *argv[])
 
     if (options.url_test)
     {
-        tls_init();
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("***       Generic URL test     ***\r\n");
         TRACE_WARNING("**********************************\r\n");
@@ -447,7 +454,6 @@ int_t main(int argc, char *argv[])
 
     if (options.cloud_test)
     {
-        tls_init();
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("***       Cloud API test       ***\r\n");
         TRACE_WARNING("**********************************\r\n");
@@ -504,7 +510,9 @@ int_t main(int argc, char *argv[])
         exit(1);
     }
 
+    main_init_settings(cwd, base_path, true);
     tls_init();
+
     mqtt_init();
     server_init(options.docker_test);
 

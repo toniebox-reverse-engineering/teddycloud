@@ -163,6 +163,7 @@ typedef struct
     bool config_init;
     bool config_used;
     bool config_changed;
+    bool autogen_certs;
     bool logColorSupport;
 
     char *basedir;
@@ -367,7 +368,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(const char *cwd, const char *base_path);
+error_t settings_init(const char *cwd, const char *base_path, bool autogen_certs);
 
 /**
  * @brief Deinitializes the settings subsystem.

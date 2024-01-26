@@ -104,6 +104,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA")
     OPTION_INTERNAL_STRING("internal.client.crt", &settings->internal.client.crt, "", "Client certificate data")
     OPTION_INTERNAL_STRING("internal.client.key", &settings->internal.client.key, "", "Client key data")
+    OPTION_INTERNAL_BOOL("internal.autogen_certs", &settings->internal.autogen_certs, TRUE, "Generate certificates if missing")
 
     OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server")
     OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
@@ -464,7 +465,7 @@ void settings_deinit_all()
     }
 }
 
-error_t settings_init(const char *cwd, const char *base_dir)
+error_t settings_init(const char *cwd, const char *base_dir, bool autogen_certs)
 {
     option_map_init(0);
 
@@ -520,6 +521,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
 
     settings_set_bool("internal.logColorSupport", supportsAnsiColors());
+    settings_set_bool("internal.autogen_certs", autogen_certs);
 
     Settings_Overlay[0].internal.config_init = true;
     Settings_Overlay[0].internal.config_used = true;
@@ -1260,7 +1262,7 @@ error_t settings_load_certs_id(uint8_t settingsId)
         return NO_ERROR;
     }
 
-    if (settings_try_load_certs_id(settingsId) != NO_ERROR)
+    if (get_settings_id(settingsId)->internal.autogen_certs && settings_try_load_certs_id(settingsId) != NO_ERROR)
     {
         TRACE_INFO("********************************************\r\n");
         TRACE_INFO("   No certificates found. Generating.\r\n");
