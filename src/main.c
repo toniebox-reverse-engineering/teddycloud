@@ -240,11 +240,12 @@ int_t main(int argc, char *argv[])
                 {"cloud-test", required_argument, 0, 'C'},
                 {"hash", required_argument, 0, 'H'},
                 {"hostname", required_argument, 0, 'h'},
+                {"help", no_argument, 0, '?'},
                 {0, 0, 0, 0}};
 
         /* getopt_long stores the option index here. */
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:C:H:h:", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:C:H:h:?", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
