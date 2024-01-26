@@ -167,6 +167,17 @@ void main_init_settings(const char *cwd, const char *base_path)
     }
 }
 
+void tls_init(void)
+{
+    // TODO: Move settings_try_load_certs_id call to here, so that the initialization is done only when tls is used.
+    /* load certificates and TLS RNG */
+    if (tls_adapter_init() != NO_ERROR)
+    {
+        TRACE_ERROR("tls_adapter_init() failed\r\n");
+        exit(-1);
+    }
+}
+
 int_t main(int argc, char *argv[])
 {
     char cwd[PATH_LEN] = {0};
@@ -283,13 +294,6 @@ int_t main(int argc, char *argv[])
     cJSON_Hooks hooks = {.malloc_fn = osAllocMem, .free_fn = osFreeMem};
     cJSON_InitHooks(&hooks);
 
-    /* load certificates and TLS RNG */
-    if (tls_adapter_init() != NO_ERROR)
-    {
-        TRACE_ERROR("tls_adapter_init() failed\r\n");
-        return -1;
-    }
-
     /* check if user specified some command */
     if (options.generate_client_cert)
     {
@@ -390,6 +394,7 @@ int_t main(int argc, char *argv[])
 
     if (options.url_test)
     {
+        tls_init();
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("***       Generic URL test     ***\r\n");
         TRACE_WARNING("**********************************\r\n");
@@ -442,6 +447,7 @@ int_t main(int argc, char *argv[])
 
     if (options.cloud_test)
     {
+        tls_init();
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("***       Cloud API test       ***\r\n");
         TRACE_WARNING("**********************************\r\n");
@@ -498,6 +504,7 @@ int_t main(int argc, char *argv[])
         exit(1);
     }
 
+    tls_init();
     mqtt_init();
     server_init(options.docker_test);
 
