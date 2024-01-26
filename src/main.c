@@ -515,7 +515,7 @@ int_t main(int argc, char *argv[])
     }
 
     // TODO: Fix double initialization of settings
-    // settings_deinit_all();
+    settings_deinit_all();
     get_settings()->internal.autogen_certs = true;
     main_init_settings(cwd, options.base_path);
     tls_init();

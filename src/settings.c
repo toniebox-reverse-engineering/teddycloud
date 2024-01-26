@@ -450,7 +450,9 @@ void settings_deinit(uint8_t overlayNumber)
     if (overlayNumber == 0)
     {
         osFreeMem(config_file_path);
+        config_file_path = NULL;
         osFreeMem(config_overlay_file_path);
+        config_overlay_file_path = NULL;
     }
 
     osFreeMem(Option_Map_Overlay[overlayNumber]);
