@@ -21,6 +21,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [
+                "--cloud-test",
                 "/v1/time"
             ],
             "stopAtEntry": false,
@@ -33,14 +34,15 @@
             },
         },
         {
-            "name": "[linux] teddyCloud dencode test",
+            "name": "[linux] teddyCloud encode test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [
-                "DENCODE",
+                "--encode",
                 "https://download.samplelib.com/mp3/sample-15s.mp3",
-                "data/library/dencode.taf",
+                "--destination",
+                "data/library/test-encode.taf",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
