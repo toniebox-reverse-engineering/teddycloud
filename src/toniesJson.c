@@ -34,6 +34,15 @@ void tonies_init()
     }
 }
 
+void tonies_updatePeriodically()
+{
+    while (true)
+    {
+        sleep(60 * 60 * 6);
+        tonies_update();
+    }
+}
+
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
