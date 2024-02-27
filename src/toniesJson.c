@@ -39,7 +39,10 @@ void tonies_updatePeriodically()
     while (true)
     {
         sleep(60 * 60 * 6);
-        tonies_update();
+        if (get_settings()->core.tonies_json_auto_update)
+        {
+            tonies_update();
+        }
     }
 }
 
