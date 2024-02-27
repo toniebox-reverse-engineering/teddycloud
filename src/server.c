@@ -527,8 +527,8 @@ void server_init(bool test)
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
-        osCreateTask("Update tonies.json", &tonies_updatePeriodically, NULL, 1024, 0);
     }
+    osCreateTask("Update tonies.json", &tonies_updatePeriodically, NULL, 1024, 0);
 
     systime_t last = osGetSystemTime();
     size_t openConnectionsLast = 0;
