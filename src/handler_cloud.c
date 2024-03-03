@@ -449,10 +449,18 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             TRACE_INFO("Found streaming content\r\n");
         }
 
-        error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[osStrlen(client_ctx->settings->internal.datadirfull)], tonieInfo->stream);
-        if (error)
+        size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
+        if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], tonieInfo->stream);
+            if (error)
+            {
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+            }
+        }
+        else
+        {
+            TRACE_ERROR(" >> path %s is not within the data dir %s\r\n", tonieInfo->contentPath, client_ctx->settings->internal.datadirfull);
         }
     }
     else
