@@ -6,6 +6,7 @@
 #include "net_config.h"
 #include "server_helpers.h"
 #include "toniesJson.h"
+#include "handler.h"
 
 char *content_jsonGetString(cJSON *jsonElement, char *name)
 {
@@ -94,6 +95,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
     content_json->skip_seconds = 0;
     content_json->cache = false;
     content_json->_updated = false;
+    content_json->_source_is_taf = false;
     content_json->_stream = false;
     content_json->_streamFile = custom_asprintf("%s.stream", content_path);
     content_json->cloud_ruid = NULL;
@@ -159,12 +161,19 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
 
                 if (osStrlen(content_json->source) > 0)
                 {
-                    content_json->_stream = true;
-                    if (!content_json->live || !content_json->nocloud)
+                    if (isValidTaf(content_json->source))
                     {
-                        content_json->live = true;
-                        content_json->nocloud = true;
-                        content_json->_updated = true;
+                        content_json->_source_is_taf = true;
+                    }
+                    else
+                    {
+                        content_json->_stream = true;
+                        if (!content_json->live || !content_json->nocloud)
+                        {
+                            content_json->live = true;
+                            content_json->nocloud = true;
+                            content_json->_updated = true;
+                        }
                     }
                 }
 

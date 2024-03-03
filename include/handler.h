@@ -88,6 +88,7 @@ char *strupr(char input[]);
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings);
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
+bool_t isValidTaf(const char *contentPath);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings);

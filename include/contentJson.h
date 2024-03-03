@@ -17,6 +17,7 @@ typedef struct
     bool_t cloud_override;
     char *tonie_model;
 
+    bool_t _source_is_taf;
     bool_t _stream;
     char *_streamFile;
     uint32_t _version;
