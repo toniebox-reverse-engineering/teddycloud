@@ -24,3 +24,5 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 void time_format(time_t time, char_t *buffer);
 void time_format_current(char_t *buffer);
 char *custom_asprintf(const char *fmt, ...);
+
+error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri);

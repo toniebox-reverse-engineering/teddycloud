@@ -295,22 +295,6 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     return error;
 }
 
-error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
-{
-    error_t error = NO_ERROR;
-
-    error = httpSendErrorResponse(connection, 404,
-                                  "The requested page could not be found");
-
-    /*
-    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
-    error = httpSendResponse(connection, newUri);
-    free(newUri);
-    */
-
-    return error;
-}
-
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 {
     if (!strncmp(value, "BD ", 3))
