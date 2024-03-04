@@ -275,7 +275,16 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+            error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+            if (error == ERROR_NOT_FOUND)
+            {
+                return httpServerUriNotFoundCallback(connection, uri);
+            }
+            else if (error != NO_ERROR)
+            {
+                return httpServerUriErrorCallback(connection, uri, error);
+            }
+            return error;
         }
     }
 

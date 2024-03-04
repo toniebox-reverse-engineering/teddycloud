@@ -783,13 +783,13 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
     return error;
 }
 
-
 error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
 {
     error_t error = NO_ERROR;
 
-    error = httpSendErrorResponse(connection, 404,
-                                  "The requested page could not be found");
+    error = httpSendErrorResponse(connection, 404, "The requested page could not be found");
+
+    TRACE_WARNING(" >> 404 %s\r\n", uri);
 
     /*
     char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
@@ -798,4 +798,13 @@ error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *
     */
 
     return error;
+}
+error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri, error_t error)
+{
+    error_t new_error = NO_ERROR;
+
+    new_error = httpSendErrorResponse(connection, 500, "Internal Server Error");
+
+    TRACE_WARNING(" >> 500 with error code %" PRIu32 " on %s\r\n", error, uri);
+    return new_error;
 }
