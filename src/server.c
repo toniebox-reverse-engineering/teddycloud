@@ -63,6 +63,8 @@ request_type_t request_paths[] = {
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
     {REQ_GET, "/content/download/", &handleApiContentDownload},
+    {REQ_GET, "/content/json/get/", &handleApiContentJsonGet},
+    {REQ_POST, "/content/json/set/", &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", &handleApiContentJson},
     {REQ_GET, "/content/", &handleApiContent},
     /* custom API */

@@ -1767,3 +1767,91 @@ error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, cons
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
     return httpSendResponseUnsafe(connection, uri, file_path);
 }
+
+error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, char **contentPath)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+    // /content/json/get/3d8c0f13500304e0
+    if (osStrlen(uri) != 34)
+    {
+        return ERROR_FAILURE;
+    }
+    char ruid[17];
+    osStrcpy(ruid, &uri[osStrlen(uri) - 16]);
+    getContentPathFromCharRUID(ruid, contentPath, client_ctx->settings);
+
+    return NO_ERROR;
+}
+error_t handleApiContentJsonGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    // TODO: ERROR MESSAGES HTTP
+    char *contentPath;
+    char *contentJsonPath;
+    error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
+    error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
+    osFreeMem(contentPath);
+    osFreeMem(contentJsonPath);
+    return error;
+}
+
+error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    // TODO: ERROR MESSAGES HTTP
+    char *contentPath;
+    error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    char_t post_data[BODY_BUFFER_SIZE];
+    size_t size;
+    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    error = httpReceive(connection, &post_data, BODY_BUFFER_SIZE, &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    contentJson_t content_json;
+    load_content_json(contentPath, &content_json, true);
+
+    char item_data[256];
+    bool_t updated = false;
+    if (queryGet(post_data, "source", item_data, sizeof(item_data)))
+    {
+        if (osStrcmp(item_data, content_json.source))
+        {
+            content_json.source = item_data;
+            updated = true;
+        }
+    }
+
+    if (updated)
+    {
+        save_content_json(contentPath, &content_json);
+        TRACE_INFO("Updated content json of %s\r\n", contentPath);
+    }
+    osFreeMem(contentPath);
+
+    char *message = "success";
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    httpWriteResponseString(connection, message, false);
+
+    return NO_ERROR;
+}
