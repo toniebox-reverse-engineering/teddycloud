@@ -27,3 +27,5 @@ char *custom_asprintf(const char *fmt, ...);
 
 error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri);
 error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri, error_t error);
+
+void resolveSpecialPathPrefix(char **path, settings_t *settings);

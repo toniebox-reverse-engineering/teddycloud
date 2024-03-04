@@ -86,6 +86,10 @@ uint32_t content_jsonGetUInt32(cJSON *jsonElement, char *name)
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing)
 {
+    return load_content_json_settings(content_path, content_json, create_if_missing, get_settings());
+}
+error_t load_content_json_settings(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings)
+{
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
     osMemset(content_json, 0, sizeof(contentJson_t));
@@ -141,6 +145,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 content_json->live = content_jsonGetBool(contentJson, "live");
                 content_json->nocloud = content_jsonGetBool(contentJson, "nocloud");
                 content_json->source = content_jsonGetString(contentJson, "source");
+                content_json->_source_resolved = content_jsonGetString(contentJson, "source");
                 content_json->skip_seconds = content_jsonGetUInt32(contentJson, "skip_seconds");
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
@@ -161,7 +166,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
 
                 if (osStrlen(content_json->source) > 0)
                 {
-                    if (isValidTaf(content_json->source))
+                    resolveSpecialPathPrefix(&content_json->_source_resolved, settings);
+                    if (isValidTaf(content_json->_source_resolved))
                     {
                         content_json->_source_is_taf = true;
                     }
@@ -201,7 +207,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
         error = save_content_json(content_path, content_json);
         if (error == NO_ERROR)
         {
-            load_content_json(content_path, content_json, true);
+            load_content_json_settings(content_path, content_json, true, settings);
         }
     }
 
@@ -314,5 +320,11 @@ void free_content_json(contentJson_t *content_json)
         osFreeMem(content_json->_streamFile);
         content_json->_streamFile = NULL;
     }
+    if (content_json->_source_resolved)
+    {
+        osFreeMem(content_json->_source_resolved);
+        content_json->_source_resolved = NULL;
+    }
+
     content_json->cloud_auth_len = 0;
 }

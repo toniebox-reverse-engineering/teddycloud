@@ -808,3 +808,29 @@ error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri
     TRACE_WARNING(" >> 500 with error code %" PRIu32 " on %s\r\n", error, uri);
     return new_error;
 }
+
+void resolveSpecialPathPrefix(char **path, settings_t *settings)
+{
+    const char *prefixMap[][2] = {
+        {"data://", settings->internal.datadirfull},
+        {"content://", settings->internal.contentdirfull},
+        {"lib://", settings->internal.librarydirfull},
+        {"data-global://", get_settings()->internal.datadirfull},
+        {"content-global://", get_settings()->internal.contentdirfull},
+        {"lib-global://", get_settings()->internal.librarydirfull}};
+
+    size_t prefixMapSize = sizeof(prefixMap) / sizeof(prefixMap[0]);
+    for (int i = 0; i < prefixMapSize; i++)
+    {
+        size_t prefixLen = strlen(prefixMap[i][0]);
+        if (osStrncmp(*path, prefixMap[i][0], prefixLen) == 0)
+        {
+            const char *remainingPath = *path + prefixLen;
+            const char *newPath = prefixMap[i][1];
+            char *resolvedPath = custom_asprintf("%s/%s", newPath, remainingPath);
+            osFreeMem(*path);
+            *path = resolvedPath;
+            return;
+        }
+    }
+}
