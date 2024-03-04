@@ -83,6 +83,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_GET, "/api/getTagIndex", &handleApiTagIndex},
     {REQ_GET, "/api/getBoxes", &handleApiGetBoxes},
     {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
     {REQ_GET, "/api/get/", &handleApiGet},

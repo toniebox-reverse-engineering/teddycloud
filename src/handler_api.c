@@ -1888,3 +1888,171 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
 
     return NO_ERROR;
 }
+
+error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    FsDir *dir = fsOpenDir(rootPath);
+    if (dir == NULL)
+    {
+        TRACE_ERROR("Failed to open dir '%s'\r\n", rootPath);
+        return ERROR_FAILURE;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "tags");
+
+    while (true)
+    {
+        FsDirEntry entry;
+        if (fsReadDir(dir, &entry) != NO_ERROR)
+        {
+            fsCloseDir(dir);
+            break;
+        }
+
+        if (!(entry.attributes & FS_FILE_ATTR_DIRECTORY))
+        {
+            continue;
+        }
+        if (osStrlen(entry.name) != 8)
+        {
+            continue;
+        }
+
+        bool_t isHex = true;
+        for (size_t i = 0; i < 8; i++)
+        {
+            char letter = entry.name[i];
+            if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
+            {
+            }
+            else
+            {
+                isHex = false;
+                break;
+            }
+        }
+        if (!isHex)
+        {
+            continue;
+        }
+
+        char ruid[17];
+        osStrcpy(ruid, entry.name);
+
+        char *subDirPath = custom_asprintf("%s/%s", rootPath, entry.name);
+        FsDir *subDir = fsOpenDir(subDirPath);
+
+        while (true)
+        {
+            FsDirEntry subEntry;
+            if (fsReadDir(subDir, &subEntry) != NO_ERROR)
+            {
+                fsCloseDir(subDir);
+                break;
+            }
+
+            if ((subEntry.attributes & FS_FILE_ATTR_DIRECTORY))
+            {
+                continue;
+            }
+            if (osStrlen(subEntry.name) != 13 && osStrcmp(&subEntry.name[8], ".json"))
+            {
+                continue;
+            }
+
+            isHex = true;
+            for (size_t i = 0; i < 8; i++)
+            {
+                char letter = subEntry.name[i];
+                if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
+                {
+                }
+                else
+                {
+                    isHex = false;
+                    break;
+                }
+            }
+            if (!isHex)
+            {
+                continue;
+            }
+
+            osStrncpy(&ruid[8], subEntry.name, 8);
+            ruid[16] = '\0';
+            for (size_t i = 0; ruid[i] != '\0'; i++)
+            {
+                ruid[i] = tolower(ruid[i]);
+            }
+            char *tagPath = custom_asprintf("%s/%s", subDirPath, subEntry.name);
+            tagPath[osStrlen(tagPath) - 5] = '\0';
+            tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
+
+            contentJson_t contentJson;
+            load_content_json(tagPath, &contentJson, false);
+
+            if (contentJson._valid)
+            {
+                cJSON *jsonEntry = cJSON_CreateObject();
+                cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
+
+                char huid[24];
+                for (size_t i = 0; i < 8; i++)
+                {
+                    size_t hcharId = (i * 3);
+                    size_t rcharId = 16 - (i * 2) - 1;
+                    huid[hcharId + 2] = ':';
+                    huid[hcharId + 1] = toupper(ruid[rcharId]);
+                    huid[hcharId] = toupper(ruid[rcharId - 1]);
+                }
+                huid[23] = '\0';
+                cJSON_AddStringToObject(jsonEntry, "uid", huid);
+
+                if (!osStrncmp(ruid, "0000000", 7))
+                {
+                    cJSON_AddStringToObject(jsonEntry, "type", "system");
+                }
+                else
+                {
+                    cJSON_AddStringToObject(jsonEntry, "type", "tag");
+                }
+                cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
+                cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+
+                toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
+                if (item != NULL)
+                {
+                    cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
+                    cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
+                    cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
+                    cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
+                    cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+                }
+
+                cJSON_AddItemToArray(jsonArray, jsonEntry);
+            }
+
+            freeTonieInfo(tafInfo);
+            free_content_json(&contentJson);
+            osFreeMem(tagPath);
+        }
+        osFreeMem(subDirPath);
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
