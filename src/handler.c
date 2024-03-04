@@ -486,3 +486,27 @@ error_t httpFlushStream(HttpConnection *connection)
 {
     return httpCloseStream(connection);
 }
+
+void setLastUid(uint64_t uid, settings_t *settings)
+{
+    uint16_t cuid[9];
+    osSprintf((char *)cuid, "%016" PRIX64 "", uid);
+    uint16_t cruid[9];
+    for (uint8_t i = 0; i < 8; i++)
+    {
+        cruid[i] = cuid[7 - i];
+    }
+    cruid[8] = 0;
+
+    setLastRuid((char *)cruid, settings);
+}
+void setLastRuid(char ruid[17], settings_t *settings)
+{
+    char *last_ruid = settings->internal.last_ruid;
+    osStrcpy(last_ruid, ruid);
+    for (size_t i = 0; last_ruid[i] != '\0'; i++)
+    {
+        last_ruid[i] = tolower(last_ruid[i]);
+    }
+    osStrcpy(get_settings()->internal.last_ruid, last_ruid);
+}

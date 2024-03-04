@@ -188,6 +188,7 @@ typedef struct
     settings_internal_toniebox_firmware_t toniebox_firmware;
 
     time_t last_connection;
+    char *last_ruid;
     bool online;
 } settings_internal_t;
 

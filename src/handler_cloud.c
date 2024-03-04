@@ -212,6 +212,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     if (osStrlen(ruid) != 16)
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
+        return ERROR_NOT_FOUND;
     }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
@@ -220,6 +221,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudClaimTime", current_time, client_ctx);
+    setLastRuid(ruid, client_ctx->settings);
 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
@@ -284,6 +286,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
     ruid[16] = 0;
+    if (osStrlen(ruid) != 16)
+    {
+        TRACE_WARNING(" >>  invalid URI\r\n");
+        return ERROR_NOT_FOUND;
+    }
 
     if (connection->request.Range.start != 0)
     {
@@ -293,14 +300,13 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudContentTime", current_time, client_ctx);
-
-    if (osStrlen(ruid) != 16)
-    {
-        TRACE_WARNING(" >>  invalid URI\r\n");
-    }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
+    if (!noPassword)
+    {
+        setLastRuid(ruid, client_ctx->settings);
+    }
 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
