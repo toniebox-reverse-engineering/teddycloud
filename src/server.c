@@ -276,7 +276,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
             error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
-            if (error == ERROR_NOT_FOUND)
+            if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
             {
                 return httpServerUriNotFoundCallback(connection, uri);
             }
