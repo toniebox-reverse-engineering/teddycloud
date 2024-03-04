@@ -1789,69 +1789,74 @@ error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, 
 }
 error_t handleApiContentJsonGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    // TODO: ERROR MESSAGES HTTP
     char *contentPath;
     char *contentJsonPath;
-    error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
-    if (error != NO_ERROR)
+    do
     {
-        return error;
-    }
+        error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
+        if (error != NO_ERROR)
+        {
+            break;
+        }
 
-    contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
-    error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
-    osFreeMem(contentPath);
-    osFreeMem(contentJsonPath);
-    return error;
+        contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
+        error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
+        osFreeMem(contentPath);
+        osFreeMem(contentJsonPath);
+        return error;
+    } while (0);
+    return httpServerUriNotFoundCallback(connection, uri);
 }
 
 error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    // TODO: ERROR MESSAGES HTTP
     char *contentPath;
-    error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
-    if (error != NO_ERROR)
+    do
     {
-        return error;
-    }
-
-    char_t post_data[BODY_BUFFER_SIZE];
-    size_t size;
-    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
-    {
-        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
-        return ERROR_BUFFER_OVERFLOW;
-    }
-    error = httpReceive(connection, &post_data, BODY_BUFFER_SIZE, &size, 0x00);
-    if (error != NO_ERROR)
-    {
-        return error;
-    }
-
-    contentJson_t content_json;
-    load_content_json(contentPath, &content_json, true);
-
-    char item_data[256];
-    bool_t updated = false;
-    if (queryGet(post_data, "source", item_data, sizeof(item_data)))
-    {
-        if (osStrcmp(item_data, content_json.source))
+        error_t error = handleApiContentJsonBase(connection, uri, queryString, client_ctx, &contentPath);
+        if (error != NO_ERROR)
         {
-            content_json.source = item_data;
-            updated = true;
+            break;
         }
-    }
 
-    if (updated)
-    {
-        save_content_json(contentPath, &content_json);
-        TRACE_INFO("Updated content json of %s\r\n", contentPath);
-    }
-    osFreeMem(contentPath);
+        char_t post_data[BODY_BUFFER_SIZE];
+        size_t size;
+        if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+        {
+            TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+            break;
+        }
+        error = httpReceive(connection, &post_data, BODY_BUFFER_SIZE, &size, 0x00);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Could not read post data\r\n");
+            break;
+        }
 
-    char *message = "success";
-    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
-    httpWriteResponseString(connection, message, false);
+        contentJson_t content_json;
+        load_content_json(contentPath, &content_json, true);
 
-    return NO_ERROR;
+        char item_data[256];
+        bool_t updated = false;
+        if (queryGet(post_data, "source", item_data, sizeof(item_data)))
+        {
+            if (osStrcmp(item_data, content_json.source))
+            {
+                content_json.source = item_data;
+                updated = true;
+            }
+        }
+
+        if (updated)
+        {
+            save_content_json(contentPath, &content_json);
+            TRACE_INFO("Updated content json of %s\r\n", contentPath);
+        }
+        osFreeMem(contentPath);
+
+        char *message = "success";
+        httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+        return httpWriteResponseString(connection, message, false);
+    } while (0);
+    return httpServerUriNotFoundCallback(connection, uri);
 }
