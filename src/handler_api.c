@@ -1840,6 +1840,40 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
             updated = true;
         }
     }
+    if (queryGet(post_data, "tonie_model", item_data, sizeof(item_data)))
+    {
+        if (osStrcmp(item_data, content_json.tonie_model))
+        {
+            content_json.tonie_model = item_data;
+            updated = true;
+        }
+    }
+    if (queryGet(post_data, "live", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.live)
+        {
+            content_json.live = target_value;
+            updated = true;
+        }
+    }
+    if (queryGet(post_data, "nocloud", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.nocloud)
+        {
+            content_json.nocloud = target_value;
+            updated = true;
+        }
+    }
 
     if (updated)
     {
