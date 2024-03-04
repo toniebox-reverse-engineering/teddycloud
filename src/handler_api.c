@@ -2028,13 +2028,20 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
+                cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
                 if (item != NULL)
                 {
-                    cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
                     cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
                     cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
                     cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
                     cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+                }
+                else
+                {
+                    cJSON_AddStringToObject(tonieInfoJson, "model", "");
+                    cJSON_AddStringToObject(tonieInfoJson, "series", "");
+                    cJSON_AddStringToObject(tonieInfoJson, "episode", "");
+                    cJSON_AddStringToObject(tonieInfoJson, "picture", "");
                 }
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
