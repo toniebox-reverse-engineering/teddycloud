@@ -287,7 +287,7 @@ void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, u
         else
         {
             // TODO add to tonies.custom.json + report
-            TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
+            TRACE_DEBUG("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
         }
     }
 }
