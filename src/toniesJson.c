@@ -236,7 +236,20 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
                 item->title = tonies_jsonGetString(tonieJson, "title");
                 item->episodes = tonies_jsonGetString(tonieJson, "episodes");
                 item->series = tonies_jsonGetString(tonieJson, "series");
-                // TODO Tracks
+
+                const cJSON *tracks = cJSON_GetObjectItemCaseSensitive(tonieJson, "tracks");
+                item->tracks_count = cJSON_GetArraySize(tracks);
+                if (item->tracks_count > 0)
+                {
+                    item->tracks = osAllocMem(item->tracks_count * sizeof(char *));
+                    uint8_t i = 0;
+                    const cJSON *track;
+                    cJSON_ArrayForEach(track, tracks)
+                    {
+                        item->tracks[i++] = strdup(track->valuestring);
+                    }
+                }
+
                 char *releaseString = tonies_jsonGetString(tonieJson, "release");
                 item->release = atoi(releaseString);
                 osFreeMem(releaseString);
@@ -353,6 +366,14 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         osFreeMem(item->language);
         osFreeMem(item->category);
         osFreeMem(item->picture);
+        if (item->tracks_count > 0)
+        {
+            for (size_t i = 0; i < item->tracks_count; i++)
+            {
+                osFreeMem(item->tracks[i]);
+            }
+            osFreeMem(item->tracks);
+        }
     }
     osFreeMem(toniesCache);
 #endif

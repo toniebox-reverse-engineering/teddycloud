@@ -18,7 +18,8 @@ typedef struct
     char *title;
     char *series;
     char *episodes;
-    // *tracks;
+    char **tracks;
+    uint8_t tracks_count;
     uint32_t release;
     char *language;
     char *category;
