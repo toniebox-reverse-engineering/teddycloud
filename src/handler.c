@@ -41,7 +41,18 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    char line[256];
 
+    if (ctx->status != PROX_STATUS_HEAD) // Only once
+    {
+        char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+        if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+        {
+            osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+            httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+            line[0] = '\0';
+        }
+    }
     switch (ctx->api)
     {
     case V1_FRESHNESS_CHECK:
@@ -50,11 +61,13 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
             break;
         }
     default:
-        char line[128];
         if (header)
         {
-            TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
-            osSprintf(line, "%s: %s\r\n", header, value);
+            if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
+            {
+                TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+                osSprintf(line, "%s: %s\r\n", header, value);
+            }
         }
         else
         {
