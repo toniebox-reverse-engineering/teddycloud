@@ -2026,15 +2026,35 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 }
                 cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
                 cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+                cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
+                cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
+                cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
+
+                if (tafInfo->valid)
+                {
+                    char *audioUrl = custom_asprintf("%s/v1/content/%s", client_ctx->settings->core.host_url, ruid);
+                    cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
+                    osFreeMem(audioUrl);
+                }
+                else
+                {
+                    cJSON_AddStringToObject(jsonEntry, "audioUrl", "");
+                }
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
                 cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
+                cJSON *tracksJson = cJSON_CreateArray();
+                cJSON_AddItemToObject(tonieInfoJson, "tracks", tracksJson);
                 if (item != NULL)
                 {
                     cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
                     cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
                     cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
                     cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+                    for (size_t i = 0; i < item->tracks_count; i++)
+                    {
+                        cJSON_AddItemToArray(tracksJson, cJSON_CreateString(item->tracks[i]));
+                    }
                 }
                 else
                 {
