@@ -508,5 +508,8 @@ void setLastRuid(char ruid[17], settings_t *settings)
     {
         last_ruid[i] = tolower(last_ruid[i]);
     }
-    osStrcpy(get_settings()->internal.last_ruid, last_ruid);
+    if (get_settings() != settings)
+    {
+        osStrcpy(get_settings()->internal.last_ruid, last_ruid);
+    }
 }
