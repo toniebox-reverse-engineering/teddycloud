@@ -1051,6 +1051,10 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    }
 #endif
 
+   if (connection->private.client_ctx.skip_taf_header) {
+      length -= 4096;
+   }
+
    //Format HTTP response header
    // TODO add status 416 on invalid ranges
    if (connection->request.Range.start > 0)
@@ -1063,12 +1067,12 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
          connection->request.Range.size = length;
          if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
             connection->request.Range.end = connection->request.Range.size - 1;
-            
+
          if (connection->response.contentRange == NULL)
             connection->response.contentRange = osAllocMem(255);
 
          osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
-         connection->response.statusCode = 206;
+         connection->response.statusCode = 206;            
          connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
          TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
       }
@@ -1105,6 +1109,13 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       return error;
    }
 
+   if (connection->private.client_ctx.skip_taf_header) {
+      if (connection->request.Range.start > 0) {
+         connection->request.Range.start += 4096;
+      } else {
+         fsSeekFile(file, 4096, FS_SEEK_SET);
+      }
+   }
    if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
    {
       TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);

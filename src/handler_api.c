@@ -2032,7 +2032,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
 
                 if (tafInfo->valid)
                 {
-                    char *audioUrl = custom_asprintf("%s/v1/content/%s", client_ctx->settings->core.host_url, ruid);
+                    char *audioUrl = custom_asprintf("%s/v1/content/%s?skip_header=true", client_ctx->settings->core.host_url, ruid);
                     cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
                     osFreeMem(audioUrl);
                 }

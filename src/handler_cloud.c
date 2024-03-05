@@ -284,6 +284,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
+    char queryValue[16];
+    if (queryGet(queryString, "skip_header", queryValue, sizeof(queryValue)))
+    {
+        if (queryValue[0] == 't')
+        {
+            connection->private.client_ctx.skip_taf_header = true;
+        }
+    }
+
     osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
     ruid[16] = 0;
     if (osStrlen(ruid) != 16)
