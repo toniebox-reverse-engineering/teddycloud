@@ -2037,7 +2037,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 {
                     if (contentJson._has_cloud_auth)
                     {
-                        char *downloadTriggerUrl = custom_asprintf("%s/content/download%s?skip_header=true", client_ctx->settings->core.host_url, &tagPath[osStrlen(rootPath)]);
+                        char *downloadTriggerUrl = custom_asprintf("%s/content/download%s", client_ctx->settings->core.host_url, &tagPath[osStrlen(rootPath)]);
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
                         osFreeMem(downloadTriggerUrl);
                     }
