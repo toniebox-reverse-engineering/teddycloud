@@ -62,7 +62,7 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         }
     }
 }
-error_t tonies_update()
+error_t tonies_update_old()
 {
     TRACE_INFO("Updating tonies.json from GitHub...\r\n");
     cbr_ctx_t ctx;
@@ -97,7 +97,7 @@ error_t tonies_update()
     return error;
 }
 
-error_t tonies_update_new()
+error_t tonies_update()
 {
     TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
     cbr_ctx_t ctx;

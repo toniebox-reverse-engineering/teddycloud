@@ -30,6 +30,8 @@
 
 #include "handler_cloud.h"
 
+#define MAX_REDIRECTS 5
+
 error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
                                       TlsContext *tlsContext, const char *client_ca, const char *client_crt, const char *client_key)
 {
@@ -119,6 +121,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr->ctx)->client_ctx;
     settings_t *settings;
     error_t error = NO_ERROR;
+    static int redirect_counter = 0;
 
     if (client_ctx == NULL)
     {
@@ -306,7 +309,39 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (status)
             {
                 TRACE_INFO("HTTP code: %u\r\n", status);
+
+                if (status == 302 && redirect_counter < MAX_REDIRECTS)
+                {
+                    // Extract location from response header
+                    const char *location = httpClientGetHeaderField(&httpClientContext, "Location");
+                    if (!location)
+                    {
+                        TRACE_ERROR("302 Found but no Location header present.\r\n");
+                        error = ERROR_INVALID_RESPONSE;
+                        break;
+                    }
+
+                    TRACE_INFO("Redirecting to: %s\r\n", location);
+
+                    redirect_counter++;
+
+                    // Disconnect HTTP client
+                    httpClientDisconnect(&httpClientContext);
+
+                    char uri_base[256], uri_path[256], query_string[256];
+                    // TODO: handling of relative URLs
+                    split_url(location, uri_base, uri_path, query_string);
+
+                    TRACE_DEBUG("URI Base: %s\r\n", uri_base);
+                    TRACE_DEBUG("URI Path: %s\r\n", uri_path);
+                    TRACE_DEBUG("Query String: %s\r\n", query_string);
+
+                    error = web_request(uri_base, 443, true, uri_path, query_string, "GET", NULL, 0, NULL, cbr, false, false);
+                    break;
+                }
             }
+
+            redirect_counter = 0;
 
             if (cbr && cbr->response)
             {
@@ -428,4 +463,50 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
     httpClientDeinit(&httpClientContext);
 
     return error;
+}
+
+void split_url(const char *location, char *uri_base, char *uri_path, char *query_string)
+{
+    const char *scheme_end = strstr(location, "://");
+    if (!scheme_end)
+    {
+        TRACE_ERROR("Invalid URL: Scheme not found\n");
+        return;
+    }
+    // Move pointer to start after "://"
+    scheme_end += 3;
+
+    const char *path_start = strchr(scheme_end, '/');
+    if (!path_start)
+    {
+        TRACE_ERROR("Invalid URL: Path not found\n");
+        return;
+    }
+    const char *query_start = strchr(path_start, '?');
+
+    if (query_start)
+    {
+        // Copy base URI without scheme
+        strncpy(uri_base, scheme_end, path_start - scheme_end);
+        uri_base[path_start - scheme_end] = '\0';
+
+        // Copy path
+        strncpy(uri_path, path_start, query_start - path_start);
+        uri_path[query_start - path_start] = '\0';
+
+        // Copy query string
+        strcpy(query_string, query_start + 1);
+    }
+    else
+    {
+        // Copy base URI without scheme
+        strncpy(uri_base, scheme_end, path_start - scheme_end);
+        uri_base[path_start - scheme_end] = '\0';
+
+        // Copy path
+        strcpy(uri_path, path_start);
+
+        // No query string
+        query_string[0] = '\0';
+    }
 }
