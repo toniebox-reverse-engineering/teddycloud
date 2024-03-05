@@ -106,6 +106,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     content_json->cloud_auth = NULL;
     content_json->cloud_auth_len = 0;
     content_json->cloud_override = false;
+    content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
     content_json->_valid = false;
 
@@ -154,12 +155,12 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
                 content_json->tonie_model = content_jsonGetString(contentJson, "tonie_model");
 
                 // TODO: use checkCustomTonie to validate
-                if (osStrlen(content_json->cloud_ruid) != 16)
+                // TODO validate rUID
+                if (osStrlen(content_json->cloud_ruid) == 16 && content_json->cloud_auth_len == AUTH_TOKEN_LENGTH)
                 {
-                    // TODO validate rUID
-                    content_json->cloud_override = false;
+                    content_json->_has_cloud_auth = true;
                 }
-                if (content_json->cloud_auth_len != AUTH_TOKEN_LENGTH)
+                else
                 {
                     content_json->cloud_override = false;
                 }

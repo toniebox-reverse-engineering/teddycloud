@@ -582,7 +582,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     load_content_json(filePathAbsolute, &contentJson, false);
                     item = tonies_byModel(contentJson.tonie_model);
 
-                    if (!fsFileExists(filePathAbsolute) && contentJson.cloud_ruid != NULL && osStrlen(contentJson.cloud_ruid) == 16 && contentJson.cloud_auth_len == 32)
+                    if (contentJson._has_cloud_auth)
                     {
                         cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
                     }
@@ -2030,15 +2030,21 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-                if (tafInfo->valid)
+                char *audioUrl = custom_asprintf("%s/v1/content/%s?skip_header=true", client_ctx->settings->core.host_url, ruid);
+                cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
+                osFreeMem(audioUrl);
+                if (!tafInfo->exists)
                 {
-                    char *audioUrl = custom_asprintf("%s/v1/content/%s?skip_header=true", client_ctx->settings->core.host_url, ruid);
-                    cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
-                    osFreeMem(audioUrl);
-                }
-                else
-                {
-                    cJSON_AddStringToObject(jsonEntry, "audioUrl", "");
+                    if (contentJson._has_cloud_auth)
+                    {
+                        char *downloadTriggerUrl = custom_asprintf("%s/content/download%s?skip_header=true", client_ctx->settings->core.host_url, &tagPath[osStrlen(rootPath)]);
+                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
+                        osFreeMem(downloadTriggerUrl);
+                    }
+                    else
+                    {
+                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
+                    }
                 }
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
