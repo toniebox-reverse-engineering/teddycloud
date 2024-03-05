@@ -62,40 +62,6 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         }
     }
 }
-error_t tonies_update_old()
-{
-    TRACE_INFO("Updating tonies.json from GitHub...\r\n");
-    cbr_ctx_t ctx;
-    client_ctx_t client_ctx = {
-        .settings = get_settings(),
-    };
-
-    const char *uri = "/toniebox-reverse-engineering/tonies-json/release/tonies.json";
-    const char *queryString = NULL;
-    fillBaseCtx(NULL, uri, queryString, V1_LOG, &ctx, &client_ctx);
-    req_cbr_t cbr = {
-        .ctx = &ctx,
-        .body = &tonies_downloadBody,
-    };
-
-    ctx.file = NULL;
-    fsDeleteFile(tonies_json_tmp_path);
-    // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request("raw.githubusercontent.com", 443, true, uri, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
-    if (error == NO_ERROR)
-    {
-        fsDeleteFile(tonies_json_path);
-        fsRenameFile(tonies_json_tmp_path, tonies_json_path);
-        TRACE_INFO("... success updating tonies.json from GitHub, reloading\r\n");
-        tonies_deinit();
-        tonies_init();
-    }
-    else
-    {
-        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
-    }
-    return error;
-}
 
 error_t tonies_update()
 {
