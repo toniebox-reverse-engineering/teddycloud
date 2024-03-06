@@ -26,7 +26,23 @@
   },
   "tonies": {
     "navigationTitle": "Tonies",
-    "title": "Tonies"
+    "title": "Tonies",
+    "tonies": {
+      "navigationTitle": "Tonies",
+      "title": "Tonies"
+    },
+    "system-sounds": {
+      "navigationTitle": "System Sounds",
+      "title": "System Sounds"
+    },
+    "content": {
+      "navigationTitle": "Content",
+      "title": "Content"
+    },
+    "library": {
+      "navigationTitle": "Library",
+      "title": "Library"
+    }
   },
   "language": {
     "change": "Change language",
