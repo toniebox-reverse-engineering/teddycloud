@@ -2067,7 +2067,10 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                     cJSON_AddStringToObject(tonieInfoJson, "model", "");
                     cJSON_AddStringToObject(tonieInfoJson, "series", "");
                     cJSON_AddStringToObject(tonieInfoJson, "episode", "");
-                    cJSON_AddStringToObject(tonieInfoJson, "picture", "");
+
+                    char *picture = custom_asprintf("%s/img_unknown.png", client_ctx->settings->core.host_url);
+                    cJSON_AddStringToObject(tonieInfoJson, "picture", picture);
+                    osFreeMem(picture);
                 }
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
