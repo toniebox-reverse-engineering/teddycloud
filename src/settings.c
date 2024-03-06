@@ -178,7 +178,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password")
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)")
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id")
-    OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, FALSE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.")
+    OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.")
     OPTION_UNSIGNED("cloud.ffmpeg_stream_buffer_ms", &settings->cloud.ffmpeg_stream_buffer_ms, 5000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
 
     OPTION_TREE_DESC("toniebox", "Toniebox")
