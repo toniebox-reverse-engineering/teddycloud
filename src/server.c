@@ -293,7 +293,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     {
         uri = "/index.html";
     }
-    if (!strcmp(uri, "/web") || !strcmp(uri, "/web/"))
+
+    if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
     {
         uri = "/web/index.html";
     }
