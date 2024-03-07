@@ -65,6 +65,7 @@ typedef struct
     bool enableV1Ota;
     bool enableV2Content;
     bool cacheContent;
+    bool cacheToLibrary;
     bool markCustomTagByPass;
     bool prioCustomContent;
     bool updateOnLowerAudioId;

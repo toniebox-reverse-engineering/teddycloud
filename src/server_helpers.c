@@ -809,7 +809,7 @@ error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri
     return new_error;
 }
 
-void resolveSpecialPathPrefix(char **path, settings_t *settings)
+bool resolveSpecialPathPrefix(char **path, settings_t *settings)
 {
     const char *prefixMap[][2] = {
         {"data://", settings->internal.datadirfull},
@@ -830,7 +830,8 @@ void resolveSpecialPathPrefix(char **path, settings_t *settings)
             char *resolvedPath = custom_asprintf("%s/%s", newPath, remainingPath);
             osFreeMem(*path);
             *path = resolvedPath;
-            return;
+            return true;
         }
     }
+    return false;
 }

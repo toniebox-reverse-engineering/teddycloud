@@ -172,7 +172,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
                     {
                         content_json->_source_is_taf = true;
                     }
-                    else
+                    else if (fsFileExists(content_json->_source_resolved) || osStrstr(content_json->_source_resolved, "://"))
                     {
                         content_json->_stream = true;
                         if (!content_json->live || !content_json->nocloud)
