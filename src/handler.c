@@ -277,6 +277,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             }
             tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
 
+            settings_set_u64_array_id("internal.freshnessCache", freshResp->tonie_marked, freshResp->n_tonie_marked, ctx->client_ctx->settings->internal.overlayNumber);
+
             char line[128];
             osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
             httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);

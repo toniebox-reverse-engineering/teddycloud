@@ -16,6 +16,8 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 
+#include <byteswap.h>
+
 void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
 {
     char buffer[4];
@@ -317,6 +319,25 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         setLastRuid(ruid, client_ctx->settings);
     }
 
+    bool_t tonie_marked = false;
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV2Content)
+    {
+        uint64_t uid = strtoull(ruid, NULL, 16);
+        uid = bswap_64(uid);
+
+        size_t freshnessCacheLen = 0;
+        uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
+        for (size_t i = 0; i < freshnessCacheLen; i++)
+        {
+            if (freshnessCache[i] == uid)
+            {
+                tonie_marked = true;
+                TRACE_INFO(" >> rUID %s found in freshnessCache, refresh content\r\n", ruid);
+                break;
+            }
+        }
+    }
+
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
 
@@ -454,7 +475,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             osDelayTask(100);
         }
     }
-    else if (tonieInfo->exists && tonieInfo->valid)
+    else if (tonieInfo->exists && tonieInfo->valid && !tonie_marked)
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;

@@ -188,6 +188,8 @@ typedef struct
     settings_version_t version;
     settings_internal_toniebox_firmware_t toniebox_firmware;
 
+    uint64_t *freshnessCache;
+
     time_t last_connection;
     char *last_ruid;
     bool online;
@@ -261,6 +263,7 @@ typedef enum
     TYPE_HEX,
     TYPE_STRING,
     TYPE_FLOAT,
+    TYPE_U64_ARRAY,
     TYPE_TREE_DESC,
     TYPE_END
 } settings_type;
@@ -273,6 +276,7 @@ typedef union
     uint32_t hex_value;
     float float_value;
     const char *string_value;
+    uint64_t *u64_array;
 } setting_value_t;
 
 /**
@@ -319,6 +323,7 @@ typedef struct
     setting_value_t init;
     setting_value_t min;
     setting_value_t max;
+    size_t size;
     bool internal;
     bool overlayed;
 } setting_item_t;
@@ -329,6 +334,7 @@ typedef struct
 #define OPTION_ADV_UNSIGNED(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.unsigned_value = d}, .min = {.unsigned_value = minVal}, .max = {.unsigned_value = maxVal}, .type = TYPE_UNSIGNED, .description = desc, .label = short, .internal = i, .overlayed = ov},
 #define OPTION_ADV_FLOAT(o, p, d, minVal, maxVal, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.float_value = d}, .min = {.float_value = minVal}, .max = {.float_value = maxVal}, .type = TYPE_FLOAT, .description = desc, .label = short, .internal = i, .overlayed = ov},
 #define OPTION_ADV_STRING(o, p, d, short, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_STRING, .description = desc, .label = short, .internal = i, .overlayed = ov},
+#define OPTION_ADV_U64_ARRAY(o, p, s, short, desc, i, ov) {.option_name = o, .ptr = p, .size = s, .type = TYPE_U64_ARRAY, .description = desc, .label = short, .internal = i, .overlayed = ov},
 #define OPTION_ADV_TREE_DESC(o, p, d, desc, i, ov) {.option_name = o, .ptr = p, .init = {.string_value = d}, .type = TYPE_TREE_DESC, .description = desc, .label = NULL, .internal = i, .overlayed = ov},
 
 #define OPTION_BOOL(o, p, d, short, desc) OPTION_ADV_BOOL(o, p, d, short, desc, false, false)
@@ -336,12 +342,14 @@ typedef struct
 #define OPTION_UNSIGNED(o, p, d, min, max, short, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, short, desc, false, false)
 #define OPTION_FLOAT(o, p, d, min, max, short, desc) OPTION_ADV_FLOAT(o, p, d, min, max, short, desc, false, false)
 #define OPTION_STRING(o, p, d, short, desc) OPTION_ADV_STRING(o, p, d, short, desc, false, false)
+#define OPTION_U64_ARRAY(o, p, s, short, desc) OPTION_ADV_U64_ARRAY(o, p, s, short, desc, false, false)
 
 #define OPTION_INTERNAL_BOOL(o, p, d, desc) OPTION_ADV_BOOL(o, p, d, desc, desc, true, false)
 #define OPTION_INTERNAL_SIGNED(o, p, d, min, max, desc) OPTION_ADV_SIGNED(o, p, d, min, max, desc, desc, true, false)
 #define OPTION_INTERNAL_UNSIGNED(o, p, d, min, max, desc) OPTION_ADV_UNSIGNED(o, p, d, min, max, desc, desc, true, false)
 #define OPTION_INTERNAL_FLOAT(o, p, d, min, max, desc) OPTION_ADV_FLOAT(o, p, d, min, max, desc, desc, true, false)
 #define OPTION_INTERNAL_STRING(o, p, d, desc) OPTION_ADV_STRING(o, p, d, desc, desc, true, false)
+#define OPTION_INTERNAL_U64_ARRAY(o, p, s, desc) OPTION_ADV_U64_ARRAY(o, p, s, desc, desc, true, false)
 
 #define OPTION_TREE_DESC(o, desc) OPTION_ADV_TREE_DESC(o, NULL, NULL, desc, false, false)
 
@@ -515,6 +523,14 @@ const char *settings_get_string_id(const char *item, uint8_t settingsId);
 bool settings_set_string(const char *item, const char *value);
 bool settings_set_string_ovl(const char *item, const char *value, const char *overlay_name);
 bool settings_set_string_id(const char *item, const char *value, uint8_t settingsId);
+
+uint64_t *settings_get_u64_array(const char *item, size_t *len);
+uint64_t *settings_get_u64_array_ovl(const char *item, const char *overlay_name, size_t *len);
+uint64_t *settings_get_u64_array_id(const char *item, uint8_t settingsId, size_t *len);
+
+bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len);
+bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
+bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
 
 /**
  * @brief Retrieves the value of a floating point setting item.

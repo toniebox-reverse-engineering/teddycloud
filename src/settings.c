@@ -159,8 +159,10 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, 0, "Firmware EU ota version")
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, 0, "Firmware PD ota version")
 
-    OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID")
+    OPTION_INTERNAL_U64_ARRAY("internal.freshnessCache", &settings->internal.freshnessCache, 0, "Cache for freshnessCheck")
+
     OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, 0, "Last connection timestamp")
+    OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID")
     OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online")
 
     OPTION_TREE_DESC("cloud", "Cloud")
@@ -259,6 +261,13 @@ void overlay_settings_init()
                 break;
             case TYPE_STRING:
                 *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
+                break;
+            case TYPE_U64_ARRAY:
+                if (opt_src->size > 0)
+                {
+                    *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt_src->size);
+                    osMemcpy(*((uint64_t **)opt->ptr), *((uint64_t **)opt_src->ptr), sizeof(uint64_t *) * opt_src->size);
+                }
                 break;
             default:
                 break;
@@ -442,6 +451,13 @@ void settings_deinit(uint8_t overlayNumber)
                 osFreeMem(*((char **)opt->ptr));
             }
             break;
+        case TYPE_U64_ARRAY:
+            if (opt->size > 0)
+            {
+                osFreeMem(*((uint64_t **)opt->ptr));
+                opt->size = 0;
+            }
+            break;
         default:
             break;
         }
@@ -504,6 +520,13 @@ error_t settings_init(const char *cwd, const char *base_dir)
         case TYPE_STRING:
             TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
             *((char **)opt->ptr) = strdup(opt->init.string_value);
+            break;
+        case TYPE_U64_ARRAY:
+            TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
+            if (opt->size > 0)
+            {
+                *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
+            }
             break;
         default:
             break;
@@ -1174,6 +1197,76 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     }
 
     *ptr = strdup(value);
+
+    if (settingsId > 0)
+    {
+        opt->overlayed = true;
+    }
+    if (!opt->internal)
+    {
+        settings_changed();
+    }
+    return true;
+}
+
+uint64_t *settings_get_u64_array(const char *item, size_t *len)
+{
+    return settings_get_u64_array_id(item, 0, len);
+}
+uint64_t *settings_get_u64_array_ovl(const char *item, const char *overlay_name, size_t *len)
+{
+    return settings_get_u64_array_id(item, get_overlay_id(overlay_name), len);
+}
+uint64_t *settings_get_u64_array_id(const char *item, uint8_t settingsId, size_t *len)
+{
+    if (!item)
+    {
+        return NULL;
+    }
+
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
+    if (!opt || opt->type != TYPE_U64_ARRAY)
+    {
+        return NULL;
+    }
+
+    *len = opt->size;
+    return *(uint64_t **)opt->ptr;
+}
+
+bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len)
+{
+    return settings_set_u64_array_id(item, value, len, 0);
+}
+bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name)
+{
+    return settings_set_u64_array_id(item, value, len, get_overlay_id(overlay_name));
+}
+bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId)
+{
+    if (!item || !value)
+    {
+        return false;
+    }
+
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
+    if (!opt || opt->type != TYPE_U64_ARRAY)
+    {
+        return false;
+    }
+
+    uint64_t **ptr = (uint64_t **)opt->ptr;
+    if (*ptr)
+    {
+        osFreeMem(*ptr);
+    }
+
+    *ptr = osAllocMem(sizeof(uint64_t) * len);
+    if (*ptr)
+    {
+        osMemcpy(*ptr, value, sizeof(uint64_t) * len);
+    }
+    opt->size = len;
 
     if (settingsId > 0)
     {
