@@ -452,9 +452,166 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
     return httpWriteResponseString(connection, response, false);
 }
 
+error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char path[128];
+
+    if (!queryGet(queryString, "path", path, sizeof(path)))
+    {
+        osStrcpy(path, "/");
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    pathSafeCanonicalize(path);
+    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    pathSafeCanonicalize(pathAbsolute);
+
+    FsDir *dir = fsOpenDir(pathAbsolute);
+    if (dir == NULL)
+    {
+        TRACE_ERROR("Failed to open dir '%s'\r\n", pathAbsolute);
+        osFreeMem(pathAbsolute);
+        return ERROR_FAILURE;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+    cJSON *jsonArray = cJSON_AddArrayToObject(json, "files");
+
+    while (true)
+    {
+        FsDirEntry entry;
+
+        if (fsReadDir(dir, &entry) != NO_ERROR)
+        {
+            fsCloseDir(dir);
+            break;
+        }
+
+        if (!osStrcmp(entry.name, "."))
+        {
+            continue;
+        }
+        if (!osStrcmp(entry.name, "..") && path[0] == '\0')
+        {
+            continue;
+        }
+        bool isDir = (entry.attributes & FS_FILE_ATTR_DIRECTORY);
+        char *filePathAbsolute = custom_asprintf("%s/%s", pathAbsolute, entry.name);
+        pathSafeCanonicalize(filePathAbsolute);
+
+        cJSON *jsonEntry = cJSON_CreateObject();
+        cJSON_AddStringToObject(jsonEntry, "name", entry.name);
+        cJSON_AddNumberToObject(jsonEntry, "date", convertDateToUnixTime(&entry.modified));
+        cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
+        cJSON_AddBoolToObject(jsonEntry, "isDir", isDir);
+
+        cJSON *tafHeaderEntry = cJSON_AddObjectToObject(jsonEntry, "tafHeader");
+        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+        toniesJson_item_t *item = NULL;
+        if (tafInfo->valid)
+        {
+            cJSON_AddNumberToObject(tafHeaderEntry, "audioId", tafInfo->tafHeader->audio_id);
+            char sha1Hash[64];
+            for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
+            {
+                char tmp[3];
+                osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
+                osStrcat(sha1Hash, tmp);
+            }
+            cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
+            cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
+            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "tracks");
+            for (size_t i = 0; i < tafInfo->tafHeader->n_track_page_nums; i++)
+            {
+                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->tafHeader->track_page_nums[i]));
+            }
+
+            item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
+            freeTonieInfo(tafInfo);
+        }
+        else
+        {
+            char *json_extension = NULL;
+            contentJson_t contentJson;
+            if (isDir)
+            {
+                char *filePathAbsoluteSub = NULL;
+                FsDir *subdir = fsOpenDir(filePathAbsolute);
+                FsDirEntry subentry;
+                if (subdir != NULL)
+                {
+                    while (true)
+                    {
+                        if (fsReadDir(subdir, &subentry) != NO_ERROR || item != NULL)
+                        {
+                            fsCloseDir(subdir);
+                            break;
+                        }
+                        filePathAbsoluteSub = custom_asprintf("%s/%s", filePathAbsolute, subentry.name);
+
+                        json_extension = osStrstr(filePathAbsoluteSub, ".json");
+                        if (json_extension != NULL)
+                        {
+                            *json_extension = '\0';
+                        }
+
+                        load_content_json(filePathAbsoluteSub, &contentJson, false);
+                        item = tonies_byModel(contentJson.tonie_model);
+                        osFreeMem(filePathAbsoluteSub);
+                    }
+                }
+            }
+            else
+            {
+                json_extension = osStrstr(filePathAbsolute, ".json");
+                if (json_extension != NULL)
+                {
+                    *json_extension = '\0';
+                }
+                load_content_json(filePathAbsolute, &contentJson, false);
+                item = tonies_byModel(contentJson.tonie_model);
+
+                if (contentJson._has_cloud_auth)
+                {
+                    cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
+                }
+            }
+            free_content_json(&contentJson);
+        }
+        if (item != NULL)
+        {
+            cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
+            cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
+            cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
+            cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
+            cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+        }
+
+        osFreeMem(filePathAbsolute);
+        cJSON_AddItemToArray(jsonArray, jsonEntry);
+    }
+
+    osFreeMem(pathAbsolute);
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *jsonString = strdup("{\"files\":[]}");
+    char *jsonString; // = strdup("{\"files\":[]}");
 
     do
     {
