@@ -1972,6 +1972,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
+    osMemset(post_data, 0, BODY_BUFFER_SIZE);
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
@@ -2035,7 +2036,11 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
 
     if (updated)
     {
-        save_content_json(contentPath, &content_json);
+        error = save_content_json(contentPath, &content_json);
+        if (error != NO_ERROR)
+        {
+            return error;
+        }
         TRACE_INFO("Updated content json of %s\r\n", contentPath);
     }
     osFreeMem(contentPath);
