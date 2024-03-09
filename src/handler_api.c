@@ -519,7 +519,8 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         if (tafInfo->valid)
         {
             cJSON_AddNumberToObject(tafHeaderEntry, "audioId", tafInfo->tafHeader->audio_id);
-            char sha1Hash[64];
+            char sha1Hash[41];
+            sha1Hash[0] = '\0';
             for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
             {
                 char tmp[3];
