@@ -2227,7 +2227,6 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                     cJSON_AddStringToObject(tonieInfoJson, "episode", "");
 
                     cJSON_AddStringToObject(tonieInfoJson, "picture", "/img_unknown.png");
-                    osFreeMem(picture);
                 }
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
