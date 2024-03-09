@@ -513,11 +513,11 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
         cJSON_AddBoolToObject(jsonEntry, "isDir", isDir);
 
-        cJSON *tafHeaderEntry = cJSON_AddObjectToObject(jsonEntry, "tafHeader");
         tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
         toniesJson_item_t *item = NULL;
         if (tafInfo->valid)
         {
+            cJSON *tafHeaderEntry = cJSON_AddObjectToObject(jsonEntry, "tafHeader");
             cJSON_AddNumberToObject(tafHeaderEntry, "audioId", tafInfo->tafHeader->audio_id);
             char sha1Hash[41];
             sha1Hash[0] = '\0';
@@ -2188,14 +2188,14 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-                char *audioUrl = custom_asprintf("%s/v1/content/%s?skip_header=true", client_ctx->settings->core.host_url, ruid);
+                char *audioUrl = custom_asprintf("/v1/content/%s?skip_header=true", ruid);
                 cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
                 osFreeMem(audioUrl);
                 if (!tafInfo->exists)
                 {
                     if (contentJson._has_cloud_auth)
                     {
-                        char *downloadTriggerUrl = custom_asprintf("%s/content/download%s", client_ctx->settings->core.host_url, &tagPath[osStrlen(rootPath)]);
+                        char *downloadTriggerUrl = custom_asprintf("/content/download%s", &tagPath[osStrlen(rootPath)]);
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
                         osFreeMem(downloadTriggerUrl);
                     }
@@ -2226,8 +2226,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                     cJSON_AddStringToObject(tonieInfoJson, "series", "");
                     cJSON_AddStringToObject(tonieInfoJson, "episode", "");
 
-                    char *picture = custom_asprintf("%s/img_unknown.png", client_ctx->settings->core.host_url);
-                    cJSON_AddStringToObject(tonieInfoJson, "picture", picture);
+                    cJSON_AddStringToObject(tonieInfoJson, "picture", "/img_unknown.png");
                     osFreeMem(picture);
                 }
 
