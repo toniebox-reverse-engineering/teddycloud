@@ -91,7 +91,7 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
 
     if (queryGet(queryString, "special", special, sizeof(special)))
     {
-        TRACE_INFO("requested index for '%s'\r\n", special);
+        TRACE_DEBUG("requested index for '%s'\r\n", special);
         if (!osStrcmp(special, "library"))
         {
             *rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
