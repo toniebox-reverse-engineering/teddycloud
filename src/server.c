@@ -284,7 +284,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             }
             else if (error != NO_ERROR)
             {
-                return httpServerUriErrorCallback(connection, uri, error);
+                // return httpServerUriErrorCallback(connection, uri, error);
             }
             return error;
         }
