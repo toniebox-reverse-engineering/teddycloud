@@ -989,6 +989,7 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
 
     TRACE_INFO("Patching hostnames in '%s'\r\n", patchedPath);
 
+    uint8_t *bin_data = NULL;
     do
     {
         uint32_t bin_size = 0;
@@ -1000,7 +1001,7 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
             return ERROR_NOT_FOUND;
         }
 
-        uint8_t *bin_data = osAllocMem(bin_size);
+        bin_data = osAllocMem(bin_size);
 
         FsFile *bin = fsOpenFile(patchedPath, FS_FILE_MODE_READ);
         if (!bin)
@@ -1066,5 +1067,9 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
 
     } while (0);
 
+    if (bin_data != NULL)
+    {
+        osFreeMem(bin_data);
+    }
     return ret;
 }
