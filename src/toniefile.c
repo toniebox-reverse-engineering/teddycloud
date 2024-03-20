@@ -545,22 +545,32 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
     return NO_ERROR;
 }
 
-error_t ffmpeg_convert(const char *source, const char *target_taf, size_t skip_seconds)
+error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
-    return ffmpeg_stream(source, target_taf, skip_seconds, &active);
+    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active);
 }
 
-error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_seconds, bool_t *active)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active)
 {
-    TRACE_INFO("Encode source %s as TAF to %s and skip %" PRIuSIZE " seconds\r\n", source, target_taf, skip_seconds);
+    TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
+    for (size_t i = 0; i < source_len; i++)
+    {
+        TRACE_INFO(" %s\r\n", source[i]);
+    }
+    TRACE_INFO("as TAF to %s\r\n", target_taf);
+    if (skip_seconds > 0)
+    {
+        TRACE_INFO(" and skip %" PRIuSIZE " seconds\r\n", skip_seconds);
+    }
 
     FILE *ffmpeg_pipe = NULL;
     error_t error = NO_ERROR;
-    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source, skip_seconds);
+    size_t current_source = 0;
+    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[current_source], skip_seconds);
     if (ffmpeg_pipe == NULL)
     {
-        return -1;
+        return ERROR_ABORTED;
     }
 
     toniefile_t *taf = toniefile_create(target_taf, time(NULL));
@@ -568,7 +578,7 @@ error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_se
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
         ffmpeg_decode_audio_end(ffmpeg_pipe, error);
-        return -1;
+        return ERROR_ABORTED;
     }
 
     int16_t sample_buffer[2 * 4096];
@@ -587,6 +597,23 @@ error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_se
         else if (error == ERROR_END_OF_STREAM)
         {
             error = NO_ERROR;
+            if (++current_source < source_len)
+            {
+                ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+                TRACE_INFO("Decode next source: %s\r\n", source[current_source]);
+                ffmpeg_pipe = ffmpeg_decode_audio_start(source[current_source]);
+                if (ffmpeg_pipe == NULL)
+                {
+                    error = ERROR_ABORTED;
+                    break;
+                }
+                toniefile_new_chapter(taf);
+                continue;
+            }
+            else
+            {
+                TRACE_INFO("Encoded all sources\r\n");
+            }
             break;
         }
         error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
@@ -595,7 +622,6 @@ error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_se
             TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
             break;
         }
-        // toniefile_new_chapter(taf);
     }
 
     ffmpeg_decode_audio_end(ffmpeg_pipe, error);
@@ -609,8 +635,9 @@ error_t ffmpeg_stream(const char *source, const char *target_taf, size_t skip_se
 void ffmpeg_stream_task(void *param)
 {
     ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
-
-    ctx->error = ffmpeg_stream(ctx->source, ctx->targetFile, ctx->skip_seconds, &ctx->active);
+    char source[1][PATH_LEN];
+    strncpy(source[0], ctx->source, PATH_LEN - 1);
+    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active);
     ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }

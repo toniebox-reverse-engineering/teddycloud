@@ -23,15 +23,7 @@
 #include "mqtt.h"
 #include "cert.h"
 #include "toniefile.h"
-
-#ifdef _WIN32
-#include <direct.h>
-#define PATH_LEN 260
-#else
-#include <unistd.h>
-#include <limits.h>
-#define PATH_LEN PATH_MAX
-#endif
+#include "fs_ext.h"
 
 #define COUNT(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -196,6 +188,8 @@ int_t main(int argc, char *argv[])
     {
         const char *base_path;
         const char *source;
+        char multisource[99][PATH_LEN];
+        size_t multisource_size;
         const char *destination;
         int generate_server_certs;
         const char *generate_client_cert;
@@ -216,6 +210,7 @@ int_t main(int argc, char *argv[])
     } options = {0};
 
     options.base_path = BASE_PATH;
+    options.multisource_size = 0;
 
     do
     {
@@ -342,17 +337,29 @@ int_t main(int argc, char *argv[])
 
     if (options.encode)
     {
-        if (!options.destination)
+        options.multisource_size = argc - optind;
+
+        if (options.multisource_size == 0)
         {
-            TRACE_ERROR("Missing --destination\r\n");
+            TRACE_ERROR("Missing source files\r\n");
             exit(-1);
+        }
+        else if (options.multisource_size > 99)
+        {
+            TRACE_ERROR("Not more than 99 source files allowed!\r\n");
+            exit(-1);
+        }
+
+        for (size_t i = 0; i < options.multisource_size; i++)
+        {
+            strncpy(options.multisource[i], argv[optind + i], PATH_LEN - 1);
         }
 
 #if !defined(FFMPEG_DECODING)
         TRACE_ERROR("Feature not available in your build.\r\n");
 #else
-        TRACE_WARNING("Encode '%s' into '%s'\r\n", options.encode, options.destination);
-        int_t error = ffmpeg_convert(options.encode, options.destination, options.skip_seconds);
+        TRACE_WARNING("Encode %" PRIuSIZE " files to '%s'\r\n", options.multisource_size, options.encode);
+        int_t error = ffmpeg_convert(options.multisource, options.multisource_size, options.encode, options.skip_seconds);
         exit(error);
 #endif
     }
@@ -377,6 +384,10 @@ int_t main(int argc, char *argv[])
         }
 
         int_t error = esp32_patch_host(options.esp32_hostpatch, options.hostname, oldrtnl, oldapi);
+        if (error == 0)
+        {
+            error = esp32_fixup(options.esp32_hostpatch, true);
+        }
         exit(error);
     }
 
@@ -560,17 +571,17 @@ static void print_usage(char *argv[])
         "  --generate-server-certs\r\n"
         "    Generate default server certificates.\r\n"
         "\r\n"
-        "  --encode <FILE>\r\n"
+        "  --encode <TARGET-FILE> (--skip-seconds <SECONDS>) <SOURCE1> (<SOURCE2>...)\r\n"
 #if !defined(FFMPEG_DECODING)
         "    Encode a specified file. <NOT ENABLED IN YOUR BUILD>\r\n"
 #else
-        "    Encode a specified file.\r\n"
-        "    Requires: --destination <FILE> to specify where the encoded file will be saved.\r\n"
+        "    Encode one or more files.\r\n"
+        "    Requires: <SOURCEn> to specify the source file(s). Can be anything ffmpeg can decode (urls).\r\n"
         "    Optional: --skip-seconds <SECONDS> to skip a specified number of seconds at the start of the encoding.\r\n"
 #endif
         "\r\n"
         "  --esp32-hostpatch <FILE>\r\n"
-        "    Patch hosts in ESP32 image.\r\n"
+        "    Patch hosts in ESP32 image and does a fixup of the image afterwards.\r\n"
         "    Requires: --hostname <NEWHOST> to specify the new host.\r\n"
         "    Optional: --oldrtnlhost <HOST> and --oldapihost <HOST> to specify old hosts to be replaced.\r\n"
         "\r\n"

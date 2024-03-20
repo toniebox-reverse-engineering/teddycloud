@@ -54,6 +54,28 @@
             },
         },
         {
+            "name": "[linux] teddyCloud encode test multi file",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [
+                "--encode",
+                "data/library/test-encode.taf",
+                "--skip-seconds",
+                "2",
+                "https://download.samplelib.com/mp3/sample-15s.mp3",
+                "https://download.samplelib.com/mp3/sample-15s.mp3"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        },
+        {
             "name": "[wsl] teddyCloud",
             "type": "cppdbg",
             "request": "launch",
