@@ -11,6 +11,7 @@
 #include "tls_adapter.h"
 
 #include "fs_port.h"
+#include "fs_ext.h"
 #include "server_helpers.h"
 #include "cert.h"
 
@@ -357,7 +358,7 @@ uint8_t get_overlay_id(const char *overlay_unique_id)
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
-    if (path[0] == '/')
+    if (path[0] == PATH_SEPARATOR_LINUX || (path[1] == ':' && path[2] == PATH_SEPARATOR_WINDOWS))
     {
         snprintf(*resolvedPath, 255, "%s", path);
     }
@@ -369,9 +370,10 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
         }
         else
         {
-            snprintf(*resolvedPath, 255, "%s/%s", basePath, path);
+            snprintf(*resolvedPath, 255, "%s%c%s", basePath, PATH_SEPARATOR, path);
         }
     }
+    fsFixPath(*resolvedPath);
 }
 
 void settings_generate_internal_dirs(settings_t *settings)
@@ -424,8 +426,8 @@ void settings_changed()
         osFreeMem(config_file_path);
     if (config_overlay_file_path != NULL)
         osFreeMem(config_overlay_file_path);
-    config_file_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), CONFIG_FILE);
-    config_overlay_file_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), CONFIG_OVERLAY_FILE);
+    config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
+    config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
     settings_load_ovl(true);
 }
 

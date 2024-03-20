@@ -142,7 +142,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
     {
         /* important: first canonicalize path, then merge to prevent directory traversal attacks */
         pathSafeCanonicalize(path);
-        char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+        char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
         pathSafeCanonicalize(pathAbsolute);
 
         TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
@@ -471,7 +471,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     pathSafeCanonicalize(path);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     pathSafeCanonicalize(pathAbsolute);
 
     FsDir *dir = fsOpenDir(pathAbsolute);
@@ -504,7 +504,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             continue;
         }
         bool isDir = (entry.attributes & FS_FILE_ATTR_DIRECTORY);
-        char *filePathAbsolute = custom_asprintf("%s/%s", pathAbsolute, entry.name);
+        char *filePathAbsolute = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, entry.name);
         pathSafeCanonicalize(filePathAbsolute);
 
         cJSON *jsonEntry = cJSON_CreateObject();
@@ -556,7 +556,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                             fsCloseDir(subdir);
                             break;
                         }
-                        filePathAbsoluteSub = custom_asprintf("%s/%s", filePathAbsolute, subentry.name);
+                        filePathAbsoluteSub = custom_asprintf("%s%c%s", filePathAbsolute, PATH_SEPARATOR, subentry.name);
 
                         json_extension = osStrstr(filePathAbsoluteSub, ".json");
                         if (json_extension != NULL)
@@ -633,7 +633,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
         /* first canonicalize path, then merge to prevent directory traversal bugs */
         pathSafeCanonicalize(path);
-        char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+        char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
         pathSafeCanonicalize(pathAbsolute);
 
         int pos = 0;
@@ -669,7 +669,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                        entry.modified.year, entry.modified.month, entry.modified.day,
                        entry.modified.hours, entry.modified.minutes, entry.modified.seconds);
 
-            char *filePathAbsolute = custom_asprintf("%s/%s", pathAbsolute, entry.name);
+            char *filePathAbsolute = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, entry.name);
             pathSafeCanonicalize(filePathAbsolute);
 
             cJSON *jsonEntry = cJSON_CreateObject();
@@ -716,7 +716,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                                 fsCloseDir(subdir);
                                 break;
                             }
-                            filePathAbsoluteSub = custom_asprintf("%s/%s", filePathAbsolute, subentry.name);
+                            filePathAbsoluteSub = custom_asprintf("%s%c%s", filePathAbsolute, PATH_SEPARATOR, subentry.name);
 
                             json_extension = osStrstr(filePathAbsoluteSub, ".json");
                             if (json_extension != NULL)
@@ -820,7 +820,7 @@ error_t file_save_start(void *in_ctx, const char *name, const char *filename)
     }
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
-    ctx->filename = custom_asprintf("%s/%s", ctx->root_path, filename);
+    ctx->filename = custom_asprintf("%s%c%s", ctx->root_path, PATH_SEPARATOR, filename);
     sanitizePath(ctx->filename, false);
 
     if (fsFileExists(ctx->filename))
@@ -1106,8 +1106,8 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
 
-    char *file_path = custom_asprintf("%s/%s", rootPath, filename);
-    char *patched_path = custom_asprintf("%s/patched_%s.bin", rootPath, mac);
+    char *file_path = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, filename);
+    char *patched_path = custom_asprintf("%s%spatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
 
     TRACE_INFO("Request for '%s'\r\n", file_path);
 
@@ -1242,7 +1242,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
@@ -1495,7 +1495,7 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     }
 
     char *path = (char *)uri + 1 + 7 + 1 + 8 + 1;
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
 
     char ruid[17];
 
@@ -1663,7 +1663,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
@@ -1678,7 +1678,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        char *filename = custom_asprintf("%s/%s", pathAbsolute, name);
+        char *filename = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, name);
 
         if (!filename)
         {
@@ -1756,7 +1756,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, true);
 
     TRACE_INFO("Creating directory: '%s'\r\n", pathAbsolute);
@@ -1804,7 +1804,7 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, true);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, true);
 
     TRACE_INFO("Deleting directory: '%s'\r\n", pathAbsolute);
@@ -1855,7 +1855,7 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, false);
-    char *pathAbsolute = custom_asprintf("%s/%s", rootPath, path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, false);
 
     uint_t statusCode = 200;
@@ -1881,7 +1881,7 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *tonies_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_FILE);
+    char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
 
     error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
     osFreeMem(tonies_path);
@@ -1897,7 +1897,7 @@ error_t handleApiToniesJsonUpdate(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *tonies_custom_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_CUSTOM_JSON_FILE);
+    char *tonies_custom_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_CUSTOM_JSON_FILE);
 
     error_t err = httpSendResponseUnsafe(connection, uri, tonies_custom_path);
     osFreeMem(tonies_custom_path);
@@ -2155,7 +2155,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             {
                 ruid[i] = tolower(ruid[i]);
             }
-            char *tagPath = custom_asprintf("%s/%s", subDirPath, subEntry.name);
+            char *tagPath = custom_asprintf("%s%c%s", subDirPath, PATH_SEPARATOR, subEntry.name);
             tagPath[osStrlen(tagPath) - 5] = '\0';
             tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
 

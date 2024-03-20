@@ -24,9 +24,9 @@ void tonies_init()
     if (!toniesJsonInitialized)
     {
         toniesCustomJsonCount = 0;
-        tonies_json_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_FILE);
-        tonies_custom_json_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_CUSTOM_JSON_FILE);
-        tonies_json_tmp_path = custom_asprintf("%s/%s", settings_get_string("internal.configdirfull"), TONIES_JSON_TMP_FILE);
+        tonies_json_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
+        tonies_custom_json_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_CUSTOM_JSON_FILE);
+        tonies_json_tmp_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_TMP_FILE);
 
         tonies_readJson(tonies_custom_json_path, &toniesCustomJsonCache, &toniesCustomJsonCount);
         tonies_readJson(tonies_json_path, &toniesJsonCache, &toniesJsonCount);

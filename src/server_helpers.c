@@ -827,7 +827,7 @@ bool resolveSpecialPathPrefix(char **path, settings_t *settings)
         {
             const char *remainingPath = *path + prefixLen;
             const char *newPath = prefixMap[i][1];
-            char *resolvedPath = custom_asprintf("%s/%s", newPath, remainingPath);
+            char *resolvedPath = custom_asprintf("%s%c%s", newPath, PATH_SEPARATOR, remainingPath);
             osFreeMem(*path);
             *path = resolvedPath;
             return true;

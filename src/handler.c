@@ -321,7 +321,7 @@ void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *
     osSprintf(filePath, "%.8s/%.8s", ruid, &ruid[8]);
     strupr(filePath);
 
-    *pcontentPath = custom_asprintf("%s/%s", settings->internal.contentdirfull, filePath);
+    *pcontentPath = custom_asprintf("%s%c%s", settings->internal.contentdirfull, PATH_SEPARATOR, filePath);
 }
 
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings)
