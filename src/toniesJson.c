@@ -34,6 +34,22 @@ void tonies_init()
     }
 }
 
+void tonies_updatePeriodically()
+{
+    while (true)
+    {
+#if !defined(__WINDOWS__)
+        sleep(60 * 60 * 6);
+#else
+        Sleep(60 * 60 * 6 * 1000); // Windows Sleep() is in ms
+#endif
+        if (get_settings()->core.tonies_json_auto_update)
+        {
+            tonies_update();
+        }
+    }
+}
+
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;

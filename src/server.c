@@ -526,6 +526,7 @@ void server_init(bool test)
     {
         tonies_update();
     }
+    osCreateTask("Update tonies.json", &tonies_updatePeriodically, NULL, 1024, 0);
 
     systime_t last = osGetSystemTime();
     size_t openConnectionsLast = 0;
