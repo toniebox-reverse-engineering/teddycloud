@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "error.h"
 
 #define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
