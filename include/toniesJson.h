@@ -33,5 +33,5 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id);
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash);
 toniesJson_item_t *tonies_byModel(char *model);
 toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model);
-bool tonies_byArticleSeriesEpisode(char *article, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size);
+bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size);
 void tonies_deinit();

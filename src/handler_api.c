@@ -1937,20 +1937,20 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
 }
 error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char searchArticle[256];
+    char searchModel[256];
     char searchSeries[256];
     char searchEpisode[256];
-    searchArticle[0] = '\0';
+    searchModel[0] = '\0';
     searchSeries[0] = '\0';
     searchEpisode[0] = '\0';
     toniesJson_item_t *result[18];
     size_t result_size;
 
-    queryGet(queryString, "searchArticle", searchArticle, sizeof(searchSeries));
+    queryGet(queryString, "searchModel", searchModel, sizeof(searchModel));
     queryGet(queryString, "searchSeries", searchSeries, sizeof(searchSeries));
     queryGet(queryString, "searchEpisode", searchEpisode, sizeof(searchEpisode));
 
-    tonies_byArticleSeriesEpisode(searchArticle, searchSeries, searchEpisode, result, &result_size);
+    tonies_byModelSeriesEpisode(searchModel, searchSeries, searchEpisode, result, &result_size);
 
     cJSON *jsonArray = cJSON_CreateArray();
     for (size_t i = 0; i < result_size; i++)
