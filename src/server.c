@@ -79,6 +79,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/fileIndexV2", &handleApiFileIndexV2},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/toniesJsonSearch", &handleApiToniesJsonSearch},
     {REQ_GET, "/api/toniesJsonUpdate", &handleApiToniesJsonUpdate},
     {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
@@ -525,6 +526,7 @@ void server_init(bool test)
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
+        toniesV2_update();
     }
 
     systime_t last = osGetSystemTime();

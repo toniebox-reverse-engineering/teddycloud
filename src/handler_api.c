@@ -115,6 +115,46 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     return NO_ERROR;
 }
 
+void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
+{
+    cJSON *tracksJson = cJSON_CreateArray();
+    cJSON *tonieInfoJson;
+    if (parent->type == cJSON_Object)
+    {
+        tonieInfoJson = cJSON_AddObjectToObject(parent, "tonieInfo");
+    }
+    else if (parent->type == cJSON_Array)
+    {
+        tonieInfoJson = cJSON_CreateObject();
+        cJSON_AddItemToArray(parent, tonieInfoJson);
+    }
+    else
+    {
+        return;
+    }
+
+    cJSON_AddItemToObject(tonieInfoJson, "tracks", tracksJson);
+    if (item != NULL)
+    {
+        cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
+        cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
+        cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
+        cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+        for (size_t i = 0; i < item->tracks_count; i++)
+        {
+            cJSON_AddItemToArray(tracksJson, cJSON_CreateString(item->tracks[i]));
+        }
+    }
+    else
+    {
+        cJSON_AddStringToObject(tonieInfoJson, "model", "");
+        cJSON_AddStringToObject(tonieInfoJson, "series", "");
+        cJSON_AddStringToObject(tonieInfoJson, "episode", "");
+
+        cJSON_AddStringToObject(tonieInfoJson, "picture", "/img_unknown.png");
+    }
+}
+
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = NULL;
@@ -589,11 +629,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         }
         if (item != NULL)
         {
-            cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
-            cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
-            cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
-            cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
-            cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+            addToniesJsonInfoJson(item, jsonEntry);
         }
 
         osFreeMem(filePathAbsolute);
@@ -749,11 +785,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             }
             if (item != NULL)
             {
-                cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
-                cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
-                cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
-                cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
-                cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+                addToniesJsonInfoJson(item, jsonEntry);
             }
 
             osFreeMem(filePathAbsolute);
@@ -1903,6 +1935,37 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
     osFreeMem(tonies_custom_path);
     return err;
 }
+error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char searchArticle[256];
+    char searchSeries[256];
+    char searchEpisode[256];
+    searchArticle[0] = '\0';
+    searchSeries[0] = '\0';
+    searchEpisode[0] = '\0';
+    toniesJson_item_t *result[18];
+    size_t result_size;
+
+    queryGet(queryString, "searchArticle", searchArticle, sizeof(searchSeries));
+    queryGet(queryString, "searchSeries", searchSeries, sizeof(searchSeries));
+    queryGet(queryString, "searchEpisode", searchEpisode, sizeof(searchEpisode));
+
+    tonies_byArticleSeriesEpisode(searchArticle, searchSeries, searchEpisode, result, &result_size);
+
+    cJSON *jsonArray = cJSON_CreateArray();
+    for (size_t i = 0; i < result_size; i++)
+    {
+        addToniesJsonInfoJson(result[i], jsonArray);
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(jsonArray);
+    cJSON_Delete(jsonArray);
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
 error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = settings_get_string("internal.contentdirfull");
@@ -2211,28 +2274,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 }
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
-                cJSON *tonieInfoJson = cJSON_AddObjectToObject(jsonEntry, "tonieInfo");
-                cJSON *tracksJson = cJSON_CreateArray();
-                cJSON_AddItemToObject(tonieInfoJson, "tracks", tracksJson);
-                if (item != NULL)
-                {
-                    cJSON_AddStringToObject(tonieInfoJson, "model", item->model);
-                    cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
-                    cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
-                    cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
-                    for (size_t i = 0; i < item->tracks_count; i++)
-                    {
-                        cJSON_AddItemToArray(tracksJson, cJSON_CreateString(item->tracks[i]));
-                    }
-                }
-                else
-                {
-                    cJSON_AddStringToObject(tonieInfoJson, "model", "");
-                    cJSON_AddStringToObject(tonieInfoJson, "series", "");
-                    cJSON_AddStringToObject(tonieInfoJson, "episode", "");
-
-                    cJSON_AddStringToObject(tonieInfoJson, "picture", "/img_unknown.png");
-                }
+                addToniesJsonInfoJson(item, jsonEntry);
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
             }

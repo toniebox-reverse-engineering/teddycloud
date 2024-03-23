@@ -315,6 +315,109 @@ toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, c
     }
     return tonies_byModel(model);
 }
+bool tonies_byArticleSeriesEpisode_base(char *article, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
+{
+#if TONIES_JSON_CACHED == 1
+    size_t count = *result_size;
+    size_t count_article = 0;
+    size_t count_series = 0;
+    size_t count_episode = 0;
+
+    if (article != NULL && osStrlen(article) > 0)
+    {
+        for (size_t i = 0; i < toniesCount; i++)
+        {
+            if (count >= max_slots || count_article >= (max_slots - count) / 3)
+            {
+                break;
+            }
+            if (osStrstr(toniesCache[i].model, article) != NULL)
+            {
+                bool duplicate = false;
+                for (size_t j = 0; j < count; j++)
+                {
+                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate)
+                {
+                    result[count++] = &toniesCache[i];
+                    count_article++;
+                }
+            }
+        }
+    }
+    if (series != NULL && osStrlen(series) > 0)
+    {
+        for (size_t i = 0; i < toniesCount; i++)
+        {
+            if (count >= max_slots || count_series >= (max_slots - count) / 2)
+            {
+                break;
+            }
+            if (osStrstr(toniesCache[i].series, series) != NULL)
+            {
+                bool duplicate = false;
+                for (size_t j = 0; j < count; j++)
+                {
+                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate)
+                {
+                    result[count++] = &toniesCache[i];
+                    count_series++;
+                }
+            }
+        }
+    }
+    if (episode != NULL && osStrlen(episode) > 0)
+    {
+        for (size_t i = 0; i < toniesCount; i++)
+        {
+            if (count >= max_slots || count_episode >= (max_slots - count) / 1)
+            {
+                break;
+            }
+            if (osStrstr(toniesCache[i].episodes, episode) != NULL)
+            {
+                bool duplicate = false;
+                for (size_t j = 0; j < count; j++)
+                {
+                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate)
+                {
+                    result[count++] = &toniesCache[i];
+                    count_episode++;
+                }
+            }
+        }
+    }
+    *result_size = count;
+    return *result_size > 0;
+#else
+    return false;
+#endif
+}
+bool tonies_byArticleSeriesEpisode(char *article, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
+{
+    size_t count = 0;
+    tonies_byArticleSeriesEpisode_base(article, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
+    tonies_byArticleSeriesEpisode_base(article, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
+    *result_size = count;
+    return *result_size > 0;
+}
 void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
