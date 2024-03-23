@@ -17,6 +17,15 @@ static toniesJson_item_t *toniesCustomJsonCache;
 static char *tonies_json_path;
 static char *tonies_custom_json_path;
 static char *tonies_json_tmp_path;
+
+static bool toniesV2JsonInitialized = false;
+static size_t toniesV2JsonCount = 0;
+static toniesV2Json_item_t *toniesV2JsonCache;
+static size_t toniesV2CustomJsonCount = 0;
+static toniesV2Json_item_t *toniesV2CustomJsonCache;
+static char *toniesV2_json_path;
+static char *toniesV2_custom_json_path;
+static char *toniesV2_json_tmp_path;
 #endif
 
 void tonies_init()
@@ -31,6 +40,18 @@ void tonies_init()
         tonies_readJson(tonies_custom_json_path, &toniesCustomJsonCache, &toniesCustomJsonCount);
         tonies_readJson(tonies_json_path, &toniesJsonCache, &toniesJsonCount);
         toniesJsonInitialized = true;
+    }
+
+    if (!toniesV2JsonInitialized)
+    {
+        toniesV2CustomJsonCount = 0;
+        toniesV2_json_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIESV2_JSON_FILE);
+        toniesV2_custom_json_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIESV2_CUSTOM_JSON_FILE);
+        toniesV2_json_tmp_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_TMP_FILE);
+
+        toniesV2_readJson(toniesV2_custom_json_path, &toniesV2CustomJsonCache, &toniesV2CustomJsonCount);
+        toniesV2_readJson(toniesV2_json_path, &toniesV2JsonCache, &toniesV2JsonCount);
+        toniesV2JsonInitialized = true;
     }
 }
 
@@ -102,6 +123,39 @@ error_t tonies_update()
 
 error_t toniesV2_update()
 {
+    TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
+    cbr_ctx_t ctx;
+    client_ctx_t client_ctx = {
+        .settings = get_settings(),
+    };
+
+    const char *uri_base = "api.revvox.de";
+    const char *uri_path = "/toniesV2.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
+    const char *queryString = NULL;
+    fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    req_cbr_t cbr = {
+        .ctx = &ctx,
+        .body = &tonies_downloadBody,
+    };
+
+    ctx.file = NULL;
+    fsDeleteFile(tonies_json_tmp_path);
+    // TODO: Be sure HTTPS CA is checked!
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+
+    if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
+    {
+        fsDeleteFile(tonies_json_path);
+        fsRenameFile(tonies_json_tmp_path, tonies_json_path);
+        TRACE_INFO("... success updating tonies.json from api.revvox.de, reloading\r\n");
+        tonies_deinit();
+        tonies_init();
+    }
+    else
+    {
+        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
+    }
+    return error;
 }
 
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
@@ -246,6 +300,14 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
     }
 #endif
 }
+
+void toniesV2_readJson(char *source, toniesV2Json_item_t **toniesCache, size_t *toniesCount)
+{
+#if TONIES_JSON_CACHED == 1
+
+#endif
+}
+
 toniesJson_item_t *tonies_byAudioIdHash_base(uint32_t audio_id, uint8_t *hash, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1

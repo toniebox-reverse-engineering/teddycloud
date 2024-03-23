@@ -19,8 +19,10 @@
 #endif
 
 #define TONIES_JSON_FILE "tonies.json"
+#define TONIESV2_JSON_FILE "toniesV2.json"
 #define TONIES_JSON_TMP_FILE TONIES_JSON_FILE ".tmp"
 #define TONIES_CUSTOM_JSON_FILE "tonies.custom.json"
+#define TONIESV2_CUSTOM_JSON_FILE "tonies.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
 #define CONFIG_VERSION 6
