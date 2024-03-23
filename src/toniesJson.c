@@ -100,6 +100,10 @@ error_t tonies_update()
     return error;
 }
 
+error_t toniesV2_update()
+{
+}
+
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
 {
 
