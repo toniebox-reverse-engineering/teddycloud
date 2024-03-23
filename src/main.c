@@ -170,6 +170,14 @@ void tls_init(void)
     }
 }
 
+void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
+{
+    if (header)
+    {
+        printf("%s:%s\n", header, value);
+    }
+}
+
 int_t main(int argc, char *argv[])
 {
     char cwd[PATH_LEN] = {0};
@@ -447,14 +455,6 @@ int_t main(int argc, char *argv[])
         TRACE_WARNING("Protocol: %s\n", protocol == PROT_HTTP ? "HTTP" : "HTTPS");
 
         settings_set_bool("cloud.enabled", true);
-
-        void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
-        {
-            if (header)
-            {
-                printf("%s:%s\n", header, value);
-            }
-        }
 
         /* it's getting a bit complicated now */
         client_ctx_t client_ctx = {
