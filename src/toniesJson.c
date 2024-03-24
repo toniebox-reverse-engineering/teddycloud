@@ -66,11 +66,12 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         {
             ctx->file = fsOpenFile(tonies_json_tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
         }
-        if (length == 0)
+        error_t errorWrite = NO_ERROR;
+        if (length > 0)
         {
-            return;
+            errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
         }
-        error_t errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
+
         if (error == ERROR_END_OF_STREAM)
         {
             fsCloseFile(ctx->file);
