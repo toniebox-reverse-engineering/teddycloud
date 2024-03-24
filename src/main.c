@@ -127,20 +127,34 @@ void main_init_settings(const char *cwd, const char *base_path)
     /* try to find base path */
     bool settings_initialized = false;
 
+    const char *base_path_resolved;
+    if (osStrcmp(".", base_path) == 0)
+    {
+        base_path_resolved = cwd;
+    }
+    else
+    {
+        base_path_resolved = base_path;
+    }
+
     const char *base_paths[] = {
-        base_path,
+        base_path_resolved
+#ifndef _WIN32
+        ,
         "/usr/local/etc/teddycloud",
         "/usr/local/lib/teddycloud",
         "/usr/etc/teddycloud",
         "/usr/lib/teddycloud",
         "/etc/teddycloud",
-        "/opt/teddycloud"};
+        "/opt/teddycloud"
+#endif
+    };
 
     for (int pos = 0; pos < COUNT(base_paths); pos++)
     {
         const char *path = base_paths[pos];
 
-        if (fsDirExists(path))
+        if (fsDirExists(path) || (fsDirExists(".") && path[0] == '\0'))
         {
             error = settings_init(cwd, path);
             if (error == NO_ERROR)

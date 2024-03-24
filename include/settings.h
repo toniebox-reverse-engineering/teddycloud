@@ -10,7 +10,6 @@
 #define SETTINGS_H
 
 #ifndef BASE_PATH
-// #define BASE_PATH "./" // TODO, until path is resolved
 #define BASE_PATH ""
 #endif
 

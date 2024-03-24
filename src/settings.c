@@ -358,7 +358,7 @@ uint8_t get_overlay_id(const char *overlay_unique_id)
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
-    if (path[0] == PATH_SEPARATOR_LINUX || (path[1] == ':' && path[2] == PATH_SEPARATOR_WINDOWS))
+    if (path[0] == PATH_SEPARATOR_LINUX || (osStrlen(path) > 1 && path[1] == ':' && path[2] == PATH_SEPARATOR_WINDOWS))
     {
         snprintf(*resolvedPath, 255, "%s", path);
     }
