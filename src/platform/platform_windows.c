@@ -302,7 +302,7 @@ error_t socketReceive(Socket *socket, void *data_in,
     {
         buff = osAllocMem(sizeof(socket_buffer_t));
         buff->buffer_used = 0;
-        buff->buffer_size = 512;
+        buff->buffer_size = size;
         buff->buffer = osAllocMem(buff->buffer_size);
         socket->interface = (NetInterface *)buff;
     }

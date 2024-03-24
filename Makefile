@@ -138,11 +138,13 @@ CFLAGS_linux += $(OPTI_LEVEL)
 
 ## win32 specific headers/sources
 HEADERS_windows = 
-INCLUDES_windows = 
+INCLUDES_windows = \
+	-Isrc/platform/
 SOURCES_windows = \
 	src/platform/platform_$(PLATFORM).c\
 	src/cyclone/common/os_port_windows.c \
-	src/cyclone/common/fs_port_windows.c 
+	src/cyclone/common/fs_port_windows.c \
+	src/platform/getopt.c 
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
 CFLAGS_windows += -DFFMPEG_DECODING
@@ -467,6 +469,10 @@ preinstall: clean build web_copy $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -
 
+ifeq ($(OS),Windows_NT)	
+web: 
+web_copy: 
+else
 web_clean: 
 	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Clean TeddyCloud React Webinterface'
 	$(RM_R) $(CONTRIB_DIR)/$(WEB_DIR)
@@ -484,6 +490,7 @@ web_copy:
 	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Copy TeddyCloud React Webinterface'
 	$(QUIET) $(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
 	$(QUIET) $(CP_R) $(CONTRIB_DIR)/$(WEB_DIR)/* $(PREINSTALL_DIR)/$(WEB_DIR)/ 
+endif
 
 zip: preinstall
 	$(QUIET)$(ECHO) '[ ${GREEN}ZIP${NC}  ] Create release zip'

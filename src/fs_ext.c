@@ -3,6 +3,18 @@
 
 #define FILE_COPY_BUFFER_SIZE 4096 // You can adjust this buffer size as needed
 
+void fsFixPath(char_t *path)
+{
+#ifdef _WIN32
+    // Replace forward slashes with backslashes for Windows systems
+    for (int i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] == PATH_SEPARATOR_LINUX)
+            path[i] = PATH_SEPARATOR_WINDOWS;
+    }
+#endif
+}
+
 FsFile *fsOpenFileEx(const char_t *path, char *mode)
 {
     // Workaround due to missing append in cyclone framwwork.

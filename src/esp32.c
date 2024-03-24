@@ -989,6 +989,7 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
 
     TRACE_INFO("Patching hostnames in '%s'\r\n", patchedPath);
 
+    uint8_t *bin_data = NULL;
     do
     {
         uint32_t bin_size = 0;
@@ -1000,7 +1001,7 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
             return ERROR_NOT_FOUND;
         }
 
-        uint8_t *bin_data = osAllocMem(bin_size);
+        bin_data = osAllocMem(bin_size);
 
         FsFile *bin = fsOpenFile(patchedPath, FS_FILE_MODE_READ);
         if (!bin)
@@ -1026,37 +1027,49 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
             }
         }
         fsCloseFile(bin);
-        
-        if (!strcmp(oldrtnl,oldapi))
+
+        int replaced = 0;
+        if (!strcmp(oldrtnl, oldapi))
         {
-            int replaced = mem_replace(bin_data, bin_size, oldrtnl, hostname);
+            replaced = mem_replace(bin_data, bin_size, oldrtnl, hostname);
             TRACE_INFO(" replaced hostname %d times\r\n", replaced);
         }
         else
         {
-            int replaced = mem_replace(bin_data, bin_size, oldrtnl, hostname);
+            int replacedRtnl = mem_replace(bin_data, bin_size, oldrtnl, hostname);
             TRACE_INFO(" replaced RTNL host %d times\r\n", replaced);
-            replaced = mem_replace(bin_data, bin_size, oldapi, hostname);
-            TRACE_INFO(" replaced API host %d times\r\n", replaced);
+            int replacedAPI = mem_replace(bin_data, bin_size, oldapi, hostname);
+            TRACE_INFO(" replaced API host %d times\r\n", replacedAPI);
+            replaced = replacedRtnl + replacedAPI;
         }
 
-
-        bin = fsOpenFile(patchedPath, FS_FILE_MODE_WRITE);
-        if (!bin)
+        if (replaced > 0)
         {
-            TRACE_ERROR("Failed to open firmware for writing\r\n");
-            ret = ERROR_NOT_FOUND;
-            break;
+            bin = fsOpenFile(patchedPath, FS_FILE_MODE_WRITE);
+            if (!bin)
+            {
+                TRACE_ERROR("Failed to open firmware for writing\r\n");
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+            if (fsWriteFile(bin, bin_data, bin_size) != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to write firmware\r\n");
+                ret = ERROR_NOT_FOUND;
+                break;
+            }
+            fsCloseFile(bin);
         }
-        if (fsWriteFile(bin, bin_data, bin_size) != NO_ERROR)
+        else
         {
-            TRACE_ERROR("Failed to write firmware\r\n");
-            ret = ERROR_NOT_FOUND;
-            break;
+            TRACE_WARNING("No replacements made, file untouched\r\n");
         }
-        fsCloseFile(bin);
 
     } while (0);
 
+    if (bin_data != NULL)
+    {
+        osFreeMem(bin_data);
+    }
     return ret;
 }

@@ -32,6 +32,7 @@ If you want to get started, please follow our [guide on our website](https://ton
 
 ## Development and bulding
 Please use the [develop](tree/develop) for your development and pull requests. Stable builds are available from the master branch. Don't forget to clone the submodules with --recurse-submodules.
+To catch sanitizer in you IDE set a breakpoint on `__asan::ReportGenericError`. 
 
 ## Attribution
 The icons used are from here:

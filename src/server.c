@@ -63,6 +63,8 @@ request_type_t request_paths[] = {
     {REQ_ANY, "/reverse", &handleReverse},
     /* web interface directory */
     {REQ_GET, "/content/download/", &handleApiContentDownload},
+    {REQ_GET, "/content/json/get/", &handleApiContentJsonGet},
+    {REQ_POST, "/content/json/set/", &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", &handleApiContentJson},
     {REQ_GET, "/content/", &handleApiContent},
     /* custom API */
@@ -74,13 +76,16 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/patchFirmware", &handleApiPatchFirmware},
     {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
     {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
+    {REQ_GET, "/api/fileIndexV2", &handleApiFileIndexV2},
     {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
     {REQ_GET, "/api/stats", &handleApiStats},
+    {REQ_GET, "/api/toniesJsonSearch", &handleApiToniesJsonSearch},
     {REQ_GET, "/api/toniesJsonUpdate", &handleApiToniesJsonUpdate},
     {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
     {REQ_GET, "/api/trigger", &handleApiTrigger},
     {REQ_GET, "/api/getIndex", &handleApiGetIndex},
+    {REQ_GET, "/api/getTagIndex", &handleApiTagIndex},
     {REQ_GET, "/api/getBoxes", &handleApiGetBoxes},
     {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
     {REQ_GET, "/api/get/", &handleApiGet},
@@ -273,7 +278,16 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         size_t pathLen = osStrlen(request_paths[i].path);
         if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            return (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+            error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+            if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
+            {
+                return httpServerUriNotFoundCallback(connection, uri);
+            }
+            else if (error != NO_ERROR)
+            {
+                // return httpServerUriErrorCallback(connection, uri, error);
+            }
+            return error;
         }
     }
 
@@ -281,7 +295,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     {
         uri = "/index.html";
     }
-    if (!strcmp(uri, "/web") || !strcmp(uri, "/web/"))
+
+    if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
     {
         uri = "/web/index.html";
     }
@@ -290,22 +305,6 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
     error = httpSendResponse(connection, newUri);
     free(newUri);
-    return error;
-}
-
-error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
-{
-    error_t error = NO_ERROR;
-
-    error = httpSendErrorResponse(connection, 404,
-                                  "The requested page could not be found");
-
-    /*
-    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
-    error = httpSendResponse(connection, newUri);
-    free(newUri);
-    */
-
     return error;
 }
 
@@ -452,6 +451,11 @@ bool sanityChecks()
 
 void server_init(bool test)
 {
+    if (test)
+    {
+        printf("Docker container started teddyCloud for testing, running smoke test.\r\n");
+    }
+
     mutex_manager_init();
     if (!sanityChecks())
     {
@@ -518,11 +522,11 @@ void server_init(bool test)
         return;
     }
 
+    tonies_init();
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
     }
-    tonies_init();
 
     systime_t last = osGetSystemTime();
     size_t openConnectionsLast = 0;

@@ -782,3 +782,56 @@ error_t ipStringToAddr(const char_t *str, IpAddr *ipAddr)
     // Return status code
     return error;
 }
+
+error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *uri)
+{
+    error_t error = NO_ERROR;
+
+    error = httpSendErrorResponse(connection, 404, "The requested page could not be found");
+
+    TRACE_WARNING(" >> 404 %s\r\n", uri);
+
+    /*
+    char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
+    */
+
+    return error;
+}
+error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri, error_t error)
+{
+    error_t new_error = NO_ERROR;
+
+    new_error = httpSendErrorResponse(connection, 500, "Internal Server Error");
+
+    TRACE_WARNING(" >> 500 with error code %" PRIu32 " on %s\r\n", error, uri);
+    return new_error;
+}
+
+bool resolveSpecialPathPrefix(char **path, settings_t *settings)
+{
+    const char *prefixMap[][2] = {
+        {"data://", settings->internal.datadirfull},
+        {"content://", settings->internal.contentdirfull},
+        {"lib://", settings->internal.librarydirfull},
+        {"data-global://", get_settings()->internal.datadirfull},
+        {"content-global://", get_settings()->internal.contentdirfull},
+        {"lib-global://", get_settings()->internal.librarydirfull}};
+
+    size_t prefixMapSize = sizeof(prefixMap) / sizeof(prefixMap[0]);
+    for (int i = 0; i < prefixMapSize; i++)
+    {
+        size_t prefixLen = strlen(prefixMap[i][0]);
+        if (osStrncmp(*path, prefixMap[i][0], prefixLen) == 0)
+        {
+            const char *remainingPath = *path + prefixLen;
+            const char *newPath = prefixMap[i][1];
+            char *resolvedPath = custom_asprintf("%s%c%s", newPath, PATH_SEPARATOR, remainingPath);
+            osFreeMem(*path);
+            *path = resolvedPath;
+            return true;
+        }
+    }
+    return false;
+}

@@ -39,6 +39,7 @@ typedef struct
 {
     settings_t *settings;
     toniebox_state_t *state;
+    bool skip_taf_header;
 } client_ctx_t;
 
 typedef struct
@@ -203,6 +204,6 @@ typedef struct
 /* match original cloud settings */
 #define HTTP_SERVER_IDLE_TIMEOUT (5 * 60000)
 #define HTTP_SERVER_TIMEOUT (1 * 60000)
-#define HTTP_SERVER_BUFFER_SIZE 8192
+#define HTTP_SERVER_BUFFER_SIZE 1024 * 32
 
 #endif

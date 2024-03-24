@@ -16,6 +16,8 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 
+#include <byteswap.h>
+
 void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
 {
     char buffer[4];
@@ -212,6 +214,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     if (osStrlen(ruid) != 16)
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
+        return ERROR_NOT_FOUND;
     }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
@@ -220,6 +223,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudClaimTime", current_time, client_ctx);
+    setLastRuid(ruid, client_ctx->settings);
 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
@@ -282,8 +286,22 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
+    char queryValue[16];
+    if (queryGet(queryString, "skip_header", queryValue, sizeof(queryValue)))
+    {
+        if (queryValue[0] == 't')
+        {
+            connection->private.client_ctx.skip_taf_header = true;
+        }
+    }
+
     osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
     ruid[16] = 0;
+    if (osStrlen(ruid) != 16)
+    {
+        TRACE_WARNING(" >>  invalid URI\r\n");
+        return ERROR_NOT_FOUND;
+    }
 
     if (connection->request.Range.start != 0)
     {
@@ -293,14 +311,32 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudContentTime", current_time, client_ctx);
-
-    if (osStrlen(ruid) != 16)
-    {
-        TRACE_WARNING(" >>  invalid URI\r\n");
-    }
     char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
+    if (!noPassword)
+    {
+        setLastRuid(ruid, client_ctx->settings);
+    }
+
+    bool_t tonie_marked = false;
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV2Content)
+    {
+        uint64_t uid = strtoull(ruid, NULL, 16);
+        uid = bswap_64(uid);
+
+        size_t freshnessCacheLen = 0;
+        uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
+        for (size_t i = 0; i < freshnessCacheLen; i++)
+        {
+            if (freshnessCache[i] == uid)
+            {
+                tonie_marked = true;
+                TRACE_INFO(" >> rUID %s found in freshnessCache, refresh content\r\n", ruid);
+                break;
+            }
+        }
+    }
 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
@@ -439,7 +475,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             osDelayTask(100);
         }
     }
-    else if (tonieInfo->exists && tonieInfo->valid)
+    else if (tonieInfo->exists && tonieInfo->valid && !tonie_marked)
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
@@ -449,10 +485,18 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             TRACE_INFO("Found streaming content\r\n");
         }
 
-        error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[osStrlen(client_ctx->settings->internal.datadirfull)], tonieInfo->stream);
-        if (error)
+        size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
+        if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], tonieInfo->stream);
+            if (error)
+            {
+                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+            }
+        }
+        else
+        {
+            TRACE_ERROR(" >> path %s is not within the data dir %s\r\n", tonieInfo->contentPath, client_ctx->settings->internal.datadirfull);
         }
     }
     else

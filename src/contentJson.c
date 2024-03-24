@@ -6,6 +6,7 @@
 #include "net_config.h"
 #include "server_helpers.h"
 #include "toniesJson.h"
+#include "handler.h"
 
 char *content_jsonGetString(cJSON *jsonElement, char *name)
 {
@@ -85,6 +86,10 @@ uint32_t content_jsonGetUInt32(cJSON *jsonElement, char *name)
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing)
 {
+    return load_content_json_settings(content_path, content_json, create_if_missing, get_settings());
+}
+error_t load_content_json_settings(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings)
+{
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
     osMemset(content_json, 0, sizeof(contentJson_t));
@@ -94,12 +99,14 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
     content_json->skip_seconds = 0;
     content_json->cache = false;
     content_json->_updated = false;
+    content_json->_source_is_taf = false;
     content_json->_stream = false;
     content_json->_streamFile = custom_asprintf("%s.stream", content_path);
     content_json->cloud_ruid = NULL;
     content_json->cloud_auth = NULL;
     content_json->cloud_auth_len = 0;
     content_json->cloud_override = false;
+    content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
     content_json->_valid = false;
 
@@ -139,6 +146,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 content_json->live = content_jsonGetBool(contentJson, "live");
                 content_json->nocloud = content_jsonGetBool(contentJson, "nocloud");
                 content_json->source = content_jsonGetString(contentJson, "source");
+                content_json->_source_resolved = content_jsonGetString(contentJson, "source");
                 content_json->skip_seconds = content_jsonGetUInt32(contentJson, "skip_seconds");
                 content_json->cache = content_jsonGetBool(contentJson, "cache");
                 content_json->cloud_ruid = content_jsonGetString(contentJson, "cloud_ruid");
@@ -147,24 +155,32 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 content_json->tonie_model = content_jsonGetString(contentJson, "tonie_model");
 
                 // TODO: use checkCustomTonie to validate
-                if (osStrlen(content_json->cloud_ruid) != 16)
+                // TODO validate rUID
+                if (osStrlen(content_json->cloud_ruid) == 16 && content_json->cloud_auth_len == AUTH_TOKEN_LENGTH)
                 {
-                    // TODO validate rUID
-                    content_json->cloud_override = false;
+                    content_json->_has_cloud_auth = true;
                 }
-                if (content_json->cloud_auth_len != AUTH_TOKEN_LENGTH)
+                else
                 {
                     content_json->cloud_override = false;
                 }
 
                 if (osStrlen(content_json->source) > 0)
                 {
-                    content_json->_stream = true;
-                    if (!content_json->live || !content_json->nocloud)
+                    resolveSpecialPathPrefix(&content_json->_source_resolved, settings);
+                    if (isValidTaf(content_json->_source_resolved))
                     {
-                        content_json->live = true;
-                        content_json->nocloud = true;
-                        content_json->_updated = true;
+                        content_json->_source_is_taf = true;
+                    }
+                    else if (fsFileExists(content_json->_source_resolved) || osStrstr(content_json->_source_resolved, "://"))
+                    {
+                        content_json->_stream = true;
+                        if (!content_json->live || !content_json->nocloud)
+                        {
+                            content_json->live = true;
+                            content_json->nocloud = true;
+                            content_json->_updated = true;
+                        }
                     }
                 }
 
@@ -192,7 +208,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
         error = save_content_json(content_path, content_json);
         if (error == NO_ERROR)
         {
-            load_content_json(content_path, content_json, true);
+            load_content_json_settings(content_path, content_json, true, settings);
         }
     }
 
@@ -272,7 +288,7 @@ void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, u
         else
         {
             // TODO add to tonies.custom.json + report
-            TRACE_WARNING("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
+            TRACE_DEBUG("Audio-id %08X unknown but previous content known by model %s.\r\n", audio_id, content_json->tonie_model);
         }
     }
 }
@@ -305,5 +321,11 @@ void free_content_json(contentJson_t *content_json)
         osFreeMem(content_json->_streamFile);
         content_json->_streamFile = NULL;
     }
+    if (content_json->_source_resolved)
+    {
+        osFreeMem(content_json->_source_resolved);
+        content_json->_source_resolved = NULL;
+    }
+
     content_json->cloud_auth_len = 0;
 }

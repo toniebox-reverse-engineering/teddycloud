@@ -21,6 +21,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [
+                "--cloud-test",
                 "/v1/time"
             ],
             "stopAtEntry": false,
@@ -33,14 +34,37 @@
             },
         },
         {
-            "name": "[linux] teddyCloud dencode test",
+            "name": "[linux] teddyCloud encode test",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [
-                "DENCODE",
+                "--encode",
                 "https://download.samplelib.com/mp3/sample-15s.mp3",
-                "data/library/dencode.taf",
+                "--destination",
+                "data/library/test-encode.taf",
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        },
+        {
+            "name": "[linux] teddyCloud encode test multi file",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [
+                "--encode",
+                "data/library/test-encode.taf",
+                "--skip-seconds",
+                "2",
+                "https://download.samplelib.com/mp3/sample-15s.mp3",
+                "https://download.samplelib.com/mp3/sample-15s.mp3"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
