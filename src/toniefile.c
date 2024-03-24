@@ -635,7 +635,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
 void ffmpeg_stream_task(void *param)
 {
     ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
-    char source[1][PATH_LEN];
+    char source[99][PATH_LEN]; // waste memory, but warning otherwise
     strncpy(source[0], ctx->source, PATH_LEN - 1);
     ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active);
     ctx->quit = true;
