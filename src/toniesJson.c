@@ -66,6 +66,10 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         {
             ctx->file = fsOpenFile(tonies_json_tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
         }
+        if (length == 0)
+        {
+            return;
+        }
         error_t errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
         if (error == ERROR_END_OF_STREAM)
         {
@@ -79,7 +83,7 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         if (errorWrite != NO_ERROR)
         {
             fsCloseFile(ctx->file);
-            TRACE_ERROR("tonies.json write error=%" PRIu32 "\r\n", errorWrite);
+            TRACE_ERROR("tonies.json (%s) write error=%" PRIu32 "\r\n", tonies_json_tmp_path, errorWrite);
         }
     }
 }
