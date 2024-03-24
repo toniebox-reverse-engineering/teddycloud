@@ -153,8 +153,22 @@ void main_init_settings(const char *cwd, const char *base_path)
 
     if (!settings_initialized)
     {
-        TRACE_ERROR("ERROR: settings_init() failed with error code %d\r\n", error);
-        TRACE_ERROR("ERROR: Make sure the config path exists and is writable\r\n");
+        if (error == NO_ERROR)
+        {
+            TRACE_ERROR("ERROR: settings_init() could not find the config file\r\n");
+            TRACE_ERROR("ERROR: Tried paths in this order:\r\n");
+            for (int pos = 0; pos < COUNT(base_paths); pos++)
+            {
+                const char *path = base_paths[pos];
+
+                TRACE_ERROR("ERROR:   - '%s': %s\r\n", path, fsDirExists(path) ? "FOUND" : "NOT FOUND");
+            }
+        }
+        else
+        {
+            TRACE_ERROR("ERROR: settings_init() failed with error code %d\r\n", error);
+            TRACE_ERROR("ERROR: Make sure the config path exists and is writable\r\n");
+        }
         exit(-1);
     }
 }
