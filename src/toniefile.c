@@ -700,6 +700,10 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
             break;
         }
     }
+    if (!(*active))
+    {
+        TRACE_INFO("Encoding aborted, active flag set to false\r\n");
+    }
 
     ffmpeg_decode_audio_end(ffmpeg_pipe, error);
     toniefile_close(taf);
