@@ -94,6 +94,7 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
 toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append)
 {
     int err;
+    TonieboxAudioFileHeader *tafHeader = NULL;
 
     toniefile_t *ctx = osAllocMem(sizeof(toniefile_t));
     osMemset(ctx, 0x00, sizeof(toniefile_t));
@@ -122,9 +123,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         size_t read_length = 0;
         fsSeekFile(ctx->file, 4, SEEK_SET);
         fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
-        TonieboxAudioFileHeader *tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
-        ctx->taf_block_num = tafHeader->track_page_nums[tafHeader->n_track_page_nums - 1];
-        toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+        tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
     }
     else
     {
@@ -160,77 +159,77 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     ogg_stream_init(&ctx->os, audio_id);
 
     // TODO: read header data to check if the same header channel / sampling rate is used
+    unsigned char header_data[] = {
+        'O', 'p', 'u', 's', 'H', 'e', 'a', 'd',                         // "OpusHead" string
+        1,                                                              // Version
+        OPUS_CHANNELS,                                                  // Channel count
+        0x38, 0x01,                                                     // Pre-skip
+        OPUS_SAMPLING_RATE & 0xFF, OPUS_SAMPLING_RATE >> 8, 0x00, 0x00, // Original sample rate; 0xFFFFFFF implies unknown
+        0, 0,                                                           // Output gain
+        0                                                               // Channel mapping family
+    };
+
+    unsigned char comment_data[0x1B4];
+
+    size_t comment_data_pos = 0;
+    osMemset(comment_data, '0', sizeof(comment_data));
+    osStrcpy((char *)&comment_data[comment_data_pos], "OpusTags");
+    comment_data_pos += 8;
+
+    bool_t customTags = true;
+    if (customTags)
+    {
+        toniefile_comment_add(comment_data, &comment_data_pos, "teddyCloud");
+
+        int comments = 2;
+        osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
+        comment_data_pos += sizeof(uint32_t);
+
+        char *version_str = custom_asprintf("version=%s", BUILD_FULL_NAME_LONG);
+        toniefile_comment_add(comment_data, &comment_data_pos, version_str);
+        osFreeMem(version_str);
+    }
+    else
+    {
+        int comments = 3;
+        toniefile_comment_add(comment_data, &comment_data_pos, "libopus 1.2.1");
+        osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
+        comment_data_pos += sizeof(uint32_t);
+        toniefile_comment_add(comment_data, &comment_data_pos, "encoder=opusenc from opus-tools 0.1.10");
+        toniefile_comment_add(comment_data, &comment_data_pos, "encoder_options=--bitrate 64 --vbr --comp 10 --framesize 20");
+    }
+
+    /* add padding of first block */
+    int remain = sizeof(comment_data) - comment_data_pos - 4;
+    osMemcpy(&comment_data[comment_data_pos], &remain, sizeof(uint32_t));
+    comment_data_pos += sizeof(uint32_t);
+    osMemcpy(&comment_data[comment_data_pos], "pad=", 4);
+
+    /* write packets */
+    ogg_packet header_packet;
+    ogg_packet comment_packet;
+
+    header_packet.packet = header_data;
+    header_packet.bytes = sizeof(header_data);
+    header_packet.b_o_s = 1;
+    header_packet.e_o_s = 0;
+    header_packet.granulepos = 0;
+    header_packet.packetno = ctx->ogg_packet_count++;
+
+    comment_packet.packet = comment_data;
+    comment_packet.bytes = sizeof(comment_data);
+    comment_packet.b_o_s = 0;
+    comment_packet.e_o_s = 0;
+    comment_packet.granulepos = 0;
+    comment_packet.packetno = ctx->ogg_packet_count++;
+
+    ogg_stream_packetin(&ctx->os, &header_packet);
+    ogg_stream_packetin(&ctx->os, &comment_packet);
+
+    ctx->file_pos = 0;
+    ogg_page og;
     if (!append)
     {
-        unsigned char header_data[] = {
-            'O', 'p', 'u', 's', 'H', 'e', 'a', 'd',                         // "OpusHead" string
-            1,                                                              // Version
-            OPUS_CHANNELS,                                                  // Channel count
-            0x38, 0x01,                                                     // Pre-skip
-            OPUS_SAMPLING_RATE & 0xFF, OPUS_SAMPLING_RATE >> 8, 0x00, 0x00, // Original sample rate; 0xFFFFFFF implies unknown
-            0, 0,                                                           // Output gain
-            0                                                               // Channel mapping family
-        };
-
-        unsigned char comment_data[0x1B4];
-
-        size_t comment_data_pos = 0;
-        osMemset(comment_data, '0', sizeof(comment_data));
-        osStrcpy((char *)&comment_data[comment_data_pos], "OpusTags");
-        comment_data_pos += 8;
-
-        bool_t customTags = true;
-        if (customTags)
-        {
-            toniefile_comment_add(comment_data, &comment_data_pos, "teddyCloud");
-
-            int comments = 2;
-            osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
-            comment_data_pos += sizeof(uint32_t);
-
-            char *version_str = custom_asprintf("version=%s", BUILD_FULL_NAME_LONG);
-            toniefile_comment_add(comment_data, &comment_data_pos, version_str);
-            osFreeMem(version_str);
-        }
-        else
-        {
-            int comments = 3;
-            toniefile_comment_add(comment_data, &comment_data_pos, "libopus 1.2.1");
-            osMemcpy(&comment_data[comment_data_pos], &comments, sizeof(uint32_t));
-            comment_data_pos += sizeof(uint32_t);
-            toniefile_comment_add(comment_data, &comment_data_pos, "encoder=opusenc from opus-tools 0.1.10");
-            toniefile_comment_add(comment_data, &comment_data_pos, "encoder_options=--bitrate 64 --vbr --comp 10 --framesize 20");
-        }
-
-        /* add padding of first block */
-        int remain = sizeof(comment_data) - comment_data_pos - 4;
-        osMemcpy(&comment_data[comment_data_pos], &remain, sizeof(uint32_t));
-        comment_data_pos += sizeof(uint32_t);
-        osMemcpy(&comment_data[comment_data_pos], "pad=", 4);
-
-        /* write packets */
-        ogg_packet header_packet;
-        ogg_packet comment_packet;
-
-        header_packet.packet = header_data;
-        header_packet.bytes = sizeof(header_data);
-        header_packet.b_o_s = 1;
-        header_packet.e_o_s = 0;
-        header_packet.granulepos = 0;
-        header_packet.packetno = ctx->ogg_packet_count++;
-
-        comment_packet.packet = comment_data;
-        comment_packet.bytes = sizeof(comment_data);
-        comment_packet.b_o_s = 0;
-        comment_packet.e_o_s = 0;
-        comment_packet.granulepos = 0;
-        comment_packet.packetno = ctx->ogg_packet_count++;
-
-        ogg_stream_packetin(&ctx->os, &header_packet);
-        ogg_stream_packetin(&ctx->os, &comment_packet);
-
-        ctx->file_pos = 0;
-        ogg_page og;
         while (ogg_stream_flush(&ctx->os, &og))
         {
             /* write the freshly padded block of frames*/
@@ -252,6 +251,10 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     }
     else
     {
+        while (ogg_stream_flush(&ctx->os, &og))
+        {
+        }
+
         char buffer[TONIEFILE_FRAME_SIZE];
         ctx->file_pos = TONIEFILE_FRAME_SIZE;
         fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
@@ -259,7 +262,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         while (true)
         {
             error_t error = fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
-            if (error != NO_ERROR)
+            if (error != NO_ERROR && error != ERROR_END_OF_FILE)
             {
                 TRACE_ERROR("Cannot read file, error=%" PRIu16 "\n", error);
                 break;
@@ -276,23 +279,21 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         size_t block_rest = (ctx->file_pos % TONIEFILE_FRAME_SIZE);
         if (block_rest != 0)
         {
-            // osMemset(buffer, 0x00, sizeof(buffer));
-            // fsWriteFile(ctx->file, buffer, block_rest);
-            // sha1Update(&ctx->sha1, buffer, block_rest);
-            // TRACE_WARNING("Padding file to block size %" PRIuSIZE "\r\n", ctx->file_pos + block_rest);
-            // ctx->file_pos = ctx->file_pos + block_rest;
+            TRACE_WARNING("Seeking back paddings to block size %" PRIuSIZE "\r\n", block_rest);
         }
         ctx->file_pos -= block_rest;
         ctx->audio_length -= block_rest;
 
         fsSeekFile(ctx->file, ctx->file_pos - TONIEFILE_FRAME_SIZE, SEEK_SET);
         fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
-        // ctx->ogg_packet_count = ctx->file_pos / TONIEFILE_FRAME_SIZE; // TODO read from file last block
-        // ctx->ogg_granule_position = 0;                                // TODO read from file last block
-        // ctx->os.lacing_fill = 128; // WORKAROUNMD
+
+        ctx->ogg_granule_position = tafHeader->ogg_granule_position;
+        ctx->ogg_packet_count = tafHeader->ogg_packet_count;
+        ctx->taf_block_num = tafHeader->taf_block_num;
+        toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
 
         fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
-        TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
+        // TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
     }
 
     return ctx;
@@ -309,6 +310,10 @@ error_t toniefile_write_header(toniefile_t *ctx)
         ctx->taf.sha1_hash.data = sha1;
         ctx->taf.sha1_hash.len = SHA1_DIGEST_SIZE;
     }
+
+    ctx->taf.ogg_granule_position = ctx->ogg_granule_position;
+    ctx->taf.ogg_packet_count = ctx->ogg_packet_count;
+    ctx->taf.taf_block_num = ctx->taf_block_num;
 
     osMemset(buffer, 0x00, sizeof(buffer));
     uint32_t proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &ctx->taf);
@@ -377,7 +382,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
     int samples_processed = 0;
     uint8_t output_frame[TONIEFILE_FRAME_SIZE];
 
-    // TRACE_INFO("samples_available: %lu\n", samples_available);
+    // TRACE_INFO("samples_available: %" PRIuSIZE "\n", samples_available);
     while (samples_processed < samples_available)
     {
         /* get the maximum copyable number of samples */
@@ -387,7 +392,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
         {
             samples = samples_remaining;
         }
-        // TRACE_INFO("  samples: %lu (%lu/%lu)\n", samples, samples_processed, samples_available);
+        // TRACE_INFO("  samples: %lu (%u/%" PRIuSIZE ")\n", samples, samples_processed, samples_available);
 
         toniefile_samples_copy(ctx->audio_frame, &ctx->audio_frame_used, sample_buffer, &samples_processed, samples);
 
@@ -415,7 +420,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             }
 
             int frame_len = opus_encode(ctx->enc, ctx->audio_frame, OPUS_FRAME_SIZE, output_frame, frame_payload);
-            // TRACE_INFO("opus_encode: %d/%d\r\n", frame_len, frame_dest);
+            // TRACE_INFO("opus_encode: %d/%d\r\n", frame_len, frame_payload);
 
             if (frame_len <= 0)
             {
@@ -462,6 +467,8 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill + ctx->os.body_fill;
             page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
+            // TRACE_INFO("(%" PRIuSIZE " MOD 4096) + 27 + %li + %li;\r\n", ctx->file_pos, ctx->os.lacing_fill, ctx->os.body_fill)
+
             if (page_remain < TONIEFILE_PAD_END)
             {
                 if (page_remain)
@@ -484,6 +491,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                     size_t prev = ctx->file_pos;
                     ctx->file_pos += og.header_len + og.body_len;
                     ctx->audio_length += og.header_len + og.body_len;
+                    // TRACE_INFO("Header_len %" PRIuSIZE " Body_len %" PRIuSIZE " prev %" PRIuSIZE " File_pos %" PRIuSIZE "\r\n", og.header_len, og.body_len, prev, ctx->file_pos);
 
                     sha1Update(&ctx->sha1, og.header, og.header_len);
                     sha1Update(&ctx->sha1, og.body, og.body_len);
@@ -691,10 +699,6 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
             TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
             break;
         }
-    }
-    if (!active)
-    {
-        toniefile_new_chapter(taf);
     }
 
     ffmpeg_decode_audio_end(ffmpeg_pipe, error);

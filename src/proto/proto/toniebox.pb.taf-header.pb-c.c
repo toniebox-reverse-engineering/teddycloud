@@ -52,7 +52,7 @@ void   toniebox_audio_file_header__free_unpacked
   assert(message->base.descriptor == &toniebox_audio_file_header__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descriptors[5] =
+static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descriptors[8] =
 {
   {
     "sha1_hash",
@@ -114,18 +114,57 @@ static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descript
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "ogg_granule_position",
+    6,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, ogg_granule_position),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "ogg_packet_count",
+    7,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, ogg_packet_count),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "taf_block_num",
+    8,
+    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, taf_block_num),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned toniebox_audio_file_header__field_indices_by_name[] = {
   4,   /* field[4] = _fill */
   2,   /* field[2] = audio_id */
   1,   /* field[1] = num_bytes */
+  5,   /* field[5] = ogg_granule_position */
+  6,   /* field[6] = ogg_packet_count */
   0,   /* field[0] = sha1_hash */
+  7,   /* field[7] = taf_block_num */
   3,   /* field[3] = track_page_nums */
 };
 static const ProtobufCIntRange toniebox_audio_file_header__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 5 }
+  { 0, 8 }
 };
 const ProtobufCMessageDescriptor toniebox_audio_file_header__descriptor =
 {
@@ -135,7 +174,7 @@ const ProtobufCMessageDescriptor toniebox_audio_file_header__descriptor =
   "TonieboxAudioFileHeader",
   "",
   sizeof(TonieboxAudioFileHeader),
-  5,
+  8,
   toniebox_audio_file_header__field_descriptors,
   toniebox_audio_file_header__field_indices_by_name,
   1,  toniebox_audio_file_header__number_ranges,

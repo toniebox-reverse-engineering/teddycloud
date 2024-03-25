@@ -6,4 +6,9 @@ message TonieboxAudioFileHeader {
   required uint32 audio_id = 3;
   repeated uint32 track_page_nums = 4 [packed=true];
   required bytes _fill = 5;
+  //custom_fields_start
+  required uint64 ogg_granule_position = 6;
+  required uint64 ogg_packet_count = 7;
+  required uint64 taf_block_num = 8;
+  //custom_fields_end
 }

@@ -32,10 +32,19 @@ struct  _TonieboxAudioFileHeader
   size_t n_track_page_nums;
   uint32_t *track_page_nums;
   ProtobufCBinaryData _fill;
+  /*
+   *custom_fields_start
+   */
+  uint64_t ogg_granule_position;
+  uint64_t ogg_packet_count;
+  /*
+   *custom_fields_end
+   */
+  uint64_t taf_block_num;
 };
 #define TONIEBOX_AUDIO_FILE_HEADER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&toniebox_audio_file_header__descriptor) \
-    , {0,NULL}, 0, 0, 0,NULL, {0,NULL} }
+    , {0,NULL}, 0, 0, 0,NULL, {0,NULL}, 0, 0, 0 }
 
 
 /* TonieboxAudioFileHeader methods */
