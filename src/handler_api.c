@@ -1582,7 +1582,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
         TRACE_INFO("[TAF] Start encoding to %s\r\n", ctx->file_path);
         TRACE_INFO("[TAF]   first file: %s\r\n", name);
 
-        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id);
+        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id, false);
 
         if (ctx->taf == NULL)
         {

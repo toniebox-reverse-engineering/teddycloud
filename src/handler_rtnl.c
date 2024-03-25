@@ -285,6 +285,10 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             client_ctx->state->tag.audio_id = 0;
             client_ctx->state->tag.valid = false;
             client_ctx->state->tag.uid = 0;
+            if (!client_ctx->state->box.ffmpeg_ctx.quit)
+            {
+                client_ctx->state->box.ffmpeg_ctx.active = false;
+            }
 
             sse_sendEvent("playback", "stopped", true);
             mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
