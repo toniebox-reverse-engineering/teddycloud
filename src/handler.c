@@ -184,8 +184,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                 }
                                 if (moveToLibrary)
                                 {
-                                    fsRenameFile(ctx->tonieInfo->contentPath, libraryPath);
-                                    if (fsFileExists(libraryPath))
+                                    error_t error = fsRenameFile(ctx->tonieInfo->contentPath, libraryPath);
+                                    if (error == NO_ERROR && fsFileExists(libraryPath) && !fsFileExists(ctx->tonieInfo->contentPath))
                                     {
                                         char *libraryShortPath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", audioId);
 
@@ -197,7 +197,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                     }
                                     else
                                     {
-                                        TRACE_ERROR(">> Failed to move %s to library %s\r\n", ctx->tonieInfo->contentPath, libraryPath);
+                                        TRACE_ERROR(">> Failed to move %s to library %s, error=%d\r\n", ctx->tonieInfo->contentPath, libraryPath, error);
                                     }
                                 }
 
