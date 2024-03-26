@@ -117,9 +117,9 @@ static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descript
   {
     "ogg_granule_position",
     6,
-    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, has_ogg_granule_position),
     offsetof(TonieboxAudioFileHeader, ogg_granule_position),
     NULL,
     NULL,
@@ -129,9 +129,9 @@ static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descript
   {
     "ogg_packet_count",
     7,
-    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, has_ogg_packet_count),
     offsetof(TonieboxAudioFileHeader, ogg_packet_count),
     NULL,
     NULL,
@@ -141,9 +141,9 @@ static const ProtobufCFieldDescriptor toniebox_audio_file_header__field_descript
   {
     "taf_block_num",
     8,
-    PROTOBUF_C_LABEL_REQUIRED,
+    PROTOBUF_C_LABEL_OPTIONAL,
     PROTOBUF_C_TYPE_UINT64,
-    0,   /* quantifier_offset */
+    offsetof(TonieboxAudioFileHeader, has_taf_block_num),
     offsetof(TonieboxAudioFileHeader, taf_block_num),
     NULL,
     NULL,
