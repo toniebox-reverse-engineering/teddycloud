@@ -209,6 +209,7 @@ void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, con
 int_t main(int argc, char *argv[])
 {
     char cwd[PATH_LEN] = {0};
+    error_text_init();
 
     get_settings()->log.level = TRACE_LEVEL_WARNING;
 
