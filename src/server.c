@@ -405,7 +405,7 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 
     if (error)
     {
-        TRACE_ERROR("  Failed to add cert: %d\r\n", error);
+        TRACE_ERROR("  Failed to add cert: %s\r\n", error2text(error));
         return error;
     }
 

@@ -135,7 +135,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             {
                 error_t error = fsWriteFile(ctx->file, (void *)payload, length);
                 if (error)
-                    TRACE_ERROR(">> fsWriteFile Error: %u\r\n", error);
+                    TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(error));
             }
             if (error == ERROR_END_OF_STREAM)
             {
@@ -197,7 +197,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                     }
                                     else
                                     {
-                                        TRACE_ERROR(">> Failed to move %s to library %s, error=%d\r\n", ctx->tonieInfo->contentPath, libraryPath, error);
+                                        TRACE_ERROR(">> Failed to move %s to library %s, error=%s\r\n", ctx->tonieInfo->contentPath, libraryPath, error2text(error));
                                     }
                                 }
 
@@ -539,7 +539,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, b
         osFreeMem(data);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to send payload: %d\r\n", error);
+        TRACE_ERROR("Failed to send payload: %s\r\n", error2text(error));
         return error;
     }
 
@@ -548,7 +548,7 @@ error_t httpWriteResponse(HttpConnection *connection, void *data, size_t size, b
     /*
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to close: %d\r\n", error);
+        TRACE_ERROR("Failed to close: %s\r\n", error2text(error));
         return error;
     }
     */

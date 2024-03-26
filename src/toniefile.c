@@ -591,7 +591,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
         error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
-            TRACE_ERROR("Could not decode sample error=%" PRIu16 " read=%" PRIuSIZE "\r\n", error, blocks_read);
+            TRACE_ERROR("Could not decode sample error=%s read=%" PRIuSIZE "\r\n", error2text(error), blocks_read);
             break;
         }
         else if (error == ERROR_END_OF_STREAM)
@@ -619,7 +619,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
         error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
-            TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
+            TRACE_ERROR("Could not encode toniesample error=%s\r\n", error2text(error));
             break;
         }
     }

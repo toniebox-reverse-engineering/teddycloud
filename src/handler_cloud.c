@@ -410,7 +410,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             if (error != NO_ERROR)
             {
                 freeTonieInfo(tonieInfoAssign);
-                TRACE_ERROR("Could not copy %s to %s, error=%" PRIu32 "\r\n", assignFile, tonieInfo->contentPath, error);
+                TRACE_ERROR("Could not copy %s to %s, error=%s\r\n", assignFile, tonieInfo->contentPath, error2text(error));
                 break;
             }
 
@@ -466,7 +466,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
         }
         ffmpeg_ctx.active = false;
@@ -491,7 +491,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], tonieInfo->stream);
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%u...\r\n", tonieInfo->contentPath, error);
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
         }
         else

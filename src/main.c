@@ -180,7 +180,7 @@ void main_init_settings(const char *cwd, const char *base_path)
         }
         else
         {
-            TRACE_ERROR("ERROR: settings_init() failed with error code %d\r\n", error);
+            TRACE_ERROR("ERROR: settings_init() failed with error %s\r\n", error2text(error));
             TRACE_ERROR("ERROR: Make sure the config path exists and is writable\r\n");
         }
         exit(-1);
