@@ -1,5 +1,6 @@
 #include "handler.h"
 #include "server_helpers.h"
+#include "fs_ext.h"
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
@@ -184,8 +185,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                 }
                                 if (moveToLibrary)
                                 {
-                                    error_t error = fsRenameFile(ctx->tonieInfo->contentPath, libraryPath);
-                                    if (error == NO_ERROR && fsFileExists(libraryPath) && !fsFileExists(ctx->tonieInfo->contentPath))
+                                    error_t error = fsMoveFile(ctx->tonieInfo->contentPath, libraryPath, false);
+                                    if (error == NO_ERROR)
                                     {
                                         char *libraryShortPath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", audioId);
 
