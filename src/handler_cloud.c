@@ -446,32 +446,42 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo->json.source);
         connection->response.keepAlive = true;
 
-        ffmpeg_stream_ctx_t ffmpeg_ctx;
-        ffmpeg_ctx.active = false;
-        ffmpeg_ctx.quit = false;
-        ffmpeg_ctx.source = tonieInfo->json.source;
-        ffmpeg_ctx.skip_seconds = tonieInfo->json.skip_seconds;
-        ffmpeg_ctx.targetFile = tonieInfo->json._streamFile;
-        ffmpeg_ctx.error = NO_ERROR;
-        ffmpeg_ctx.taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, &ffmpeg_ctx, 10 * 1024, 0);
+        ffmpeg_stream_ctx_t *ffmpeg_ctx = &client_ctx->state->box.ffmpeg_ctx;
+        ffmpeg_ctx->active = false;
+        ffmpeg_ctx->quit = false;
+        ffmpeg_ctx->append = (connection->request.Range.start != 0);
+        ffmpeg_ctx->source = tonieInfo->json.source;
+        ffmpeg_ctx->skip_seconds = tonieInfo->json.skip_seconds;
+        ffmpeg_ctx->targetFile = tonieInfo->json._streamFile;
+        ffmpeg_ctx->error = NO_ERROR;
+        ffmpeg_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, ffmpeg_ctx, 10 * 1024, 0);
 
-        while (!ffmpeg_ctx.active && ffmpeg_ctx.error == NO_ERROR)
+        // TODO: If tag is resumed, TAF is appended but streams stops and is restarted as new stream and new TAF file (little delay)
+
+        while (!ffmpeg_ctx->active && ffmpeg_ctx->error == NO_ERROR)
         {
             osDelayTask(100);
         }
-        if (ffmpeg_ctx.error == NO_ERROR)
+        if (ffmpeg_ctx->error == NO_ERROR)
         {
             uint32_t delay = client_ctx->settings->cloud.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
-            osDelayTask(delay);
+            if (!ffmpeg_ctx->append)
+            {
+                osDelayTask(delay);
+            }
+            else
+            {
+                osDelayTask(delay);
+            }
             error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
             if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
         }
-        ffmpeg_ctx.active = false;
-        while (!ffmpeg_ctx.quit)
+        ffmpeg_ctx->active = false;
+        while (!ffmpeg_ctx->quit)
         {
             osDelayTask(100);
         }

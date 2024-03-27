@@ -928,6 +928,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
    error_t error;
    size_t n;
+   uint32_t file_length;
    uint32_t length;
    FsFile *file;
 
@@ -979,6 +980,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       if (error)
          return ERROR_NOT_FOUND;
    }
+   file_length = length;
    if (isStream)
    {
       length = CONTENT_LENGTH_MAX;
@@ -1055,26 +1057,17 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    //  TODO add status 416 on invalid ranges
    if (connection->request.Range.start > 0)
    {
-      if (isStream)
-      {
-         TRACE_WARNING("Seeking file to %" PRIu32 " but streaming\r\n", connection->request.Range.start);
-         connection->response.contentLength = 0;
-         connection->response.statusCode = 404; // TODO find a way to enforce the box to read from the beginning.
-      }
-      else
-      {
-         connection->request.Range.size = length;
-         if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-            connection->request.Range.end = connection->request.Range.size - 1;
+      connection->request.Range.size = file_length;
+      if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
+         connection->request.Range.end = connection->request.Range.size - 1;
 
-         if (connection->response.contentRange == NULL)
-            connection->response.contentRange = osAllocMem(255);
+      if (connection->response.contentRange == NULL)
+         connection->response.contentRange = osAllocMem(255);
 
-         osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
-         connection->response.statusCode = 206;
-         connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
-         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
-      }
+      osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+      connection->response.statusCode = 206;
+      connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
    }
    else
    {
@@ -1139,10 +1132,10 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       // Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
       // End of input stream?
-      if (isStream && error == ERROR_END_OF_FILE)
+      if (isStream && error == ERROR_END_OF_FILE && connection->private.client_ctx.state->box.ffmpeg_ctx.active)
       {
-         osDelayTask(500);
-         error = httpCloseStream(connection); // Test connection???
+         osDelayTask(100);
+         error = httpCloseStream(connection); // Test connection??? won't work TODO: exit after some seconds
          if (error)
             break;
          continue;
