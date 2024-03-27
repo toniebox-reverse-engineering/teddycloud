@@ -39,15 +39,17 @@ struct  _TonieboxAudioFileHeader
   uint64_t ogg_granule_position;
   protobuf_c_boolean has_ogg_packet_count;
   uint64_t ogg_packet_count;
+  protobuf_c_boolean has_taf_block_num;
+  uint64_t taf_block_num;
   /*
    *custom_fields_end
    */
-  protobuf_c_boolean has_taf_block_num;
-  uint64_t taf_block_num;
+  protobuf_c_boolean has_pageno;
+  uint64_t pageno;
 };
 #define TONIEBOX_AUDIO_FILE_HEADER__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&toniebox_audio_file_header__descriptor) \
-    , {0,NULL}, 0, 0, 0,NULL, {0,NULL}, 0, 0, 0, 0, 0, 0 }
+    , {0,NULL}, 0, 0, 0,NULL, {0,NULL}, 0, 0, 0, 0, 0, 0, 0, 0 }
 
 
 /* TonieboxAudioFileHeader methods */

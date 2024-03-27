@@ -124,6 +124,8 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         fsSeekFile(ctx->file, 4, SEEK_SET);
         fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
         tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
+        audio_id = ctx->taf.audio_id;
+        ctx->taf.audio_id = audio_id;
     }
     else
     {
@@ -290,6 +292,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         ctx->ogg_granule_position = tafHeader->ogg_granule_position;
         ctx->ogg_packet_count = tafHeader->ogg_packet_count;
         ctx->taf_block_num = tafHeader->taf_block_num;
+        ctx->os.pageno = tafHeader->pageno;
         toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
 
         fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
@@ -314,6 +317,11 @@ error_t toniefile_write_header(toniefile_t *ctx)
     ctx->taf.ogg_granule_position = ctx->ogg_granule_position;
     ctx->taf.ogg_packet_count = ctx->ogg_packet_count;
     ctx->taf.taf_block_num = ctx->taf_block_num;
+    ctx->taf.pageno = ctx->os.pageno;
+    ctx->taf.has_ogg_granule_position = true;
+    ctx->taf.has_ogg_packet_count = true;
+    ctx->taf.has_taf_block_num = true;
+    ctx->taf.has_pageno = true;
 
     osMemset(buffer, 0x00, sizeof(buffer));
     uint32_t proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &ctx->taf);
