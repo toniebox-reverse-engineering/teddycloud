@@ -439,6 +439,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         error = NO_ERROR;
     }
 
+    bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
     if (tonieInfo->json._stream)
     {
         char *streamFileRel = &tonieInfo->json._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
@@ -475,7 +476,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             osDelayTask(100);
         }
     }
-    else if (tonieInfo->exists && tonieInfo->valid && !tonie_marked)
+    else if (tonieInfo->exists && tonieInfo->valid && (!tonie_marked || !can_use_cloud))
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
@@ -501,7 +502,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
     else
     {
-        if (!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override))
+        if (!can_use_cloud)
         {
             if (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override)
             {
