@@ -124,7 +124,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         fsSeekFile(ctx->file, 4, SEEK_SET);
         fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
         tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
-        audio_id = ctx->taf.audio_id;
+        audio_id = tafHeader->audio_id;
         ctx->taf.audio_id = audio_id;
     }
     else
@@ -286,17 +286,16 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         ctx->file_pos -= block_rest;
         ctx->audio_length -= block_rest;
 
-        fsSeekFile(ctx->file, ctx->file_pos - TONIEFILE_FRAME_SIZE, SEEK_SET);
-        fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
-
         ctx->ogg_granule_position = tafHeader->ogg_granule_position;
         ctx->ogg_packet_count = tafHeader->ogg_packet_count;
         ctx->taf_block_num = tafHeader->taf_block_num;
         ctx->os.pageno = tafHeader->pageno;
         toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
 
-        fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
-        // TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
+        fsCloseFile(ctx->file);
+        ctx->file = fsOpenFileEx(fullPath, "a");
+        // fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
+        //  TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
     }
 
     return ctx;
@@ -711,6 +710,8 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
     if (!(*active))
     {
         TRACE_INFO("Encoding aborted, active flag set to false\r\n");
+    } else {
+        *active = false;
     }
 
     ffmpeg_decode_audio_end(ffmpeg_pipe, error);
