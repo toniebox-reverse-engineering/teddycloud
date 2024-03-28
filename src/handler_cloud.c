@@ -456,8 +456,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         ffmpeg_ctx->error = NO_ERROR;
         ffmpeg_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, ffmpeg_ctx, 10 * 1024, 0);
 
-        // TODO: If tag is resumed, TAF is appended but streams stops and is restarted as new stream and new TAF file (little delay)
-
         while (!ffmpeg_ctx->active && ffmpeg_ctx->error == NO_ERROR)
         {
             osDelayTask(100);

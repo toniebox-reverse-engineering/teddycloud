@@ -72,6 +72,7 @@ typedef struct
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
     uint32_t ffmpeg_stream_buffer_ms;
+    bool ffmpeg_stream_restart;
 } settings_cloud_t;
 
 typedef struct

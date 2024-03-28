@@ -984,6 +984,10 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    if (isStream)
    {
       length = CONTENT_LENGTH_MAX;
+      if (!connection->private.client_ctx.settings->cloud.ffmpeg_stream_restart)
+      {
+         file_length = length;
+      }
    }
 
    // Open the file for reading
