@@ -1261,7 +1261,11 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
     uint64_t **ptr = (uint64_t **)opt->ptr;
     if (*ptr)
     {
-        osFreeMem(*ptr);
+        if (opt->size > 0)
+        {
+            opt->size = 0;
+            osFreeMem(*ptr);
+        }
     }
 
     *ptr = osAllocMem(sizeof(uint64_t) * len);
