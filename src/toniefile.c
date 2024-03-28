@@ -106,7 +106,6 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
-    toniefile_new_chapter(ctx);
 
     /* open file */
     ctx->fullPath = fullPath;
@@ -136,6 +135,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     if (ctx->file == NULL)
     {
         TRACE_ERROR("Cannot create / open file: %s\n", fullPath);
+        fsCloseFile(ctx->file);
         osFreeMem(ctx->taf.track_page_nums);
         osFreeMem(ctx);
         return NULL;
@@ -148,6 +148,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     if (err != OPUS_OK)
     {
         TRACE_ERROR("Cannot create opus encoder: %s\n", opus_strerror(err));
+        fsCloseFile(ctx->file);
         osFreeMem(ctx->taf.track_page_nums);
         osFreeMem(ctx);
         return NULL;
@@ -285,19 +286,18 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         }
         ctx->file_pos -= block_rest;
         ctx->audio_length -= block_rest;
+        fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
 
         ctx->ogg_granule_position = tafHeader->ogg_granule_position;
         ctx->ogg_packet_count = tafHeader->ogg_packet_count;
         ctx->taf_block_num = tafHeader->taf_block_num;
         ctx->os.pageno = tafHeader->pageno;
         toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
-
-        fsCloseFile(ctx->file);
-        ctx->file = fsOpenFileEx(fullPath, "a");
         // fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
         //  TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
     }
 
+    toniefile_new_chapter(ctx);
     return ctx;
 }
 
@@ -710,7 +710,9 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
     if (!(*active))
     {
         TRACE_INFO("Encoding aborted, active flag set to false\r\n");
-    } else {
+    }
+    else
+    {
         *active = false;
     }
 
