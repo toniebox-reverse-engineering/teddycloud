@@ -24,7 +24,7 @@
 #define TONIESV2_CUSTOM_JSON_FILE "tonies.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 7
+#define CONFIG_VERSION 8
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -71,9 +71,15 @@ typedef struct
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
+} settings_cloud_t;
+
+typedef struct
+{
+    uint32_t bitrate;
     uint32_t ffmpeg_stream_buffer_ms;
     bool ffmpeg_stream_restart;
-} settings_cloud_t;
+
+} settings_encode_t;
 
 typedef struct
 {
@@ -249,6 +255,7 @@ typedef struct
     char *boxName;
     settings_core_t core;
     settings_cloud_t cloud;
+    settings_encode_t encode;
     settings_mqtt_t mqtt;
     settings_hass_t hass;
     settings_toniebox_t toniebox;

@@ -462,7 +462,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         if (ffmpeg_ctx->error == NO_ERROR)
         {
-            uint32_t delay = client_ctx->settings->cloud.ffmpeg_stream_buffer_ms;
+            uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
             if (!ffmpeg_ctx->append)
             {

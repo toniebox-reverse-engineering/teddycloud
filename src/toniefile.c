@@ -154,7 +154,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         return NULL;
     }
 
-    opus_encoder_ctl(ctx->enc, OPUS_SET_BITRATE(OPUS_BIT_RATE));
+    opus_encoder_ctl(ctx->enc, OPUS_SET_BITRATE(get_settings()->encode.bitrate * 1000));
     opus_encoder_ctl(ctx->enc, OPUS_SET_VBR(1));
     opus_encoder_ctl(ctx->enc, OPUS_SET_EXPERT_FRAME_DURATION(OPUS_FRAME_SIZE_MS));
 
@@ -700,7 +700,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
             }
             break;
         }
-        error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
+        error = toniefile_encode(taf, sample_buffer, blocks_read / OPUS_CHANNELS);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
             TRACE_ERROR("Could not encode toniesample error=%s\r\n", error2text(error));

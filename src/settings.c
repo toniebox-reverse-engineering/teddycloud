@@ -183,8 +183,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)")
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id")
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.")
-    OPTION_UNSIGNED("cloud.ffmpeg_stream_buffer_ms", &settings->cloud.ffmpeg_stream_buffer_ms, 5000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
-    OPTION_BOOL("cloud.ffmpeg_stream_restart", &settings->cloud.ffmpeg_stream_restart, TRUE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.")
+
+    OPTION_TREE_DESC("encode", "TAF encoding")
+    OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!")
+    OPTION_UNSIGNED("encode.ffmpeg_stream_buffer_ms", &settings->encode.ffmpeg_stream_buffer_ms, 1000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
+    OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, TRUE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.")
 
     OPTION_TREE_DESC("toniebox", "Toniebox")
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings for the toniebox with those set here")
