@@ -79,12 +79,12 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         else if (error != NO_ERROR)
         {
             fsCloseFile(ctx->file);
-            TRACE_ERROR("tonies.json download body error=%" PRIu32 "\r\n", error);
+            TRACE_ERROR("tonies.json download body error=%s\r\n", error2text(error));
         }
         if (errorWrite != NO_ERROR)
         {
             fsCloseFile(ctx->file);
-            TRACE_ERROR("tonies.json (%s) write error=%" PRIu32 "\r\n", tonies_json_tmp_path, errorWrite);
+            TRACE_ERROR("tonies.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
         }
     }
 }
@@ -121,7 +121,7 @@ error_t tonies_update()
     }
     else
     {
-        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
+        TRACE_ERROR("... failed updating tonies.json error=%s\r\n", error2text(error));
     }
     return error;
 }
@@ -158,7 +158,7 @@ error_t toniesV2_update()
     }
     else
     {
-        TRACE_ERROR("... failed updating tonies.json error=%" PRIu32 "\r\n", error);
+        TRACE_ERROR("... failed updating tonies.json error=%s\r\n", error2text(error));
     }
     return error;
 }

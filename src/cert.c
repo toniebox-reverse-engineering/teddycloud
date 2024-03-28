@@ -196,7 +196,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     error_t error = x509CreateCertificate(rand_get_algo(), rand_get_context(), &cert_req, &cert_pubkey, self_sign ? NULL : &issuer_cert, &serial, &validity, &algo, self_sign ? &cert_privkey : &issuer_priv, cert_der_data, &cert_der_size);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("x509CreateCertificate failed: %d\r\n", error);
+        TRACE_ERROR("x509CreateCertificate failed: %s\r\n", error2text(error));
         return ERROR_FAILURE;
     }
 

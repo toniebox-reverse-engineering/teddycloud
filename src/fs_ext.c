@@ -33,6 +33,70 @@ FsFile *fsOpenFileEx(const char_t *path, char *mode)
     return fp;
 }
 
+error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, size_t *diff_position)
+{
+    if (!fsFileExists(source_path))
+    {
+        return ERROR_FILE_NOT_FOUND;
+    }
+    if (!fsFileExists(target_path))
+    {
+        return ERROR_FILE_NOT_FOUND;
+    }
+
+    FsFile *source_file = fsOpenFileEx(source_path, "rb");
+    if (source_file == NULL)
+        return ERROR_FILE_OPENING_FAILED;
+
+    FsFile *target_file = fsOpenFileEx(target_path, "rb");
+    if (target_file == NULL)
+    {
+        fsCloseFile(source_file);
+        return ERROR_FILE_OPENING_FAILED;
+    }
+
+    uint8_t buffer_source[FILE_COPY_BUFFER_SIZE];
+    uint8_t buffer_target[FILE_COPY_BUFFER_SIZE];
+    size_t bytes_read_source = 0;
+    size_t bytes_read_target = 0;
+    error_t error = NO_ERROR;
+    *diff_position = 0;
+    while (error == NO_ERROR)
+    {
+        error = fsReadFile(source_file, buffer_source, sizeof(buffer_source), &bytes_read_source);
+        if (error != NO_ERROR && error != ERROR_END_OF_FILE)
+        {
+            break;
+        }
+        error = fsReadFile(source_file, buffer_source, sizeof(buffer_source), &bytes_read_source);
+        if (error != NO_ERROR && error != ERROR_END_OF_FILE)
+        {
+            break;
+        }
+        if (bytes_read_source != bytes_read_target)
+        {
+            error = ERROR_ABORTED;
+            break;
+        }
+        for (size_t i = 0; i < bytes_read_source; i++)
+        {
+            if (buffer_source[i] != buffer_target[i])
+            {
+                error = ERROR_ABORTED;
+                break;
+            }
+            *diff_position = *diff_position + 1;
+        }
+    }
+    fsCloseFile(source_file);
+    fsCloseFile(target_file);
+    if (error == ERROR_END_OF_FILE)
+    {
+        return NO_ERROR;
+    }
+    return error;
+}
+
 error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
 {
     // Check if source_path and target_path are not NULL
@@ -76,5 +140,24 @@ error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t 
     if (error == ERROR_END_OF_FILE)
         return NO_ERROR;
 
+    return error;
+}
+error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
+{
+    error_t error = fsRenameFile(source_path, target_path);
+    if (error == NO_ERROR && !fsFileExists(source_path) && fsFileExists(target_path))
+    {
+        return error;
+    }
+
+    error = fsCopyFile(source_path, target_path, overwrite);
+    if (error == NO_ERROR)
+    {
+        error = fsCompareFiles(source_path, target_path, NULL);
+        if (error == NO_ERROR)
+        {
+            error = fsDeleteFile(source_path);
+        }
+    }
     return error;
 }

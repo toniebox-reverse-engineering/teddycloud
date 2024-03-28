@@ -12,6 +12,7 @@
 #include "error.h"
 #include "path.h"
 #include "fs_port.h"
+#include "fs_ext.h"
 #include "os_port.h"
 #include "os_ext.h"
 #include "debug.h"
@@ -90,9 +91,10 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     return size;
 }
 
-toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
+toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append)
 {
     int err;
+    TonieboxAudioFileHeader *tafHeader = NULL;
 
     toniefile_t *ctx = osAllocMem(sizeof(toniefile_t));
     osMemset(ctx, 0x00, sizeof(toniefile_t));
@@ -104,15 +106,36 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
-    toniefile_new_chapter(ctx);
 
     /* open file */
     ctx->fullPath = fullPath;
-    ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+    if (!fsFileExists(fullPath))
+    {
+        append = false;
+    }
+    if (append)
+    {
+        ctx->file = fsOpenFileEx(fullPath, "r+");
+        TRACE_INFO("Append to TAF: %s\n", fullPath);
+
+        char buffer[TONIEFILE_FRAME_SIZE];
+        size_t read_length = 0;
+        fsSeekFile(ctx->file, 4, SEEK_SET);
+        fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
+        tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
+        audio_id = tafHeader->audio_id;
+        ctx->taf.audio_id = audio_id;
+    }
+    else
+    {
+        ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
+        TRACE_INFO("Create TAF: %s\n", fullPath)
+    }
 
     if (ctx->file == NULL)
     {
-        TRACE_ERROR("Cannot create file: %s\n", fullPath);
+        TRACE_ERROR("Cannot create / open file: %s\n", fullPath);
+        fsCloseFile(ctx->file);
         osFreeMem(ctx->taf.track_page_nums);
         osFreeMem(ctx);
         return NULL;
@@ -125,18 +148,20 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
     if (err != OPUS_OK)
     {
         TRACE_ERROR("Cannot create opus encoder: %s\n", opus_strerror(err));
+        fsCloseFile(ctx->file);
         osFreeMem(ctx->taf.track_page_nums);
         osFreeMem(ctx);
         return NULL;
     }
 
-    opus_encoder_ctl(ctx->enc, OPUS_SET_BITRATE(OPUS_BIT_RATE));
+    opus_encoder_ctl(ctx->enc, OPUS_SET_BITRATE(get_settings()->encode.bitrate * 1000));
     opus_encoder_ctl(ctx->enc, OPUS_SET_VBR(1));
     opus_encoder_ctl(ctx->enc, OPUS_SET_EXPERT_FRAME_DURATION(OPUS_FRAME_SIZE_MS));
 
     /* init OGG */
     ogg_stream_init(&ctx->os, audio_id);
 
+    // TODO: read header data to check if the same header channel / sampling rate is used
     unsigned char header_data[] = {
         'O', 'p', 'u', 's', 'H', 'e', 'a', 'd',                         // "OpusHead" string
         1,                                                              // Version
@@ -206,26 +231,73 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id)
 
     ctx->file_pos = 0;
     ogg_page og;
-
-    while (ogg_stream_flush(&ctx->os, &og))
+    if (!append)
     {
-        /* write the freshly padded block of frames*/
-        if (fsWriteFile(ctx->file, og.header, og.header_len) != NO_ERROR)
+        while (ogg_stream_flush(&ctx->os, &og))
         {
-            return NULL;
-        }
-        /* write the freshly padded block of frames*/
-        if (fsWriteFile(ctx->file, og.body, og.body_len) != NO_ERROR)
-        {
-            return NULL;
-        }
-        ctx->file_pos += og.header_len + og.body_len;
-        ctx->audio_length += og.header_len + og.body_len;
+            /* write the freshly padded block of frames*/
+            if (fsWriteFile(ctx->file, og.header, og.header_len) != NO_ERROR)
+            {
+                return NULL;
+            }
+            /* write the freshly padded block of frames*/
+            if (fsWriteFile(ctx->file, og.body, og.body_len) != NO_ERROR)
+            {
+                return NULL;
+            }
+            ctx->file_pos += og.header_len + og.body_len;
+            ctx->audio_length += og.header_len + og.body_len;
 
-        sha1Update(&ctx->sha1, og.header, og.header_len);
-        sha1Update(&ctx->sha1, og.body, og.body_len);
+            sha1Update(&ctx->sha1, og.header, og.header_len);
+            sha1Update(&ctx->sha1, og.body, og.body_len);
+        }
+    }
+    else
+    {
+        while (ogg_stream_flush(&ctx->os, &og))
+        {
+        }
+
+        char buffer[TONIEFILE_FRAME_SIZE];
+        ctx->file_pos = TONIEFILE_FRAME_SIZE;
+        fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
+        size_t read_length = 0;
+        while (true)
+        {
+            error_t error = fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
+            if (error != NO_ERROR && error != ERROR_END_OF_FILE)
+            {
+                TRACE_ERROR("Cannot read file, error=%" PRIu16 "\n", error);
+                break;
+            }
+            if (read_length == 0)
+            {
+                break;
+            }
+            ctx->file_pos += read_length;
+            ctx->audio_length += read_length;
+            sha1Update(&ctx->sha1, buffer, read_length);
+        }
+
+        size_t block_rest = (ctx->file_pos % TONIEFILE_FRAME_SIZE);
+        if (block_rest != 0)
+        {
+            TRACE_WARNING("Seeking back paddings to block size %" PRIuSIZE "\r\n", block_rest);
+        }
+        ctx->file_pos -= block_rest;
+        ctx->audio_length -= block_rest;
+        fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
+
+        ctx->ogg_granule_position = tafHeader->ogg_granule_position;
+        ctx->ogg_packet_count = tafHeader->ogg_packet_count;
+        ctx->taf_block_num = tafHeader->taf_block_num;
+        ctx->os.pageno = tafHeader->pageno;
+        toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+        // fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
+        //  TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
     }
 
+    toniefile_new_chapter(ctx);
     return ctx;
 }
 
@@ -240,6 +312,15 @@ error_t toniefile_write_header(toniefile_t *ctx)
         ctx->taf.sha1_hash.data = sha1;
         ctx->taf.sha1_hash.len = SHA1_DIGEST_SIZE;
     }
+
+    ctx->taf.ogg_granule_position = ctx->ogg_granule_position;
+    ctx->taf.ogg_packet_count = ctx->ogg_packet_count;
+    ctx->taf.taf_block_num = ctx->taf_block_num;
+    ctx->taf.pageno = ctx->os.pageno;
+    ctx->taf.has_ogg_granule_position = true;
+    ctx->taf.has_ogg_packet_count = true;
+    ctx->taf.has_taf_block_num = true;
+    ctx->taf.has_pageno = true;
 
     osMemset(buffer, 0x00, sizeof(buffer));
     uint32_t proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &ctx->taf);
@@ -308,7 +389,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
     int samples_processed = 0;
     uint8_t output_frame[TONIEFILE_FRAME_SIZE];
 
-    // TRACE_INFO("samples_available: %lu\n", samples_available);
+    // TRACE_INFO("samples_available: %" PRIuSIZE "\n", samples_available);
     while (samples_processed < samples_available)
     {
         /* get the maximum copyable number of samples */
@@ -318,14 +399,14 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
         {
             samples = samples_remaining;
         }
-        // TRACE_INFO("  samples: %lu (%lu/%lu)\n", samples, samples_processed, samples_available);
+        // TRACE_INFO("  samples: %lu (%u/%" PRIuSIZE ")\n", samples, samples_processed, samples_available);
 
         toniefile_samples_copy(ctx->audio_frame, &ctx->audio_frame_used, sample_buffer, &samples_processed, samples);
 
         /* buffer full? */
         if (ctx->audio_frame_used >= OPUS_FRAME_SIZE)
         {
-            int page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill - ctx->os.lacing_returned + ctx->os.body_fill - ctx->os.body_returned;
+            int page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + OGG_HEADER_LENGTH + ctx->os.lacing_fill - ctx->os.lacing_returned + ctx->os.body_fill - ctx->os.body_returned;
             int page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
             int frame_payload = (page_remain / 256) * 255 + (page_remain % 256) - 1;
@@ -335,18 +416,20 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
              * reason why this could happen is that "adding one byte" would require one segment more and thus occupies two byte more.
              * if this would happen, just reduce the calculated free space such that there is room for another segment.
              */
+            bool frame_payload_minified = false;
             if (page_remain != reconstructed && frame_payload > OPUS_PACKET_MINSIZE)
             {
                 frame_payload -= OPUS_PACKET_MINSIZE;
+                frame_payload_minified = true;
             }
-            if (frame_payload < OPUS_PACKET_MINSIZE)
+            if (frame_payload < OPUS_PACKET_MINSIZE - 1)
             {
-                TRACE_ERROR("Not enough space in this block\r\n");
+                TRACE_ERROR("Not enough space in this block, mini=%X, frame_payload=%i, page_remain=%i, reconstructed=%i\r\n", frame_payload_minified, frame_payload, page_remain, reconstructed);
                 return ERROR_FAILURE;
             }
 
             int frame_len = opus_encode(ctx->enc, ctx->audio_frame, OPUS_FRAME_SIZE, output_frame, frame_payload);
-            // TRACE_INFO("opus_encode: %d/%d\r\n", frame_len, frame_dest);
+            // TRACE_INFO("opus_encode: %d/%d\r\n", frame_len, frame_payload);
 
             if (frame_len <= 0)
             {
@@ -390,8 +473,10 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 
             ogg_stream_packetin(&ctx->os, &op);
 
-            page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill + ctx->os.body_fill;
+            page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + OGG_HEADER_LENGTH + ctx->os.lacing_fill + ctx->os.body_fill;
             page_remain = TONIEFILE_FRAME_SIZE - page_used;
+
+            // TRACE_INFO("(%" PRIuSIZE " MOD 4096) + 27 + %li + %li;\r\n", ctx->file_pos, ctx->os.lacing_fill, ctx->os.body_fill)
 
             if (page_remain < TONIEFILE_PAD_END)
             {
@@ -415,6 +500,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                     size_t prev = ctx->file_pos;
                     ctx->file_pos += og.header_len + og.body_len;
                     ctx->audio_length += og.header_len + og.body_len;
+                    // TRACE_INFO("Header_len %" PRIuSIZE " Body_len %" PRIuSIZE " prev %" PRIuSIZE " File_pos %" PRIuSIZE "\r\n", og.header_len, og.body_len, prev, ctx->file_pos);
 
                     sha1Update(&ctx->sha1, og.header, og.header_len);
                     sha1Update(&ctx->sha1, og.body, og.body_len);
@@ -548,10 +634,10 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
 error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
-    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active);
+    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t append)
 {
     TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
@@ -573,7 +659,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
         return ERROR_ABORTED;
     }
 
-    toniefile_t *taf = toniefile_create(target_taf, time(NULL));
+    toniefile_t *taf = toniefile_create(target_taf, time(NULL), append);
     if (!taf)
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
@@ -591,7 +677,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
         error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
-            TRACE_ERROR("Could not decode sample error=%" PRIu16 " read=%" PRIuSIZE "\r\n", error, blocks_read);
+            TRACE_ERROR("Could not decode sample error=%s read=%" PRIuSIZE "\r\n", error2text(error), blocks_read);
             break;
         }
         else if (error == ERROR_END_OF_STREAM)
@@ -616,12 +702,20 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
             }
             break;
         }
-        error = toniefile_encode(taf, sample_buffer, blocks_read / 2);
+        error = toniefile_encode(taf, sample_buffer, blocks_read / OPUS_CHANNELS);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
-            TRACE_ERROR("Could not encode toniesample error=%" PRIu16 "\r\n", error);
+            TRACE_ERROR("Could not encode toniesample error=%s\r\n", error2text(error));
             break;
         }
+    }
+    if (!(*active))
+    {
+        TRACE_INFO("Encoding aborted, active flag set to false\r\n");
+    }
+    else
+    {
+        *active = false;
     }
 
     ffmpeg_decode_audio_end(ffmpeg_pipe, error);
@@ -637,7 +731,7 @@ void ffmpeg_stream_task(void *param)
     ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
     char source[99][PATH_LEN]; // waste memory, but warning otherwise
     strncpy(source[0], ctx->source, PATH_LEN - 1);
-    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active);
+    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active, ctx->append);
     ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }
