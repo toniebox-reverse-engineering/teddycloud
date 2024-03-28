@@ -15,6 +15,18 @@
 #define TONIEFILE_MAX_CHAPTERS 100
 #define TONIEFILE_PAD_END 64
 
+#define OGG_HEADER_LENGTH 27
+/*
+    quint32 Signature;
+    quint8 Version;
+    quint8 Flags;
+    quint64 GranulePosition;
+    quint32 SerialNumber;
+    quint32 SequenceNumber;
+    quint32 Checksum;
+    quint8 TotalSegments;
+*/
+
 typedef struct toniefile_s toniefile_t;
 
 typedef struct

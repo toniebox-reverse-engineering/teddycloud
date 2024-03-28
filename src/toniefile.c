@@ -406,7 +406,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
         /* buffer full? */
         if (ctx->audio_frame_used >= OPUS_FRAME_SIZE)
         {
-            int page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill - ctx->os.lacing_returned + ctx->os.body_fill - ctx->os.body_returned;
+            int page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + OGG_HEADER_LENGTH + ctx->os.lacing_fill - ctx->os.lacing_returned + ctx->os.body_fill - ctx->os.body_returned;
             int page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
             int frame_payload = (page_remain / 256) * 255 + (page_remain % 256) - 1;
@@ -416,13 +416,15 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
              * reason why this could happen is that "adding one byte" would require one segment more and thus occupies two byte more.
              * if this would happen, just reduce the calculated free space such that there is room for another segment.
              */
+            bool frame_payload_minified = false;
             if (page_remain != reconstructed && frame_payload > OPUS_PACKET_MINSIZE)
             {
                 frame_payload -= OPUS_PACKET_MINSIZE;
+                frame_payload_minified = true;
             }
-            if (frame_payload < OPUS_PACKET_MINSIZE)
+            if (frame_payload < OPUS_PACKET_MINSIZE - 1)
             {
-                TRACE_ERROR("Not enough space in this block\r\n");
+                TRACE_ERROR("Not enough space in this block, mini=%X, frame_payload=%i, page_remain=%i, reconstructed=%i\r\n", frame_payload_minified, frame_payload, page_remain, reconstructed);
                 return ERROR_FAILURE;
             }
 
@@ -471,7 +473,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 
             ogg_stream_packetin(&ctx->os, &op);
 
-            page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + 27 + ctx->os.lacing_fill + ctx->os.body_fill;
+            page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + OGG_HEADER_LENGTH + ctx->os.lacing_fill + ctx->os.body_fill;
             page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
             // TRACE_INFO("(%" PRIuSIZE " MOD 4096) + 27 + %li + %li;\r\n", ctx->file_pos, ctx->os.lacing_fill, ctx->os.body_fill)
