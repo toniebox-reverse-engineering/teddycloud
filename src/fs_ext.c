@@ -35,6 +35,12 @@ FsFile *fsOpenFileEx(const char_t *path, char *mode)
 
 error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, size_t *diff_position)
 {
+    size_t position = 0;
+    if (diff_position == NULL)
+    {
+        diff_position = &position;
+    }
+    
     if (!fsFileExists(source_path))
     {
         return ERROR_FILE_NOT_FOUND;
