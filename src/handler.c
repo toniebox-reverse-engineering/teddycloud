@@ -170,12 +170,14 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                                 tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, ctx->client_ctx->settings);
                                 bool moveToLibrary = true;
+                                bool skipMove = false;
                                 if (tonieInfoLib->valid)
                                 {
                                     if (!osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
                                     {
                                         TRACE_WARNING(">> SHA1 Hash for Audio ID %" PRIu32 ", already in library, deleting downloaded file\r\n", audioId);
                                         fsDeleteFile(ctx->tonieInfo->contentPath);
+                                        skipMove = true;
                                     }
                                     else
                                     {
@@ -185,7 +187,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                 }
                                 if (moveToLibrary)
                                 {
-                                    error_t error = fsMoveFile(ctx->tonieInfo->contentPath, libraryPath, false);
+                                    error_t error = NO_ERROR;
+                                    if (!skipMove)
+                                    {
+                                        error = fsMoveFile(ctx->tonieInfo->contentPath, libraryPath, false);
+                                    }
                                     if (error == NO_ERROR)
                                     {
                                         char *libraryShortPath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", audioId);
@@ -194,7 +200,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                                         tonieInfo->json.source = libraryShortPath;
 
                                         save_content_json(tonieInfo->contentPath, &tonieInfo->json);
-                                        TRACE_INFO(">> Successfully moved to library %s\r\n", libraryShortPath);
+                                        TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
                                     }
                                     else
                                     {
