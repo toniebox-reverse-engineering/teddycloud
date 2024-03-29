@@ -980,16 +980,6 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       if (error)
          return ERROR_NOT_FOUND;
    }
-   file_length = length;
-   if (isStream)
-   {
-      length = CONTENT_LENGTH_MAX;
-      if (!connection->private.client_ctx.settings->encode.ffmpeg_stream_restart)
-      {
-         file_length = length;
-      }
-   }
-
    // Open the file for reading
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
    // Failed to open the file?
@@ -1055,6 +1045,15 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    if (connection->private.client_ctx.skip_taf_header)
    {
       length -= 4096;
+   }
+   file_length = length;
+   if (isStream)
+   {
+      length = CONTENT_LENGTH_MAX;
+      if (!connection->private.client_ctx.settings->encode.ffmpeg_stream_restart)
+      {
+         file_length = length;
+      }
    }
 
    // Format HTTP response header
