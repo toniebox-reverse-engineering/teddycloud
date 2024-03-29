@@ -180,7 +180,7 @@ void main_init_settings(const char *cwd, const char *base_path)
         }
         else
         {
-            TRACE_ERROR("ERROR: settings_init() failed with error %s\r\n", error2text(error));
+            TRACE_ERROR("ERROR: settings_init() failed with error code %d\r\n", error);
             TRACE_ERROR("ERROR: Make sure the config path exists and is writable\r\n");
         }
         exit(-1);
@@ -209,7 +209,6 @@ void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, con
 int_t main(int argc, char *argv[])
 {
     char cwd[PATH_LEN] = {0};
-    error_text_init();
 
     get_settings()->log.level = TRACE_LEVEL_WARNING;
 
@@ -526,7 +525,7 @@ int_t main(int argc, char *argv[])
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("File: %s\r\n", options.encode_test);
 
-        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF, false);
+        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF);
 
         if (!taf)
         {

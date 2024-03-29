@@ -41,8 +41,6 @@
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
 HttpConnection httpsConnections[APP_HTTP_MAX_CONNECTIONS];
 
-size_t openRequestsLast = 0;
-
 enum eRequestMethod
 {
     REQ_ANY,
@@ -115,26 +113,21 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 
 error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 {
-    size_t openRequests = ++openRequestsLast;
     error_t error = NO_ERROR;
 
     stats_update("connections", 1);
 
-    char *request_source;
     if (connection->tlsContext != NULL && osStrlen(connection->tlsContext->client_cert_issuer))
     {
         TRACE_DEBUG("Certificate authentication:\r\n");
         TRACE_DEBUG("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
         TRACE_DEBUG("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
         TRACE_DEBUG("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
-        request_source = connection->tlsContext->client_cert_subject;
     }
     else
     {
         TRACE_DEBUG("No certificate authentication\r\n");
-        request_source = "unknown/web";
     }
-    TRACE_DEBUG("Started server request to %s, request %" PRIuSIZE ", by %s\r\n", uri, openRequests, request_source);
 
     TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
@@ -280,49 +273,38 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
     connection->response.keepAlive = connection->request.keepAlive;
 
-    do
+    for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
     {
-        bool handled = false;
-        for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
+        size_t pathLen = osStrlen(request_paths[i].path);
+        if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
         {
-            size_t pathLen = osStrlen(request_paths[i].path);
-            if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
+            error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+            if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
             {
-                error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
-                if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
-                {
-                    error = httpServerUriNotFoundCallback(connection, uri);
-                }
-                else if (error != NO_ERROR)
-                {
-                    // return httpServerUriErrorCallback(connection, uri, error);
-                }
-                handled = true;
-                break;
+                return httpServerUriNotFoundCallback(connection, uri);
             }
+            else if (error != NO_ERROR)
+            {
+                // return httpServerUriErrorCallback(connection, uri, error);
+            }
+            return error;
         }
-        if (handled)
-            break;
+    }
 
-        if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
-        {
-            uri = "/index.html";
-        }
+    if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
+    {
+        uri = "/index.html";
+    }
 
-        if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
-        {
-            uri = "/web/index.html";
-        }
+    if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
+    {
+        uri = "/web/index.html";
+    }
 
-        char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
+    char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-        error = httpSendResponse(connection, newUri);
-        free(newUri);
-        /* code */
-    } while (0);
-
-    TRACE_DEBUG("Stopped server request to %s, request %" PRIuSIZE "\r\n", uri, openRequests);
-    openRequestsLast--;
+    error = httpSendResponse(connection, newUri);
+    free(newUri);
     return error;
 }
 
@@ -423,7 +405,7 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 
     if (error)
     {
-        TRACE_ERROR("  Failed to add cert: %s\r\n", error2text(error));
+        TRACE_ERROR("  Failed to add cert: %d\r\n", error);
         return error;
     }
 

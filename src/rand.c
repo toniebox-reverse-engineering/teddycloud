@@ -82,14 +82,14 @@ error_t rand_init()
     error_t error = yarrowInit(&yarrowContext);
     if (error)
     {
-        TRACE_ERROR("Error: PRNG initialization failed (%s)\r\n", error2text(error));
+        TRACE_ERROR("Error: PRNG initialization failed (%d)\r\n", error);
         return ERROR_FAILURE;
     }
 
     error = yarrowSeed(&yarrowContext, seed, sizeof(seed));
     if (error)
     {
-        TRACE_ERROR("Error: Failed to seed PRNG (%s)\r\n", error2text(error));
+        TRACE_ERROR("Error: Failed to seed PRNG (%d)\r\n", error);
         return error;
     }
     return NO_ERROR;

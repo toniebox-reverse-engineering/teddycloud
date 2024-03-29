@@ -70,7 +70,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
             TRACE_INFO("SSE Client disconnected from slot %" PRIu8 ", %" PRIu8 " clients left\r\n", sseCtx->channel, sseSubscriptionCount);
             if (error != NO_ERROR)
             {
-                TRACE_ERROR("SSE Client with error %s\r\n", error2text(error));
+                TRACE_ERROR("SSE Client with error %" PRIu32 "\r\n", error);
             }
             mutex_unlock(MUTEX_SSE_CTX);
             break;

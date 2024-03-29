@@ -290,7 +290,7 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
 
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Error: pemEncodeFile failed for %s with error %s\r\n", filename, error2text(error));
+            TRACE_ERROR("Error: pemEncodeFile failed for %s with code %d\r\n", filename, error);
             return error;
         }
 
@@ -395,7 +395,7 @@ error_t tls_adapter_init()
     error_t error = settings_load_certs_id(0);
     if (error)
     {
-        TRACE_ERROR("Error: Failed to load certs (%s)\r\n", error2text(error));
+        TRACE_ERROR("Error: Failed to load certs (%d)\r\n", error);
         return error;
     }
 
