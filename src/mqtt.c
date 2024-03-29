@@ -337,7 +337,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
         if (error)
         {
-            TRACE_ERROR("Failed to connect to MQTT: %s\r\n", error2text(error));
+            TRACE_ERROR("Failed to connect to MQTT: %d\r\n", error);
             break;
         }
 
