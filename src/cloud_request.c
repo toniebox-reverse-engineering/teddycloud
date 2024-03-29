@@ -218,7 +218,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to connect to HTTP server! Error=%u\r\n", error);
+                TRACE_ERROR("Failed to connect to HTTP server! Error=%s\r\n", error2text(error));
                 if (isCloud)
                     stats_update("cloud_failed", 1);
                 break;
@@ -235,7 +235,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 if (error)
                 {
                     // Debug message
-                    TRACE_ERROR("Failed to set content length! Error=%u\r\n", error);
+                    TRACE_ERROR("Failed to set content length! Error=%s\r\n", error2text(error));
                     if (isCloud)
                         stats_update("cloud_failed", 1);
                     break;
@@ -268,7 +268,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to write HTTP request header, error=%u!\r\n", error);
+                TRACE_ERROR("Failed to write HTTP request header, error=%s!\r\n", error2text(error));
                 if (isCloud)
                     stats_update("cloud_failed", 1);
                 break;
@@ -282,7 +282,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 if (error)
                 {
                     // Debug message
-                    TRACE_ERROR("Failed to write HTTP request body, error=%u!\r\n", error);
+                    TRACE_ERROR("Failed to write HTTP request body, error=%s!\r\n", error2text(error));
                     if (isCloud)
                         stats_update("cloud_failed", 1);
                     break;
