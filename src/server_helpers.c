@@ -342,7 +342,7 @@ error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void 
             error_t error = httpReceive(connection, &buffer[leftover], DATA_SIZE - leftover, &packet_size, SOCKET_FLAG_DONT_WAIT);
             if (error != NO_ERROR)
             {
-                TRACE_ERROR("httpReceive failed with error %s\r\n", error2text(error));
+                TRACE_ERROR("httpReceive failed with error %d\r\n", error);
                 return error;
             }
 
@@ -805,7 +805,7 @@ error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri
 
     new_error = httpSendErrorResponse(connection, 500, "Internal Server Error");
 
-    TRACE_WARNING(" >> 500 with error code %s on %s\r\n", error2text(error), uri);
+    TRACE_WARNING(" >> 500 with error code %" PRIu32 " on %s\r\n", error, uri);
     return new_error;
 }
 

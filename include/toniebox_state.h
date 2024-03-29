@@ -2,13 +2,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "toniefile.h"
 
 typedef struct
 {
     const char *id;
     const char *name;
-    ffmpeg_stream_ctx_t ffmpeg_ctx;
 } toniebox_state_box_t;
 
 typedef struct
