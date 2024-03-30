@@ -186,7 +186,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_TREE_DESC("encode", "TAF encoding")
     OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!")
-    OPTION_UNSIGNED("encode.ffmpeg_stream_buffer_ms", &settings->encode.ffmpeg_stream_buffer_ms, 1000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
+    OPTION_UNSIGNED("encode.ffmpeg_stream_buffer_ms", &settings->encode.ffmpeg_stream_buffer_ms, 2000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
     OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, FALSE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.")
     OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.")
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.")
