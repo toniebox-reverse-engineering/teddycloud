@@ -634,10 +634,11 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
 error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
-    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active, false);
+    bool_t sweep = false;
+    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active, &sweep, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t append)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append)
 {
     TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
@@ -702,7 +703,10 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
             }
             break;
         }
-        error = toniefile_encode(taf, sample_buffer, blocks_read / OPUS_CHANNELS);
+        if (*sweep == false)
+        {
+            error = toniefile_encode(taf, sample_buffer, blocks_read / OPUS_CHANNELS);
+        }
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
             TRACE_ERROR("Could not encode toniesample error=%s\r\n", error2text(error));
@@ -731,7 +735,7 @@ void ffmpeg_stream_task(void *param)
     ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
     char source[99][PATH_LEN]; // waste memory, but warning otherwise
     strncpy(source[0], ctx->source, PATH_LEN - 1);
-    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active, ctx->append);
+    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active, &ctx->sweep, ctx->append);
     ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }
