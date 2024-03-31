@@ -4,12 +4,15 @@
 #include "stdbool.h"
 #include "error.h"
 #include "settings.h"
+#include "tonie_audio_playlist.h"
 
 typedef enum
 {
     CT_SOURCE_NONE,
     CT_SOURCE_TAF,
-    CT_SOURCE_TAP,
+    CT_SOURCE_TAF_INCOMPLETE,
+    CT_SOURCE_TAP_STREAM,
+    CT_SOURCE_TAP_CACHED,
     CT_SOURCE_STREAM,
 } ct_source_t;
 
@@ -29,6 +32,7 @@ typedef struct
     bool_t _has_cloud_auth;
     ct_source_t _source_type;
     char *_streamFile;
+    tonie_audio_playlist_t _tap;
     char *_source_resolved;
     uint32_t _version;
     bool_t _updated;

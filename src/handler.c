@@ -425,10 +425,15 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
         }
 
-        if (tonieInfo->json._source_type == CT_SOURCE_TAF)
+        if (tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED)
         {
             osFreeMem(tonieInfo->contentPath);
             tonieInfo->contentPath = strdup(tonieInfo->json._source_resolved);
+        }
+        else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
+        {
+            osFreeMem(tonieInfo->contentPath);
+            tonieInfo->contentPath = custom_asprintf("%s.tmp", tonieInfo->json._source_resolved);
         }
         tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
 
@@ -454,7 +459,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 tonieInfo->valid = true;
                                 if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
                                 {
-                                    tonieInfo->json._source_type = CT_SOURCE_STREAM;
+                                    tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
                                 /*
                                 //TODO
