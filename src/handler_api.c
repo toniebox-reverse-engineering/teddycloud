@@ -648,7 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
 }
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *jsonString = strdup("{\"files\":[]}"); //Make warning go away
+    char *jsonString = strdup("{\"files\":[]}"); // Make warning go away
 
     do
     {

@@ -17,7 +17,7 @@
 
 #include "contentJson.h"
 
-#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
+#define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
 
 typedef struct
 {
