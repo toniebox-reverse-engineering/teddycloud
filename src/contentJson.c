@@ -99,8 +99,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     content_json->skip_seconds = 0;
     content_json->cache = false;
     content_json->_updated = false;
-    content_json->_source_is_taf = false;
-    content_json->_stream = false;
+    content_json->_source_type = CT_SOURCE_NONE;
     content_json->_streamFile = custom_asprintf("%s.stream", content_path);
     content_json->cloud_ruid = NULL;
     content_json->cloud_auth = NULL;
@@ -170,11 +169,11 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
                     resolveSpecialPathPrefix(&content_json->_source_resolved, settings);
                     if (isValidTaf(content_json->_source_resolved))
                     {
-                        content_json->_source_is_taf = true;
+                        content_json->_source_type = CT_SOURCE_TAF;
                     }
                     else if (fsFileExists(content_json->_source_resolved) || osStrstr(content_json->_source_resolved, "://"))
                     {
-                        content_json->_stream = true;
+                        content_json->_source_type = CT_SOURCE_STREAM;
                         if (!content_json->live || !content_json->nocloud)
                         {
                             content_json->live = true;

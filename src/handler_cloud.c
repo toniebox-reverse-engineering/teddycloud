@@ -440,7 +440,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
-    if (tonieInfo->json._stream)
+    if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
     {
         char *streamFileRel = &tonieInfo->json._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
         TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo->json.source);
@@ -479,7 +479,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             {
                 osDelayTask(delay);
             }
-            error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
+            error_t error = httpSendResponseStream(connection, streamFileRel, (tonieInfo->json._source_type == CT_SOURCE_STREAM));
             if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
@@ -496,7 +496,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
 
-        if (tonieInfo->stream)
+        if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
         {
             TRACE_INFO("Found streaming content\r\n");
         }
@@ -504,7 +504,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], tonieInfo->stream);
+            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_STREAM));
             if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
@@ -697,7 +697,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo->json.nocloud,
-                           tonieInfo->json.live || isFlex || tonieInfo->stream,
+                           tonieInfo->json.live || isFlex || (tonieInfo->json._source_type == CT_SOURCE_STREAM),
                            tonieInfo->updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -716,7 +716,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id, NULL);
                 }
 
-                if (tonieInfo->json.live || tonieInfo->updated || tonieInfo->stream || isFlex)
+                if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }

@@ -5,6 +5,14 @@
 #include "error.h"
 #include "settings.h"
 
+typedef enum
+{
+    CT_SOURCE_NONE,
+    CT_SOURCE_TAF,
+    CT_SOURCE_TAP,
+    CT_SOURCE_STREAM,
+} ct_source_t;
+
 typedef struct
 {
     bool_t live;
@@ -19,8 +27,7 @@ typedef struct
     char *tonie_model;
 
     bool_t _has_cloud_auth;
-    bool_t _source_is_taf;
-    bool_t _stream;
+    ct_source_t _source_type;
     char *_streamFile;
     char *_source_resolved;
     uint32_t _version;

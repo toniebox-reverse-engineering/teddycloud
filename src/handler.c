@@ -410,7 +410,6 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
 
     tonieInfo->valid = false;
     tonieInfo->updated = false;
-    tonieInfo->stream = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->exists = false;
@@ -426,7 +425,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
         }
 
-        if (tonieInfo->json._source_is_taf)
+        if (tonieInfo->json._source_type == CT_SOURCE_TAF)
         {
             osFreeMem(tonieInfo->contentPath);
             tonieInfo->contentPath = strdup(tonieInfo->json._source_resolved);
@@ -455,12 +454,15 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 tonieInfo->valid = true;
                                 if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
                                 {
-                                    tonieInfo->stream = true;
+                                    tonieInfo->json._source_type = CT_SOURCE_STREAM;
                                 }
+                                /*
+                                //TODO
                                 else if (!tonieInfo->json._source_is_taf)
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
+                                */
                             }
                             else
                             {

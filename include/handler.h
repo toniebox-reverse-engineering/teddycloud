@@ -25,7 +25,6 @@ typedef struct
     bool_t exists;
     bool_t valid;
     bool_t updated;
-    bool_t stream;
     contentJson_t json;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;
