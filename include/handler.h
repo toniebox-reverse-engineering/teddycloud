@@ -17,18 +17,7 @@
 
 #include "contentJson.h"
 
-#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
-
-typedef struct
-{
-    char *contentPath;
-    bool_t exists;
-    bool_t valid;
-    bool_t updated;
-    bool_t stream;
-    contentJson_t json;
-    TonieboxAudioFileHeader *tafHeader;
-} tonie_info_t;
+#define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
 
 #define PROX_STATUS_IDLE 0
 #define PROX_STATUS_CONN 1

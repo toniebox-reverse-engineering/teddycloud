@@ -15,6 +15,7 @@
 
 #include "toniefile.h"
 #include "toniesJson.h"
+#include "tonie_audio_playlist.h"
 
 #include <byteswap.h>
 
@@ -440,28 +441,31 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
-    if (tonieInfo->json._stream)
+    if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
     {
         char *streamFileRel = &tonieInfo->json._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
-        TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo->json.source);
+        TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo->json._source_resolved);
         connection->response.keepAlive = true;
 
-        ffmpeg_stream_ctx_t *ffmpeg_ctx = &client_ctx->state->box.ffmpeg_ctx;
-        ffmpeg_ctx->active = false;
-        ffmpeg_ctx->quit = false;
-        ffmpeg_ctx->append = (connection->request.Range.start != 0);
-        ffmpeg_ctx->sweep = client_ctx->settings->encode.ffmpeg_sweep_startup_buffer;
-        ffmpeg_ctx->source = tonieInfo->json.source;
-        ffmpeg_ctx->skip_seconds = tonieInfo->json.skip_seconds;
-        ffmpeg_ctx->targetFile = tonieInfo->json._streamFile;
-        ffmpeg_ctx->error = NO_ERROR;
-        ffmpeg_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, ffmpeg_ctx, 10 * 1024, 0);
+        ffmpeg_stream_ctx_t ffmpeg_ctx;
+        ffmpeg_ctx.append = (connection->request.Range.start != 0);
+        ffmpeg_ctx.sweep = client_ctx->settings->encode.ffmpeg_sweep_startup_buffer;
+        ffmpeg_ctx.source = tonieInfo->json._source_resolved;
+        ffmpeg_ctx.skip_seconds = tonieInfo->json.skip_seconds;
+        ffmpeg_ctx.targetFile = tonieInfo->json._streamFile;
 
-        while (!ffmpeg_ctx->active && ffmpeg_ctx->error == NO_ERROR)
+        stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        stream_ctx->active = false;
+        stream_ctx->quit = false;
+        stream_ctx->error = NO_ERROR;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, 10 * 1024, 0);
+        stream_ctx->ctx = &ffmpeg_ctx;
+
+        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
         {
             osDelayTask(100);
         }
-        if (ffmpeg_ctx->error == NO_ERROR)
+        if (stream_ctx->error == NO_ERROR)
         {
             if (client_ctx->settings->encode.ffmpeg_sweep_startup_buffer)
             {
@@ -470,8 +474,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
-            ffmpeg_ctx->sweep = false;
-            if (!ffmpeg_ctx->append)
+            ffmpeg_ctx.sweep = false;
+            if (!ffmpeg_ctx.append)
             {
                 osDelayTask(delay);
             }
@@ -479,14 +483,59 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             {
                 osDelayTask(delay);
             }
-            error_t error = httpSendResponseStream(connection, streamFileRel, tonieInfo->json._stream);
+            error_t error = httpSendResponseStream(connection, streamFileRel, true);
             if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
         }
-        ffmpeg_ctx->active = false;
-        while (!ffmpeg_ctx->quit)
+        stream_ctx->active = false;
+        while (!stream_ctx->quit)
+        {
+            osDelayTask(100);
+        }
+    }
+    else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
+    {
+        // TODO: Add MUTEX on tonieInfo->json._tap._filepath_resolved
+
+        TRACE_INFO("Serve streaming TAP %s from %s\r\n", tonieInfo->contentPath, tonieInfo->json._source_resolved);
+        char *streamFileRel = &tonieInfo->contentPath[osStrlen(client_ctx->settings->internal.datadirfull)];
+        connection->response.keepAlive = true;
+
+        tap_generate_param_t tap_param;
+        tap_param.tap = &tonieInfo->json._tap;
+        tap_param.tap->audio_id = time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT;
+        tap_param.force = false;
+
+        stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        stream_ctx->active = false;
+        stream_ctx->quit = false;
+        stream_ctx->error = NO_ERROR;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, stream_ctx, 10 * 1024, 0);
+        stream_ctx->ctx = &tap_param;
+
+        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
+        {
+            osDelayTask(100);
+        }
+
+        if (stream_ctx->error == NO_ERROR)
+        {
+            error_t error = httpSendResponseStream(connection, streamFileRel, true);
+            if (error)
+            {
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+            }
+        }
+        else
+        {
+            TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(stream_ctx->error));
+        }
+
+        stream_ctx->active = false;
+        ;
+        while (!stream_ctx->quit)
         {
             osDelayTask(100);
         }
@@ -496,15 +545,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
 
-        if (tonieInfo->stream)
+        if (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE)
         {
-            TRACE_INFO("Found streaming content\r\n");
+            TRACE_INFO("Found incomplete TAF, streaming...\r\n");
         }
 
         size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], tonieInfo->stream);
+            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
             if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
@@ -697,7 +746,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
                            freshReq->tonie_infos[i]->uid,
                            tonieInfo->json.nocloud,
-                           tonieInfo->json.live || isFlex || tonieInfo->stream,
+                           tonieInfo->json.live || isFlex || (tonieInfo->json._source_type == CT_SOURCE_STREAM),
                            tonieInfo->updated,
                            freshReq->tonie_infos[i]->audio_id,
                            date_buffer_box,
@@ -716,7 +765,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id, NULL);
                 }
 
-                if (tonieInfo->json.live || tonieInfo->updated || tonieInfo->stream || isFlex)
+                if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || isFlex)
                 {
                     freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
                 }

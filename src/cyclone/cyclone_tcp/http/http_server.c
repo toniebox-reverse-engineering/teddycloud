@@ -1135,7 +1135,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       // Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
       // End of input stream?
-      if (isStream && error == ERROR_END_OF_FILE && connection->private.client_ctx.state->box.ffmpeg_ctx.active)
+      if (isStream && error == ERROR_END_OF_FILE && connection->private.client_ctx.state->box.stream_ctx.active)
       {
          osDelayTask(100);
          error = httpCloseStream(connection); // Test connection??? won't work TODO: exit after some seconds

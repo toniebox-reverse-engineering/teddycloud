@@ -631,14 +631,14 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
     return NO_ERROR;
 }
 
-error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds)
+error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
     bool_t sweep = false;
-    return ffmpeg_stream(source, source_len, target_taf, skip_seconds, &active, &sweep, false);
+    return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append)
 {
     TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
@@ -653,8 +653,12 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
 
     FILE *ffmpeg_pipe = NULL;
     error_t error = NO_ERROR;
-    size_t current_source = 0;
-    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[current_source], skip_seconds);
+    size_t cs;
+    if (current_source == NULL) {
+        current_source = &cs;
+    }
+    *current_source = 0;
+    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[*current_source], skip_seconds);
     if (ffmpeg_pipe == NULL)
     {
         return ERROR_ABORTED;
@@ -684,11 +688,12 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
         else if (error == ERROR_END_OF_STREAM)
         {
             error = NO_ERROR;
-            if (++current_source < source_len)
+            (*current_source)++;
+            if (*current_source < source_len)
             {
                 ffmpeg_decode_audio_end(ffmpeg_pipe, error);
-                TRACE_INFO("Decode next source: %s\r\n", source[current_source]);
-                ffmpeg_pipe = ffmpeg_decode_audio_start(source[current_source]);
+                TRACE_INFO("Decode next source: %s\r\n", source[*current_source]);
+                ffmpeg_pipe = ffmpeg_decode_audio_start(source[*current_source]);
                 if (ffmpeg_pipe == NULL)
                 {
                     error = ERROR_ABORTED;
@@ -732,10 +737,12 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *
 
 void ffmpeg_stream_task(void *param)
 {
-    ffmpeg_stream_ctx_t *ctx = (ffmpeg_stream_ctx_t *)param;
+    stream_ctx_t *stream_ctx = (stream_ctx_t *)param;
+    ffmpeg_stream_ctx_t *ffmpeg_ctx = (ffmpeg_stream_ctx_t *)stream_ctx->ctx;
+
     char source[99][PATH_LEN]; // waste memory, but warning otherwise
-    strncpy(source[0], ctx->source, PATH_LEN - 1);
-    ctx->error = ffmpeg_stream(source, 1, ctx->targetFile, ctx->skip_seconds, &ctx->active, &ctx->sweep, ctx->append);
-    ctx->quit = true;
+    strncpy(source[0], ffmpeg_ctx->source, PATH_LEN - 1);
+    stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append);
+    stream_ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }

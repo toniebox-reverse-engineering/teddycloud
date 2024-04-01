@@ -410,7 +410,6 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
 
     tonieInfo->valid = false;
     tonieInfo->updated = false;
-    tonieInfo->stream = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->exists = false;
@@ -426,10 +425,15 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
         }
 
-        if (tonieInfo->json._source_is_taf)
+        if (tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED)
         {
             osFreeMem(tonieInfo->contentPath);
             tonieInfo->contentPath = strdup(tonieInfo->json._source_resolved);
+        }
+        else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
+        {
+            osFreeMem(tonieInfo->contentPath);
+            tonieInfo->contentPath = custom_asprintf("%s.tmp", tonieInfo->json._source_resolved);
         }
         tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
 
@@ -455,9 +459,9 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 tonieInfo->valid = true;
                                 if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
                                 {
-                                    tonieInfo->stream = true;
+                                    tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
-                                else if (!tonieInfo->json._source_is_taf)
+                                else if (tonieInfo->json._source_type == CT_SOURCE_NONE) //TAF beside the content json
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
@@ -475,7 +479,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
+                    TRACE_VERBOSE("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
                 }
             }
             else if (read_length == 0)

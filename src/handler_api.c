@@ -648,7 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
 }
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *jsonString = strdup("{\"files\":[]}"); //Make warning go away
+    char *jsonString = strdup("{\"files\":[]}"); // Make warning go away
 
     do
     {
@@ -1377,7 +1377,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     bool_t isStream = false;
     tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
 
-    if (tafInfo->valid && tafInfo->stream)
+    if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
         isStream = true;
         length = CONTENT_LENGTH_MAX;
