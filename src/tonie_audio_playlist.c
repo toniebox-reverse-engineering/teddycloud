@@ -176,7 +176,7 @@ void tap_free(tonie_audio_playlist_t *tap)
     osMemset(tap, 0, sizeof(tonie_audio_playlist_t));
 }
 
-error_t tap_generate_taf(tonie_audio_playlist_t *tap, bool_t *active, bool_t force)
+error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bool_t *active, bool_t force)
 {
     error_t error = NO_ERROR;
     bool_t sweep = false;
@@ -197,7 +197,7 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, bool_t *active, bool_t for
             osStrcpy(source[i], tap->files[i]._filepath_resolved);
         }
         // toniefile_t *taf = toniefile_create(tmp_taf, tap->audio_id, false);
-        error = ffmpeg_stream(source, tap->filesCount, tmp_taf, 0, active, &sweep, false);
+        error = ffmpeg_stream(source, tap->filesCount, current_source, tmp_taf, 0, active, &sweep, false);
         // toniefile_close(taf);
         if (error != NO_ERROR)
         {
@@ -215,8 +215,10 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, bool_t *active, bool_t for
 
 void tap_generate_task(void *param)
 {
-    tap_generate_param_t *ctx = (tap_generate_param_t *)param;
-    ctx->error = tap_generate_taf(ctx->tap, &ctx->active, ctx->force);
-    ctx->quit = true;
+    stream_ctx_t *stream_ctx = (stream_ctx_t *)param;
+    tap_generate_param_t *tap_ctx = (tap_generate_param_t *)stream_ctx->ctx;
+
+    stream_ctx->error = tap_generate_taf(tap_ctx->tap, &stream_ctx->current_source, &stream_ctx->active, tap_ctx->force);
+    stream_ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }

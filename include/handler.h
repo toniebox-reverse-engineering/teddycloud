@@ -19,16 +19,6 @@
 
 #define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
 
-typedef struct
-{
-    char *contentPath;
-    bool_t exists;
-    bool_t valid;
-    bool_t updated;
-    contentJson_t json;
-    TonieboxAudioFileHeader *tafHeader;
-} tonie_info_t;
-
 #define PROX_STATUS_IDLE 0
 #define PROX_STATUS_CONN 1
 #define PROX_STATUS_HEAD 2

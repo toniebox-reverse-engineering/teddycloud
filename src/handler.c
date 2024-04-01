@@ -461,13 +461,10 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
-                                /*
-                                //TODO
-                                else if (!tonieInfo->json._source_is_taf)
+                                else if (tonieInfo->json._source_type == CT_SOURCE_NONE) //TAF beside the content json
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
-                                */
                             }
                             else
                             {
@@ -482,7 +479,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
+                    TRACE_VERBOSE("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
                 }
             }
             else if (read_length == 0)

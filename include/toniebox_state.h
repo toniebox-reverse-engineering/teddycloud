@@ -8,7 +8,7 @@ typedef struct
 {
     const char *id;
     const char *name;
-    ffmpeg_stream_ctx_t ffmpeg_ctx;
+    stream_ctx_t stream_ctx;
 } toniebox_state_box_t;
 
 typedef struct

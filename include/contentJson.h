@@ -5,6 +5,7 @@
 #include "error.h"
 #include "settings.h"
 #include "tonie_audio_playlist.h"
+#include "proto/toniebox.pb.taf-header.pb-c.h"
 
 typedef enum
 {
@@ -40,6 +41,16 @@ typedef struct
     bool_t _valid;
 
 } contentJson_t;
+
+typedef struct
+{
+    char *contentPath;
+    bool_t exists;
+    bool_t valid;
+    bool_t updated;
+    contentJson_t json;
+    TonieboxAudioFileHeader *tafHeader;
+} tonie_info_t;
 
 #define CONTENT_JSON_VERSION 5
 

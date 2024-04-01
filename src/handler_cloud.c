@@ -447,22 +447,25 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         TRACE_INFO("Serve streaming content from %s\r\n", tonieInfo->json._source_resolved);
         connection->response.keepAlive = true;
 
-        ffmpeg_stream_ctx_t *ffmpeg_ctx = &client_ctx->state->box.ffmpeg_ctx;
-        ffmpeg_ctx->active = false;
-        ffmpeg_ctx->quit = false;
-        ffmpeg_ctx->append = (connection->request.Range.start != 0);
-        ffmpeg_ctx->sweep = client_ctx->settings->encode.ffmpeg_sweep_startup_buffer;
-        ffmpeg_ctx->source = tonieInfo->json._source_resolved;
-        ffmpeg_ctx->skip_seconds = tonieInfo->json.skip_seconds;
-        ffmpeg_ctx->targetFile = tonieInfo->json._streamFile;
-        ffmpeg_ctx->error = NO_ERROR;
-        ffmpeg_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, ffmpeg_ctx, 10 * 1024, 0);
+        ffmpeg_stream_ctx_t ffmpeg_ctx;
+        ffmpeg_ctx.append = (connection->request.Range.start != 0);
+        ffmpeg_ctx.sweep = client_ctx->settings->encode.ffmpeg_sweep_startup_buffer;
+        ffmpeg_ctx.source = tonieInfo->json._source_resolved;
+        ffmpeg_ctx.skip_seconds = tonieInfo->json.skip_seconds;
+        ffmpeg_ctx.targetFile = tonieInfo->json._streamFile;
 
-        while (!ffmpeg_ctx->active && ffmpeg_ctx->error == NO_ERROR)
+        stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        stream_ctx->active = false;
+        stream_ctx->quit = false;
+        stream_ctx->error = NO_ERROR;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, 10 * 1024, 0);
+        stream_ctx->ctx = &ffmpeg_ctx;
+
+        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
         {
             osDelayTask(100);
         }
-        if (ffmpeg_ctx->error == NO_ERROR)
+        if (stream_ctx->error == NO_ERROR)
         {
             if (client_ctx->settings->encode.ffmpeg_sweep_startup_buffer)
             {
@@ -471,8 +474,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
-            ffmpeg_ctx->sweep = false;
-            if (!ffmpeg_ctx->append)
+            ffmpeg_ctx.sweep = false;
+            if (!ffmpeg_ctx.append)
             {
                 osDelayTask(delay);
             }
@@ -486,8 +489,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
         }
-        ffmpeg_ctx->active = false;
-        while (!ffmpeg_ctx->quit)
+        stream_ctx->active = false;
+        while (!stream_ctx->quit)
         {
             osDelayTask(100);
         }
@@ -498,27 +501,26 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
         TRACE_INFO("Serve streaming TAP %s from %s\r\n", tonieInfo->contentPath, tonieInfo->json._source_resolved);
         char *streamFileRel = &tonieInfo->contentPath[osStrlen(client_ctx->settings->internal.datadirfull)];
-
-        ffmpeg_stream_ctx_t *ffmpeg_ctx = &client_ctx->state->box.ffmpeg_ctx; // TODO: fix dirty hack
-        ffmpeg_ctx->active = false;
-        ffmpeg_ctx->quit = false;
+        connection->response.keepAlive = true;
 
         tap_generate_param_t tap_param;
         tap_param.tap = &tonieInfo->json._tap;
         tap_param.tap->audio_id = time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT;
-        tap_param.active = false;
-        tap_param.quit = false;
         tap_param.force = false;
-        tap_param.error = NO_ERROR;
-        tap_param.taskId = osCreateTask(streamFileRel, &tap_generate_task, &tap_param, 10 * 1024, 0);
 
-        while (!tap_param.active && tap_param.error == NO_ERROR)
+        stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        stream_ctx->active = false;
+        stream_ctx->quit = false;
+        stream_ctx->error = NO_ERROR;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, stream_ctx, 10 * 1024, 0);
+        stream_ctx->ctx = &tap_param;
+
+        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
         {
             osDelayTask(100);
         }
-        ffmpeg_ctx->active = tap_param.active;
 
-        if (tap_param.error == NO_ERROR)
+        if (stream_ctx->error == NO_ERROR)
         {
             error_t error = httpSendResponseStream(connection, streamFileRel, true);
             if (error)
@@ -528,17 +530,15 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
         else
         {
-            TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(tap_param.error));
+            TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(stream_ctx->error));
         }
 
-        tap_param.active = false;
-        ffmpeg_ctx->active = false;
+        stream_ctx->active = false;
         ;
-        while (!tap_param.quit)
+        while (!stream_ctx->quit)
         {
             osDelayTask(100);
         }
-        ffmpeg_ctx->quit = true;
     }
     else if (tonieInfo->exists && tonieInfo->valid && (!tonie_marked || !can_use_cloud))
     {

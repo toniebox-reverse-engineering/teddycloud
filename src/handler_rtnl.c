@@ -282,9 +282,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
             break;
         case RTNL3_TYPE_PLAYBACK_STOPPED:
-            if (!client_ctx->state->box.ffmpeg_ctx.quit && client_ctx->state->tag.valid)
+            if (!client_ctx->state->box.stream_ctx.quit && client_ctx->state->tag.valid)
             {
-                client_ctx->state->box.ffmpeg_ctx.active = false;
+                client_ctx->state->box.stream_ctx.active = false;
             }
             client_ctx->state->tag.audio_id = 0;
             client_ctx->state->tag.valid = false;
