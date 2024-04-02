@@ -30,6 +30,7 @@
 
 #include "mutex_manager.h"
 #include "cloud_request.h"
+#include "toniebox_state.h"
 #include "handler_cloud.h"
 #include "handler_reverse.h"
 #include "handler_rtnl.h"

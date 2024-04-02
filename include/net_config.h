@@ -32,7 +32,8 @@
 #define _NET_CONFIG_H
 
 #include "settings.h"
-#include "toniebox_state.h"
+#include "toniebox_state_type.h"
+
 #define AUTH_TOKEN_LENGTH 32
 
 typedef struct
