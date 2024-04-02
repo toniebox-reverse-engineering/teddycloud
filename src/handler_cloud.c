@@ -458,8 +458,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         stream_ctx->active = false;
         stream_ctx->quit = false;
         stream_ctx->error = NO_ERROR;
-        stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, 10 * 1024, 0);
         stream_ctx->ctx = &ffmpeg_ctx;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, 10 * 1024, 0);
 
         while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
         {
@@ -512,8 +512,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         stream_ctx->active = false;
         stream_ctx->quit = false;
         stream_ctx->error = NO_ERROR;
-        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, stream_ctx, 10 * 1024, 0);
         stream_ctx->ctx = &tap_param;
+        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, stream_ctx, 10 * 1024, 0);
 
         while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
         {
