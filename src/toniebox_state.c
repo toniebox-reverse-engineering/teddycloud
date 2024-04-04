@@ -42,6 +42,17 @@ void tbs_tag_placed(client_ctx_t *client_ctx, uint64_t uid, bool valid)
     mqtt_sendBoxEvent(!valid ? "TagValid" : "TagInvalid", "", client_ctx);
 }
 
+void tbs_knock(client_ctx_t *client_ctx, bool forward)
+{
+    sse_sendEvent("knock", forward ? "forward" : "backward", true);
+    mqtt_sendBoxEvent(forward ? "KnockForward" : "KnockBackward", "{\"event_type\": \"triggered\"}", client_ctx);
+}
+void tbs_tilt(client_ctx_t *client_ctx, bool forward)
+{
+    sse_sendEvent("tilt", forward ? "forward" : "backward", true);
+    mqtt_sendBoxEvent(forward ? "TiltForward" : "TiltBackward", "{\"event_type\": \"triggered\"}", client_ctx);
+}
+
 void tbs_playback(client_ctx_t *client_ctx, toniebox_state_playback_t playback)
 {
     switch (playback)
