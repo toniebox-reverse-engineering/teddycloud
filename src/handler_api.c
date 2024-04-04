@@ -1139,7 +1139,7 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     mac[12] = 0;
 
     char *file_path = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, filename);
-    char *patched_path = custom_asprintf("%s%spatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
+    char *patched_path = custom_asprintf("%s%cpatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
 
     TRACE_INFO("Request for '%s'\r\n", file_path);
 
