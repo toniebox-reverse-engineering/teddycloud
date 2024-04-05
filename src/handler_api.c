@@ -33,7 +33,7 @@ void sanitizePath(char *path, bool isDir)
     /* Merge all double (or more) slashes // */
     for (i = 0, j = 0; path[i]; ++i)
     {
-        if (path[i] == '/')
+        if (path[i] == PATH_SEPARATOR)
         {
             if (slash)
                 continue;
@@ -47,7 +47,7 @@ void sanitizePath(char *path, bool isDir)
     }
 
     /* Make sure the path doesn't end with a '/' unless it's the root directory. */
-    if (j > 1 && path[j - 1] == '/')
+    if (j > 1 && path[j - 1] == PATH_SEPARATOR)
         j--;
 
     /* Null terminate the sanitized path */
@@ -55,10 +55,10 @@ void sanitizePath(char *path, bool isDir)
 
 #ifndef WIN32
     /* If path doesn't start with '/', shift right and add '/' */
-    if (path[0] != '/')
+    if (path[0] != PATH_SEPARATOR)
     {
         memmove(&path[1], &path[0], j + 1); // Shift right
-        path[0] = '/';                      // Add '/' at the beginning
+        path[0] = PATH_SEPARATOR;           // Add '/' at the beginning
         j++;
     }
 #endif
@@ -66,10 +66,10 @@ void sanitizePath(char *path, bool isDir)
     /* If path doesn't end with '/', add '/' at the end */
     if (isDir)
     {
-        if (path[j - 1] != '/')
+        if (path[j - 1] != PATH_SEPARATOR)
         {
-            path[j] = '/';      // Add '/' at the end
-            path[j + 1] = '\0'; // Null terminate
+            path[j] = PATH_SEPARATOR; // Add '/' at the end
+            path[j + 1] = '\0';       // Null terminate
         }
     }
 }
