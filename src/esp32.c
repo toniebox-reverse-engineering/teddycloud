@@ -1037,7 +1037,7 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
         else
         {
             int replacedRtnl = mem_replace(bin_data, bin_size, oldrtnl, hostname);
-            TRACE_INFO(" replaced RTNL host %d times\r\n", replaced);
+            TRACE_INFO(" replaced RTNL host %d times\r\n", replacedRtnl);
             int replacedAPI = mem_replace(bin_data, bin_size, oldapi, hostname);
             TRACE_INFO(" replaced API host %d times\r\n", replacedAPI);
             replaced = replacedRtnl + replacedAPI;
