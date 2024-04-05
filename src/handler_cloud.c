@@ -78,7 +78,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     char *cv = strpbrk(query, "cv=");
     char *timestampTxt = cv ? strtok_r(&cv[3], "&", &cv) : NULL;
 
-    uint8_t fileId = atoi(filename);
+    cloudapi_ota_t fileId = (cloudapi_ota_t)atoi(filename);
     (void)fileId;
     time_t timestamp = timestampTxt ? atoi(timestampTxt) : 0;
 
@@ -92,34 +92,148 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
     settings_internal_toniebox_firmware_t *toniebox_fw = &client_ctx->settings->internal.toniebox_firmware;
+
     switch (fileId)
     {
-    case 2:
+    case OTA_FIRMWARE_PD:
         toniebox_fw->otaVersionPd = timestamp;
         break;
-    case 3:
+    case OTA_FIRMWARE_EU:
         toniebox_fw->otaVersionEu = timestamp;
         break;
-    case 4:
+    case OTA_SERVICEPACK_CC3200:
         toniebox_fw->otaVersionServicePack = timestamp;
         break;
-    case 5:
+    case OTA_HTML_CONFIG:
         toniebox_fw->otaVersionHtml = timestamp;
         break;
-    case 6:
+    case OTA_SFX_BIN:
         toniebox_fw->otaVersionSfx = timestamp;
         break;
+    }
+
+    char *folder;
+    switch (client_ctx->settings->internal.toniebox_firmware.boxIC)
+    {
+    case BOX_CC3200:
+        folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+        break;
+    case BOX_CC3235:
+        folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+        break;
+    case BOX_ESP32:
+        folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+        break;
+    default:
+        folder = strdup("");
+        break;
+    }
+    char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, fileId, PATH_SEPARATOR);
+    osFreeMem(folder);
+
+    time_t biggest_timestamp = 1;
+    char *biggest_filename = strdup("");
+    FsDir *dir = fsOpenDir(local_dir);
+    if (dir)
+    {
+        while (true)
+        {
+            FsDirEntry entry;
+            if (fsReadDir(dir, &entry) != NO_ERROR)
+            {
+                fsCloseDir(dir);
+                break;
+            }
+            if (entry.attributes & FS_FILE_ATTR_DIRECTORY)
+            {
+                continue;
+            }
+            // Examples for valid filenames
+            // 1701777214-esp32-toniebox-eu-v5.230.0-app.ota
+            // 1691743093-esp32-toniebox-eu-v5.229.0-app.ota
+            // 1669853893_index.html
+            // 1640950635_toniebox-eu-cc32XX_v4.0.0.tc.signed.hashed.bin
+            // 0034471936_servicepack.hashed.bin
+
+            char *filename = entry.name;
+            char *biggest_timestamp_txt = strtok(filename, "-_");
+            time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
+            if (file_timestamp > biggest_timestamp)
+            {
+                biggest_timestamp = file_timestamp;
+                osFreeMem(biggest_filename);
+                biggest_filename = strdup(filename);
+            }
+        }
     }
 
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudOtaTime", current_time, client_ctx);
+    char *queryStringNew = NULL;
 
+    if (client_ctx->settings->cloud.cacheOta) // && timestamp < biggest_timestamp)
+    {
+        // TODO replace uri timestamp with biggest_timestamp
+        queryStringNew = custom_asprintf("cv=%" PRIuTIME, biggest_timestamp);
+        TRACE_INFO(" >> Replaced OTA query %s with new OTA query %s\r\n", queryString, queryStringNew);
+    }
+    if (queryStringNew == NULL)
+    {
+        queryStringNew = (char *)queryString;
+    }
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Ota)
     {
+        ota_ctx_t ota_ctx;
+        ota_ctx.fileId = fileId;
+
         cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_OTA, &ctx, client_ctx);
-        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
+        ctx.customData = &ota_ctx;
+
+        req_cbr_t cbr;
+        if (client_ctx->settings->cloud.cacheOta)
+        {
+            cbr = getCloudOtaCbr(NULL, uri, queryStringNew, &ctx, client_ctx);
+        }
+        else
+        {
+            cbr = getCloudCbr(connection, uri, queryStringNew, V1_OTA, &ctx, client_ctx);
+        }
+        cloud_request_get(NULL, 0, uri, queryStringNew, NULL, &cbr);
+
+        if (!client_ctx->settings->cloud.cacheOta)
+        {
+            osFreeMem(queryStringNew);
+            osFreeMem(biggest_filename);
+            osFreeMem(local_dir);
+            osFreeMem(query);
+            osFreeMem(localUri);
+            return ret;
+        }
+    }
+
+    char *local_file = custom_asprintf("%s%s", local_dir, biggest_filename);
+    bool new_ota = false;
+    if (biggest_timestamp > 0 && fsFileExists(local_file) && timestamp < biggest_timestamp)
+    {
+        if (client_ctx->settings->cloud.localOta)
+        {
+            TRACE_INFO(" >> Found OTA %" PRIu8 " with timestamp %" PRIuTIME " (%s)\r\n", fileId, biggest_timestamp, biggest_filename);
+            new_ota = true;
+        }
+        else
+        {
+            TRACE_INFO(" >> Found OTA %" PRIu8 " with timestamp %" PRIuTIME " (%s) but local OTA disabled\r\n", fileId, biggest_timestamp, biggest_filename);
+        }
+    }
+    else
+    {
+        TRACE_INFO(" >> No OTA (newer) found for %" PRIu8 "\r\n", fileId);
+    }
+    if (new_ota)
+    {
+        // TODO add Content-Disposition: attachment;filename=
+        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
     }
     else
     {
@@ -128,9 +242,12 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
         ret = httpWriteResponse(connection, NULL, 0, false);
     }
 
-    free(query);
-    free(localUri);
-
+    osFreeMem(queryStringNew);
+    osFreeMem(local_file);
+    osFreeMem(biggest_filename);
+    osFreeMem(local_dir);
+    osFreeMem(query);
+    osFreeMem(localUri);
     return ret;
 }
 

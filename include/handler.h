@@ -48,6 +48,12 @@ typedef enum
 
 typedef struct
 {
+    cloudapi_ota_t fileId;
+
+} ota_ctx_t;
+
+typedef struct
+{
     const char_t *uri;
     const char_t *queryString;
     cloudapi_t api;
@@ -64,6 +70,10 @@ typedef struct
 } cbr_ctx_t;
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
+req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
+void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
+void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error);
+
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
 void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx);
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);

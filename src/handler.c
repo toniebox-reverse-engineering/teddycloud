@@ -14,6 +14,99 @@ void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *qu
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
 }
+
+req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+{
+    fillBaseCtx(connection, uri, queryString, V1_OTA, ctx, client_ctx);
+
+    req_cbr_t cbr = {
+        .ctx = ctx,
+        .response = NULL,
+        .header = &cbrCloudOtaHeader,
+        .body = &cbrCloudOtaBody,
+        .disconnect = NULL};
+
+    return cbr;
+}
+
+void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+
+    ctx->file = NULL;
+    if (ctx->client_ctx->settings->cloud.cacheOta)
+    {
+        ota_ctx_t *ota_ctx = (ota_ctx_t *)ctx->customData;
+        if (httpClientContext->statusCode == 200)
+        {
+            if (header && osStrcmp(header, "Content-Disposition") == 0)
+            {
+                char *prefix = "attachment;filename=";
+                if (osStrncmp(value, prefix, osStrlen(prefix)) == 0)
+                {
+                    const char *filename = &value[osStrlen(prefix)]; // TODO path traversal
+                    char *folder;
+                    switch (ctx->client_ctx->settings->internal.toniebox_firmware.boxIC)
+                    {
+                    case BOX_CC3200:
+                        folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+                        break;
+                    case BOX_CC3235:
+                        folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+                        break;
+                    case BOX_ESP32:
+                        folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+                        break;
+                    default:
+                        folder = strdup("");
+                        break;
+                    }
+                    char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", ctx->client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, ota_ctx->fileId, PATH_SEPARATOR);
+                    char *local_filename = custom_asprintf("%s%s", local_dir, filename);
+                    osFreeMem(folder);
+
+                    fsCreateDirEx(local_dir, true);
+                    if (!fsFileExists(local_filename))
+                    {
+                        ctx->file = fsOpenFile(local_filename, FS_FILE_MODE_WRITE);
+                        if (ctx->file == NULL)
+                        {
+                            TRACE_ERROR(">> Could not open file %s\r\n", local_filename);
+                        }
+                    }
+                    else
+                    {
+                        TRACE_WARNING(">> File %s already exists, no ota caching\r\n", local_filename);
+                    }
+                    osFreeMem(local_dir);
+                    osFreeMem(local_filename);
+                }
+            }
+        }
+    }
+
+    ctx->status = PROX_STATUS_HEAD;
+}
+void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+
+    if (length > 0 && ctx->file != NULL)
+    {
+        error_t ferror = fsWriteFile(ctx->file, (void *)payload, length);
+        if (ferror)
+            TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(ferror));
+    }
+    if (error == ERROR_END_OF_STREAM)
+    {
+        fsCloseFile(ctx->file);
+        TRACE_INFO(">> Successfully cached %s\r\n", ctx->uri);
+    }
+
+    ctx->status = PROX_STATUS_BODY;
+}
+
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
     fillBaseCtx(connection, uri, queryString, api, ctx, client_ctx);
@@ -27,7 +120,6 @@ req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_
 
     return cbr;
 }
-
 void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
@@ -43,6 +135,7 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[256];
+    bool passthrough = true;
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
     {
@@ -59,9 +152,14 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
     case V1_FRESHNESS_CHECK:
         if (!header || osStrcmp(header, "Content-Length") == 0) // Skip empty line at the and + contentlen
         {
-            break;
+            passthrough = false;
         }
+        break;
     default:
+        break;
+    }
+    if (passthrough)
+    {
         if (header)
         {
             if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
@@ -77,8 +175,8 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
         }
 
         httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-        break;
     }
+
     ctx->status = PROX_STATUS_HEAD;
 }
 
@@ -461,7 +559,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
-                                else if (tonieInfo->json._source_type == CT_SOURCE_NONE) //TAF beside the content json
+                                else if (tonieInfo->json._source_type == CT_SOURCE_NONE) // TAF beside the content json
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }

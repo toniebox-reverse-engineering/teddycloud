@@ -24,7 +24,7 @@
 #define TONIESV2_CUSTOM_JSON_FILE "tonies.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 9
+#define CONFIG_VERSION 10
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -65,6 +65,8 @@ typedef struct
     bool enableV1Time;
     bool enableV1Ota;
     bool enableV2Content;
+    bool cacheOta;
+    bool localOta;
     bool cacheContent;
     bool cacheToLibrary;
     bool markCustomTagByPass;
