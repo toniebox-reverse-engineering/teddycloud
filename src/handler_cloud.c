@@ -156,6 +156,11 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
             // 0034471936_servicepack.hashed.bin
 
             char *filename = entry.name;
+
+            if (osStrstr(filename, ".tmp") != NULL)
+            {
+                continue;
+            }
             char *biggest_timestamp_txt = strtok(filename, "-_");
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
@@ -185,11 +190,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Ota)
     {
         ota_ctx_t ota_ctx;
-        ota_ctx.fileId = fileId;
-
         cbr_ctx_t ctx;
-        ctx.customData = &ota_ctx;
-
         req_cbr_t cbr;
         if (client_ctx->settings->cloud.cacheOta)
         {

@@ -37,59 +37,74 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
     {
         if (httpClientContext->statusCode == 200)
         {
-            if (header && osStrcmp(header, "Content-Disposition") == 0)
+            if (header)
             {
-                char *prefix = "attachment;filename=";
-                if (osStrncmp(value, prefix, osStrlen(prefix)) == 0)
+                if (osStrcmp(header, "Content-Length") == 0)
                 {
-                    const char *filename = &value[osStrlen(prefix)];
-                    // search for PATH_SERPERATOR_LINUX / PATH_SERPERATOR_LINUX and replace with null
-                    char *p1 = osStrchr(filename, PATH_SEPARATOR_LINUX);
-                    char *p2 = osStrchr(filename, PATH_SEPARATOR_WINDOWS);
-                    if (p1)
+                    ctx->customDataLen = atoi(value);
+                }
+                else if (osStrcmp(header, "Content-Disposition") == 0)
+                {
+                    ota_ctx_t *ota_ctx = (ota_ctx_t *)ctx->customData;
+                    char *prefix = "attachment;filename=";
+                    if (osStrncmp(value, prefix, osStrlen(prefix)) == 0)
                     {
-                        *p1 = '\0';
-                    }
-                    if (p2)
-                    {
-                        *p2 = '\0';
-                    }
-
-                    char *folder;
-                    switch (ctx->client_ctx->settings->internal.toniebox_firmware.boxIC)
-                    {
-                    case BOX_CC3200:
-                        folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
-                        break;
-                    case BOX_CC3235:
-                        folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
-                        break;
-                    case BOX_ESP32:
-                        folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
-                        break;
-                    default:
-                        folder = strdup("");
-                        break;
-                    }
-                    char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", ctx->client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, ota_ctx->fileId, PATH_SEPARATOR);
-                    char *local_filename = custom_asprintf("%s%s", local_dir, filename);
-                    osFreeMem(folder);
-
-                    fsCreateDirEx(local_dir, true);
-                    if (!fsFileExists(local_filename))
-                    {
-                        ctx->file = fsOpenFile(local_filename, FS_FILE_MODE_WRITE);
-                        if (ctx->file == NULL)
+                        const char *filename = &value[osStrlen(prefix)];
+                        // search for PATH_SERPERATOR_LINUX / PATH_SERPERATOR_LINUX and replace with null
+                        char *p1 = osStrchr(filename, PATH_SEPARATOR_LINUX);
+                        char *p2 = osStrchr(filename, PATH_SEPARATOR_WINDOWS);
+                        if (p1)
                         {
-                            TRACE_ERROR(">> Could not open file %s\r\n", local_filename);
+                            *p1 = '\0';
                         }
+                        if (p2)
+                        {
+                            *p2 = '\0';
+                        }
+
+                        char *folder;
+                        switch (ctx->client_ctx->settings->internal.toniebox_firmware.boxIC)
+                        {
+                        case BOX_CC3200:
+                            folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+                            break;
+                        case BOX_CC3235:
+                            folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+                            break;
+                        case BOX_ESP32:
+                            folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+                            break;
+                        default:
+                            folder = strdup("");
+                            break;
+                        }
+                        char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", ctx->client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, ota_ctx->fileId, PATH_SEPARATOR);
+                        char *local_filename = custom_asprintf("%s%s", local_dir, filename);
+                        char *local_filename_tmp = custom_asprintf("%s.tmp", local_filename);
+
+                        osFreeMem(folder);
+
+                        fsCreateDirEx(local_dir, true);
+                        if (!fsFileExists(local_filename))
+                        {
+                            ctx->file = fsOpenFile(local_filename_tmp, FS_FILE_MODE_WRITE);
+                            if (ctx->file == NULL)
+                            {
+                                TRACE_ERROR(">> Could not open file %s\r\n", local_filename_tmp);
+                            }
+                            else
+                            {
+                                ctx->customData = strdup(local_filename);
+                            }
+                        }
+                        else
+                        {
+                            TRACE_WARNING(">> File %s already exists, no ota caching\r\n", local_filename);
+                        }
+                        osFreeMem(local_dir);
+                        osFreeMem(local_filename);
+                        osFreeMem(local_filename_tmp);
                     }
-                    else
-                    {
-                        TRACE_WARNING(">> File %s already exists, no ota caching\r\n", local_filename);
-                    }
-                    osFreeMem(local_dir);
-                    osFreeMem(local_filename);
                 }
             }
         }
@@ -100,17 +115,41 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
 void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    error_t ferror = NO_ERROR;
 
-    if (length > 0 && ctx->file != NULL)
+    if (ctx->file != NULL)
     {
-        error_t ferror = fsWriteFile(ctx->file, (void *)payload, length);
-        if (ferror)
-            TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(ferror));
-    }
-    if (error == ERROR_END_OF_STREAM)
-    {
-        fsCloseFile(ctx->file);
-        TRACE_INFO(">> Successfully cached %s\r\n", ctx->uri);
+        if (length > 0)
+        {
+            ferror = fsWriteFile(ctx->file, (void *)payload, length);
+            if (ferror)
+                TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(ferror));
+        }
+        if (error == ERROR_END_OF_STREAM)
+        {
+            fsCloseFile(ctx->file);
+            char *local_filename = (char *)ctx->customData;
+            char *local_filename_tmp = custom_asprintf("%s.tmp", local_filename);
+            uint32_t fileSize = 0;
+            fsGetFileSize(local_filename_tmp, &fileSize);
+            if (fileSize > 0 && fileSize == ctx->customDataLen)
+            {
+                ferror = fsRenameFile(local_filename_tmp, local_filename);
+
+                if (ferror == NO_ERROR)
+                {
+                    TRACE_INFO(">> Successfully cached %s\r\n", local_filename);
+                }
+                else
+                {
+                    TRACE_ERROR(">> Error caching %s, %s\r\n", local_filename, error2text(ferror));
+                }
+            }
+            else
+            {
+                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
+            }
+        }
     }
 
     ctx->status = PROX_STATUS_BODY;
