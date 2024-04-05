@@ -199,6 +199,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
         {
             cbr = getCloudCbr(connection, uri, queryStringNew, V1_OTA, &ctx, client_ctx);
         }
+        ota_ctx.fileId = fileId;
+        ctx.customData = &ota_ctx;
         cloud_request_get(NULL, 0, uri, queryStringNew, NULL, &cbr);
 
         if (!client_ctx->settings->cloud.cacheOta)
@@ -713,8 +715,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
-            ctx.tonieInfo = tonieInfo;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
+            ctx.tonieInfo = tonieInfo;
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
         }
@@ -897,9 +899,9 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
 
                 cbr_ctx_t ctx;
+                req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx, client_ctx);
                 ctx.customData = (void *)&freshResp;
                 ctx.customDataLen = freshReq->n_tonie_infos; // Allocated slots
-                req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx, client_ctx);
                 if (!cloud_request_post(NULL, 0, "/v1/freshness-check", queryString, data, dataLen, NULL, &cbr))
                 {
                     tonie_freshness_check_request__free_unpacked(freshReq, NULL);

@@ -4,12 +4,11 @@
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
+    osMemset(ctx, 0, sizeof(cbr_ctx_t));
+
     ctx->uri = uri;
     ctx->queryString = queryString;
     ctx->api = api;
-    ctx->buffer = NULL;
-    ctx->bufferPos = 0;
-    ctx->bufferLen = 0;
     ctx->status = PROX_STATUS_IDLE;
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
@@ -34,10 +33,8 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
 
-    ctx->file = NULL;
     if (ctx->client_ctx->settings->cloud.cacheOta)
     {
-        ota_ctx_t *ota_ctx = (ota_ctx_t *)ctx->customData;
         if (httpClientContext->statusCode == 200)
         {
             if (header && osStrcmp(header, "Content-Disposition") == 0)
