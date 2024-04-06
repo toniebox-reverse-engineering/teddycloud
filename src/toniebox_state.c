@@ -30,15 +30,12 @@ void tbs_tag_placed(client_ctx_t *client_ctx, uint64_t uid, bool valid)
         setLastUid(client_ctx->state->tag.uid, client_ctx->settings);
     }
 
-    char *ruid = strdup(client_ctx->settings->internal.last_ruid);
-    for (char *p = ruid; *p; p++)
-    {
-        *p = toupper((unsigned char)*p);
-    }
+    char cuid[16 + 1];
+    osSprintf((char *)cuid, "%016" PRIX64 "", (int64_t)uid);
 
-    sse_sendEvent(valid ? "TagValid" : "TagInvalid", ruid, true);
+    sse_sendEvent(valid ? "TagValid" : "TagInvalid", cuid, true);
 
-    mqtt_sendBoxEvent(valid ? "TagValid" : "TagInvalid", ruid, client_ctx);
+    mqtt_sendBoxEvent(valid ? "TagValid" : "TagInvalid", cuid, client_ctx);
     mqtt_sendBoxEvent(!valid ? "TagValid" : "TagInvalid", "", client_ctx);
 }
 

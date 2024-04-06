@@ -303,11 +303,11 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         {
             if (rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32)
             {
-                tbs_tag_placed(client_ctx, read_little_endian64(rpc->log2->field6.data), false);
+                tbs_tag_placed(client_ctx, read_big_endian64(rpc->log2->field6.data), false);
             }
             else if (rpc->log2->function == RTNL2_FUNC_TAG_VALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_VALID_ESP32)
             {
-                tbs_tag_placed(client_ctx, read_little_endian64(rpc->log2->field6.data), true);
+                tbs_tag_placed(client_ctx, read_big_endian64(rpc->log2->field6.data), true);
             }
         }
         else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID))
