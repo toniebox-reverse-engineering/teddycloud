@@ -664,7 +664,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         return ERROR_ABORTED;
     }
 
-    toniefile_t *taf = toniefile_create(target_taf, time(NULL), append);
+    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append);
     if (!taf)
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
