@@ -654,7 +654,8 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
     FILE *ffmpeg_pipe = NULL;
     error_t error = NO_ERROR;
     size_t cs;
-    if (current_source == NULL) {
+    if (current_source == NULL)
+    {
         current_source = &cs;
     }
     *current_source = 0;
