@@ -155,20 +155,20 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
             // 1640950635_toniebox-eu-cc32XX_v4.0.0.tc.signed.hashed.bin
             // 0034471936_servicepack.hashed.bin
 
-            char *filename = entry.name;
-
-            if (osStrstr(filename, ".tmp") != NULL)
+            if (osStrstr(entry.name, ".tmp") != NULL)
             {
                 continue;
             }
+            char *filename = strdup(entry.name);
             char *biggest_timestamp_txt = strtok(filename, "-_");
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
                 biggest_timestamp = file_timestamp;
                 osFreeMem(biggest_filename);
-                biggest_filename = strdup(filename);
+                biggest_filename = strdup(entry.name);
             }
+            osFreeMem(filename);
         }
     }
 
@@ -185,7 +185,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     }
     if (queryStringNew == NULL)
     {
-        queryStringNew = (char *)queryString;
+        queryStringNew = strdup(queryString);
     }
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Ota)
     {
@@ -232,6 +232,10 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     else
     {
         TRACE_INFO(" >> No OTA (newer) found for %" PRIu8 "\r\n", fileId);
+        if (timestamp == 1)
+        {
+            TRACE_WARNING(" >> Box tried to enforce firmware delivery, but nothing here to serve!\r\n");
+        }
     }
     if (new_ota)
     {
