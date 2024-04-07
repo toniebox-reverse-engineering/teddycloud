@@ -415,7 +415,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
         error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("httpReceive failed!");
+            TRACE_ERROR("httpReceive failed!\r\n");
             return error;
         }
         data[size] = 0;
@@ -1781,7 +1781,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;
@@ -1829,7 +1829,7 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;
@@ -1878,7 +1878,7 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;

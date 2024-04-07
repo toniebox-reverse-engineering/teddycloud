@@ -794,7 +794,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
         error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("httpReceive failed!");
+            TRACE_ERROR("httpReceive failed!\r\n");
             return error;
         }
         TRACE_INFO("Content (%zu of %zu)\n", size, connection->request.byteCount);
