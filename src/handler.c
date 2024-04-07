@@ -174,7 +174,9 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode);
+    const char* statusText = httpStatusCodeText(cloud_ctx->statusCode);
+
+    osSprintf(line, "HTTP/%u.%u %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
