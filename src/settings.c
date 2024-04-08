@@ -91,6 +91,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data")
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header")
+    OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)")
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface")
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned")

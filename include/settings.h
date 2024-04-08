@@ -229,6 +229,7 @@ typedef struct
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
+    bool webHttpOnly;
 
     bool flex_enabled;
     char *flex_uid;

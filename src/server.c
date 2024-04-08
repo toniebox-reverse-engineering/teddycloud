@@ -51,58 +51,67 @@ enum eRequestMethod
     REQ_POST
 };
 
+typedef enum
+{
+    SERTY_NONE = 0,
+    SERTY_HTTP = 1,
+    SERTY_HTTPS = 2,
+    SERTY_BOTH = 3,
+} server_type_t;
+
 typedef struct
 {
     enum eRequestMethod method;
     char *path;
+    server_type_t server_type;
     error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
 
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
     /*binary handler (rtnl)*/
-    {REQ_ANY, "*binary", &handleRtnl},
+    {REQ_ANY, "*binary", SERTY_BOTH, &handleRtnl},
     /* reverse proxy handler */
-    {REQ_ANY, "/reverse", &handleReverse},
+    {REQ_ANY, "/reverse", SERTY_HTTP, &handleReverse},
     /* web interface directory */
-    {REQ_GET, "/content/download/", &handleApiContentDownload},
-    {REQ_GET, "/content/json/get/", &handleApiContentJsonGet},
-    {REQ_POST, "/content/json/set/", &handleApiContentJsonSet},
-    {REQ_GET, "/content/json/", &handleApiContentJson},
-    {REQ_GET, "/content/", &handleApiContent},
+    {REQ_GET, "/content/download/", SERTY_HTTP, &handleApiContentDownload},
+    {REQ_GET, "/content/json/get/", SERTY_HTTP, &handleApiContentJsonGet},
+    {REQ_POST, "/content/json/set/", SERTY_HTTP, &handleApiContentJsonSet},
+    {REQ_GET, "/content/json/", SERTY_HTTP, &handleApiContentJson},
+    {REQ_GET, "/content/", SERTY_HTTP, &handleApiContent},
     /* custom API */
-    {REQ_POST, "/api/fileDelete", &handleApiFileDelete},
-    {REQ_POST, "/api/dirDelete", &handleApiDirectoryDelete},
-    {REQ_POST, "/api/dirCreate", &handleApiDirectoryCreate},
-    {REQ_POST, "/api/uploadCert", &handleApiUploadCert},
-    {REQ_POST, "/api/uploadFirmware", &handleApiUploadFirmware},
-    {REQ_GET, "/api/patchFirmware", &handleApiPatchFirmware},
-    {REQ_POST, "/api/fileUpload", &handleApiFileUpload},
-    {REQ_POST, "/api/pcmUpload", &handleApiPcmUpload},
-    {REQ_GET, "/api/fileIndexV2", &handleApiFileIndexV2},
-    {REQ_GET, "/api/fileIndex", &handleApiFileIndex},
-    {REQ_GET, "/api/stats", &handleApiStats},
-    {REQ_GET, "/api/toniesJsonSearch", &handleApiToniesJsonSearch},
-    {REQ_GET, "/api/toniesJsonUpdate", &handleApiToniesJsonUpdate},
-    {REQ_GET, "/api/toniesJson", &handleApiToniesJson},
-    {REQ_GET, "/api/toniesCustomJson", &handleApiToniesCustomJson},
-    {REQ_GET, "/api/trigger", &handleApiTrigger},
-    {REQ_GET, "/api/getIndex", &handleApiGetIndex},
-    {REQ_GET, "/api/getTagIndex", &handleApiTagIndex},
-    {REQ_GET, "/api/getBoxes", &handleApiGetBoxes},
-    {REQ_POST, "/api/assignUnknown", &handleApiAssignUnknown},
-    {REQ_GET, "/api/get/", &handleApiGet},
-    {REQ_POST, "/api/set/", &handleApiSet},
-    {REQ_GET, "/api/sse", &handleApiSse},
+    {REQ_POST, "/api/fileDelete", SERTY_HTTP, &handleApiFileDelete},
+    {REQ_POST, "/api/dirDelete", SERTY_HTTP, &handleApiDirectoryDelete},
+    {REQ_POST, "/api/dirCreate", SERTY_HTTP, &handleApiDirectoryCreate},
+    {REQ_POST, "/api/uploadCert", SERTY_HTTP, &handleApiUploadCert},
+    {REQ_POST, "/api/uploadFirmware", SERTY_HTTP, &handleApiUploadFirmware},
+    {REQ_GET, "/api/patchFirmware", SERTY_HTTP, &handleApiPatchFirmware},
+    {REQ_POST, "/api/fileUpload", SERTY_HTTP, &handleApiFileUpload},
+    {REQ_POST, "/api/pcmUpload", SERTY_HTTP, &handleApiPcmUpload},
+    {REQ_GET, "/api/fileIndexV2", SERTY_HTTP, &handleApiFileIndexV2},
+    {REQ_GET, "/api/fileIndex", SERTY_HTTP, &handleApiFileIndex},
+    {REQ_GET, "/api/stats", SERTY_HTTP, &handleApiStats},
+    {REQ_GET, "/api/toniesJsonSearch", SERTY_HTTP, &handleApiToniesJsonSearch},
+    {REQ_GET, "/api/toniesJsonUpdate", SERTY_HTTP, &handleApiToniesJsonUpdate},
+    {REQ_GET, "/api/toniesJson", SERTY_HTTP, &handleApiToniesJson},
+    {REQ_GET, "/api/toniesCustomJson", SERTY_HTTP, &handleApiToniesCustomJson},
+    {REQ_GET, "/api/trigger", SERTY_HTTP, &handleApiTrigger},
+    {REQ_GET, "/api/getIndex", SERTY_HTTP, &handleApiGetIndex},
+    {REQ_GET, "/api/getTagIndex", SERTY_HTTP, &handleApiTagIndex},
+    {REQ_GET, "/api/getBoxes", SERTY_HTTP, &handleApiGetBoxes},
+    {REQ_POST, "/api/assignUnknown", SERTY_HTTP, &handleApiAssignUnknown},
+    {REQ_GET, "/api/get/", SERTY_HTTP, &handleApiGet},
+    {REQ_POST, "/api/set/", SERTY_HTTP, &handleApiSet},
+    {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
     /* official tonies API */
-    {REQ_GET, "/v1/time", &handleCloudTime},
-    {REQ_GET, "/v1/ota", &handleCloudOTA},
-    {REQ_GET, "/v1/claim", &handleCloudClaim},
-    {REQ_GET, "/v1/content", &handleCloudContentV1},
-    {REQ_GET, "/v2/content", &handleCloudContentV2},
-    {REQ_POST, "/v1/freshness-check", &handleCloudFreshnessCheck},
-    {REQ_POST, "/v1/log", &handleCloudLog},
-    {REQ_POST, "/v1/cloud-reset", &handleCloudReset}};
+    {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
+    {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
+    {REQ_GET, "/v1/claim", SERTY_BOTH, &handleCloudClaim},
+    {REQ_GET, "/v1/content", SERTY_BOTH, &handleCloudContentV1},
+    {REQ_GET, "/v2/content", SERTY_BOTH, &handleCloudContentV2},
+    {REQ_POST, "/v1/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheck},
+    {REQ_POST, "/v1/log", SERTY_BOTH, &handleCloudLog},
+    {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset}};
 
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 {
@@ -289,37 +298,46 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             size_t pathLen = osStrlen(request_paths[i].path);
             if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
             {
-                error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
-                if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
+                if (!client_ctx->settings->core.webHttpOnly || (connection->settings->isHttps && (request_paths[i].server_type & SERTY_HTTPS) == SERTY_HTTPS) || (!connection->settings->isHttps && (request_paths[i].server_type & SERTY_HTTP) == SERTY_HTTP))
                 {
-                    error = httpServerUriNotFoundCallback(connection, uri);
+                    error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
+                    if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
+                    {
+                        error = httpServerUriNotFoundCallback(connection, uri);
+                    }
+                    else if (error != NO_ERROR)
+                    {
+                        // return httpServerUriErrorCallback(connection, uri, error);
+                    }
+                    handled = true;
+                    break;
                 }
-                else if (error != NO_ERROR)
-                {
-                    // return httpServerUriErrorCallback(connection, uri, error);
-                }
-                handled = true;
-                break;
             }
         }
         if (handled)
             break;
 
-        if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
+        if (!client_ctx->settings->core.webHttpOnly || !connection->settings->isHttps)
         {
-            uri = "/index.html";
-        }
+            if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
+            {
+                uri = "/index.html";
+            }
 
-        if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
+            if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
+            {
+                uri = "/web/index.html";
+            }
+
+            char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
+
+            error = httpSendResponse(connection, newUri);
+            free(newUri);
+        }
+        else
         {
-            uri = "/web/index.html";
+            error = httpServerUriNotFoundCallback(connection, uri);
         }
-
-        char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
-
-        error = httpSendResponse(connection, newUri);
-        free(newUri);
-        /* code */
     } while (0);
 
     TRACE_DEBUG("Stopped server request to %s, request %" PRIuSIZE "\r\n", uri, openRequests);
@@ -501,7 +519,7 @@ void server_init(bool test)
         http_settings.ipAddr = listenIpAddr;
     }
 
-    http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS;
+    http_settings.maxConnections = APP_HTTP_MAX_CONNECTIONS - 1; // Workaround to prevent overflow crash?!
     http_settings.connections = httpConnections;
     osStrcpy(http_settings.rootDirectory, settings_get_string("internal.datadirfull"));
     osStrcpy(http_settings.defaultDocument, "index.shtm");
@@ -512,6 +530,7 @@ void server_init(bool test)
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
     http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
+    http_settings.isHttps = false;
 
     /* use them for HTTPS */
     https_settings = http_settings;
@@ -519,6 +538,7 @@ void server_init(bool test)
     https_settings.port = settings_get_unsigned("core.server.https_port");
     https_settings.tlsInitCallback = httpServerTlsInitCallback;
     https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
+    https_settings.isHttps = true;
 
     if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
     {
