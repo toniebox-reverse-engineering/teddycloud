@@ -39,6 +39,39 @@
 extern "C" {
 #endif
 
+
+/**
+ * @brief HTTP status codes
+ **/
+
+static const HttpStatusCodeDesc statusCodeList[] =
+{
+   //Unknown
+   {0, "This is fine"},
+   //Success
+   {200, "OK"},
+   {201, "Created"},
+   {202, "Accepted"},
+   {204, "No Content"},
+   {206, "Partial Content"},
+   //Redirection
+   {301, "Moved Permanently"},
+   {302, "Found"},
+   {304, "Not Modified"},
+   //Client error
+   {400, "Bad Request"},
+   {401, "Unauthorized"},
+   {403, "Forbidden"},
+   {404, "Not Found"},
+   //Server error
+   {500, "Internal Server Error"},
+   {501, "Not Implemented"},
+   {502, "Bad Gateway"},
+   {503, "Service Unavailable"}
+};
+
+const char* httpStatusCodeText(uint_t statusCode);
+
 //HTTP server related functions
 error_t httpReadRequestHeader(HttpConnection *connection);
 error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine);

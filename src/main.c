@@ -396,7 +396,8 @@ int_t main(int argc, char *argv[])
         TRACE_ERROR("Feature not available in your build.\r\n");
 #else
         TRACE_WARNING("Encode %" PRIuSIZE " files to '%s'\r\n", options.multisource_size, options.encode);
-        int_t error = ffmpeg_convert(options.multisource, options.multisource_size, options.encode, options.skip_seconds);
+        size_t current_source = 0;
+        int_t error = ffmpeg_convert(options.multisource, options.multisource_size, &current_source, options.encode, options.skip_seconds);
         exit(error);
 #endif
     }

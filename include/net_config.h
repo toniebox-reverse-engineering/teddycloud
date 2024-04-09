@@ -32,7 +32,8 @@
 #define _NET_CONFIG_H
 
 #include "settings.h"
-#include "toniebox_state.h"
+#include "toniebox_state_type.h"
+
 #define AUTH_TOKEN_LENGTH 32
 
 typedef struct
@@ -187,7 +188,7 @@ typedef struct
 #define BSD_SOCKET_SUPPORT DISABLED
 
 // Number of sockets that can be opened simultaneously
-#define SOCKET_MAX_COUNT 10
+#define SOCKET_MAX_COUNT 32
 
 // LLMNR responder support
 #define LLMNR_RESPONDER_SUPPORT ENABLED

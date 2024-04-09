@@ -579,6 +579,7 @@ typedef struct
    HttpRequestCallback requestCallback;                         ///<HTTP request callback function
    HttpUriNotFoundCallback uriNotFoundCallback;                 ///<URI not found callback function
    char_t *allowOrigin;
+   bool_t isHttps;
 } HttpServerSettings;
 
 

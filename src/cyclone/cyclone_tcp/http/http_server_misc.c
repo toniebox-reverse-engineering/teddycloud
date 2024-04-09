@@ -46,41 +46,22 @@
 //Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
 
-
-/**
- * @brief HTTP status codes
- **/
-
-static const HttpStatusCodeDesc statusCodeList[] =
-{
-   //Success
-   {200, "OK"},
-   {201, "Created"},
-   {202, "Accepted"},
-   {204, "No Content"},
-   {206, "Partial Content"},
-   //Redirection
-   {301, "Moved Permanently"},
-   {302, "Found"},
-   {304, "Not Modified"},
-   //Client error
-   {400, "Bad Request"},
-   {401, "Unauthorized"},
-   {403, "Forbidden"},
-   {404, "Not Found"},
-   //Server error
-   {500, "Internal Server Error"},
-   {501, "Not Implemented"},
-   {502, "Bad Gateway"},
-   {503, "Service Unavailable"}
-};
-
-
 /**
  * @brief Read HTTP request header and parse its contents
  * @param[in] connection Structure representing an HTTP connection
  * @return Error code
  **/
+
+const char* httpStatusCodeText(uint_t statusCode)
+{
+   size_t statusCodeLen = sizeof(statusCodeList) / sizeof(statusCodeList[0]);
+   for(size_t i = 0; i < statusCodeLen; i++) 
+   {
+      if(statusCodeList[i].value == statusCode)
+         return statusCodeList[i].message;
+   }
+   return statusCodeList[0].message;
+}
 
 error_t httpReadRequestHeader(HttpConnection *connection)
 {

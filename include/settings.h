@@ -24,7 +24,7 @@
 #define TONIESV2_CUSTOM_JSON_FILE "tonies.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 8
+#define CONFIG_VERSION 10
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -65,6 +65,8 @@ typedef struct
     bool enableV1Time;
     bool enableV1Ota;
     bool enableV2Content;
+    bool cacheOta;
+    bool localOta;
     bool cacheContent;
     bool cacheToLibrary;
     bool markCustomTagByPass;
@@ -78,6 +80,8 @@ typedef struct
     uint32_t bitrate;
     uint32_t ffmpeg_stream_buffer_ms;
     bool ffmpeg_stream_restart;
+    bool ffmpeg_sweep_startup_buffer;
+    uint32_t ffmpeg_sweep_delay_ms;
 
 } settings_encode_t;
 
@@ -225,6 +229,7 @@ typedef struct
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
+    bool webHttpOnly;
 
     bool flex_enabled;
     char *flex_uid;

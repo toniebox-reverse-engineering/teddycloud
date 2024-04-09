@@ -74,7 +74,7 @@ error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, siz
         {
             break;
         }
-        error = fsReadFile(source_file, buffer_source, sizeof(buffer_source), &bytes_read_source);
+        error = fsReadFile(target_file, buffer_target, sizeof(buffer_target), &bytes_read_target);
         if (error != NO_ERROR && error != ERROR_END_OF_FILE)
         {
             break;
@@ -166,4 +166,44 @@ error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t 
         }
     }
     return error;
+}
+error_t fsCreateDirEx(const char_t *path, bool_t recursive)
+{
+    if (path == NULL)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+    if (recursive)
+    {
+        char_t *path_copy = strdup(path);
+        size_t path_len = strlen(path_copy);
+        if (path_len == 0)
+        {
+            free(path_copy);
+            return ERROR_INVALID_PARAMETER;
+        }
+        if (path_copy[path_len - 1] == PATH_SEPARATOR)
+        {
+            path_copy[path_len - 1] = '\0';
+        }
+        for (size_t i = 1; i < path_len; i++)
+        {
+            if (path_copy[i] == PATH_SEPARATOR)
+            {
+                path_copy[i] = '\0';
+                if (!fsDirExists(path_copy))
+                {
+                    error_t error = fsCreateDir(path_copy);
+                    if (error != NO_ERROR)
+                    {
+                        free(path_copy);
+                        return error;
+                    }
+                }
+                path_copy[i] = PATH_SEPARATOR;
+            }
+        }
+        free(path_copy);
+    }
+    return fsCreateDir(path);
 }

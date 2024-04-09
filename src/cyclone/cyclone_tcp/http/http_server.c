@@ -980,16 +980,6 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       if (error)
          return ERROR_NOT_FOUND;
    }
-   file_length = length;
-   if (isStream)
-   {
-      length = CONTENT_LENGTH_MAX;
-      if (!connection->private.client_ctx.settings->encode.ffmpeg_stream_restart)
-      {
-         file_length = length;
-      }
-   }
-
    // Open the file for reading
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
    // Failed to open the file?
@@ -1055,6 +1045,15 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    if (connection->private.client_ctx.skip_taf_header)
    {
       length -= 4096;
+   }
+   file_length = length;
+   if (isStream)
+   {
+      length = CONTENT_LENGTH_MAX;
+      if (!connection->private.client_ctx.settings->encode.ffmpeg_stream_restart)
+      {
+         file_length = length;
+      }
    }
 
    // Format HTTP response header
@@ -1136,7 +1135,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       // Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
       // End of input stream?
-      if (isStream && error == ERROR_END_OF_FILE && connection->private.client_ctx.state->box.ffmpeg_ctx.active)
+      if (isStream && error == ERROR_END_OF_FILE && connection->private.client_ctx.state->box.stream_ctx.active)
       {
          osDelayTask(100);
          error = httpCloseStream(connection); // Test connection??? won't work TODO: exit after some seconds

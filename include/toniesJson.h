@@ -5,9 +5,6 @@
 #include <stdbool.h>
 #include "error.h"
 
-#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
-#define SPECIAL_AUDIO_ID_ONE 1
-
 typedef struct
 {
     uint16_t no;

@@ -4,6 +4,18 @@
 #include "stdbool.h"
 #include "error.h"
 #include "settings.h"
+#include "tonie_audio_playlist.h"
+#include "proto/toniebox.pb.taf-header.pb-c.h"
+
+typedef enum
+{
+    CT_SOURCE_NONE,
+    CT_SOURCE_TAF,
+    CT_SOURCE_TAF_INCOMPLETE,
+    CT_SOURCE_TAP_STREAM,
+    CT_SOURCE_TAP_CACHED,
+    CT_SOURCE_STREAM,
+} ct_source_t;
 
 typedef struct
 {
@@ -19,9 +31,9 @@ typedef struct
     char *tonie_model;
 
     bool_t _has_cloud_auth;
-    bool_t _source_is_taf;
-    bool_t _stream;
+    ct_source_t _source_type;
     char *_streamFile;
+    tonie_audio_playlist_t _tap;
     char *_source_resolved;
     uint32_t _version;
     bool_t _updated;
@@ -29,6 +41,16 @@ typedef struct
     bool_t _valid;
 
 } contentJson_t;
+
+typedef struct
+{
+    char *contentPath;
+    bool_t exists;
+    bool_t valid;
+    bool_t updated;
+    contentJson_t json;
+    TonieboxAudioFileHeader *tafHeader;
+} tonie_info_t;
 
 #define CONTENT_JSON_VERSION 5
 

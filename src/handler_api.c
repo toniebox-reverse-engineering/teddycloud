@@ -33,7 +33,7 @@ void sanitizePath(char *path, bool isDir)
     /* Merge all double (or more) slashes // */
     for (i = 0, j = 0; path[i]; ++i)
     {
-        if (path[i] == '/')
+        if (path[i] == PATH_SEPARATOR)
         {
             if (slash)
                 continue;
@@ -47,7 +47,7 @@ void sanitizePath(char *path, bool isDir)
     }
 
     /* Make sure the path doesn't end with a '/' unless it's the root directory. */
-    if (j > 1 && path[j - 1] == '/')
+    if (j > 1 && path[j - 1] == PATH_SEPARATOR)
         j--;
 
     /* Null terminate the sanitized path */
@@ -55,10 +55,10 @@ void sanitizePath(char *path, bool isDir)
 
 #ifndef WIN32
     /* If path doesn't start with '/', shift right and add '/' */
-    if (path[0] != '/')
+    if (path[0] != PATH_SEPARATOR)
     {
         memmove(&path[1], &path[0], j + 1); // Shift right
-        path[0] = '/';                      // Add '/' at the beginning
+        path[0] = PATH_SEPARATOR;           // Add '/' at the beginning
         j++;
     }
 #endif
@@ -66,10 +66,10 @@ void sanitizePath(char *path, bool isDir)
     /* If path doesn't end with '/', add '/' at the end */
     if (isDir)
     {
-        if (path[j - 1] != '/')
+        if (path[j - 1] != PATH_SEPARATOR)
         {
-            path[j] = '/';      // Add '/' at the end
-            path[j + 1] = '\0'; // Null terminate
+            path[j] = PATH_SEPARATOR; // Add '/' at the end
+            path[j + 1] = '\0';       // Null terminate
         }
     }
 }
@@ -415,7 +415,7 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
         error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("httpReceive failed!");
+            TRACE_ERROR("httpReceive failed!\r\n");
             return error;
         }
         data[size] = 0;
@@ -648,7 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
 }
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *jsonString = strdup("{\"files\":[]}"); //Make warning go away
+    char *jsonString = strdup("{\"files\":[]}"); // Make warning go away
 
     do
     {
@@ -1139,7 +1139,7 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     mac[12] = 0;
 
     char *file_path = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, filename);
-    char *patched_path = custom_asprintf("%s%spatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
+    char *patched_path = custom_asprintf("%s%cpatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
 
     TRACE_INFO("Request for '%s'\r\n", file_path);
 
@@ -1377,7 +1377,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     bool_t isStream = false;
     tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
 
-    if (tafInfo->valid && tafInfo->stream)
+    if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
         isStream = true;
         length = CONTENT_LENGTH_MAX;
@@ -1781,7 +1781,7 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;
@@ -1829,7 +1829,7 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;
@@ -1878,7 +1878,7 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("httpReceive failed!");
+        TRACE_ERROR("httpReceive failed!\r\n");
         return error;
     }
     path[size] = 0;

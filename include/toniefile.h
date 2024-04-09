@@ -27,18 +27,30 @@
     quint8 TotalSegments;
 */
 
+#define TEDDY_BENCH_AUDIO_ID_DEDUCT 0x50000000
+#define SPECIAL_AUDIO_ID_ONE 1
+
 typedef struct toniefile_s toniefile_t;
 
 typedef struct
 {
     bool_t active;
+    size_t current_source;
+    error_t error;
+    OsTaskId taskId;
+    bool_t quit;
+    bool_t stop_on_playback_stop;
+
+    void *ctx;
+} stream_ctx_t;
+
+typedef struct
+{
     char *source;
     size_t skip_seconds;
     char *targetFile;
     bool_t append;
-    OsTaskId taskId;
-    error_t error;
-    bool_t quit;
+    bool_t sweep;
 } ffmpeg_stream_ctx_t;
 
 toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append);
@@ -51,6 +63,6 @@ FILE *ffmpeg_decode_audio_start(const char *input_source);
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds);
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error);
 error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *bytes_read);
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t append);
-error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, const char *target_taf, size_t skip_seconds);
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append);
+error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds);
 void ffmpeg_stream_task(void *param);

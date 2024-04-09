@@ -1343,7 +1343,7 @@
                             />
                         </p>
 
-                        {this.state.showAudioEncoder && <AudioEncoder path={this.state.path} />}
+                        {this.state.showAudioEncoder && <AudioEncoder path={this.state.path} mode={this.state.mode} />}
 
                         <div style={{ position: 'relative' }}>
                             {this.state.showSuccessMessage &&
@@ -1836,7 +1836,8 @@
                 const queryParams = {
                     name: this.state.targetFilename || "UnnamedTonieFile",
                     audioId: currentUnixTime - 0x50000000,
-                    path: this.props.path
+                    path: this.props.path,
+                    special: this.props.mode
                 };
 
                 const queryString = this.createQueryString(queryParams);

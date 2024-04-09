@@ -4,16 +4,157 @@
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
+    osMemset(ctx, 0, sizeof(cbr_ctx_t));
+
     ctx->uri = uri;
     ctx->queryString = queryString;
     ctx->api = api;
-    ctx->buffer = NULL;
-    ctx->bufferPos = 0;
-    ctx->bufferLen = 0;
     ctx->status = PROX_STATUS_IDLE;
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
 }
+
+req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+{
+    fillBaseCtx(connection, uri, queryString, V1_OTA, ctx, client_ctx);
+
+    req_cbr_t cbr = {
+        .ctx = ctx,
+        .response = NULL,
+        .header = &cbrCloudOtaHeader,
+        .body = &cbrCloudOtaBody,
+        .disconnect = NULL};
+
+    return cbr;
+}
+
+void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+
+    if (ctx->client_ctx->settings->cloud.cacheOta)
+    {
+        if (httpClientContext->statusCode == 200)
+        {
+            if (header)
+            {
+                if (osStrcmp(header, "Content-Length") == 0)
+                {
+                    ctx->customDataLen = atoi(value);
+                }
+                else if (osStrcmp(header, "Content-Disposition") == 0)
+                {
+                    ota_ctx_t *ota_ctx = (ota_ctx_t *)ctx->customData;
+                    char *prefix = "attachment;filename=";
+                    if (osStrncmp(value, prefix, osStrlen(prefix)) == 0)
+                    {
+                        const char *filename = &value[osStrlen(prefix)];
+                        // search for PATH_SERPERATOR_LINUX / PATH_SERPERATOR_LINUX and replace with null
+                        char *p1 = osStrchr(filename, PATH_SEPARATOR_LINUX);
+                        char *p2 = osStrchr(filename, PATH_SEPARATOR_WINDOWS);
+                        if (p1)
+                        {
+                            *p1 = '\0';
+                        }
+                        if (p2)
+                        {
+                            *p2 = '\0';
+                        }
+
+                        char *folder;
+                        switch (ctx->client_ctx->settings->internal.toniebox_firmware.boxIC)
+                        {
+                        case BOX_CC3200:
+                            folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+                            break;
+                        case BOX_CC3235:
+                            folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+                            break;
+                        case BOX_ESP32:
+                            folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+                            break;
+                        default:
+                            folder = strdup("");
+                            break;
+                        }
+                        char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", ctx->client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, ota_ctx->fileId, PATH_SEPARATOR);
+                        char *local_filename = custom_asprintf("%s%s", local_dir, filename);
+                        char *local_filename_tmp = custom_asprintf("%s.tmp", local_filename);
+
+                        osFreeMem(folder);
+
+                        fsCreateDirEx(local_dir, true);
+                        if (!fsFileExists(local_filename))
+                        {
+                            ctx->file = fsOpenFile(local_filename_tmp, FS_FILE_MODE_WRITE);
+                            if (ctx->file == NULL)
+                            {
+                                TRACE_ERROR(">> Could not open file %s\r\n", local_filename_tmp);
+                            }
+                            else
+                            {
+                                ctx->customData = strdup(local_filename);
+                            }
+                        }
+                        else
+                        {
+                            TRACE_WARNING(">> File %s already exists, no ota caching\r\n", local_filename);
+                        }
+                        osFreeMem(local_dir);
+                        osFreeMem(local_filename);
+                        osFreeMem(local_filename_tmp);
+                    }
+                }
+            }
+        }
+    }
+
+    ctx->status = PROX_STATUS_HEAD;
+}
+void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    error_t ferror = NO_ERROR;
+
+    if (ctx->file != NULL)
+    {
+        if (length > 0)
+        {
+            ferror = fsWriteFile(ctx->file, (void *)payload, length);
+            if (ferror)
+                TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(ferror));
+        }
+        if (error == ERROR_END_OF_STREAM)
+        {
+            fsCloseFile(ctx->file);
+            char *local_filename = (char *)ctx->customData;
+            char *local_filename_tmp = custom_asprintf("%s.tmp", local_filename);
+            uint32_t fileSize = 0;
+            fsGetFileSize(local_filename_tmp, &fileSize);
+            if (fileSize > 0 && fileSize == ctx->customDataLen)
+            {
+                ferror = fsRenameFile(local_filename_tmp, local_filename);
+
+                if (ferror == NO_ERROR)
+                {
+                    TRACE_INFO(">> Successfully cached %s\r\n", local_filename);
+                }
+                else
+                {
+                    TRACE_ERROR(">> Error caching %s, %s\r\n", local_filename, error2text(ferror));
+                }
+            }
+            else
+            {
+                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
+            }
+        }
+    }
+
+    ctx->status = PROX_STATUS_BODY;
+}
+
 req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
     fillBaseCtx(connection, uri, queryString, api, ctx, client_ctx);
@@ -27,14 +168,15 @@ req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_
 
     return cbr;
 }
-
 void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    osSprintf(line, "HTTP/%u.%u %u This is fine\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode);
+    const char* statusText = httpStatusCodeText(cloud_ctx->statusCode);
+
+    osSprintf(line, "HTTP/%u.%u %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
@@ -43,6 +185,7 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     char line[256];
+    bool passthrough = true;
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
     {
@@ -59,9 +202,14 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
     case V1_FRESHNESS_CHECK:
         if (!header || osStrcmp(header, "Content-Length") == 0) // Skip empty line at the and + contentlen
         {
-            break;
+            passthrough = false;
         }
+        break;
     default:
+        break;
+    }
+    if (passthrough)
+    {
         if (header)
         {
             if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
@@ -77,8 +225,8 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
         }
 
         httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-        break;
     }
+
     ctx->status = PROX_STATUS_HEAD;
 }
 
@@ -410,7 +558,6 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
 
     tonieInfo->valid = false;
     tonieInfo->updated = false;
-    tonieInfo->stream = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->exists = false;
@@ -426,10 +573,15 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
         }
 
-        if (tonieInfo->json._source_is_taf)
+        if (tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED)
         {
             osFreeMem(tonieInfo->contentPath);
             tonieInfo->contentPath = strdup(tonieInfo->json._source_resolved);
+        }
+        else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
+        {
+            osFreeMem(tonieInfo->contentPath);
+            tonieInfo->contentPath = custom_asprintf("%s.tmp", tonieInfo->json._source_resolved);
         }
         tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
 
@@ -455,9 +607,9 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 tonieInfo->valid = true;
                                 if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
                                 {
-                                    tonieInfo->stream = true;
+                                    tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
-                                else if (!tonieInfo->json._source_is_taf)
+                                else if (tonieInfo->json._source_type == CT_SOURCE_NONE) // TAF beside the content json
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
@@ -475,7 +627,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                 }
                 else
                 {
-                    TRACE_WARNING("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
+                    TRACE_VERBOSE("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
                 }
             }
             else if (read_length == 0)
