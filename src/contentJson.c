@@ -162,6 +162,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 error_t save_content_json(const char *content_path, contentJson_t *content_json)
 {
     char *jsonPath = custom_asprintf("%s.json", content_path);
+    char *jsonPathTmp = custom_asprintf("%s.json.tmp", content_path);
     error_t error = NO_ERROR;
     cJSON *contentJson = cJSON_CreateObject();
 
@@ -186,7 +187,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     }
     osFreeMem(dir);
 
-    FsFile *file = fsOpenFile(jsonPath, FS_FILE_MODE_WRITE);
+    FsFile *file = fsOpenFile(jsonPathTmp, FS_FILE_MODE_WRITE);
     if (file != NULL)
     {
         error = fsWriteFile(file, jsonRaw, osStrlen(jsonRaw));
@@ -197,9 +198,10 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
         error = ERROR_FILE_OPENING_FAILED;
     }
 
-    cJSON_Delete(contentJson);
-    osFreeMem(jsonRaw);
-    osFreeMem(jsonPath);
+    if (error == NO_ERROR)
+    {
+        error = fsMoveFile(jsonPathTmp, jsonPath, true);
+    }
 
     if (error == NO_ERROR)
     {
@@ -207,6 +209,10 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
         content_json->_version = CONTENT_JSON_VERSION;
     }
 
+    cJSON_Delete(contentJson);
+    osFreeMem(jsonRaw);
+    osFreeMem(jsonPath);
+    osFreeMem(jsonPathTmp);
     return error;
 }
 
