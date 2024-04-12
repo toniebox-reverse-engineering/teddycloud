@@ -1535,12 +1535,6 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     load_content_json(pathAbsolute, &contentJson, false);
     osFreeMem(pathAbsolute);
 
-    if (contentJson.cloud_auth_len != 32)
-    {
-        free_content_json(&contentJson);
-        return NO_ERROR;
-    }
-
     osStrncpy(ruid, path, 8);
     osStrncpy(ruid + 8, path + 9, 8);
     for (uint8_t i = 0; i < 16; i++)
@@ -1549,9 +1543,16 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     }
     ruid[16] = '\0';
 
+    bool isSys = (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0');
+    if (contentJson.cloud_auth_len != 32 && !isSys)
+    {
+        free_content_json(&contentJson);
+        return ERROR_FILE_NOT_FOUND;
+    }
+
     osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
     free_content_json(&contentJson);
-    if (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0')
+    if (isSys)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
         return handleCloudContent(connection, uri, queryString, client_ctx, true);
@@ -2242,7 +2243,8 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 huid[23] = '\0';
                 cJSON_AddStringToObject(jsonEntry, "uid", huid);
 
-                if (!osStrncmp(ruid, "0000000", 7))
+                bool isSys = !osStrncmp(ruid, "0000000", 7);
+                if (isSys)
                 {
                     cJSON_AddStringToObject(jsonEntry, "type", "system");
                 }
@@ -2261,7 +2263,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 osFreeMem(audioUrl);
                 if (!tafInfo->exists)
                 {
-                    if (contentJson._has_cloud_auth)
+                    if (contentJson._has_cloud_auth || isSys)
                     {
                         char *downloadTriggerUrl = custom_asprintf("/content/download%s", &tagPath[osStrlen(rootPath)]);
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
