@@ -24,7 +24,7 @@ void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
     char buffer[4];
 
     msg[0] = '\0';
-    for (int i = 0; i < AUTH_TOKEN_LENGTH; i++)
+    for (int i = 0; i < TONIE_AUTH_TOKEN_LENGTH; i++)
     {
         if (i > 3 && !logFullAuth)
         {
@@ -304,7 +304,7 @@ void dumpRuidAuth(contentJson_t *content_json, char *ruid, uint8_t *authenticati
     if (!content_json->cloud_override && osStrlen(content_json->cloud_ruid) == 0)
     {
         osFreeMem(content_json->cloud_auth);
-        content_json->cloud_auth_len = AUTH_TOKEN_LENGTH;
+        content_json->cloud_auth_len = TONIE_AUTH_TOKEN_LENGTH;
         content_json->cloud_auth = osAllocMem(content_json->cloud_auth_len);
         osMemcpy(content_json->cloud_auth, authentication, content_json->cloud_auth_len);
 
@@ -341,7 +341,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
         TRACE_WARNING(" >>  invalid URI\r\n");
         return ERROR_NOT_FOUND;
     }
-    char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
+    char msg[TONIE_AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client claim requested rUID %s, auth %s\r\n", ruid, msg);
 
@@ -436,7 +436,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudContentTime", current_time, client_ctx);
-    char msg[AUTH_TOKEN_LENGTH * 2 + 1] = {0};
+    char msg[TONIE_AUTH_TOKEN_LENGTH * 2 + 1] = {0};
     convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
     TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
     if (!noPassword)

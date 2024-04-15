@@ -81,7 +81,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 
                 // TODO: use checkCustomTonie to validate
                 // TODO validate rUID
-                if (osStrlen(content_json->cloud_ruid) == 16 && content_json->cloud_auth_len == AUTH_TOKEN_LENGTH)
+                if (osStrlen(content_json->cloud_ruid) == 16 && content_json->cloud_auth_len == TONIE_AUTH_TOKEN_LENGTH)
                 {
                     content_json->_has_cloud_auth = true;
                 }

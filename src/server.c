@@ -79,6 +79,10 @@ request_type_t request_paths[] = {
     {REQ_POST, "/content/json/set/", SERTY_HTTP, &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", SERTY_HTTP, &handleApiContentJson},
     {REQ_GET, "/content/", SERTY_HTTP, &handleApiContent},
+    /* auth API */
+    {REQ_POST, "/api/auth/login", SERTY_HTTP, &handleApiAuthLogin},
+    {REQ_GET, "/api/auth/logout", SERTY_HTTP, &handleApiAuthLogout},
+    {REQ_POST, "/api/auth/refresh-token", SERTY_HTTP, &handleApiAuthRefreshToken},
     /* custom API */
     {REQ_POST, "/api/fileDelete", SERTY_HTTP, &handleApiFileDelete},
     {REQ_POST, "/api/dirDelete", SERTY_HTTP, &handleApiDirectoryDelete},
@@ -349,12 +353,43 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 {
     if (!strncmp(value, "BD ", 3))
     {
-        if (strlen(value) != 3 + 2 * AUTH_TOKEN_LENGTH)
+        if (strlen(value) != 3 + 2 * TONIE_AUTH_TOKEN_LENGTH)
         {
             TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
             return;
         }
-        for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
+        for (int pos = 0; pos < TONIE_AUTH_TOKEN_LENGTH; pos++)
+        {
+            char hex_digits[3];
+            char *end_ptr = NULL;
+
+            /* get a hex byte into a buffer for parsing it */
+            osStrncpy(hex_digits, &value[3 + 2 * pos], 2);
+            hex_digits[2] = 0;
+
+            /* will still fail for minus sign and possibly other things, but then the token is just incorrect */
+            connection->private.authentication_token[pos] = (uint8_t)osStrtoul(hex_digits, &end_ptr, 16);
+
+            if (end_ptr != &hex_digits[2])
+            {
+                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
+                return;
+            }
+        }
+        /* if we come across this part, this means the token was most likely correctly *parsed* */
+        connection->request.auth.found = 1;
+        connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
+        connection->status = HTTP_ACCESS_ALLOWED;
+    }
+    if (!strncmp(value, "Bearer ", 7))
+    {
+        if (strlen(value) != 7 + 2 * JWT_AUTH_TOKEN_LENGTH)
+        {
+            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
+            return;
+        }
+        // TODO: check JWT TOKEN
+        for (int pos = 0; pos < JWT_AUTH_TOKEN_LENGTH; pos++)
         {
             char hex_digits[3];
             char *end_ptr = NULL;

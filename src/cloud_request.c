@@ -254,7 +254,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
                 osStrcpy(auth_line, "BD ");
 
-                for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
+                for (int pos = 0; pos < TONIE_AUTH_TOKEN_LENGTH; pos++)
                 {
                     osSprintf(tmp, "%02X", hash[pos]);
                     osStrcat(auth_line, tmp);
