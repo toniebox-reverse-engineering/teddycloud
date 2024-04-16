@@ -37,11 +37,25 @@
     },
     "content": {
       "navigationTitle": "Content",
-      "title": "Content"
+      "title": "Content",
+      "toniePicture": "Tonie Bild"
     },
     "library": {
       "navigationTitle": "Library",
       "title": "Library"
+    },
+    "encoder": {
+      "navigationTitle": "Audio Encoder",
+      "title": "Audio Encoder",
+      "uploadFiles": "Datei(en) auswählen",
+      "uploading": "Lädt hoch",
+      "upload": "Hochladen",
+      "filename": "Dateiname",
+      "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt",
+      "uploadFailed": "Das Hochladen ist fehlgeschlagen",
+      "targetDirectory": "Zielpfad auswählen",
+      "saveAs": "Datei speichern unter",
+      "removeFile": "Datei entfernen"
     }
   },
   "language": {

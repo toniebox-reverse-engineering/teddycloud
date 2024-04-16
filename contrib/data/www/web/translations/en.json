@@ -37,11 +37,25 @@
     },
     "content": {
       "navigationTitle": "Content",
-      "title": "Content"
+      "title": "Content",
+      "toniePicture": "Tonie Picture"
     },
     "library": {
       "navigationTitle": "Library",
       "title": "Library"
+    },
+    "encoder": {
+      "navigationTitle": "Audio Encoder",
+      "title": "Audio Encoder",
+      "uploadFiles": "Select File(s)",
+      "uploading": "Uploading...",
+      "upload": "Upload",
+      "filename": "Filename",
+      "uploadSuccessful": "The file was added successfully to the library",
+      "uploadFailed": "The upload encountered an error",
+      "targetDirectory": "Choose target directory",
+      "saveAs": "Save file as",
+      "removeFile": "Remove file"
     }
   },
   "language": {
