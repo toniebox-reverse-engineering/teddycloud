@@ -23,17 +23,17 @@
 #include "cert.h"
 #include "esp32.h"
 
-error_t parsePostData(HttpConnection *connection, char_t *post_data)
+error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
     error_t error = NO_ERROR;
-    osMemset(post_data, 0, BODY_BUFFER_SIZE);
+    osMemset(post_data, 0, buffer_size);
     size_t size;
-    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    if (buffer_size <= connection->request.byteCount)
     {
         TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
         return ERROR_BUFFER_OVERFLOW;
     }
-    error = httpReceive(connection, &post_data, BODY_BUFFER_SIZE, &size, 0x00);
+    error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("Could not read post data\r\n");
@@ -2055,7 +2055,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
-    error = parsePostData(connection, post_data);
+    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -2314,7 +2314,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
 error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data);
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -2353,7 +2353,7 @@ error_t handleApiAuthLogout(HttpConnection *connection, const char_t *uri, const
 error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data);
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
