@@ -1,7 +1,14 @@
 {
   "home": {
     "navigationTitle": "Home",
-    "title": "Willkommen!",
+    "title": "Willkommen auf der TeddyCloud!",
+    "intro": "TeddyCloud ist eine alternative Serverlösung für deine Toniebox, die es dir ermöglicht, Cloud-Dienste lokal zu hosten. Dadurch behältst du die Kontrolle darüber, welche Daten an die Cloud des Originalherstellers gesendet werden, und kannst deine eigenen Hörspiel-Dateien für die Figuren selbst hosten.",
+    "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
+    "forumIntroPart2": ". Vertief dich in Themen, teile deine Erfahrungen und vernetze dich mit unserer Community. Tritt noch heute in die Diskussion ein!",
+    "yourTonies": "Deine Tonies",
+    "yourCustomTonies": "Deine Custom Tonies",
+    "toAllYourTonies": "Zu allen Tonies",
+    "helpfulLinks": "Hilfreiche Links",
     "stats": {
       "navigationTitle": "Statistiken",
       "title": "Statistiken",
@@ -21,7 +28,9 @@
     },
     "certificates": {
       "navigationTitle": "Zertifikate",
-      "title": "Zertifikate"
+      "title": "Zertifikate",
+      "uploadText" : "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich",
+      "uploadHint" : "Ziehe die Client-Zertifikate aus deiner Box hierher"
     }
   },
   "tonies": {
@@ -56,11 +65,54 @@
       "targetDirectory": "Zielpfad auswählen",
       "saveAs": "Datei speichern unter",
       "removeFile": "Datei entfernen"
+    },
+    "messages" : {
+      "couldNotEmptySource" : "Konnte Quelle nicht leeren!",
+      "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
+      "couldNotSetSource": "Konnte Quelle nicht setzen! ",
+      "liveEnabled": "Live aktiviert!",
+      "liveDisabled": "Live deaktiviert!",
+      "couldNotChangeLiveFlag": "Konnte Live-Flag nicht ändern! ",
+      "cloudAccessBlocked": "Cloud-Zugang blockiert!",
+      "cloudAccessEnabled": "Cloud-Zugang aktiviert!",
+      "couldNotChangeCloudFlag": "Konnte Cloud-Zugriff (nocloud) Flag nicht ändern! ",
+      "downloading": "Herunterladen...",
+      "downloadedFile": "Heruntergeladene Datei",
+      "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
+      "setTonieToModelSuccessful":  "Setze Tonie-Modell auf {{selectedModel}}!",
+      "setTonieToModelFailed":  "Konnte das Tonie-Modell nicht ändern!"
+    },
+    "infoModal" : {
+      "model" : "Modell:",
+      "valid" : "Gültig:",
+      "exists" : "Existiert:",
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "editModelModal" : {
+      "editModel" : "Modell bearbeiten ",
+      "placeholderSearchForAModel" : "Nach einem Modell suchen"
+    },
+    "editTagModal" : {
+      "editTag" : "Tag bearbeiten"
     }
   },
   "language": {
     "change": "Sprache ändern",
     "english": "EN",
     "german": "DE"
+  },
+  "fileBrowser": {
+    "selectTafOnly" : "Du kannst nur TAF Dateien auswählen!",
+    "maxSelectedRows" : "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
+    "name": "Name",
+    "size": "Größe",
+    "model": "Modell",
+    "series": "Serie",
+    "episode": "Episode",
+    "date": "Datum"
+  },
+  "tonieArticleSearch" : {
+    "failedToFetchSearchResults" : "Suchergebnisse konnten nicht abgerufen werden: "
   }
 }
