@@ -242,6 +242,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
         cJSON_AddStringToObject(jsonEntry, "description", opt->description);
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
+        cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
 
         switch (opt->type)
         {
