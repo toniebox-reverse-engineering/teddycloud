@@ -22,6 +22,8 @@
   "settings": {
     "navigationTitle": "Einstellungen",
     "title": "Einstellungen",
+    "information": "Information",
+    "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
     "general": {
       "navigationTitle": "Allgemein",
       "title": "Allgemeine Einstellungen"
@@ -95,6 +97,17 @@
     },
     "editTagModal" : {
       "editTag" : "Tag bearbeiten"
+    }
+  },
+  "tonieboxes": {
+    "navigationTitle" : "Tonieboxen",
+    "title": "Deine Tonieboxen",
+    "editModelModal" : {
+      "editModel": "Toniebox {{name}} bearbeiten",
+      "placeholderSearchForAModel": "Wähle deine Farbvariante aus"
+    },
+    "editTonieboxSettingsModal": {
+      "editTonieboxSettings": "Einstellungen der Toniebox {{name}} ansehen"
     }
   },
   "language": {

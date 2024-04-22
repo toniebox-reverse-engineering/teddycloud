@@ -21,6 +21,8 @@
   "settings": {
     "navigationTitle": "Settings",
     "title": "Settings",
+    "information": "Information",
+    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings got to ",
     "general": {
       "navigationTitle": "General",
       "title": "General settings"
@@ -94,6 +96,17 @@
     },
     "editTagModal" : {
       "editTag" : "Edit Tag"
+    }
+  },
+  "tonieboxes": {
+    "navigationTitle" : "Tonieboxes",
+    "title": "Your Tonieboxes",
+    "editModelModal" : {
+      "editModel": "Edit Toniebox {{name}}",
+      "placeholderSearchForAModel": "Select color variant of your Toniebox"
+    },
+    "editTonieboxSettingsModal": {
+      "editTonieboxSettings": "Settings for Toniebox {{name}}"
     }
   },
   "language": {
