@@ -374,6 +374,7 @@ typedef struct
     }                    \
     ;
 
+void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src);
 void overlay_settings_init();
 
 settings_t *get_settings();
@@ -388,6 +389,7 @@ void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
 void settings_loop();
 
+void settings_init_opt(setting_item_t *opt);
 /**
  * @brief Initializes the settings subsystem.
  *

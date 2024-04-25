@@ -370,9 +370,9 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     return httpWriteResponse(connection, response, connection->response.contentLength, false);
 }
 
-error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *item = &uri[5 + 3 + 1];
+    const char *item = &uri[18];
 
     char response[32];
     osStrcpy(response, "ERROR");
@@ -418,11 +418,11 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
-error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
     osSprintf(response, "ERROR");
-    const char *item = &uri[9];
+    const char *item = &uri[18];
 
     char_t data[BODY_BUFFER_SIZE];
     size_t size;
@@ -509,6 +509,54 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
+    return httpWriteResponseString(connection, response, false);
+}
+error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+{
+    char response[256];
+    osSprintf(response, "ERROR");
+    const char *item = &uri[20];
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
+    setting_item_t *opt_src = settings_get_by_name(item);
+    bool success = false;
+
+    if (opt && opt_src)
+    {
+        if (opt->overlayed || opt == opt_src)
+        {
+            overlay_settings_init_opt(opt, opt_src);
+            if (opt == opt_src)
+            {
+                TRACE_INFO("Setting: '%s' reset to default\r\n", item);
+            }
+            else
+            {
+                TRACE_INFO("Setting: '%s' overlay removed\r\n", item);
+            }
+            success = true;
+        }
+        else
+        {
+            TRACE_WARNING("Setting '%s' is not overlayed\r\n", item);
+        }
+    }
+    else
+    {
+        TRACE_ERROR("Setting '%s' is unknown\r\n", item);
+    }
+
+    if (success)
+    {
+        osStrcpy(response, "OK");
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
     return httpWriteResponseString(connection, response, false);
 }
 

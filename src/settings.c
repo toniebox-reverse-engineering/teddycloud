@@ -237,6 +237,51 @@ static setting_item_t *get_option_map(const char *overlay)
 {
     return Option_Map_Overlay[get_overlay_id(overlay)];
 }
+void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
+{
+    if (opt == opt_src)
+    {
+        settings_init_opt(opt);
+    }
+    else
+    {
+        switch (opt->type)
+        {
+        case TYPE_BOOL:
+            *((bool *)opt->ptr) = *((bool *)opt_src->ptr);
+            break;
+        case TYPE_SIGNED:
+        case TYPE_UNSIGNED:
+        case TYPE_HEX:
+        case TYPE_FLOAT:
+            *((uint32_t *)opt->ptr) = *((uint32_t *)opt_src->ptr);
+            break;
+        case TYPE_STRING:
+            *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
+            break;
+        case TYPE_U64_ARRAY:
+            if (opt_src->size > 0)
+            {
+                *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt_src->size);
+                osMemcpy(*((uint64_t **)opt->ptr), *((uint64_t **)opt_src->ptr), sizeof(uint64_t *) * opt_src->size);
+            }
+            break;
+        default:
+            break;
+        }
+        opt->overlayed = false;
+    }
+}
+void overlay_serttings_init_field(int field, uint8_t overlay)
+{
+    setting_item_t *option_map = Option_Map_Overlay[overlay];
+    setting_item_t *option_map_src = Option_Map_Overlay[0];
+
+    setting_item_t *opt = &option_map[field];
+    setting_item_t *opt_src = &option_map_src[field];
+
+    overlay_settings_init_opt(opt, opt_src);
+}
 
 void overlay_settings_init()
 {
@@ -249,40 +294,11 @@ void overlay_settings_init()
 
         option_map_init(i);
 
-        setting_item_t *option_map = Option_Map_Overlay[i];
-        setting_item_t *option_map_src = Option_Map_Overlay[0];
-
-        int pos = 0;
-        while (option_map[pos].type != TYPE_END)
+        int field = 0;
+        while (Option_Map_Overlay[i][field].type != TYPE_END)
         {
-            setting_item_t *opt = &option_map[pos];
-            setting_item_t *opt_src = &option_map_src[pos];
-
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                *((bool *)opt->ptr) = *((bool *)opt_src->ptr);
-                break;
-            case TYPE_SIGNED:
-            case TYPE_UNSIGNED:
-            case TYPE_HEX:
-            case TYPE_FLOAT:
-                *((uint32_t *)opt->ptr) = *((uint32_t *)opt_src->ptr);
-                break;
-            case TYPE_STRING:
-                *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
-                break;
-            case TYPE_U64_ARRAY:
-                if (opt_src->size > 0)
-                {
-                    *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt_src->size);
-                    osMemcpy(*((uint64_t **)opt->ptr), *((uint64_t **)opt_src->ptr), sizeof(uint64_t *) * opt_src->size);
-                }
-                break;
-            default:
-                break;
-            }
-            pos++;
+            overlay_serttings_init_field(field, i);
+            field++;
         }
         Settings_Overlay[i].internal.overlayNumber = i;
         Settings_Overlay[i].internal.config_init = true;
@@ -495,7 +511,42 @@ void settings_deinit_all()
         settings_deinit(i);
     }
 }
-
+void settings_init_opt(setting_item_t *opt)
+{
+    switch (opt->type)
+    {
+    case TYPE_BOOL:
+        TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
+        *((bool *)opt->ptr) = opt->init.bool_value;
+        break;
+    case TYPE_SIGNED:
+        TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
+        *((uint32_t *)opt->ptr) = opt->init.signed_value;
+        break;
+    case TYPE_UNSIGNED:
+    case TYPE_HEX:
+        TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
+        *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
+        break;
+    case TYPE_FLOAT:
+        TRACE_DEBUG("  %s = %f\r\n", opt->option_name, opt->init.float_value);
+        *((uint32_t *)opt->ptr) = opt->init.float_value;
+        break;
+    case TYPE_STRING:
+        TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
+        *((char **)opt->ptr) = strdup(opt->init.string_value);
+        break;
+    case TYPE_U64_ARRAY:
+        TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
+        if (opt->size > 0)
+        {
+            *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
+        }
+        break;
+    default:
+        break;
+    }
+}
 error_t settings_init(const char *cwd, const char *base_dir)
 {
     bool autogen_certs = Settings_Overlay[0].internal.autogen_certs;
@@ -508,40 +559,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
-
-        switch (opt->type)
-        {
-        case TYPE_BOOL:
-            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
-            *((bool *)opt->ptr) = opt->init.bool_value;
-            break;
-        case TYPE_SIGNED:
-            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
-            *((uint32_t *)opt->ptr) = opt->init.signed_value;
-            break;
-        case TYPE_UNSIGNED:
-        case TYPE_HEX:
-            TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
-            *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
-            break;
-        case TYPE_FLOAT:
-            TRACE_DEBUG("  %s = %f\r\n", opt->option_name, opt->init.float_value);
-            *((uint32_t *)opt->ptr) = opt->init.float_value;
-            break;
-        case TYPE_STRING:
-            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
-            *((char **)opt->ptr) = strdup(opt->init.string_value);
-            break;
-        case TYPE_U64_ARRAY:
-            TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
-            if (opt->size > 0)
-            {
-                *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
-            }
-            break;
-        default:
-            break;
-        }
+        settings_init_opt(opt);
         pos++;
     }
     settings_set_string("internal.cwd", cwd);

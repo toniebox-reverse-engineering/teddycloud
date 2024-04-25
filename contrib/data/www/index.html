@@ -392,7 +392,7 @@
                 const newState = !this.state.isChecked;
                 this.setState({ isChecked: newState });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newState.toString(),
                     headers: {
@@ -443,7 +443,7 @@
                 }
                 this.setState({ value: newValue });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -495,7 +495,7 @@
                 }
                 this.setState({ value: newValue });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -555,7 +555,7 @@
             pushDataToServer = () => {
                 const newValue = this.state.value;
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -596,7 +596,7 @@
             }
 
             componentDidMount() {
-                fetch('/api/getIndex')
+                fetch('/api/settings/getIndex')
                     .then(response => response.json())
                     .then(data => {
                         this.setState({ options: data.options.sort((a, b) => a.ID.localeCompare(b.ID)) });
@@ -2399,7 +2399,7 @@
                 this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
 
-                fetch(`/api/get/internal.version.v_long`)
+                fetch(`/api/settings/get/internal.version.v_long`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
