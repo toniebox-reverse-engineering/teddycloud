@@ -239,12 +239,28 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     }
     if (new_ota)
     {
+        // connection->response.keepAlive = false;
         // TODO add Content-Disposition: attachment;filename=
-        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+
+        // TODO md5:
+        // ETag: "43b0311869a36ac312c3dc59ccf43847"
+        connection->response.contentDisposition = custom_asprintf("attachment;filename=%s", biggest_filename);
+        connection->response.contentType = "binary/octet-stream";
+        char *md5 = "43b0311869a36ac312c3dc59ccf43847";
+        connection->response.eTag = custom_asprintf("\"%s\"", md5);
+        connection->response.lastModified = custom_asprintf("%s", "Fri, 07 May 2021 08:33:49 GMT");
+        ret = httpSendResponseUnsafe(connection, uri, local_file);
+        osFreeMem((char *)connection->response.contentDisposition);
+        connection->response.contentDisposition = NULL;
+        osFreeMem((char *)connection->response.eTag);
+        connection->response.eTag = NULL;
+        osFreeMem((char *)connection->response.lastModified);
+        connection->response.lastModified = NULL;
     }
     else
     {
         httpPrepareHeader(connection, NULL, 0);
+        connection->response.keepAlive = false;
         connection->response.statusCode = 304; // No new firmware
         ret = httpWriteResponse(connection, NULL, 0, false);
     }
@@ -419,6 +435,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             connection->private.client_ctx.skip_taf_header = true;
         }
     }
+    connection->response.noCache = true;
 
     osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
     ruid[16] = 0;

@@ -1087,7 +1087,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       connection->response.contentType = mimeGetType(absolutePath);
    }
 
-   connection->response.contentType = mimeGetType(uri);
+   //connection->response.contentType = mimeGetType(uri);
    connection->response.chunkedEncoding = FALSE;
    length = connection->response.contentLength;
 

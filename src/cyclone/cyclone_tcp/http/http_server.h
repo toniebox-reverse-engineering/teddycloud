@@ -550,6 +550,9 @@ typedef struct
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///<Set-Cookie header field
 #endif
+   const char_t* contentDisposition;
+   const char_t* eTag;
+   const char_t* lastModified;
 } HttpResponse;
 
 

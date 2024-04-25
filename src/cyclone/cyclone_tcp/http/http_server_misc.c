@@ -135,7 +135,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
             return error;
 
          //Debug message
-         TRACE_DEBUG("%s", connection->buffer);
+         TRACE_DEBUG("Read header field: %s", connection->buffer);
 
          //An empty line indicates the end of the header fields
          if(!osStrcmp(connection->buffer, "\r\n"))
@@ -406,6 +406,7 @@ error_t httpReadHeaderField(HttpConnection *connection,
 void httpParseHeaderField(HttpConnection *connection,
    const char_t *name, char_t *value)
 {
+   TRACE_DEBUG("Parse header field: %s: %s\r\n", name, value);
    //Host header field?
    if(!osStrcasecmp(name, "Host"))
    {
@@ -758,6 +759,9 @@ void httpInitResponseHeader(HttpConnection *connection)
    connection->response.location = NULL;
    connection->response.contentType = mimeGetType(connection->request.uri);
    connection->response.chunkedEncoding = FALSE;
+   connection->response.contentDisposition = NULL;
+   connection->response.eTag = NULL;
+   connection->response.lastModified = NULL;
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
    //Do not use gzip encoding
@@ -854,8 +858,8 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Connection: keep-alive\r\n");
 
       //Set Keep-Alive field
-      p += osSprintf(p, "Keep-Alive: timeout=%u, max=%u\r\n",
-         HTTP_SERVER_IDLE_TIMEOUT / 1000, HTTP_SERVER_MAX_REQUESTS);
+      //p += osSprintf(p, "Keep-Alive: timeout=%u, max=%u\r\n",
+      //   HTTP_SERVER_IDLE_TIMEOUT / 1000, HTTP_SERVER_MAX_REQUESTS);
    }
    else
    {
@@ -925,6 +929,18 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    if (connection->response.contentRange != NULL)
    {
       p += osSprintf(p, "Content-Range: %s\r\n", connection->response.contentRange);
+   }
+   if (connection->response.contentDisposition != NULL)
+   {
+      p += osSprintf(p, "Content-Disposition: %s\r\n", connection->response.contentDisposition);
+   }
+   if (connection->response.eTag != NULL)
+   {
+      p += osSprintf(p, "ETag: %s\r\n", connection->response.eTag);
+   }
+   if (connection->response.lastModified != NULL)
+   {
+      p += osSprintf(p, "Last-Modified: %s\r\n", connection->response.lastModified);
    }
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
