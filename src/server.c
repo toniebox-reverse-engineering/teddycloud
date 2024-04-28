@@ -36,6 +36,7 @@
 #include "handler_rtnl.h"
 #include "handler_api.h"
 #include "handler_sse.h"
+#include "handler_security_mit.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -108,6 +109,8 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
     {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
     {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
+    /* legacy, obsolete */
+    {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
     /* legacy, obsolete */
     {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
     {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
@@ -301,6 +304,14 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     do
     {
         bool handled = false;
+
+        checkSecMitHandlers(connection, uri, connection->request.queryString, client_ctx);
+        if (isSecMitIncident(connection) && get_settings()->security_mit.lockAccess)
+        {
+            error = handleSecMitLock(connection, uri, connection->request.queryString, client_ctx);
+            break;
+        }
+
         for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
         {
             size_t pathLen = osStrlen(request_paths[i].path);

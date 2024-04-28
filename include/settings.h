@@ -170,6 +170,16 @@ typedef struct
 
 typedef struct
 {
+    bool incident;
+    time_t blacklisted_domain_access;
+    time_t crawler_access;
+    time_t external_access;
+    time_t robots_txt_access;
+
+} settings_internal_security_mit_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -199,6 +209,7 @@ typedef struct
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
     settings_internal_toniebox_firmware_t toniebox_firmware;
+    settings_internal_security_mit_t security_mit;
 
     uint64_t *freshnessCache;
 
@@ -240,6 +251,17 @@ typedef struct
 
 typedef struct
 {
+    bool warnAccess;
+    bool lockAccess;
+    bool httpsOnly;
+    bool onBlacklistDomain;
+    bool onCrawler;
+    bool onExternal;
+    bool onRobotsTxt;
+} settings_security_mit_t;
+
+typedef struct
+{
     settings_loglevel level;
     bool color;
     bool logFullAuth;
@@ -263,6 +285,7 @@ typedef struct
     settings_encode_t encode;
     settings_mqtt_t mqtt;
     settings_hass_t hass;
+    settings_security_mit_t security_mit;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
     settings_log_t log;

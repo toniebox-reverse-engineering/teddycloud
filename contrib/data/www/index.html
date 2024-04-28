@@ -2388,7 +2388,8 @@
                 this.state = {
                     time: 0,
                     display_time: 0,
-                    version: "(unknown version)"
+                    version: "(unknown version)",
+                    security_incident: false
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
@@ -2408,6 +2409,16 @@
                     })
                     .then(version => {
                         this.setState({ version: version });
+                    })
+                fetch(`/api/settings/get/internal.security_mit.incident`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(incident => {
+                        this.setState({ security_incident: (incident == "true") });
                     })
             }
 
@@ -2454,6 +2465,11 @@
                 return (
                     <div className="app">
                         <h1>TeddyCloud administration interface</h1>
+                        {this.state.security_incident && (
+                            <div style={{ backgroundColor: 'red', color: 'white', padding: '10px' }}>
+                                Security Incident Detected! Please check your logs!
+                            </div>
+                        )}
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
                             <ESP32Flasher />
