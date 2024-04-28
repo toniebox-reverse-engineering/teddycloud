@@ -82,15 +82,14 @@ error_t handleSecMitDomain(HttpConnection *connection, const char_t *uri, const 
     sha1Update(&sha1Ctx, host, osStrlen(host));
 
     uint8_t *hash_data = osAllocMem(SHA1_DIGEST_SIZE);
-    size_t hash_len = SHA1_DIGEST_SIZE;
     sha1Final(&sha1Ctx, hash_data);
 
-    char hash[hash_len * 2 + 1];
-    for (size_t i = 0; i < hash_len; i++)
+    char hash[SHA1_DIGEST_SIZE * 2 + 1];
+    for (size_t i = 0; i < SHA1_DIGEST_SIZE; i++)
     {
         osSprintf(&hash[i * 2], "%02" PRIx8, hash_data[i]);
     }
-    hash[hash_len * 2] = '\0';
+    hash[SHA1_DIGEST_SIZE * 2] = '\0';
     osFreeMem(hash_data);
     for (size_t i = 0; i < numHashes; i++)
     {
