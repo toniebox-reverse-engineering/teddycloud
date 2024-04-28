@@ -88,7 +88,7 @@ error_t handleSecMitDomain(HttpConnection *connection, const char_t *uri, const 
     char hash[hash_len * 2 + 1];
     for (size_t i = 0; i < hash_len; i++)
     {
-        osSprintf(&hash[i * 2], "%02x", hash_data[i]);
+        osSprintf(&hash[i * 2], "%02" PRIx8, hash_data[i]);
     }
     hash[hash_len * 2] = '\0';
     osFreeMem(hash_data);
