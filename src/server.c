@@ -109,11 +109,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
     {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
     {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
-    /* legacy, obsolete */
     {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
-    /* legacy, obsolete */
-    {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
-    {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
     /* official tonies API */
     {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
     {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
