@@ -43,6 +43,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
     OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)")
     OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box")
+    OPTION_INTERNAL_STRING("boxColorId", &settings->boxColorId, "", "Color ID of the box")
 
     OPTION_TREE_DESC("log", "Logging")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "Loglevel", "0=off - 6=verbose")
@@ -361,6 +362,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("commonName", boxId, i);
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
                 settings_set_string_id("boxName", boxName, i);
+                settings_set_string_id("boxColorId", "", i);
                 settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
@@ -660,7 +662,7 @@ error_t settings_save_ovl(bool overlay)
         while (option_map[pos].type != TYPE_END)
         {
             setting_item_t *opt = &option_map[pos];
-            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName"))))
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName") || !osStrcmp(opt->option_name, "boxColorId"))))
             {
                 char *overlayPrefix;
                 if (overlay)

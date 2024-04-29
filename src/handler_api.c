@@ -315,6 +315,7 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayUniqueId);
         cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
         cJSON_AddStringToObject(jsonEntry, "boxName", settings->boxName);
+        cJSON_AddStringToObject(jsonEntry, "boxColorId", settings->boxColorId); // TODO add color name + url
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
     }

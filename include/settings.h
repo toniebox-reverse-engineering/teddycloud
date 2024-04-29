@@ -280,6 +280,7 @@ typedef struct
     uint32_t configVersion;
     char *commonName;
     char *boxName;
+    char *boxColorId;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_encode_t encode;
