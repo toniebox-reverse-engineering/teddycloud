@@ -533,6 +533,23 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
 bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
+/**
+ * @brief Retrieves the value of a floating point setting item.
+ *
+ * @param item The name of the setting item.
+ * @return The current float value of the setting item. If the item does not exist or is not a float, the behavior is undefined.
+ */
+float settings_get_float(const char *item);
+float settings_get_float_ovl(const char *item, const char *overlay_name);
+
+/**
+ * @brief Sets the value of a floating point setting item.
+ *
+ * @param item The name of the setting item.
+ * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
+ */
+bool settings_set_float(const char *item, float value);
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 /**
  * @brief Retrieves a setting item by its name.
@@ -570,24 +587,6 @@ uint64_t *settings_get_u64_array_id(const char *item, uint8_t settingsId, size_t
 bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len);
 bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
 bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
-
-/**
- * @brief Retrieves the value of a floating point setting item.
- *
- * @param item The name of the setting item.
- * @return The current float value of the setting item. If the item does not exist or is not a float, the behavior is undefined.
- */
-float settings_get_float(const char *item);
-float settings_get_float_ovl(const char *item, const char *overlay_name);
-
-/**
- * @brief Sets the value of a floating point setting item.
- *
- * @param item The name of the setting item.
- * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
- */
-bool settings_set_float(const char *item, float value);
-bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 char *settings_sanitize_box_id(const char *input_id);
 
