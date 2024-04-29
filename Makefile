@@ -50,6 +50,9 @@ build_os:="$(OS)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\"
+ifeq ($(build_arch),"armhf")
+CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=\"1"
+endif
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)
@@ -402,10 +405,13 @@ else
 	QUIET=@
 endif
 
-
 all: check_dependencies submodules web build 
 
-build: $(EXECUTABLE)
+echo_info:
+	$(ECHO) '[ ${GREEN}PLATF${NC}] ${CYAN}$(build_platform)${NC}'
+	$(ECHO) '[ ${GREEN}ARCH${NC} ] ${CYAN}$(build_arch)${NC}'
+
+build: echo_info $(EXECUTABLE)	
 
 ifeq ($(OS),Windows_NT)
 .PHONY: check_dependencies

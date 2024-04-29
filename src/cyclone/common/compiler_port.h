@@ -139,7 +139,7 @@ typedef unsigned int uint_t;
    #define PRIuTIME "lu"
 #endif
 
-#ifdef __ARM_ARCH_7__
+#ifdef BUILD_PRIuTIME_LLU
    #undef PRIuTIME
    #define PRIuTIME "llu"
 #endif
