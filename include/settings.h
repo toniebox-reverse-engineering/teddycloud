@@ -410,6 +410,7 @@ uint8_t get_overlay_id(const char *overlay_unique_id);
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
+void settings_changed_id(uint8_t settingsId);
 void settings_loop();
 
 void settings_init_opt(setting_item_t *opt);
@@ -488,6 +489,7 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
  */
 bool settings_set_bool(const char *item, bool value);
 bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name);
+bool settings_set_bool_id(const char *item, bool value, uint8_t settingsId);
 
 /**
  * @brief Gets the value of a boolean setting item.
@@ -515,6 +517,7 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_signed(const char *item, int32_t value);
 bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name);
+bool settings_set_signed_id(const char *item, int32_t value, uint8_t settingsId);
 
 /**
  * @brief Gets the value of an unsigned integer setting item.
@@ -533,6 +536,8 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
 bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
+bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settingsId);
+
 /**
  * @brief Retrieves the value of a floating point setting item.
  *
@@ -550,6 +555,7 @@ float settings_get_float_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_float(const char *item, float value);
 bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
+bool settings_set_float_id(const char *item, float value, uint8_t settingsId);
 
 /**
  * @brief Retrieves a setting item by its name.

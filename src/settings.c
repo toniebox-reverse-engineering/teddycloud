@@ -460,15 +460,23 @@ void settings_generate_internal_dirs(settings_t *settings)
 
 void settings_changed()
 {
-    Settings_Overlay[0].internal.config_changed = true;
-    settings_generate_internal_dirs(get_settings());
+    settings_changed_id(0);
+}
+void settings_changed_id(uint8_t settingsId)
+{
+    Settings_Overlay[settingsId].internal.config_changed = true;
+    settings_generate_internal_dirs(get_settings_id((settingsId)));
     if (config_file_path != NULL)
         osFreeMem(config_file_path);
     if (config_overlay_file_path != NULL)
         osFreeMem(config_overlay_file_path);
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
-    settings_load_ovl(true);
+
+    if (settingsId == 0)
+    {
+        settings_load_ovl(true);
+    }
 }
 
 void settings_deinit(uint8_t overlayNumber)
@@ -995,12 +1003,16 @@ bool settings_set_bool(const char *item, bool value)
 }
 bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name)
 {
+    return settings_set_bool_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_bool_id(const char *item, bool value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_BOOL)
     {
         return false;
@@ -1008,13 +1020,13 @@ bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_nam
 
     *((bool *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1046,12 +1058,16 @@ bool settings_set_signed(const char *item, int32_t value)
 }
 bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name)
 {
+    return settings_set_signed_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_signed_id(const char *item, int32_t value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_SIGNED)
     {
         return false;
@@ -1065,13 +1081,13 @@ bool settings_set_signed_ovl(const char *item, int32_t value, const char *overla
 
     *((int32_t *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1102,12 +1118,16 @@ bool settings_set_unsigned(const char *item, uint32_t value)
 }
 bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name)
 {
+    return settings_set_unsigned_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_UNSIGNED)
     {
         return false;
@@ -1121,13 +1141,13 @@ bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *ove
 
     *((uint32_t *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1158,12 +1178,17 @@ bool settings_set_float(const char *item, float value)
 }
 bool settings_set_float_ovl(const char *item, float value, const char *overlay_name)
 {
+    return settings_set_float_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_float_id(const char *item, float value, uint8_t settingsId)
+{
+
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_FLOAT)
     {
         return false;
@@ -1177,13 +1202,13 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 
     *((float *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1246,9 +1271,9 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1320,9 +1345,9 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
