@@ -61,7 +61,11 @@ typedef unsigned int uint_t;
    #define PRIu16 "u"
    #define PRIuSIZE "u"
    #define PRIXSIZE "X"
+   #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 8000000)
+   #define PRIuTIME "lli"
+   #else
    #define PRIuTIME "lu"
+   #endif
 //Microchip XC32 compiler?
 #elif defined(__XC32)
    #define PRIuSIZE "u"
