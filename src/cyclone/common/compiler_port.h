@@ -139,14 +139,9 @@ typedef unsigned int uint_t;
    #define PRIuTIME "lu"
 #endif
 
-#if defined(__ARMCC_VERSION) && (__ARMCC_VERSION < 8000000)
+#ifdef __ARM_ARCH_7__
    #undef PRIuTIME
    #define PRIuTIME "llu"
-   ERROR1
-#elif defined(__SIZEOF_TIME_T__) && (__SIZEOF_TIME_T__ == 8)
-   #undef PRIuTIME
-   #define PRIuTIME "llu"
-   ERROR2
 #endif
 
 //ARM compiler V6?
