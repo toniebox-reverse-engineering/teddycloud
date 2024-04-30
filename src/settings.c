@@ -25,6 +25,7 @@
         }                      \
     } while (0)
 
+#define SETTINGS_LOAD_BUFFER_LEN 256
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
@@ -43,6 +44,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
     OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)")
     OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box")
+    OPTION_INTERNAL_STRING("boxModel", &settings->boxModel, "", "Model of the box")
 
     OPTION_TREE_DESC("log", "Logging")
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "Loglevel", "0=off - 6=verbose")
@@ -96,6 +98,15 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface")
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned")
     OPTION_BOOL("core.tonies_json_auto_update", &settings->core.tonies_json_auto_update, TRUE, "Auto-Update tonies.json", "Auto-Update tonies.json for Tonies information and images.")
+
+    OPTION_TREE_DESC("security_mit", "Security mitigation")
+    OPTION_BOOL("security_mit.warnAccess", &settings->security_mit.warnAccess, TRUE, "Warning on unwanted access", "If teddyCloud detects unusal access, warn on frontend until restart. (See on*)")
+    OPTION_BOOL("security_mit.lockAccess", &settings->security_mit.lockAccess, TRUE, "Lock on unwanted access", "If teddyCloud detects a unusal access, lock frontend until restart. (See on*)")
+    OPTION_BOOL("security_mit.httpsOnly", &settings->security_mit.httpsOnly, TRUE, "On HTTPS only", "Lock/Warn on HTTPS port only.")
+    OPTION_BOOL("security_mit.onBlacklistDomain", &settings->security_mit.onBlacklistDomain, TRUE, "Detect blacklist domains", "Lock/Warn, if domain is known to be public.")
+    OPTION_BOOL("security_mit.onCrawler", &settings->security_mit.onCrawler, TRUE, "Detect crawlers", "Lock/Warn, if crawler is detected (User-Agent).")
+    // OPTION_BOOL("security_mit.onExternal", &settings->security_mit.onExternal, TRUE, "Detect external access", "Lock/Warn, if external access is detected.")
+    OPTION_BOOL("security_mit.onRobotsTxt", &settings->security_mit.onRobotsTxt, TRUE, "Detect robots.txt", "Lock/Warn, if robots.txt is accessed.")
 
     OPTION_TREE_DESC("internal", "Internal")
     OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data")
@@ -167,6 +178,12 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID")
     OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online")
 
+    OPTION_INTERNAL_BOOL("internal.security_mit.incident", &settings->internal.security_mit.incident, FALSE, "We had a security incident")
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.blacklisted_domain_access", &settings->internal.security_mit.blacklisted_domain_access, 0, 0, 0, "Check accessed via blacklisted domain")
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.crawler_access", &settings->internal.security_mit.crawler_access, 0, 0, 0, "Last access via crawler")
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.external_access", &settings->internal.security_mit.external_access, 0, 0, 0, "Last external access")
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.robots_txt_access", &settings->internal.security_mit.robots_txt_access, 0, 0, 0, "Last access onto the robots.txt")
+
     OPTION_TREE_DESC("cloud", "Cloud")
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation")
     OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Cloud hostname", "Hostname of remote cloud server")
@@ -237,6 +254,51 @@ static setting_item_t *get_option_map(const char *overlay)
 {
     return Option_Map_Overlay[get_overlay_id(overlay)];
 }
+void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
+{
+    if (opt == opt_src)
+    {
+        settings_init_opt(opt);
+    }
+    else
+    {
+        switch (opt->type)
+        {
+        case TYPE_BOOL:
+            *((bool *)opt->ptr) = *((bool *)opt_src->ptr);
+            break;
+        case TYPE_SIGNED:
+        case TYPE_UNSIGNED:
+        case TYPE_HEX:
+        case TYPE_FLOAT:
+            *((uint32_t *)opt->ptr) = *((uint32_t *)opt_src->ptr);
+            break;
+        case TYPE_STRING:
+            *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
+            break;
+        case TYPE_U64_ARRAY:
+            if (opt_src->size > 0)
+            {
+                *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt_src->size);
+                osMemcpy(*((uint64_t **)opt->ptr), *((uint64_t **)opt_src->ptr), sizeof(uint64_t *) * opt_src->size);
+            }
+            break;
+        default:
+            break;
+        }
+        opt->overlayed = false;
+    }
+}
+void overlay_serttings_init_field(int field, uint8_t overlay)
+{
+    setting_item_t *option_map = Option_Map_Overlay[overlay];
+    setting_item_t *option_map_src = Option_Map_Overlay[0];
+
+    setting_item_t *opt = &option_map[field];
+    setting_item_t *opt_src = &option_map_src[field];
+
+    overlay_settings_init_opt(opt, opt_src);
+}
 
 void overlay_settings_init()
 {
@@ -249,40 +311,11 @@ void overlay_settings_init()
 
         option_map_init(i);
 
-        setting_item_t *option_map = Option_Map_Overlay[i];
-        setting_item_t *option_map_src = Option_Map_Overlay[0];
-
-        int pos = 0;
-        while (option_map[pos].type != TYPE_END)
+        int field = 0;
+        while (Option_Map_Overlay[i][field].type != TYPE_END)
         {
-            setting_item_t *opt = &option_map[pos];
-            setting_item_t *opt_src = &option_map_src[pos];
-
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                *((bool *)opt->ptr) = *((bool *)opt_src->ptr);
-                break;
-            case TYPE_SIGNED:
-            case TYPE_UNSIGNED:
-            case TYPE_HEX:
-            case TYPE_FLOAT:
-                *((uint32_t *)opt->ptr) = *((uint32_t *)opt_src->ptr);
-                break;
-            case TYPE_STRING:
-                *((char **)opt->ptr) = strdup(*((char **)opt_src->ptr));
-                break;
-            case TYPE_U64_ARRAY:
-                if (opt_src->size > 0)
-                {
-                    *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt_src->size);
-                    osMemcpy(*((uint64_t **)opt->ptr), *((uint64_t **)opt_src->ptr), sizeof(uint64_t *) * opt_src->size);
-                }
-                break;
-            default:
-                break;
-            }
-            pos++;
+            overlay_serttings_init_field(field, i);
+            field++;
         }
         Settings_Overlay[i].internal.overlayNumber = i;
         Settings_Overlay[i].internal.config_init = true;
@@ -330,6 +363,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("commonName", boxId, i);
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
                 settings_set_string_id("boxName", boxName, i);
+                settings_set_string_id("boxModel", "", i);
                 settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
@@ -429,15 +463,25 @@ void settings_generate_internal_dirs(settings_t *settings)
 
 void settings_changed()
 {
-    Settings_Overlay[0].internal.config_changed = true;
-    settings_generate_internal_dirs(get_settings());
+    settings_changed_id(0);
+}
+void settings_changed_id(uint8_t settingsId)
+{
+    mutex_lock(MUTEX_SETTINGS_CHANGED);
+    Settings_Overlay[settingsId].internal.config_changed = true;
+    settings_generate_internal_dirs(get_settings_id((settingsId)));
     if (config_file_path != NULL)
         osFreeMem(config_file_path);
     if (config_overlay_file_path != NULL)
         osFreeMem(config_overlay_file_path);
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
-    settings_load_ovl(true);
+
+    if (settingsId == 0)
+    {
+        settings_load_ovl(true);
+    }
+    mutex_unlock(MUTEX_SETTINGS_CHANGED);
 }
 
 void settings_deinit(uint8_t overlayNumber)
@@ -495,7 +539,42 @@ void settings_deinit_all()
         settings_deinit(i);
     }
 }
-
+void settings_init_opt(setting_item_t *opt)
+{
+    switch (opt->type)
+    {
+    case TYPE_BOOL:
+        TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
+        *((bool *)opt->ptr) = opt->init.bool_value;
+        break;
+    case TYPE_SIGNED:
+        TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
+        *((uint32_t *)opt->ptr) = opt->init.signed_value;
+        break;
+    case TYPE_UNSIGNED:
+    case TYPE_HEX:
+        TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
+        *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
+        break;
+    case TYPE_FLOAT:
+        TRACE_DEBUG("  %s = %f\r\n", opt->option_name, opt->init.float_value);
+        *((uint32_t *)opt->ptr) = opt->init.float_value;
+        break;
+    case TYPE_STRING:
+        TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
+        *((char **)opt->ptr) = strdup(opt->init.string_value);
+        break;
+    case TYPE_U64_ARRAY:
+        TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
+        if (opt->size > 0)
+        {
+            *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
+        }
+        break;
+    default:
+        break;
+    }
+}
 error_t settings_init(const char *cwd, const char *base_dir)
 {
     bool autogen_certs = Settings_Overlay[0].internal.autogen_certs;
@@ -508,40 +587,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
-
-        switch (opt->type)
-        {
-        case TYPE_BOOL:
-            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.bool_value ? "true" : "false");
-            *((bool *)opt->ptr) = opt->init.bool_value;
-            break;
-        case TYPE_SIGNED:
-            TRACE_DEBUG("  %s = %d\r\n", opt->option_name, opt->init.signed_value);
-            *((uint32_t *)opt->ptr) = opt->init.signed_value;
-            break;
-        case TYPE_UNSIGNED:
-        case TYPE_HEX:
-            TRACE_DEBUG("  %s = %" PRIu64 "\r\n", opt->option_name, opt->init.unsigned_value);
-            *((uint32_t *)opt->ptr) = opt->init.unsigned_value;
-            break;
-        case TYPE_FLOAT:
-            TRACE_DEBUG("  %s = %f\r\n", opt->option_name, opt->init.float_value);
-            *((uint32_t *)opt->ptr) = opt->init.float_value;
-            break;
-        case TYPE_STRING:
-            TRACE_DEBUG("  %s = %s\r\n", opt->option_name, opt->init.string_value);
-            *((char **)opt->ptr) = strdup(opt->init.string_value);
-            break;
-        case TYPE_U64_ARRAY:
-            TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
-            if (opt->size > 0)
-            {
-                *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
-            }
-            break;
-        default:
-            break;
-        }
+        settings_init_opt(opt);
         pos++;
     }
     settings_set_string("internal.cwd", cwd);
@@ -572,24 +618,22 @@ error_t settings_init(const char *cwd, const char *base_dir)
 
 error_t settings_save()
 {
+    mutex_lock(MUTEX_SETTINGS_SAVE);
     error_t err = NO_ERROR;
 
     err = settings_save_ovl(false);
-    if (err != NO_ERROR)
+    if (err == NO_ERROR)
     {
-        return err;
+        err = settings_save_ovl(true);
     }
-    err = settings_save_ovl(true);
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
+    mutex_unlock(MUTEX_SETTINGS_SAVE);
 
-    return NO_ERROR;
+    return err;
 }
 
 error_t settings_save_ovl(bool overlay)
 {
+    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
@@ -597,6 +641,7 @@ error_t settings_save_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_ERROR("Failed to open config file for writing\r\n");
+        mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
         return ERROR_DIRECTORY_NOT_FOUND;
     }
 
@@ -619,7 +664,7 @@ error_t settings_save_ovl(bool overlay)
         while (option_map[pos].type != TYPE_END)
         {
             setting_item_t *opt = &option_map[pos];
-            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName"))))
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName") || !osStrcmp(opt->option_name, "boxModel"))))
             {
                 char *overlayPrefix;
                 if (overlay)
@@ -671,30 +716,27 @@ error_t settings_save_ovl(bool overlay)
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
 
+    mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
     return NO_ERROR;
 }
 
 error_t settings_load()
 {
+    mutex_lock(MUTEX_SETTINGS_LOAD);
     error_t err = NO_ERROR;
 
     err = settings_load_ovl(false);
-    if (err != NO_ERROR)
+    if (err == NO_ERROR)
     {
-        return err;
+        err = settings_load_ovl(true);
     }
-
-    err = settings_load_ovl(true);
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    return NO_ERROR;
+    mutex_unlock(MUTEX_SETTINGS_LOAD);
+    return err;
 }
 
 error_t settings_load_ovl(bool overlay)
 {
+    mutex_lock(MUTEX_SETTINGS_LOAD_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
@@ -708,11 +750,8 @@ error_t settings_load_ovl(bool overlay)
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
 
         error_t err = settings_save_ovl(overlay);
-        if (err != NO_ERROR)
-        {
-            return err;
-        }
-        return NO_ERROR;
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
+        return err;
     }
 
     uint32_t file_size;
@@ -720,6 +759,7 @@ error_t settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -727,11 +767,12 @@ error_t settings_load_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
     // Buffer to hold the file content
-    char buffer[256];
+    char buffer[SETTINGS_LOAD_BUFFER_LEN];
     size_t from_read;
     size_t read_length;
     bool last_line_incomplete = false;
@@ -845,8 +886,34 @@ error_t settings_load_ovl(bool overlay)
         last_line_incomplete = (buffer[read_length - 1] != '\n');
         if (last_line_incomplete)
         {
-            from_read = strlen(line);
-            memmove(buffer, line, from_read);
+            if (line == buffer)
+            {
+                if (read_length == SETTINGS_LOAD_BUFFER_LEN - 1)
+                {
+                    TRACE_ERROR("Cannot read config file, line too big for buffer, skipping line %s\r\n", line);
+                    while (fsReadFile(file, &buffer[0], 1, &read_length) == NO_ERROR)
+                    {
+                        if (line[0] == '\n')
+                        {
+                            break;
+                        }
+                    }
+                    from_read = 0;
+                    read_length = 0;
+                }
+                else
+                {
+                    TRACE_WARNING("Last line of config is missing a newline %s\r\n", line);
+                    from_read++;
+                    read_length++;
+                    line[read_length - 1] = '\n';
+                }
+            }
+            else
+            {
+                from_read = strlen(line);
+                memmove(buffer, line, from_read);
+            }
         }
         else
         {
@@ -888,6 +955,7 @@ error_t settings_load_ovl(bool overlay)
         }
     }
 
+    mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
     return NO_ERROR;
 }
 
@@ -962,12 +1030,16 @@ bool settings_set_bool(const char *item, bool value)
 }
 bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name)
 {
+    return settings_set_bool_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_bool_id(const char *item, bool value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_BOOL)
     {
         return false;
@@ -975,13 +1047,13 @@ bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_nam
 
     *((bool *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1013,12 +1085,16 @@ bool settings_set_signed(const char *item, int32_t value)
 }
 bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name)
 {
+    return settings_set_signed_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_signed_id(const char *item, int32_t value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_SIGNED)
     {
         return false;
@@ -1032,13 +1108,13 @@ bool settings_set_signed_ovl(const char *item, int32_t value, const char *overla
 
     *((int32_t *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1069,12 +1145,16 @@ bool settings_set_unsigned(const char *item, uint32_t value)
 }
 bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name)
 {
+    return settings_set_unsigned_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settingsId)
+{
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_UNSIGNED)
     {
         return false;
@@ -1088,13 +1168,13 @@ bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *ove
 
     *((uint32_t *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1125,12 +1205,17 @@ bool settings_set_float(const char *item, float value)
 }
 bool settings_set_float_ovl(const char *item, float value, const char *overlay_name)
 {
+    return settings_set_float_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_float_id(const char *item, float value, uint8_t settingsId)
+{
+
     if (!item)
     {
         return false;
     }
 
-    setting_item_t *opt = settings_get_by_name_ovl(item, overlay_name);
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
     if (!opt || opt->type != TYPE_FLOAT)
     {
         return false;
@@ -1144,13 +1229,13 @@ bool settings_set_float_ovl(const char *item, float value, const char *overlay_n
 
     *((float *)opt->ptr) = value;
 
-    if (overlay_name)
+    if (settingsId > 0)
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1213,9 +1298,9 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }
@@ -1287,9 +1372,9 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
     {
         opt->overlayed = true;
     }
-    if (!opt->internal)
+    else if (!opt->internal)
     {
-        settings_changed();
+        settings_changed_id(settingsId);
     }
     return true;
 }

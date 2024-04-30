@@ -170,6 +170,16 @@ typedef struct
 
 typedef struct
 {
+    bool incident;
+    time_t blacklisted_domain_access;
+    time_t crawler_access;
+    time_t external_access;
+    time_t robots_txt_access;
+
+} settings_internal_security_mit_t;
+
+typedef struct
+{
     bool exit;
     int32_t returncode;
     settings_cert_t server;
@@ -199,6 +209,7 @@ typedef struct
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
     settings_internal_toniebox_firmware_t toniebox_firmware;
+    settings_internal_security_mit_t security_mit;
 
     uint64_t *freshnessCache;
 
@@ -240,6 +251,17 @@ typedef struct
 
 typedef struct
 {
+    bool warnAccess;
+    bool lockAccess;
+    bool httpsOnly;
+    bool onBlacklistDomain;
+    bool onCrawler;
+    bool onExternal;
+    bool onRobotsTxt;
+} settings_security_mit_t;
+
+typedef struct
+{
     settings_loglevel level;
     bool color;
     bool logFullAuth;
@@ -258,11 +280,13 @@ typedef struct
     uint32_t configVersion;
     char *commonName;
     char *boxName;
+    char *boxModel;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_encode_t encode;
     settings_mqtt_t mqtt;
     settings_hass_t hass;
+    settings_security_mit_t security_mit;
     settings_toniebox_t toniebox;
     settings_internal_t internal;
     settings_log_t log;
@@ -374,6 +398,7 @@ typedef struct
     }                    \
     ;
 
+void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src);
 void overlay_settings_init();
 
 settings_t *get_settings();
@@ -386,8 +411,10 @@ uint8_t get_overlay_id(const char *overlay_unique_id);
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_generate_internal_dirs(settings_t *settings);
 void settings_changed();
+void settings_changed_id(uint8_t settingsId);
 void settings_loop();
 
+void settings_init_opt(setting_item_t *opt);
 /**
  * @brief Initializes the settings subsystem.
  *
@@ -463,6 +490,7 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
  */
 bool settings_set_bool(const char *item, bool value);
 bool settings_set_bool_ovl(const char *item, bool value, const char *overlay_name);
+bool settings_set_bool_id(const char *item, bool value, uint8_t settingsId);
 
 /**
  * @brief Gets the value of a boolean setting item.
@@ -490,6 +518,7 @@ int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_signed(const char *item, int32_t value);
 bool settings_set_signed_ovl(const char *item, int32_t value, const char *overlay_name);
+bool settings_set_signed_id(const char *item, int32_t value, uint8_t settingsId);
 
 /**
  * @brief Gets the value of an unsigned integer setting item.
@@ -508,6 +537,26 @@ uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
  */
 bool settings_set_unsigned(const char *item, uint32_t value);
 bool settings_set_unsigned_ovl(const char *item, uint32_t value, const char *overlay_name);
+bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settingsId);
+
+/**
+ * @brief Retrieves the value of a floating point setting item.
+ *
+ * @param item The name of the setting item.
+ * @return The current float value of the setting item. If the item does not exist or is not a float, the behavior is undefined.
+ */
+float settings_get_float(const char *item);
+float settings_get_float_ovl(const char *item, const char *overlay_name);
+
+/**
+ * @brief Sets the value of a floating point setting item.
+ *
+ * @param item The name of the setting item.
+ * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
+ */
+bool settings_set_float(const char *item, float value);
+bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
+bool settings_set_float_id(const char *item, float value, uint8_t settingsId);
 
 /**
  * @brief Retrieves a setting item by its name.
@@ -545,24 +594,6 @@ uint64_t *settings_get_u64_array_id(const char *item, uint8_t settingsId, size_t
 bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len);
 bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
 bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
-
-/**
- * @brief Retrieves the value of a floating point setting item.
- *
- * @param item The name of the setting item.
- * @return The current float value of the setting item. If the item does not exist or is not a float, the behavior is undefined.
- */
-float settings_get_float(const char *item);
-float settings_get_float_ovl(const char *item, const char *overlay_name);
-
-/**
- * @brief Sets the value of a floating point setting item.
- *
- * @param item The name of the setting item.
- * @param value The variable where the floating point value of the setting item will be stored. If the item does not exist or is not a float, the behavior is undefined.
- */
-bool settings_set_float(const char *item, float value);
-bool settings_set_float_ovl(const char *item, float value, const char *overlay_name);
 
 char *settings_sanitize_box_id(const char *input_id);
 

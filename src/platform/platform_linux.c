@@ -283,17 +283,17 @@ error_t socketReceive(Socket *socket, void *data_in,
             }
         }
 
-        if (buff->buffer_used >= size)
-        {
-            return_count = size;
-        }
-
         if (!(flags & SOCKET_FLAG_WAIT_ALL) && !(flags & SOCKET_FLAG_BREAK_CHAR))
         {
             if (buff->buffer_used > 0)
             {
                 return_count = buff->buffer_used;
             }
+        }
+
+        if (buff->buffer_used >= size)
+        {
+            return_count = size;
         }
 
         /* we shall return that many bytes and have them in buffer */

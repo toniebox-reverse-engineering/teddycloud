@@ -494,7 +494,7 @@ typedef struct
    char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///<Resource identifier
    char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///<Query string
    char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///<Host name
-   char_t userAgent[64 + 1];
+   char_t userAgent[128 + 1];
    char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///< IfRange tag
    HttpRangeHeader Range;                                    ///< Range field
    bool_t keepAlive;

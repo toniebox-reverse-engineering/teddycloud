@@ -34,7 +34,8 @@
 #include "settings.h"
 #include "toniebox_state_type.h"
 
-#define AUTH_TOKEN_LENGTH 32
+#define TONIE_AUTH_TOKEN_LENGTH 32
+#define JWT_AUTH_TOKEN_LENGTH 32
 
 typedef struct
 {
@@ -45,7 +46,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t authentication_token[AUTH_TOKEN_LENGTH];
+    uint8_t authentication_token[TONIE_AUTH_TOKEN_LENGTH];
     client_ctx_t client_ctx;
 
 } http_connection_private_t;

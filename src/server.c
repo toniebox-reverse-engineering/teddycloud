@@ -36,6 +36,7 @@
 #include "handler_rtnl.h"
 #include "handler_api.h"
 #include "handler_sse.h"
+#include "handler_security_mit.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
@@ -79,6 +80,10 @@ request_type_t request_paths[] = {
     {REQ_POST, "/content/json/set/", SERTY_HTTP, &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", SERTY_HTTP, &handleApiContentJson},
     {REQ_GET, "/content/", SERTY_HTTP, &handleApiContent},
+    /* auth API */
+    {REQ_POST, "/api/auth/login", SERTY_HTTP, &handleApiAuthLogin},
+    {REQ_GET, "/api/auth/logout", SERTY_HTTP, &handleApiAuthLogout},
+    {REQ_POST, "/api/auth/refresh-token", SERTY_HTTP, &handleApiAuthRefreshToken},
     /* custom API */
     {REQ_POST, "/api/fileDelete", SERTY_HTTP, &handleApiFileDelete},
     {REQ_POST, "/api/dirDelete", SERTY_HTTP, &handleApiDirectoryDelete},
@@ -96,13 +101,15 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/toniesJson", SERTY_HTTP, &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", SERTY_HTTP, &handleApiToniesCustomJson},
     {REQ_GET, "/api/trigger", SERTY_HTTP, &handleApiTrigger},
-    {REQ_GET, "/api/getIndex", SERTY_HTTP, &handleApiGetIndex},
     {REQ_GET, "/api/getTagIndex", SERTY_HTTP, &handleApiTagIndex},
     {REQ_GET, "/api/getBoxes", SERTY_HTTP, &handleApiGetBoxes},
     {REQ_POST, "/api/assignUnknown", SERTY_HTTP, &handleApiAssignUnknown},
-    {REQ_GET, "/api/get/", SERTY_HTTP, &handleApiGet},
-    {REQ_POST, "/api/set/", SERTY_HTTP, &handleApiSet},
+    {REQ_GET, "/api/settings/getIndex", SERTY_HTTP, &handleApiGetIndex},
+    {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
+    {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
+    {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
     {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
+    {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
     /* official tonies API */
     {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
     {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
@@ -293,6 +300,14 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     do
     {
         bool handled = false;
+
+        checkSecMitHandlers(connection, uri, connection->request.queryString, client_ctx);
+        if (isSecMitIncident(connection) && get_settings()->security_mit.lockAccess)
+        {
+            error = handleSecMitLock(connection, uri, connection->request.queryString, client_ctx);
+            break;
+        }
+
         for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
         {
             size_t pathLen = osStrlen(request_paths[i].path);
@@ -349,12 +364,43 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
 {
     if (!strncmp(value, "BD ", 3))
     {
-        if (strlen(value) != 3 + 2 * AUTH_TOKEN_LENGTH)
+        if (strlen(value) != 3 + 2 * TONIE_AUTH_TOKEN_LENGTH)
         {
             TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
             return;
         }
-        for (int pos = 0; pos < AUTH_TOKEN_LENGTH; pos++)
+        for (int pos = 0; pos < TONIE_AUTH_TOKEN_LENGTH; pos++)
+        {
+            char hex_digits[3];
+            char *end_ptr = NULL;
+
+            /* get a hex byte into a buffer for parsing it */
+            osStrncpy(hex_digits, &value[3 + 2 * pos], 2);
+            hex_digits[2] = 0;
+
+            /* will still fail for minus sign and possibly other things, but then the token is just incorrect */
+            connection->private.authentication_token[pos] = (uint8_t)osStrtoul(hex_digits, &end_ptr, 16);
+
+            if (end_ptr != &hex_digits[2])
+            {
+                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
+                return;
+            }
+        }
+        /* if we come across this part, this means the token was most likely correctly *parsed* */
+        connection->request.auth.found = 1;
+        connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
+        connection->status = HTTP_ACCESS_ALLOWED;
+    }
+    if (!strncmp(value, "Bearer ", 7))
+    {
+        if (strlen(value) != 7 + 2 * JWT_AUTH_TOKEN_LENGTH)
+        {
+            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
+            return;
+        }
+        // TODO: check JWT TOKEN
+        for (int pos = 0; pos < JWT_AUTH_TOKEN_LENGTH; pos++)
         {
             char hex_digits[3];
             char *end_ptr = NULL;

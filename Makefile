@@ -26,6 +26,11 @@ else
 	build_arch:="$(shell arch)"
 endif
 
+ifeq ($(shell getconf LONG_BIT), 64)
+    build_arch_bits = 64
+else
+    build_arch_bits = 32
+endif
 
 ifdef RUNTIME_BASE_PATH
 	CFLAGS+=-DBASE_PATH=\"$(RUNTIME_BASE_PATH)\"
@@ -49,7 +54,10 @@ build_platform:=$(PLATFORM)
 build_os:="$(OS)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
-CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\"
+CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
+ifeq ($(build_arch),"armv7l")
+CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
+endif
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)
@@ -402,10 +410,14 @@ else
 	QUIET=@
 endif
 
-
 all: check_dependencies submodules web build 
 
-build: $(EXECUTABLE)
+echo_info:
+	$(QUIET)$(ECHO) '[ ${GREEN}PLATF${NC}] ${CYAN}$(build_platform)${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}ARCH${NC} ] ${CYAN}$(build_arch)${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}BITS${NC} ] ${CYAN}$(build_arch_bits)${NC}'
+
+build: echo_info $(EXECUTABLE)	
 
 ifeq ($(OS),Windows_NT)
 .PHONY: check_dependencies

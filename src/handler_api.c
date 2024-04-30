@@ -23,6 +23,25 @@
 #include "cert.h"
 #include "esp32.h"
 
+error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
+{
+    error_t error = NO_ERROR;
+    osMemset(post_data, 0, buffer_size);
+    size_t size;
+    if (buffer_size <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Could not read post data\r\n");
+        return error;
+    }
+    return error;
+}
+
 void sanitizePath(char *path, bool isDir)
 {
     size_t i, j;
@@ -223,6 +242,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "shortname", opt->option_name);
         cJSON_AddStringToObject(jsonEntry, "description", opt->description);
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
+        cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
 
         switch (opt->type)
         {
@@ -295,6 +315,7 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "ID", settings->internal.overlayUniqueId);
         cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
         cJSON_AddStringToObject(jsonEntry, "boxName", settings->boxName);
+        cJSON_AddStringToObject(jsonEntry, "boxModel", settings->boxModel); // TODO add color name + url
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
     }
@@ -350,9 +371,9 @@ error_t handleApiTrigger(HttpConnection *connection, const char_t *uri, const ch
     return httpWriteResponse(connection, response, connection->response.contentLength, false);
 }
 
-error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *item = &uri[5 + 3 + 1];
+    const char *item = &uri[18];
 
     char response[32];
     osStrcpy(response, "ERROR");
@@ -398,11 +419,11 @@ error_t handleApiGet(HttpConnection *connection, const char_t *uri, const char_t
     return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
-error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
     osSprintf(response, "ERROR");
-    const char *item = &uri[9];
+    const char *item = &uri[18];
 
     char_t data[BODY_BUFFER_SIZE];
     size_t size;
@@ -489,6 +510,54 @@ error_t handleApiSet(HttpConnection *connection, const char_t *uri, const char_t
     }
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
+    return httpWriteResponseString(connection, response, false);
+}
+error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+{
+    char response[256];
+    osSprintf(response, "ERROR");
+    const char *item = &uri[20];
+    char overlay[16];
+    osStrcpy(overlay, "");
+    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+    {
+        TRACE_INFO("got overlay '%s'\r\n", overlay);
+    }
+    setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
+    setting_item_t *opt_src = settings_get_by_name(item);
+    bool success = false;
+
+    if (opt && opt_src)
+    {
+        if (opt->overlayed || opt == opt_src)
+        {
+            overlay_settings_init_opt(opt, opt_src);
+            if (opt == opt_src)
+            {
+                TRACE_INFO("Setting: '%s' reset to default\r\n", item);
+            }
+            else
+            {
+                TRACE_INFO("Setting: '%s' overlay removed\r\n", item);
+            }
+            success = true;
+        }
+        else
+        {
+            TRACE_WARNING("Setting '%s' is not overlayed\r\n", item);
+        }
+    }
+    else
+    {
+        TRACE_ERROR("Setting '%s' is unknown\r\n", item);
+    }
+
+    if (success)
+    {
+        osStrcpy(response, "OK");
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
     return httpWriteResponseString(connection, response, false);
 }
 
@@ -1535,12 +1604,6 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     load_content_json(pathAbsolute, &contentJson, false);
     osFreeMem(pathAbsolute);
 
-    if (contentJson.cloud_auth_len != 32)
-    {
-        free_content_json(&contentJson);
-        return NO_ERROR;
-    }
-
     osStrncpy(ruid, path, 8);
     osStrncpy(ruid + 8, path + 9, 8);
     for (uint8_t i = 0; i < 16; i++)
@@ -1549,9 +1612,16 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     }
     ruid[16] = '\0';
 
+    bool isSys = (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0');
+    if (contentJson.cloud_auth_len != 32 && !isSys)
+    {
+        free_content_json(&contentJson);
+        return ERROR_FILE_NOT_FOUND;
+    }
+
     osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
     free_content_json(&contentJson);
-    if (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0')
+    if (isSys)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
         return handleCloudContent(connection, uri, queryString, client_ctx, true);
@@ -2035,17 +2105,9 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
-    osMemset(post_data, 0, BODY_BUFFER_SIZE);
-    size_t size;
-    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
-    {
-        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
-        return ERROR_BUFFER_OVERFLOW;
-    }
-    error = httpReceive(connection, &post_data, BODY_BUFFER_SIZE, &size, 0x00);
+    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Could not read post data\r\n");
         return error;
     }
 
@@ -2242,7 +2304,8 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 huid[23] = '\0';
                 cJSON_AddStringToObject(jsonEntry, "uid", huid);
 
-                if (!osStrncmp(ruid, "0000000", 7))
+                bool isSys = !osStrncmp(ruid, "0000000", 7);
+                if (isSys)
                 {
                     cJSON_AddStringToObject(jsonEntry, "type", "system");
                 }
@@ -2261,7 +2324,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 osFreeMem(audioUrl);
                 if (!tafInfo->exists)
                 {
-                    if (contentJson._has_cloud_auth)
+                    if (contentJson._has_cloud_auth || isSys)
                     {
                         char *downloadTriggerUrl = custom_asprintf("/content/download%s", &tagPath[osStrlen(rootPath)]);
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
@@ -2294,4 +2357,70 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
     connection->response.contentLength = osStrlen(jsonString);
 
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+
+#define TEST_TOKEN "THIS_IS_A_TEST_TOKEN"
+
+error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    char username[256];
+    char passwordHash[256];
+    if (queryGet(post_data, "username", username, sizeof(username)))
+    {
+        if (queryGet(post_data, "passwordHash", passwordHash, sizeof(passwordHash)))
+        {
+            if (osStrcmp("admin", username) == 0) // && osStrcmp("admin", passwordHash) == 0)
+            {
+                char *token = TEST_TOKEN;
+                httpInitResponseHeader(connection);
+                connection->response.contentType = "text/plain";
+                connection->response.contentLength = osStrlen(token);
+
+                return httpWriteResponse(connection, token, connection->response.contentLength, false);
+            }
+        }
+    }
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 0;
+    connection->response.statusCode = 401; // Unauthorized
+    return httpWriteResponse(connection, "", connection->response.contentLength, false);
+}
+error_t handleApiAuthLogout(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 0;
+    connection->response.statusCode = 200; // Unauthorized
+    connection->response.contentType = "text/plain";
+    return httpWriteResponse(connection, "", connection->response.contentLength, false);
+}
+error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    httpInitResponseHeader(connection);
+    connection->response.statusCode = 401; // Unauthorized
+    connection->response.contentType = "text/plain";
+    char refreshToken[256];
+    refreshToken[0] = '\0';
+    if (queryGet(post_data, "refreshToken", refreshToken, sizeof(refreshToken)))
+    {
+        if (osStrcmp(TEST_TOKEN, refreshToken) == 0)
+        {
+            connection->response.statusCode = 200;
+        }
+    }
+    connection->response.contentLength = osStrlen(refreshToken);
+    return httpWriteResponse(connection, refreshToken, connection->response.contentLength, false);
 }

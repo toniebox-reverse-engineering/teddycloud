@@ -5,13 +5,13 @@
     <title>TeddyCloud administration interface</title>
     <meta name="viewport" content="width=device-width, initial-scale=0.75">
 
-    <script src="https://unpkg.com/react@16/umd/react.development.js"
+    <script src="library/react.development.js"
         integrity="sha512-LVEAOXGRRqHiT+4awmHwL5emvXg+BTr8cC/eDF0pLuwEySgG55Pt2gfN2X6BenCsocmb2kKJ7QJVppWftFpcoA=="
         crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"
+    <script src="library/react-dom.development.js"
         integrity="sha512-MizB1VlWh4kvP5l+aBc2umqPc3V2bApU+SSqi70PZbhkLTXtJuIHXEY2LDkwqyX5yh+IzqTCP0Y0yI698i8oTA=="
         crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"
+    <script src="library/babel.js"
         integrity="sha512-pBSlhNUvB+td6sjW1zmR6L7c7kVWR4octUPl4tfHmzO63424nxta8aLmficEcAAswQmRqTiToi63AazDurj/Sg=="
         crossorigin="anonymous"></script>
     <script>
@@ -392,7 +392,7 @@
                 const newState = !this.state.isChecked;
                 this.setState({ isChecked: newState });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newState.toString(),
                     headers: {
@@ -443,7 +443,7 @@
                 }
                 this.setState({ value: newValue });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -495,7 +495,7 @@
                 }
                 this.setState({ value: newValue });
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -555,7 +555,7 @@
             pushDataToServer = () => {
                 const newValue = this.state.value;
 
-                fetch(`/api/set/${this.props.id}`, {
+                fetch(`/api/settings/set/${this.props.id}`, {
                     method: 'POST',
                     body: newValue.toString(),
                     headers: {
@@ -596,7 +596,7 @@
             }
 
             componentDidMount() {
-                fetch('/api/getIndex')
+                fetch('/api/settings/getIndex')
                     .then(response => response.json())
                     .then(data => {
                         this.setState({ options: data.options.sort((a, b) => a.ID.localeCompare(b.ID)) });
@@ -733,6 +733,7 @@
                 return (
                     <div className="tile time-tile">
                         <h3>{this.props.name} Time: {this.props.time}</h3>
+                        <a href="/web" target="_blank">Check out the new /web-interface (WIP)</a>
                     </div>
                 );
             }
@@ -2288,6 +2289,8 @@
                         {!webSerialSupported ? (
                             <div>
                                 Your browser does not support WebSerial. Use Chrome or Edge and HTTPS to flash your ESP32 box.
+                                <br />
+                                Please temporarily disable the *Webinterface HTTP only* option if needed.
                             </div>
                         ) : (
                             <div>
@@ -2385,7 +2388,8 @@
                 this.state = {
                     time: 0,
                     display_time: 0,
-                    version: "(unknown version)"
+                    version: "(unknown version)",
+                    security_incident: false
                 };
                 this.fetchFromServer = this.fetchFromServer.bind(this);
                 this.updateDisplayTime = this.updateDisplayTime.bind(this);
@@ -2396,7 +2400,7 @@
                 this.interval = setInterval(this.fetchFromServer, 60000);
                 this.intervalDisplay = setInterval(this.updateDisplayTime, 1000);
 
-                fetch(`/api/get/internal.version.v_long`)
+                fetch(`/api/settings/get/internal.version.v_long`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
@@ -2405,6 +2409,16 @@
                     })
                     .then(version => {
                         this.setState({ version: version });
+                    })
+                fetch(`/api/settings/get/internal.security_mit.incident`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.text();
+                    })
+                    .then(incident => {
+                        this.setState({ security_incident: (incident == "true") });
                     })
             }
 
@@ -2451,6 +2465,11 @@
                 return (
                     <div className="app">
                         <h1>TeddyCloud administration interface</h1>
+                        {this.state.security_incident && (
+                            <div style={{ backgroundColor: 'red', color: 'white', padding: '10px' }}>
+                                Security Incident Detected! Please check your logs!
+                            </div>
+                        )}
                         <div className="tiles">
                             <TimeTile name="TeddyCloud" time={this.state.display_time} />
                             <ESP32Flasher />
