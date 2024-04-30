@@ -23,6 +23,8 @@
     "title": "Settings",
     "information": "Information",
     "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings got to ",
+    "tonieboxes": "tonieboxes",
+    "overlayed": "overlayed",
     "general": {
       "navigationTitle": "General",
       "title": "General settings"
@@ -30,7 +32,7 @@
     "certificates": {
       "navigationTitle": "Certificates",
       "title": "Certificates",
-      "uploadText": "Click or drag file to this area to upload",
+      "uploadText": "Click or drag client certificates to this area to upload",
       "uploadHint": "Drag and drop client certificates from your box here"
     }
   },
@@ -103,10 +105,13 @@
     "title": "Your Tonieboxes",
     "editModelModal" : {
       "editModel": "Edit Toniebox {{name}}",
-      "placeholderSearchForAModel": "Select color variant of your Toniebox"
+      "placeholderSearchForAModel": "Select color variant of your Toniebox",
+      "name": "Name",
+      "model" : "Model"
     },
     "editTonieboxSettingsModal": {
-      "editTonieboxSettings": "Settings for Toniebox {{name}}"
+      "editTonieboxSettingsLabel": "Edit settings",
+      "editTonieboxSettings": "Edit settings for Toniebox {{name}}"
     }
   },
   "language": {
