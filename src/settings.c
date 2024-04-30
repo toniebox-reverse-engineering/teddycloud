@@ -615,20 +615,17 @@ error_t settings_init(const char *cwd, const char *base_dir)
 
 error_t settings_save()
 {
+    mutex_lock(MUTEX_SETTINGS_SAVE);
     error_t err = NO_ERROR;
 
     err = settings_save_ovl(false);
-    if (err != NO_ERROR)
+    if (err == NO_ERROR)
     {
-        return err;
+        err = settings_save_ovl(true);
     }
-    err = settings_save_ovl(true);
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
+    mutex_unlock(MUTEX_SETTINGS_SAVE);
 
-    return NO_ERROR;
+    return err;
 }
 
 error_t settings_save_ovl(bool overlay)
@@ -636,10 +633,12 @@ error_t settings_save_ovl(bool overlay)
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
+    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
     if (file == NULL)
     {
         TRACE_ERROR("Failed to open config file for writing\r\n");
+        mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
         return ERROR_DIRECTORY_NOT_FOUND;
     }
 
@@ -714,6 +713,7 @@ error_t settings_save_ovl(bool overlay)
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
 
+    mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
     return NO_ERROR;
 }
 
