@@ -466,6 +466,7 @@ void settings_changed()
 }
 void settings_changed_id(uint8_t settingsId)
 {
+    mutex_lock(MUTEX_SETTINGS_CHANGED);
     Settings_Overlay[settingsId].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings_id((settingsId)));
     if (config_file_path != NULL)
@@ -479,6 +480,7 @@ void settings_changed_id(uint8_t settingsId)
     {
         settings_load_ovl(true);
     }
+    mutex_unlock(MUTEX_SETTINGS_CHANGED);
 }
 
 void settings_deinit(uint8_t overlayNumber)
@@ -630,10 +632,10 @@ error_t settings_save()
 
 error_t settings_save_ovl(bool overlay)
 {
+    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
-    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     FsFile *file = fsOpenFile(config_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
     if (file == NULL)
     {
@@ -719,25 +721,21 @@ error_t settings_save_ovl(bool overlay)
 
 error_t settings_load()
 {
+    mutex_lock(MUTEX_SETTINGS_LOAD);
     error_t err = NO_ERROR;
 
     err = settings_load_ovl(false);
-    if (err != NO_ERROR)
+    if (err == NO_ERROR)
     {
-        return err;
-    }
-
     err = settings_load_ovl(true);
-    if (err != NO_ERROR)
-    {
-        return err;
     }
-
-    return NO_ERROR;
+    mutex_unlock(MUTEX_SETTINGS_LOAD);
+        return err;
 }
 
 error_t settings_load_ovl(bool overlay)
 {
+    mutex_lock(MUTEX_SETTINGS_LOAD_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
@@ -751,11 +749,8 @@ error_t settings_load_ovl(bool overlay)
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
 
         error_t err = settings_save_ovl(overlay);
-        if (err != NO_ERROR)
-        {
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
             return err;
-        }
-        return NO_ERROR;
     }
 
     uint32_t file_size;
@@ -763,6 +758,7 @@ error_t settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -770,6 +766,7 @@ error_t settings_load_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
+        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -931,6 +928,7 @@ error_t settings_load_ovl(bool overlay)
         }
     }
 
+    mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
     return NO_ERROR;
 }
 
