@@ -94,7 +94,6 @@ jobs:
         docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
       continue-on-error: ${{ matrix.platform != 'linux/s390x' }}
     - name: Extract release zip
-      if: ${{ matrix.platform != 'linux/s390x' }}
       run: |
         docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
         docker rm teddyCloud-test
