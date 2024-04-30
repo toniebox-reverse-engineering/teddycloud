@@ -25,6 +25,7 @@
         }                      \
     } while (0)
 
+#define SETTINGS_LOAD_BUFFER_LEN 256
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
@@ -727,10 +728,10 @@ error_t settings_load()
     err = settings_load_ovl(false);
     if (err == NO_ERROR)
     {
-    err = settings_load_ovl(true);
+        err = settings_load_ovl(true);
     }
     mutex_unlock(MUTEX_SETTINGS_LOAD);
-        return err;
+    return err;
 }
 
 error_t settings_load_ovl(bool overlay)
@@ -750,7 +751,7 @@ error_t settings_load_ovl(bool overlay)
 
         error_t err = settings_save_ovl(overlay);
         mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
-            return err;
+        return err;
     }
 
     uint32_t file_size;
@@ -771,7 +772,7 @@ error_t settings_load_ovl(bool overlay)
     }
 
     // Buffer to hold the file content
-    char buffer[256];
+    char buffer[SETTINGS_LOAD_BUFFER_LEN];
     size_t from_read;
     size_t read_length;
     bool last_line_incomplete = false;
@@ -885,8 +886,25 @@ error_t settings_load_ovl(bool overlay)
         last_line_incomplete = (buffer[read_length - 1] != '\n');
         if (last_line_incomplete)
         {
-            from_read = strlen(line);
-            memmove(buffer, line, from_read);
+            if (line == buffer)
+            {
+                if (read_length == SETTINGS_LOAD_BUFFER_LEN - 1)
+                {
+                    TRACE_ERROR("Cannot read config file, line too big for buffer, cutting line %s\r\n", line);
+                }
+                else
+                {
+                    TRACE_WARNING("Last line of config is missing a newline %s\r\n", line);
+                    from_read++;
+                    read_length++;
+                }
+                line[read_length - 1] = '\n';
+            }
+            else
+            {
+                from_read = strlen(line);
+                memmove(buffer, line, from_read);
+            }
         }
         else
         {
