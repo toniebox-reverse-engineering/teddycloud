@@ -890,15 +890,24 @@ error_t settings_load_ovl(bool overlay)
             {
                 if (read_length == SETTINGS_LOAD_BUFFER_LEN - 1)
                 {
-                    TRACE_ERROR("Cannot read config file, line too big for buffer, cutting line %s\r\n", line);
+                    TRACE_ERROR("Cannot read config file, line too big for buffer, skipping line %s\r\n", line);
+                    while (fsReadFile(file, &buffer[0], 1, &read_length) == NO_ERROR)
+                    {
+                        if (line[0] == '\n')
+                        {
+                            break;
+                        }
+                    }
+                    from_read = 0;
+                    read_length = 0;
                 }
                 else
                 {
                     TRACE_WARNING("Last line of config is missing a newline %s\r\n", line);
                     from_read++;
                     read_length++;
+                    line[read_length - 1] = '\n';
                 }
-                line[read_length - 1] = '\n';
             }
             else
             {
