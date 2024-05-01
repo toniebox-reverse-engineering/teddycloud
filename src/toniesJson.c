@@ -427,7 +427,7 @@ toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, c
     toniesJson_item_t *item = tonies_byAudioIdHash(audio_id, hash);
     if (!item)
     {
-        return item = tonies_byModel(model);
+        item = tonies_byModel(model);
     }
 
     osReleaseMutex(&cacheMutex);
