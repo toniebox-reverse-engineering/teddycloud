@@ -1,5 +1,6 @@
 #include "toniesJson.h"
 #include "fs_port.h"
+#include "os_port.h"
 #include "settings.h"
 #include "debug.h"
 #include "cJSON.h"
@@ -9,27 +10,40 @@
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
+static bool cacheMutexAllocated = false;
+static OsMutex cacheMutex;
+
 static bool toniesJsonInitialized = false;
 static size_t toniesJsonCount = 0;
-static toniesJson_item_t *toniesJsonCache;
+static toniesJson_item_t *toniesJsonCache = NULL;
 static size_t toniesCustomJsonCount = 0;
-static toniesJson_item_t *toniesCustomJsonCache;
-static char *tonies_json_path;
-static char *tonies_custom_json_path;
-static char *tonies_json_tmp_path;
+static toniesJson_item_t *toniesCustomJsonCache = NULL;
+static char *tonies_json_path = NULL;
+static char *tonies_custom_json_path = NULL;
+static char *tonies_json_tmp_path = NULL;
 
 static bool toniesV2JsonInitialized = false;
 static size_t toniesV2JsonCount = 0;
-static toniesV2Json_item_t *toniesV2JsonCache;
+static toniesV2Json_item_t *toniesV2JsonCache = NULL;
 static size_t toniesV2CustomJsonCount = 0;
-static toniesV2Json_item_t *toniesV2CustomJsonCache;
-static char *toniesV2_json_path;
-static char *toniesV2_custom_json_path;
-static char *toniesV2_json_tmp_path;
+static toniesV2Json_item_t *toniesV2CustomJsonCache = NULL;
+static char *toniesV2_json_path = NULL;
+static char *toniesV2_custom_json_path = NULL;
+static char *toniesV2_json_tmp_path = NULL;
 #endif
 
 void tonies_init()
 {
+    /* must do that only once, so the mutex will not change */
+    if (!cacheMutexAllocated)
+    {
+        osCreateMutex(&cacheMutex);
+        cacheMutexAllocated = true;
+    }
+
+    /* lock tonies cache and update caches */
+    osAcquireMutex(&cacheMutex);
+
     if (!toniesJsonInitialized)
     {
         toniesCustomJsonCount = 0;
@@ -53,6 +67,7 @@ void tonies_init()
         toniesV2_readJson(toniesV2_json_path, &toniesV2JsonCache, &toniesV2JsonCount);
         toniesV2JsonInitialized = true;
     }
+    osReleaseMutex(&cacheMutex);
 }
 
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
@@ -113,11 +128,13 @@ error_t tonies_update()
 
     if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
     {
+        osAcquireMutex(&cacheMutex);
         fsDeleteFile(tonies_json_path);
         fsRenameFile(tonies_json_tmp_path, tonies_json_path);
         TRACE_INFO("... success updating tonies.json from api.revvox.de, reloading\r\n");
         tonies_deinit();
         tonies_init();
+        osReleaseMutex(&cacheMutex);
     }
     else
     {
@@ -173,6 +190,7 @@ char *tonies_jsonGetString(cJSON *jsonElement, char *name)
     }
     return strdup("");
 }
+
 uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
 {
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
@@ -182,14 +200,12 @@ uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
     }
     return 0;
 }
-void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount)
+
+void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCount)
 {
 #if TONIES_JSON_CACHED == 1
-    if (*toniesCount > 0)
-    {
-        *toniesCount = 0;
-        osFreeMem(*toniesCache);
-    }
+    size_t toniesCount = 0;
+    toniesJson_item_t *toniesCache = NULL;
 
     size_t fileSize = 0;
     fsGetFileSize(source, (uint32_t *)(&fileSize));
@@ -228,12 +244,12 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
         else
         {
             size_t line = 0;
-            *toniesCount = cJSON_GetArraySize(toniesJson);
-            *toniesCache = osAllocMem(*toniesCount * sizeof(toniesJson_item_t));
+            toniesCount = cJSON_GetArraySize(toniesJson);
+            toniesCache = osAllocMem(toniesCount * sizeof(toniesJson_item_t));
             cJSON_ArrayForEach(tonieJson, toniesJson)
             {
                 cJSON *arrayJson;
-                toniesJson_item_t *item = &(*toniesCache)[line++];
+                toniesJson_item_t *item = &toniesCache[line++];
                 char *no_str = tonies_jsonGetString(tonieJson, "no");
                 item->no = atoi(no_str);
                 free(no_str);
@@ -303,6 +319,17 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
             TRACE_ERROR("...could not create file\r\n");
         }
     }
+
+    /* first save old pointer, then update return values */
+    void *oldPtr = *retCache;
+
+    *retCache = toniesCache;
+    *retCount = toniesCount;
+
+    if (oldPtr)
+    {
+        osFreeMem(oldPtr);
+    }
 #endif
 }
 
@@ -335,24 +362,34 @@ toniesJson_item_t *tonies_byAudioIdHash_base(uint32_t audio_id, uint8_t *hash, t
 #endif
     return NULL;
 }
+
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
+    osAcquireMutex(&cacheMutex);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, NULL, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+
+    if (!item)
     {
-        return item;
+        item = tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
+
+    osReleaseMutex(&cacheMutex);
+    return item;
 }
+
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
 {
+    osAcquireMutex(&cacheMutex);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, hash, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+    if (!item)
     {
-        return item;
+        item = tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
+
+    osReleaseMutex(&cacheMutex);
+    return item;
 }
+
 toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
     if (model == NULL || osStrcmp(model, "") == 0)
@@ -368,24 +405,35 @@ toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCac
 #endif
     return NULL;
 }
+
 toniesJson_item_t *tonies_byModel(char *model)
 {
+    osAcquireMutex(&cacheMutex);
+
     toniesJson_item_t *item = tonies_byModel_base(model, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+    if (!item)
     {
-        return item;
+        item = tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
+
+    osReleaseMutex(&cacheMutex);
+    return item;
 }
+
 toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model)
 {
+    osAcquireMutex(&cacheMutex);
+
     toniesJson_item_t *item = tonies_byAudioIdHash(audio_id, hash);
-    if (item)
+    if (!item)
     {
-        return item;
+        return item = tonies_byModel(model);
     }
-    return tonies_byModel(model);
+
+    osReleaseMutex(&cacheMutex);
+    return item;
 }
+
 bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
@@ -481,17 +529,22 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     return false;
 #endif
 }
+
 bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
 {
     size_t count = 0;
+    osAcquireMutex(&cacheMutex);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
+    osReleaseMutex(&cacheMutex);
     *result_size = count;
     return *result_size > 0;
 }
+
 void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
+    osAcquireMutex(&cacheMutex);
     size_t count = *toniesCount;
     *toniesCount = 0;
     for (size_t i = 0; i < count; i++)
@@ -516,10 +569,14 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         }
     }
     osFreeMem(toniesCache);
+    toniesCache = NULL;
+    osReleaseMutex(&cacheMutex);
 #endif
 }
+
 void tonies_deinit()
 {
+    osAcquireMutex(&cacheMutex);
     tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
     tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
 
@@ -527,5 +584,10 @@ void tonies_deinit()
     osFreeMem(tonies_custom_json_path);
     osFreeMem(tonies_json_tmp_path);
 
+    tonies_json_path = NULL;
+    tonies_custom_json_path = NULL;
+    tonies_json_tmp_path = NULL;
+
     toniesJsonInitialized = false;
+    osReleaseMutex(&cacheMutex);
 }
