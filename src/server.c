@@ -586,24 +586,28 @@ void server_init(bool test)
     https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
     https_settings.isHttps = true;
 
-    if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
+    error_t err = httpServerInit(&http_context, &http_settings);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTP failed\r\n");
+        TRACE_ERROR("httpServerInit() for HTTP failed with code %d\r\n", err);
         return;
     }
-    if (httpServerInit(&https_context, &https_settings) != NO_ERROR)
+    err = httpServerInit(&https_context, &https_settings);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS failed\r\n");
+        TRACE_ERROR("httpServerInit() for HTTPS failed with code %d\r\n", err);
         return;
     }
-    if (httpServerStart(&http_context) != NO_ERROR)
+    err = httpServerStart(&http_context);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTP failed\r\n");
+        TRACE_ERROR("httpServerStart() for HTTP failed with code %d\r\n", err);
         return;
     }
-    if (httpServerStart(&https_context) != NO_ERROR)
+    err = httpServerStart(&https_context);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTPS failed\r\n");
+        TRACE_ERROR("httpServerStart() for HTTPS failed with code %d\r\n", err);
         return;
     }
 
