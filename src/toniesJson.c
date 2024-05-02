@@ -7,12 +7,10 @@
 #include "handler.h"
 #include "cloud_request.h"
 #include "server_helpers.h"
+#include "mutex_manager.h"
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
-static bool cacheMutexAllocated = false;
-static OsMutex cacheMutex;
-
 static bool toniesJsonInitialized = false;
 static size_t toniesJsonCount = 0;
 static toniesJson_item_t *toniesJsonCache = NULL;
@@ -32,27 +30,10 @@ static char *toniesV2_custom_json_path = NULL;
 static char *toniesV2_json_tmp_path = NULL;
 #endif
 
-void tonies_lock()
-{
-    osAcquireMutex(&cacheMutex);
-}
-
-void tonies_unlock()
-{
-    osReleaseMutex(&cacheMutex);
-}
-
 void tonies_init()
 {
-    /* must do that only once, so the mutex will not change */
-    if (!cacheMutexAllocated)
-    {
-        osCreateMutex(&cacheMutex);
-        cacheMutexAllocated = true;
-    }
-
     /* lock tonies cache and update caches */
-
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     if (!toniesJsonInitialized)
     {
         toniesCustomJsonCount = 0;
@@ -76,7 +57,7 @@ void tonies_init()
         toniesV2_readJson(toniesV2_json_path, &toniesV2JsonCache, &toniesV2JsonCount);
         toniesV2JsonInitialized = true;
     }
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
 }
 
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
@@ -372,7 +353,7 @@ toniesJson_item_t *tonies_byAudioIdHash_base(uint32_t audio_id, uint8_t *hash, t
 
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
-    tonies_lock();
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, NULL, toniesCustomJsonCache, toniesCustomJsonCount);
 
     if (!item)
@@ -380,20 +361,20 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
         item = tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
     }
 
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     return item;
 }
 
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
 {
-    tonies_lock();
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, hash, toniesCustomJsonCache, toniesCustomJsonCount);
     if (!item)
     {
         item = tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
     }
 
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     return item;
 }
 
@@ -415,7 +396,7 @@ toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCac
 
 toniesJson_item_t *tonies_byModel(char *model)
 {
-    tonies_lock();
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
 
     toniesJson_item_t *item = tonies_byModel_base(model, toniesCustomJsonCache, toniesCustomJsonCount);
     if (!item)
@@ -423,7 +404,7 @@ toniesJson_item_t *tonies_byModel(char *model)
         item = tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
     }
 
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     return item;
 }
 
@@ -537,10 +518,10 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
 bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
 {
     size_t count = 0;
-    tonies_lock();
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     *result_size = count;
     return *result_size > 0;
 }
@@ -578,7 +559,7 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 
 void tonies_deinit()
 {
-    tonies_lock();
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
     tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
 
@@ -594,5 +575,5 @@ void tonies_deinit()
     tonies_json_tmp_path = NULL;
 
     toniesJsonInitialized = false;
-    tonies_unlock();
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
 }
