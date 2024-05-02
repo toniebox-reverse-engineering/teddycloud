@@ -41,7 +41,28 @@
     "title": "Tonies",
     "tonies": {
       "navigationTitle": "Tonies",
-      "title": "Tonies"
+      "pageSelector": " tonies / page",   
+      "title": "Tonies", 
+      "filterBar": {
+        "showFilters": "Show filters",
+        "hideFilters": "Hide filters",
+        "searchLabel": "Search",
+        "searchPlaceholder": "Enter search criteria",
+        "filterLabel": "Filter",
+        "seriesFilterPlaceholder": "Series",
+        "episodeFilterPlaceholder": "Episode",
+        "valid": "Valid",
+        "invalid": "Invalid",
+        "live": "Live",
+        "unsetLive": "Live disabled",
+        "exists": "Exists",
+        "notExists": "Exists not",
+        "noCloud": "Cloud disabled",        
+        "unsetNoCloud": "Cloud enabled",
+        "lastPlayed": "Last played",
+        "applyFilters": "Apply filter",
+        "resetFilters": "Reset filter"
+      }
     },
     "system-sounds": {
       "navigationTitle": "System Sounds",
@@ -69,8 +90,8 @@
       "saveAs": "Save file as",
       "removeFile": "Remove file"
     },
-    "messages" : {
-      "couldNotEmptySource" : "Could not empty source!",
+    "messages": {
+      "couldNotEmptySource": "Could not empty source!",
       "sourceSetSuccessful": "Source set to {{selectedFile}}!",
       "couldNotSetSource": "Could not set source! ",
       "liveEnabled": "Live enabled!",
@@ -82,36 +103,61 @@
       "downloading": "Downloading...",
       "downloadedFile": "Downloaded file",
       "errorDuringDownload": "Error during background download: ",
-      "setTonieToModelSuccessful":  "Set tonie model to {{selectedModel}}!",
-      "setTonieToModelFailed":  "Could not change tonie model!"
+      "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
+      "setTonieToModelFailed": "Could not change tonie model!"
     },
-    "infoModal" : {
-      "model" : "Model:",
-      "valid" : "Valid:",
-      "exists" : "Exists:",
+    "infoModal": {
+      "model": "Model:",
+      "valid": "Valid:",
+      "exists": "Exists:",
       "yes": "Yes",
       "no": "No"
     },
-    "editModelModal" : {
-      "editModel" : "Edit model ",
-      "placeholderSearchForAModel" : "Search for a model"
+    "lastPlayedOnModal": {
+      "title": "This Tonie was played last!",
+      "lastPlayedOn": "Last played Tonie",
+      "lastPlayedOnMessage": "This Tonie was the last played one on"
     },
-    "editTagModal" : {
-      "editTag" : "Edit Tag"
+    "editModelModal": {
+      "editModel": "Edit model ",
+      "placeholderSearchForAModel": "Search for a model"
+    },
+    "editTagModal": {
+      "editTag": "Edit Tag"
     }
   },
   "tonieboxes": {
-    "navigationTitle" : "Tonieboxes",
+    "navigationTitle": "Tonieboxes",
     "title": "Your Tonieboxes",
-    "editModelModal" : {
+    "lastPlayedTonie": "Last played Tonie: ",
+    "editModelModal": {
       "editModel": "Edit Toniebox {{name}}",
       "placeholderSearchForAModel": "Select color variant of your Toniebox",
       "name": "Name",
-      "model" : "Model"
+      "model": "Model"
     },
     "editTonieboxSettingsModal": {
       "editTonieboxSettingsLabel": "Edit settings",
       "editTonieboxSettings": "Edit settings for Toniebox {{name}}"
+    }
+  },
+  "community": {
+    "navigationTitle": "Community",
+    "title": "Community",
+    "contribution": {
+      "navigationTitle": "Contribution",
+      "title": "Contribution"
+    },
+    "contributer": {
+      "navigationTitle": "Contributer",
+      "title": "Contributer"
+    },
+    "changelog": {
+      "navigationTitle": "Changelog",
+      "title": "Changelog / Release notes"
+    },
+    "forum":  {
+      "navigationTitle": "Forum"
     }
   },
   "language": {
@@ -129,7 +175,17 @@
     "episode": "Episode",
     "date": "Date"
   },
-  "tonieArticleSearch" : {
-    "failedToFetchSearchResults" : "Failed to fetch search results: "
+  "tonieArticleSearch": {
+    "failedToFetchSearchResults": "Failed to fetch search results: "
+  },
+  "security": {
+    "alert": "Alert",
+    "incident_detected": "Security Incident Detected! Please check your logs!"
+  },
+  "server": {
+    "boxineStatusOffline": "Not connected to Boxine/Toniecloud",
+    "boxineStatusOnline": "Connected to Boxine/Toniecloud",
+    "teddycloudStatusOnline": "Teddycloud server running fine",
+    "teddycloudStatusOffline": "Teddycloud server offline"
   }
 }
