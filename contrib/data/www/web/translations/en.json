@@ -22,7 +22,7 @@
     "navigationTitle": "Settings",
     "title": "Settings",
     "information": "Information",
-    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings got to ",
+    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
     "tonieboxes": "tonieboxes",
     "overlayed": "overlayed",
     "general": {
@@ -32,8 +32,12 @@
     "certificates": {
       "navigationTitle": "Certificates",
       "title": "Certificates",
+      "information": "Information",
+      "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
       "uploadText": "Click or drag client certificates to this area to upload",
-      "uploadHint": "Drag and drop client certificates from your box here"
+      "uploadHint": "Drag and drop client certificates from your box here",
+      "uploadSuccessful": "{{filename}} file uploaded successfully.",
+      "uploadFailed": "{{filename}} file upload failed. Take a look into the console"
     }
   },
   "tonies": {
@@ -41,8 +45,8 @@
     "title": "Tonies",
     "tonies": {
       "navigationTitle": "Tonies",
-      "pageSelector": " tonies / page",   
-      "title": "Tonies", 
+      "pageSelector": " tonies / page",
+      "title": "Tonies",
       "filterBar": {
         "showFilters": "Show filters",
         "hideFilters": "Hide filters",
@@ -57,7 +61,7 @@
         "unsetLive": "Live disabled",
         "exists": "Exists",
         "notExists": "Exists not",
-        "noCloud": "Cloud disabled",        
+        "noCloud": "Cloud disabled",
         "unsetNoCloud": "Cloud enabled",
         "lastPlayed": "Last played",
         "applyFilters": "Apply filter",
@@ -137,8 +141,15 @@
       "model": "Model"
     },
     "editTonieboxSettingsModal": {
-      "editTonieboxSettingsLabel": "Edit settings",
+      "editTonieboxSettingsLabel": "Settings",
       "editTonieboxSettings": "Edit settings for Toniebox {{name}}"
+    },
+    "uploadTonieboxCertificatesModal": {
+      "Label": "Certificates",
+      "uploadTonieboxCertificates": "Upload certificates for Toniebox {{name}}",
+      "uploadPath": "Upload path (certDir):",
+      "boxSpecific": " (overlayed for toniebox)",
+      "AttentionGeneralPath": "(ATTENTION: Default Path!)"
     }
   },
   "community": {
@@ -148,15 +159,15 @@
       "navigationTitle": "Contribution",
       "title": "Contribution"
     },
-    "contributer": {
-      "navigationTitle": "Contributer",
-      "title": "Contributer"
+    "contributors": {
+      "navigationTitle": "Contributors",
+      "title": "Contributors"
     },
     "changelog": {
       "navigationTitle": "Changelog",
       "title": "Changelog / Release notes"
     },
-    "forum":  {
+    "forum": {
       "navigationTitle": "Forum"
     }
   },

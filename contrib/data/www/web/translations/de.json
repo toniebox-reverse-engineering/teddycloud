@@ -33,8 +33,12 @@
     "certificates": {
       "navigationTitle": "Zertifikate",
       "title": "Zertifikate",
+      "information": "Information",
+      "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der Teddycloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
       "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich",
-      "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher"
+      "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
+      "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
+      "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!"
     }
   },
   "tonies": {
@@ -138,8 +142,15 @@
       "model": "Modell:"
     },
     "editTonieboxSettingsModal": {
-      "editTonieboxSettingsLabel": "Einstellungen bearbeiten",
+      "editTonieboxSettingsLabel": "Einstellungen",
       "editTonieboxSettings": "Einstellungen der Toniebox {{name}} bearbeiten"
+    },
+    "uploadTonieboxCertificatesModal": {
+      "Label": "Zertifikate",
+      "uploadTonieboxCertificates": "Zertifikate für Toniebox {{name}} hochladen",
+      "uploadPath": "Upload Pfad (certDir):",
+      "boxSpecific": " (Toniebox spezifisch hinterlegt)",
+      "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)"
     }
   },
   "community": {
