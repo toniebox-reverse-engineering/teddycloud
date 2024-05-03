@@ -520,7 +520,6 @@ bool sanityChecks()
     ret &= sanityCheckDir("internal.datadirfull");
     ret &= sanityCheckDir("internal.wwwdirfull");
     ret &= sanityCheckDir("internal.contentdirfull");
-    ret &= sanityCheckDir("internal.certdirfull");
 
     if (!ret)
     {
