@@ -2443,6 +2443,16 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         return error;
     }
     char ruid[256];
+    char libroot[256];
+    bool_t lib_root = false;
+    if (queryGet(post_data, "libroot", libroot, sizeof(libroot)))
+    {
+        if (osStrcmp("true", libroot) == 0)
+        {
+            lib_root = true;
+        }
+    }
+
     if (queryGet(post_data, "ruid", ruid, sizeof(ruid)))
     {
         if (osStrlen(ruid) == 16)
@@ -2450,13 +2460,18 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
             tonie_info_t *tonieInfo;
             tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
 
-            if (tonieInfo->valid && tonieInfo->json.tonie_model != NULL && tonieInfo->json._source_type == CT_SOURCE_NONE)
+            if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
             {
-                error = moveTAF2Lib(tonieInfo, client_ctx->settings);
-                if (error != NO_ERROR)
-                {
-                    return ERROR_FILE_NOT_FOUND;
-                }
+                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            }
+            else
+            {
+                error = ERROR_FILE_NOT_FOUND;
+            }
+            freeTonieInfo(tonieInfo);
+            if (error != NO_ERROR)
+            {
+                return ERROR_FILE_NOT_FOUND;
             }
         }
     }

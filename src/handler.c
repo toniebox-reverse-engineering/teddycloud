@@ -300,7 +300,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                     {
                         tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, ctx->client_ctx->settings);
-                        moveTAF2Lib(tonieInfo, ctx->client_ctx->settings);
+                        moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
+                        freeTonieInfo(tonieInfo);
                     }
                 }
                 else
@@ -688,33 +689,58 @@ void setLastRuid(char ruid[17], settings_t *settings)
     }
 }
 
-char *getLibraryCachePath(settings_t *settings, uint32_t audioId)
+char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)
 {
-    char *libraryByPath = custom_asprintf("%s/by", settings->internal.librarydirfull);
+    char *libraryPathPrefix;
+    if (shortPath)
+    {
+        libraryPathPrefix = "lib:/";
+    }
+    else
+    {
+        libraryPathPrefix = settings->internal.librarydirfull;
+    }
+    char *libraryByPath = custom_asprintf("%s/by", libraryPathPrefix);
     char *libraryBasePath = custom_asprintf("%s/audioID", libraryByPath);
     char *libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", libraryBasePath, audioId);
 
     fsCreateDir(libraryByPath);
     fsCreateDir(libraryBasePath);
 
+    osFreeMem(libraryByPath);
+    osFreeMem(libraryBasePath);
+
     return libraryPath;
 }
 
-error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings)
+error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir)
 {
     error_t error = NO_ERROR;
     if (tonieInfo->valid)
     {
+        char *libraryPath = NULL;
+        char *libraryShortPath = NULL;
         uint32_t audioId = tonieInfo->tafHeader->audio_id;
-        if (audioId <= 1)
+        if (rootDir)
         {
-            TRACE_WARNING(">> Audio ID is %" PRIu32 ", not moving to library\r\n", audioId);
-            error = ERROR_INVALID_FILE;
+            libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", settings->internal.librarydirfull, audioId);
+            libraryShortPath = custom_asprintf("%s/%" PRIu32 ".taf", "lib:/", audioId);
         }
         else
         {
-            char *libraryPath = getLibraryCachePath(settings, audioId);
-
+            if (audioId <= 1)
+            {
+                TRACE_WARNING(">> Audio ID is %" PRIu32 ", not moving to library\r\n", audioId);
+                error = ERROR_INVALID_FILE;
+            }
+            else
+            {
+                libraryPath = getLibraryCachePath(settings, audioId, false);
+                libraryShortPath = getLibraryCachePath(settings, audioId, true);
+            }
+        }
+        if (libraryPath)
+        {
             tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, settings);
             bool moveToLibrary = true;
             bool skipMove = false;
@@ -741,10 +767,9 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings)
                 }
                 if (error == NO_ERROR)
                 {
-                    char *libraryShortPath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", audioId);
 
                     free(tonieInfo->json.source);
-                    tonieInfo->json.source = libraryShortPath;
+                    tonieInfo->json.source = strdup(libraryShortPath);
 
                     save_content_json(tonieInfo->contentPath, &tonieInfo->json);
                     TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
@@ -756,9 +781,16 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings)
                 }
             }
 
-            free(libraryPath);
+            if (libraryPath)
+            {
+                osFreeMem(libraryPath);
+            }
+            if (libraryShortPath)
+            {
+                osFreeMem(libraryShortPath);
+            }
+            freeTonieInfo(tonieInfoLib);
         }
-        freeTonieInfo(tonieInfo);
     }
     else
     {
