@@ -1031,7 +1031,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     else if (!fsDirExists(rootPath))
     {
         error_t error = fsCreateDirEx(rootPath, true);
-        if (error != NO_ERROR || !fsDirExists(rootPath)) 
+        if (error != NO_ERROR || !fsDirExists(rootPath))
         {
             osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(error));
             TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(error));
@@ -2432,4 +2432,35 @@ error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri,
     }
     connection->response.contentLength = osStrlen(refreshToken);
     return httpWriteResponse(connection, refreshToken, connection->response.contentLength, false);
+}
+
+error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+    char ruid[256];
+    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)))
+    {
+        if (osStrlen(ruid) == 16)
+        {
+            tonie_info_t *tonieInfo;
+            tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+
+            if (tonieInfo->valid && tonieInfo->json.tonie_model != NULL && tonieInfo->json._source_type == CT_SOURCE_NONE)
+            {
+                error = moveTAF2Lib(tonieInfo, client_ctx->settings);
+                if (error != NO_ERROR)
+                {
+                    return ERROR_FILE_NOT_FOUND;
+                }
+            }
+        }
+    }
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 0;
+    return httpWriteResponse(connection, "", connection->response.contentLength, false);
 }

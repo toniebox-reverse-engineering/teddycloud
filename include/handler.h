@@ -101,4 +101,8 @@ error_t httpFlushStream(HttpConnection *connection);
 
 void setLastUid(uint64_t uid, settings_t *settings);
 void setLastRuid(char ruid[17], settings_t *settings);
+
+char *getLibraryCachePath(settings_t *settings, uint32_t audioId);
+error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings);
+
 #endif
