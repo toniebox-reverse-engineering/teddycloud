@@ -2117,6 +2117,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
+        osFreeMem(contentPath);
         return error;
     }
 

@@ -149,6 +149,7 @@ void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *pa
             {
                 TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
             }
+            osFreeMem(local_filename_tmp);
         }
     }
 
@@ -781,14 +782,8 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
                 }
             }
 
-            if (libraryPath)
-            {
-                osFreeMem(libraryPath);
-            }
-            if (libraryShortPath)
-            {
-                osFreeMem(libraryShortPath);
-            }
+            osFreeMem(libraryPath);
+            osFreeMem(libraryShortPath);
             freeTonieInfo(tonieInfoLib);
         }
     }
