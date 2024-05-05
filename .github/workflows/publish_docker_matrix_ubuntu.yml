@@ -20,7 +20,7 @@ env:
   REGISTRY_IMAGE: ghcr.io/toniebox-reverse-engineering/teddycloud
 
 jobs:
-  build-container_matrix:
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -142,7 +142,7 @@ jobs:
   merge-images:
     runs-on: ubuntu-latest
     needs:
-      - build-container_matrix
+      - build
     steps:
       - name: Download digests
         uses: actions/download-artifact@v3
