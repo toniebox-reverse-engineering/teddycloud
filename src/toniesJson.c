@@ -168,6 +168,85 @@ error_t toniesV2_update()
     return error;
 }
 
+void tonieboxes_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+
+    if (httpClientContext->statusCode == 200)
+    {
+        if (ctx->file == NULL)
+        {
+            char *target = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+            char *target_tmp = custom_asprintf("%s.tmp", target);
+            ctx->file = fsOpenFile(target_tmp, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            osFreeMem(target);
+            osFreeMem(target_tmp);
+        }
+        error_t errorWrite = NO_ERROR;
+        if (length > 0)
+        {
+            errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
+        }
+
+        if (error == ERROR_END_OF_STREAM)
+        {
+            fsCloseFile(ctx->file);
+        }
+        else if (error != NO_ERROR)
+        {
+            fsCloseFile(ctx->file);
+            TRACE_ERROR("tonieboxes.json download body error=%s\r\n", error2text(error));
+        }
+        if (errorWrite != NO_ERROR)
+        {
+            fsCloseFile(ctx->file);
+            TRACE_ERROR("tonieboxes.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
+        }
+    }
+}
+error_t tonieboxes_update()
+{
+    TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
+    cbr_ctx_t ctx;
+    client_ctx_t client_ctx = {
+        .settings = get_settings(),
+    };
+
+    char *target = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+    char *target_tmp = custom_asprintf("%s.tmp", target);
+
+    const char *uri_base = "api.revvox.de";
+    const char *uri_path = "/tonieboxes.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
+    const char *queryString = NULL;
+    fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    req_cbr_t cbr = {
+        .ctx = &ctx,
+        .body = &tonieboxes_downloadBody,
+    };
+
+    ctx.file = NULL;
+    fsDeleteFile(target_tmp);
+    // TODO: Be sure HTTPS CA is checked!
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+
+    if (error == NO_ERROR && fsFileExists(target_tmp))
+    {
+        fsDeleteFile(target);
+        fsRenameFile(target_tmp, target);
+        TRACE_INFO("... success updating tonieboxes.json from api.revvox.de, reloading\r\n");
+        tonies_deinit();
+        tonies_init();
+    }
+    else
+    {
+        TRACE_ERROR("... failed updating tonieboxes.json error=%s\r\n", error2text(error));
+    }
+    osFreeMem(target);
+    osFreeMem(target_tmp);
+    return error;
+}
+
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
 {
 

@@ -61,6 +61,7 @@ typedef struct
 void tonies_init();
 error_t tonies_update();
 error_t toniesV2_update();
+error_t tonieboxes_update();
 void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCount);
 void toniesV2_readJson(char *source, toniesV2Json_item_t **toniesCache, size_t *toniesCount);
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id);

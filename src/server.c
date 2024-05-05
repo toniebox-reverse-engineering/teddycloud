@@ -617,6 +617,7 @@ void server_init(bool test)
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
+        tonieboxes_update();
     }
 
     systime_t last = osGetSystemTime();
