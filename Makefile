@@ -139,7 +139,7 @@ CFLAGS_linux += -DFFMPEG_DECODING
 # for now enable extensive error checking
 # Add flags for extensive error checking if NO_SANITIZERS is not set to 1
 ifneq ($(NO_SANITIZERS),1)
-	CFLAGS_linux += -fsanitize=undefined -fsanitize=address 
+	CFLAGS_linux += -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer 
 	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 endif
 CFLAGS_linux += $(OPTI_LEVEL)
