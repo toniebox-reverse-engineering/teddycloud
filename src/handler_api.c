@@ -645,12 +645,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
 
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
-            freeTonieInfo(tafInfo);
         }
         else
         {
             char *json_extension = NULL;
-            contentJson_t contentJson;
             if (isDir)
             {
                 char *filePathAbsoluteSub = NULL;
@@ -673,9 +671,11 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                             *json_extension = '\0';
                         }
 
+                        contentJson_t contentJson = {0};
                         load_content_json(filePathAbsoluteSub, &contentJson, false);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
+                        free_content_json(&contentJson);
                     }
                 }
             }
@@ -686,6 +686,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 {
                     *json_extension = '\0';
                 }
+                contentJson_t contentJson = {0};
                 load_content_json(filePathAbsolute, &contentJson, false);
                 item = tonies_byModel(contentJson.tonie_model);
 
@@ -693,13 +694,14 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
                 }
+                free_content_json(&contentJson);
             }
-            free_content_json(&contentJson);
         }
         if (item != NULL)
         {
             addToniesJsonInfoJson(item, jsonEntry);
         }
+        freeTonieInfo(tafInfo);
 
         osFreeMem(filePathAbsolute);
         cJSON_AddItemToArray(jsonArray, jsonEntry);
@@ -801,12 +803,10 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                 osStrcat(desc, extraDesc);
 
                 item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
-                freeTonieInfo(tafInfo);
             }
             else
             {
                 char *json_extension = NULL;
-                contentJson_t contentJson;
                 if (isDir)
                 {
                     char *filePathAbsoluteSub = NULL;
@@ -829,9 +829,11 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                                 *json_extension = '\0';
                             }
 
+                            contentJson_t contentJson = {0};
                             load_content_json(filePathAbsoluteSub, &contentJson, false);
                             item = tonies_byModel(contentJson.tonie_model);
                             osFreeMem(filePathAbsoluteSub);
+                            free_content_json(&contentJson);
                         }
                     }
                 }
@@ -842,6 +844,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     {
                         *json_extension = '\0';
                     }
+                    contentJson_t contentJson = {0};
                     load_content_json(filePathAbsolute, &contentJson, false);
                     item = tonies_byModel(contentJson.tonie_model);
 
@@ -849,14 +852,15 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     {
                         cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
                     }
+                    free_content_json(&contentJson);
                 }
-                free_content_json(&contentJson);
             }
             if (item != NULL)
             {
                 addToniesJsonInfoJson(item, jsonEntry);
             }
 
+            freeTonieInfo(tafInfo);
             osFreeMem(filePathAbsolute);
             cJSON_AddStringToObject(jsonEntry, "desc", desc);
 
@@ -2179,6 +2183,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
         TRACE_INFO("Updated content json of %s\r\n", contentPath);
     }
     osFreeMem(contentPath);
+    free_content_json(&content_json);
 
     char *message = "success";
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
