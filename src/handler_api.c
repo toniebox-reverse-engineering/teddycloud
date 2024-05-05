@@ -2021,18 +2021,25 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiTonieboxJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *tonies_custom_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, tonies_custom_path);
-    osFreeMem(tonies_custom_path);
+    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    osFreeMem(path);
     return err;
 }
 error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char *tonies_custom_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_CUSTOM_JSON_FILE);
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_CUSTOM_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, tonies_custom_path);
-    osFreeMem(tonies_custom_path);
+    if (!fsFileExists(path))
+    {
+        FsFile *file = fsOpenFile(path, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
+        fsWriteFile(file, "[]", 2);
+        fsCloseFile(file);
+    }
+
+    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    osFreeMem(path);
     return err;
 }
 
