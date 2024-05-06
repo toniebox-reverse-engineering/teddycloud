@@ -105,7 +105,7 @@ jobs:
       run: |
         docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
         docker rm teddyCloud-test
-      continue-on-error: ${{ matrix.platform != 'linux/s390x' }}
+      continue-on-error: ${{ matrix.platform == 'linux/s390x' }}
 
     - name: Export digest
       run: |
