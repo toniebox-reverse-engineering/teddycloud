@@ -56,7 +56,7 @@ build_platform:=$(PLATFORM)
 build_os:="$(OS)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
-CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=\"${build_os_id}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
+CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=${build_os_id} -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=${build_arch_bits}
 # ifeq ($(build_arch),"armv7l")
 # CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
 # endif
@@ -415,8 +415,8 @@ endif
 all: check_dependencies submodules web build 
 
 echo_info:
-	$(QUIET)$(ECHO) '[ ${GREEN}PLATF${NC}] ${CYAN}$(build_platform)${NC}'
-	$(QUIET)$(ECHO) '[ ${GREEN}OSID${NC}] ${CYAN}$(build_os_id)${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}PLAT${NC} ] ${CYAN}$(build_platform)${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}OSID${NC} ] ${CYAN}$(build_os_id)${NC}'
 	$(QUIET)$(ECHO) '[ ${GREEN}ARCH${NC} ] ${CYAN}$(build_arch)${NC}'
 	$(QUIET)$(ECHO) '[ ${GREEN}BITS${NC} ] ${CYAN}$(build_arch_bits)${NC}'
 

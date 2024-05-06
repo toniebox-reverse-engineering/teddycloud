@@ -139,7 +139,7 @@ typedef unsigned int uint_t;
    #define PRIuTIME "lu"
 #endif
 
-#if defined(BUILD_PRIuTIME_LLU) || (BUILD_OS_ID == "alpine" && BUILD_ARCH == "32")
+#if defined(BUILD_PRIuTIME_LLU) || (BUILD_OS_ID == alpine && BUILD_ARCH_BITS == 32)
    #undef PRIuTIME
    #define PRIuTIME "llu"
 #endif
