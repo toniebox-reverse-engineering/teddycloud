@@ -139,13 +139,10 @@ typedef unsigned int uint_t;
    #define PRIuTIME "lu"
 #endif
 
-#define CRASH void test_void();
-#if (defined(BUILD_PRIuTIME_LLU) && (BUILD_PRIuTIME_LLU == 1)) || ((BUILD_OS_ID == alpine) && (BUILD_ARCH_BITS == 32))
+#if (defined(BUILD_PRIuTIME_LLU) && (BUILD_PRIuTIME_LLU == 1))
    #undef PRIuTIME
    #define PRIuTIME "llu"
-   #undef CRASH
 #endif
-CRASH
 
 //ARM compiler V6?
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
