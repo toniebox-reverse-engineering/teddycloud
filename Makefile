@@ -21,9 +21,11 @@ ifeq ($(OS),Windows_NT)
 #	build_arch:="$(shell powershell -NoProfile -Command "$$Env:PROCESSOR_ARCHITECTURE")"
 #   TODO
 	build_arch:="AMD64-tbd"
+	build_os_id:="windows"
 else
 	SHELL_ENV ?= bash
 	build_arch:="$(shell arch)"
+	build_os_id:="$(shell grep "^ID=" /etc/os-release | cut -d'=' -f2- | tr -d '"')"
 endif
 
 ifeq ($(shell getconf LONG_BIT), 64)
@@ -54,10 +56,10 @@ build_platform:=$(PLATFORM)
 build_os:="$(OS)"
 
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
-CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
-ifeq ($(build_arch),"armv7l")
-CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
+CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=\"${build_os_id}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
+# ifeq ($(build_arch),"armv7l")
+# CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
+# endif
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)
@@ -414,6 +416,7 @@ all: check_dependencies submodules web build
 
 echo_info:
 	$(QUIET)$(ECHO) '[ ${GREEN}PLATF${NC}] ${CYAN}$(build_platform)${NC}'
+	$(QUIET)$(ECHO) '[ ${GREEN}OSID${NC}] ${CYAN}$(build_os_id)${NC}'
 	$(QUIET)$(ECHO) '[ ${GREEN}ARCH${NC} ] ${CYAN}$(build_arch)${NC}'
 	$(QUIET)$(ECHO) '[ ${GREEN}BITS${NC} ] ${CYAN}$(build_arch_bits)${NC}'
 
