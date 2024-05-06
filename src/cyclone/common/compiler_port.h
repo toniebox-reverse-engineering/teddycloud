@@ -142,9 +142,6 @@ typedef unsigned int uint_t;
 #if defined(BUILD_PRIuTIME_LLU) || (BUILD_OS_ID == alpine && BUILD_ARCH_BITS == 32)
    #undef PRIuTIME
    #define PRIuTIME "llu"
-#elif BUILD_ARCH_BITS == 32
-   #undef PRIuTIME
-   #define PRIuTIME "lu"
 #endif
 
 //ARM compiler V6?
