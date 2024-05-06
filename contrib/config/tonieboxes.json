@@ -34,10 +34,9 @@
         "name": "Red - Disney 100 Limited Edition",
         "img_src": "https://cdn.tonies.de/thumbnails/10001853_Toniebox_Disney_d.png",
         "crop": [
-            110,
-            13,
-            930,
-            930
+            5,
+            30,
+            1.32
         ]
     },
     {
@@ -50,10 +49,9 @@
         "name": "Black - 3 Fragezeichen Limited Edition",
         "img_src": "https://cdn.tonies.de/thumbnails/10000490-i.png",
         "crop": [
-            0,
-            15,
-            480,
-            480
+            5,
+            -10,
+            0.97
         ]
     },
     {
@@ -66,10 +64,9 @@
         "name": "Gulli - Limited Edition",
         "img_src": "https://cdn.tonies.de/thumbnails/10002192_Toniebox_gulli_d.png",
         "crop": [
-            110,
-            13,
-            930,
-            930
+            6,
+            30,
+            1.33
         ]
     },
     {
@@ -77,10 +74,9 @@
         "name": "Box Cover Sleepy Bear",
         "img_src": "https://278163f382d2bab4b036-4f5ec62496a160f3570d3b6e48fc4516.ssl.cf3.rackcdn.com/Tonies_Cover_SleepyB-Z4RAvhCP.png",
         "crop": [
-            140,
-            55,
-            845,
-            845
+            8,
+            22,
+            1.35
         ]
     },
     {
@@ -88,10 +84,9 @@
         "name": "Box Cover Sleepy Sheep",
         "img_src": "https://278163f382d2bab4b036-4f5ec62496a160f3570d3b6e48fc4516.ssl.cf3.rackcdn.com/Tonies_Cover_SleepyS-e5lq1qK_.png",
         "crop": [
-            210,
-            120,
-            770,
-            770
+            3,
+            10,
+            1.56
         ]
     },
     {
@@ -99,10 +94,9 @@
         "name": "Box Cover Sleepy Rabbit",
         "img_src": "https://278163f382d2bab4b036-4f5ec62496a160f3570d3b6e48fc4516.ssl.cf3.rackcdn.com/Tonies_Cover_SleepyR-oenxTNhu.png",
         "crop": [
-            210,
-            120,
-            770,
-            770
+            0,
+            10,
+            1.5
         ]
     }
 ]
