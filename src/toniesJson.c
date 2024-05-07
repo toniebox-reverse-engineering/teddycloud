@@ -1,35 +1,39 @@
 #include "toniesJson.h"
 #include "fs_port.h"
+#include "os_port.h"
 #include "settings.h"
 #include "debug.h"
 #include "cJSON.h"
 #include "handler.h"
 #include "cloud_request.h"
 #include "server_helpers.h"
+#include "mutex_manager.h"
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
 static bool toniesJsonInitialized = false;
 static size_t toniesJsonCount = 0;
-static toniesJson_item_t *toniesJsonCache;
+static toniesJson_item_t *toniesJsonCache = NULL;
 static size_t toniesCustomJsonCount = 0;
-static toniesJson_item_t *toniesCustomJsonCache;
-static char *tonies_json_path;
-static char *tonies_custom_json_path;
-static char *tonies_json_tmp_path;
+static toniesJson_item_t *toniesCustomJsonCache = NULL;
+static char *tonies_json_path = NULL;
+static char *tonies_custom_json_path = NULL;
+static char *tonies_json_tmp_path = NULL;
 
 static bool toniesV2JsonInitialized = false;
 static size_t toniesV2JsonCount = 0;
-static toniesV2Json_item_t *toniesV2JsonCache;
+static toniesV2Json_item_t *toniesV2JsonCache = NULL;
 static size_t toniesV2CustomJsonCount = 0;
-static toniesV2Json_item_t *toniesV2CustomJsonCache;
-static char *toniesV2_json_path;
-static char *toniesV2_custom_json_path;
-static char *toniesV2_json_tmp_path;
+static toniesV2Json_item_t *toniesV2CustomJsonCache = NULL;
+static char *toniesV2_json_path = NULL;
+static char *toniesV2_custom_json_path = NULL;
+static char *toniesV2_json_tmp_path = NULL;
 #endif
 
 void tonies_init()
 {
+    /* lock tonies cache and update caches */
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     if (!toniesJsonInitialized)
     {
         toniesCustomJsonCount = 0;
@@ -53,6 +57,7 @@ void tonies_init()
         toniesV2_readJson(toniesV2_json_path, &toniesV2JsonCache, &toniesV2JsonCount);
         toniesV2JsonInitialized = true;
     }
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
 }
 
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
@@ -163,6 +168,85 @@ error_t toniesV2_update()
     return error;
 }
 
+void tonieboxes_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+
+    if (httpClientContext->statusCode == 200)
+    {
+        if (ctx->file == NULL)
+        {
+            char *target = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+            char *target_tmp = custom_asprintf("%s.tmp", target);
+            ctx->file = fsOpenFile(target_tmp, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            osFreeMem(target);
+            osFreeMem(target_tmp);
+        }
+        error_t errorWrite = NO_ERROR;
+        if (length > 0)
+        {
+            errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
+        }
+
+        if (error == ERROR_END_OF_STREAM)
+        {
+            fsCloseFile(ctx->file);
+        }
+        else if (error != NO_ERROR)
+        {
+            fsCloseFile(ctx->file);
+            TRACE_ERROR("tonieboxes.json download body error=%s\r\n", error2text(error));
+        }
+        if (errorWrite != NO_ERROR)
+        {
+            fsCloseFile(ctx->file);
+            TRACE_ERROR("tonieboxes.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
+        }
+    }
+}
+error_t tonieboxes_update()
+{
+    TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
+    cbr_ctx_t ctx;
+    client_ctx_t client_ctx = {
+        .settings = get_settings(),
+    };
+
+    char *target = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+    char *target_tmp = custom_asprintf("%s.tmp", target);
+
+    const char *uri_base = "api.revvox.de";
+    const char *uri_path = "/tonieboxes.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
+    const char *queryString = NULL;
+    fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    req_cbr_t cbr = {
+        .ctx = &ctx,
+        .body = &tonieboxes_downloadBody,
+    };
+
+    ctx.file = NULL;
+    fsDeleteFile(target_tmp);
+    // TODO: Be sure HTTPS CA is checked!
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+
+    if (error == NO_ERROR && fsFileExists(target_tmp))
+    {
+        fsDeleteFile(target);
+        fsRenameFile(target_tmp, target);
+        TRACE_INFO("... success updating tonieboxes.json from api.revvox.de, reloading\r\n");
+        tonies_deinit();
+        tonies_init();
+    }
+    else
+    {
+        TRACE_ERROR("... failed updating tonieboxes.json error=%s\r\n", error2text(error));
+    }
+    osFreeMem(target);
+    osFreeMem(target_tmp);
+    return error;
+}
+
 char *tonies_jsonGetString(cJSON *jsonElement, char *name)
 {
 
@@ -173,6 +257,7 @@ char *tonies_jsonGetString(cJSON *jsonElement, char *name)
     }
     return strdup("");
 }
+
 uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
 {
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
@@ -182,14 +267,12 @@ uint32_t tonies_jsonGetUInt32(cJSON *jsonElement, char *name)
     }
     return 0;
 }
-void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toniesCount)
+
+void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCount)
 {
 #if TONIES_JSON_CACHED == 1
-    if (*toniesCount > 0)
-    {
-        *toniesCount = 0;
-        osFreeMem(*toniesCache);
-    }
+    size_t toniesCount = 0;
+    toniesJson_item_t *toniesCache = NULL;
 
     size_t fileSize = 0;
     fsGetFileSize(source, (uint32_t *)(&fileSize));
@@ -228,12 +311,12 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
         else
         {
             size_t line = 0;
-            *toniesCount = cJSON_GetArraySize(toniesJson);
-            *toniesCache = osAllocMem(*toniesCount * sizeof(toniesJson_item_t));
+            toniesCount = cJSON_GetArraySize(toniesJson);
+            toniesCache = osAllocMem(toniesCount * sizeof(toniesJson_item_t));
             cJSON_ArrayForEach(tonieJson, toniesJson)
             {
                 cJSON *arrayJson;
-                toniesJson_item_t *item = &(*toniesCache)[line++];
+                toniesJson_item_t *item = &toniesCache[line++];
                 char *no_str = tonies_jsonGetString(tonieJson, "no");
                 item->no = atoi(no_str);
                 free(no_str);
@@ -303,6 +386,17 @@ void tonies_readJson(char *source, toniesJson_item_t **toniesCache, size_t *toni
             TRACE_ERROR("...could not create file\r\n");
         }
     }
+
+    /* first save old pointer, then update return values */
+    void *oldPtr = *retCache;
+
+    *retCache = toniesCache;
+    *retCount = toniesCount;
+
+    if (oldPtr)
+    {
+        osFreeMem(oldPtr);
+    }
 #endif
 }
 
@@ -335,24 +429,34 @@ toniesJson_item_t *tonies_byAudioIdHash_base(uint32_t audio_id, uint8_t *hash, t
 #endif
     return NULL;
 }
+
 toniesJson_item_t *tonies_byAudioId(uint32_t audio_id)
 {
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, NULL, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+
+    if (!item)
     {
-        return item;
+        item = tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byAudioIdHash_base(audio_id, NULL, toniesJsonCache, toniesJsonCount);
+
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+    return item;
 }
+
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
 {
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     toniesJson_item_t *item = tonies_byAudioIdHash_base(audio_id, hash, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+    if (!item)
     {
-        return item;
+        item = tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byAudioIdHash_base(audio_id, hash, toniesJsonCache, toniesJsonCount);
+
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+    return item;
 }
+
 toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
     if (model == NULL || osStrcmp(model, "") == 0)
@@ -368,24 +472,32 @@ toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCac
 #endif
     return NULL;
 }
+
 toniesJson_item_t *tonies_byModel(char *model)
 {
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
+
     toniesJson_item_t *item = tonies_byModel_base(model, toniesCustomJsonCache, toniesCustomJsonCount);
-    if (item)
+    if (!item)
     {
-        return item;
+        item = tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
     }
-    return tonies_byModel_base(model, toniesJsonCache, toniesJsonCount);
+
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+    return item;
 }
+
 toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model)
 {
     toniesJson_item_t *item = tonies_byAudioIdHash(audio_id, hash);
-    if (item)
+    if (!item)
     {
-        return item;
+        item = tonies_byModel(model);
     }
-    return tonies_byModel(model);
+
+    return item;
 }
+
 bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
@@ -481,14 +593,18 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     return false;
 #endif
 }
+
 bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
 {
     size_t count = 0;
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
     tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     *result_size = count;
     return *result_size > 0;
 }
+
 void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
@@ -516,16 +632,27 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         }
     }
     osFreeMem(toniesCache);
+    toniesCache = NULL;
 #endif
 }
+
 void tonies_deinit()
 {
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
     tonies_deinit_base(toniesJsonCache, &toniesJsonCount);
     tonies_deinit_base(toniesCustomJsonCache, &toniesCustomJsonCount);
+
+    toniesJsonCache = NULL;
+    toniesCustomJsonCache = NULL;
 
     osFreeMem(tonies_json_path);
     osFreeMem(tonies_custom_json_path);
     osFreeMem(tonies_json_tmp_path);
 
+    tonies_json_path = NULL;
+    tonies_custom_json_path = NULL;
+    tonies_json_tmp_path = NULL;
+
     toniesJsonInitialized = false;
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
 }

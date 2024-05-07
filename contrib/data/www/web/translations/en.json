@@ -22,7 +22,7 @@
     "navigationTitle": "Settings",
     "title": "Settings",
     "information": "Information",
-    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings got to ",
+    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
     "tonieboxes": "tonieboxes",
     "overlayed": "overlayed",
     "general": {
@@ -32,8 +32,12 @@
     "certificates": {
       "navigationTitle": "Certificates",
       "title": "Certificates",
+      "information": "Information",
+      "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
       "uploadText": "Click or drag client certificates to this area to upload",
-      "uploadHint": "Drag and drop client certificates from your box here"
+      "uploadHint": "Drag and drop client certificates from your box here",
+      "uploadSuccessful": "{{filename}} file uploaded successfully.",
+      "uploadFailed": "{{filename}} file upload failed. Take a look into the console"
     }
   },
   "tonies": {
@@ -41,7 +45,28 @@
     "title": "Tonies",
     "tonies": {
       "navigationTitle": "Tonies",
-      "title": "Tonies"
+      "pageSelector": " tonies / page",
+      "title": "Tonies",
+      "filterBar": {
+        "showFilters": "Show filters",
+        "hideFilters": "Hide filters",
+        "searchLabel": "Search",
+        "searchPlaceholder": "Enter search criteria",
+        "filterLabel": "Filter",
+        "seriesFilterPlaceholder": "Series",
+        "episodeFilterPlaceholder": "Episode",
+        "valid": "Valid",
+        "invalid": "Invalid",
+        "live": "Live",
+        "unsetLive": "Live disabled",
+        "exists": "Exists",
+        "notExists": "Exists not",
+        "noCloud": "Cloud disabled",
+        "unsetNoCloud": "Cloud enabled",
+        "lastPlayed": "Last played",
+        "applyFilters": "Apply filter",
+        "resetFilters": "Reset filter"
+      }
     },
     "system-sounds": {
       "navigationTitle": "System Sounds",
@@ -69,8 +94,8 @@
       "saveAs": "Save file as",
       "removeFile": "Remove file"
     },
-    "messages" : {
-      "couldNotEmptySource" : "Could not empty source!",
+    "messages": {
+      "couldNotEmptySource": "Could not empty source!",
       "sourceSetSuccessful": "Source set to {{selectedFile}}!",
       "couldNotSetSource": "Could not set source! ",
       "liveEnabled": "Live enabled!",
@@ -82,36 +107,68 @@
       "downloading": "Downloading...",
       "downloadedFile": "Downloaded file",
       "errorDuringDownload": "Error during background download: ",
-      "setTonieToModelSuccessful":  "Set tonie model to {{selectedModel}}!",
-      "setTonieToModelFailed":  "Could not change tonie model!"
+      "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
+      "setTonieToModelFailed": "Could not change tonie model!"
     },
-    "infoModal" : {
-      "model" : "Model:",
-      "valid" : "Valid:",
-      "exists" : "Exists:",
+    "infoModal": {
+      "model": "Model:",
+      "valid": "Valid:",
+      "exists": "Exists:",
       "yes": "Yes",
       "no": "No"
     },
-    "editModelModal" : {
-      "editModel" : "Edit model ",
-      "placeholderSearchForAModel" : "Search for a model"
+    "lastPlayedOnModal": {
+      "title": "This Tonie was played last!",
+      "lastPlayedOn": "Last played Tonie",
+      "lastPlayedOnMessage": "This Tonie was the last played one on"
     },
-    "editTagModal" : {
-      "editTag" : "Edit Tag"
+    "editModelModal": {
+      "editModel": "Edit model ",
+      "placeholderSearchForAModel": "Search for a model"
+    },
+    "editTagModal": {
+      "editTag": "Edit Tag"
     }
   },
   "tonieboxes": {
-    "navigationTitle" : "Tonieboxes",
+    "navigationTitle": "Tonieboxes",
     "title": "Your Tonieboxes",
-    "editModelModal" : {
+    "lastPlayedTonie": "Last played Tonie: ",
+    "editModelModal": {
       "editModel": "Edit Toniebox {{name}}",
       "placeholderSearchForAModel": "Select color variant of your Toniebox",
       "name": "Name",
-      "model" : "Model"
+      "model": "Model"
     },
     "editTonieboxSettingsModal": {
-      "editTonieboxSettingsLabel": "Edit settings",
+      "editTonieboxSettingsLabel": "Settings",
       "editTonieboxSettings": "Edit settings for Toniebox {{name}}"
+    },
+    "uploadTonieboxCertificatesModal": {
+      "Label": "Certificates",
+      "uploadTonieboxCertificates": "Upload certificates for Toniebox {{name}}",
+      "uploadPath": "Upload path (certDir):",
+      "boxSpecific": " (overlayed for toniebox)",
+      "AttentionGeneralPath": "(ATTENTION: Default Path!)"
+    }
+  },
+  "community": {
+    "navigationTitle": "Community",
+    "title": "Community",
+    "contribution": {
+      "navigationTitle": "Contribution",
+      "title": "Contribution"
+    },
+    "contributors": {
+      "navigationTitle": "Contributors",
+      "title": "Contributors"
+    },
+    "changelog": {
+      "navigationTitle": "Changelog",
+      "title": "Changelog / Release notes"
+    },
+    "forum": {
+      "navigationTitle": "Forum"
     }
   },
   "language": {
@@ -129,7 +186,17 @@
     "episode": "Episode",
     "date": "Date"
   },
-  "tonieArticleSearch" : {
-    "failedToFetchSearchResults" : "Failed to fetch search results: "
+  "tonieArticleSearch": {
+    "failedToFetchSearchResults": "Failed to fetch search results: "
+  },
+  "security": {
+    "alert": "Alert",
+    "incident_detected": "Security Incident Detected! Please check your logs!"
+  },
+  "server": {
+    "boxineStatusOffline": "Not connected to Boxine/Toniecloud",
+    "boxineStatusOnline": "Connected to Boxine/Toniecloud",
+    "teddycloudStatusOnline": "Teddycloud server running fine",
+    "teddycloudStatusOffline": "Teddycloud server offline"
   }
 }

@@ -518,6 +518,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 break;
             }
 
+            /* check assignFile for validity */
             tonie_info_t *tonieInfoAssign = getTonieInfo(assignFile, client_ctx->settings);
             if (!tonieInfoAssign->valid)
             {
@@ -539,8 +540,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 break;
             }
 
+            freeTonieInfo(tonieInfoAssign);
+
+            /* reopen the TAF with new content */
             char *oldFile = strdup(tonieInfo->contentPath);
             freeTonieInfo(tonieInfo);
+
             tonieInfo = getTonieInfo(oldFile, client_ctx->settings);
             free(oldFile);
 

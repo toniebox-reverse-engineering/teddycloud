@@ -991,6 +991,11 @@ setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
 {
     int pos = 0;
     setting_item_t *option_map = Option_Map_Overlay[settingsId];
+    if (!option_map)
+    {
+        TRACE_ERROR("Overlay %d not found\r\n", settingsId);
+        return NULL;
+    }
     while (option_map[pos].type != TYPE_END)
     {
         if (!strcmp(item, option_map[pos].option_name))

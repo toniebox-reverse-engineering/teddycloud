@@ -645,12 +645,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
 
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
-            freeTonieInfo(tafInfo);
         }
         else
         {
             char *json_extension = NULL;
-            contentJson_t contentJson;
             if (isDir)
             {
                 char *filePathAbsoluteSub = NULL;
@@ -673,9 +671,11 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                             *json_extension = '\0';
                         }
 
+                        contentJson_t contentJson = {0};
                         load_content_json(filePathAbsoluteSub, &contentJson, false);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
+                        free_content_json(&contentJson);
                     }
                 }
             }
@@ -686,6 +686,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 {
                     *json_extension = '\0';
                 }
+                contentJson_t contentJson = {0};
                 load_content_json(filePathAbsolute, &contentJson, false);
                 item = tonies_byModel(contentJson.tonie_model);
 
@@ -693,13 +694,14 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
                 }
+                free_content_json(&contentJson);
             }
-            free_content_json(&contentJson);
         }
         if (item != NULL)
         {
             addToniesJsonInfoJson(item, jsonEntry);
         }
+        freeTonieInfo(tafInfo);
 
         osFreeMem(filePathAbsolute);
         cJSON_AddItemToArray(jsonArray, jsonEntry);
@@ -801,12 +803,10 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                 osStrcat(desc, extraDesc);
 
                 item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
-                freeTonieInfo(tafInfo);
             }
             else
             {
                 char *json_extension = NULL;
-                contentJson_t contentJson;
                 if (isDir)
                 {
                     char *filePathAbsoluteSub = NULL;
@@ -829,9 +829,11 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                                 *json_extension = '\0';
                             }
 
+                            contentJson_t contentJson = {0};
                             load_content_json(filePathAbsoluteSub, &contentJson, false);
                             item = tonies_byModel(contentJson.tonie_model);
                             osFreeMem(filePathAbsoluteSub);
+                            free_content_json(&contentJson);
                         }
                     }
                 }
@@ -842,6 +844,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     {
                         *json_extension = '\0';
                     }
+                    contentJson_t contentJson = {0};
                     load_content_json(filePathAbsolute, &contentJson, false);
                     item = tonies_byModel(contentJson.tonie_model);
 
@@ -849,14 +852,15 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                     {
                         cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
                     }
+                    free_content_json(&contentJson);
                 }
-                free_content_json(&contentJson);
             }
             if (item != NULL)
             {
                 addToniesJsonInfoJson(item, jsonEntry);
             }
 
+            freeTonieInfo(tafInfo);
             osFreeMem(filePathAbsolute);
             cJSON_AddStringToObject(jsonEntry, "desc", desc);
 
@@ -1022,11 +1026,20 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     }
     const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
 
-    if (rootPath == NULL || !fsDirExists(rootPath))
+    if (rootPath == NULL)
     {
         statusCode = 500;
         osSnprintf(message, sizeof(message), "internal.certdirfull not set to a valid path");
         TRACE_ERROR("internal.certdirfull not set to a valid path\r\n");
+    }
+    else if (!fsDirExists(rootPath))
+    {
+        error_t error = fsCreateDirEx(rootPath, true);
+        if (error != NO_ERROR || !fsDirExists(rootPath))
+        {
+            osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(error));
+            TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(error));
+        }
     }
     else
     {
@@ -2005,6 +2018,31 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
     osFreeMem(tonies_custom_path);
     return err;
 }
+
+error_t handleApiTonieboxJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    osFreeMem(path);
+    return err;
+}
+error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_CUSTOM_JSON_FILE);
+
+    if (!fsFileExists(path))
+    {
+        FsFile *file = fsOpenFile(path, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE);
+        fsWriteFile(file, "[]", 2);
+        fsCloseFile(file);
+    }
+
+    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    osFreeMem(path);
+    return err;
+}
+
 error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char searchModel[256];
@@ -2108,6 +2146,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
+        osFreeMem(contentPath);
         return error;
     }
 
@@ -2169,6 +2208,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
         TRACE_INFO("Updated content json of %s\r\n", contentPath);
     }
     osFreeMem(contentPath);
+    free_content_json(&content_json);
 
     char *message = "success";
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
@@ -2423,4 +2463,50 @@ error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri,
     }
     connection->response.contentLength = osStrlen(refreshToken);
     return httpWriteResponse(connection, refreshToken, connection->response.contentLength, false);
+}
+
+error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+    char ruid[256];
+    char libroot[256];
+    bool_t lib_root = false;
+    if (queryGet(post_data, "libroot", libroot, sizeof(libroot)))
+    {
+        if (osStrcmp("true", libroot) == 0)
+        {
+            lib_root = true;
+        }
+    }
+
+    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)))
+    {
+        if (osStrlen(ruid) == 16)
+        {
+            tonie_info_t *tonieInfo;
+            tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+
+            if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
+            {
+                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            }
+            else
+            {
+                error = ERROR_FILE_NOT_FOUND;
+            }
+            freeTonieInfo(tonieInfo);
+            if (error != NO_ERROR)
+            {
+                return ERROR_FILE_NOT_FOUND;
+            }
+        }
+    }
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 0;
+    return httpWriteResponse(connection, "", connection->response.contentLength, false);
 }

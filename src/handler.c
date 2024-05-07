@@ -149,6 +149,7 @@ void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *pa
             {
                 TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
             }
+            osFreeMem(local_filename_tmp);
         }
     }
 
@@ -174,7 +175,7 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
     char line[128];
 
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    const char* statusText = httpStatusCodeText(cloud_ctx->statusCode);
+    const char *statusText = httpStatusCodeText(cloud_ctx->statusCode);
 
     osSprintf(line, "HTTP/%u.%u %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
@@ -300,71 +301,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                     if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                     {
                         tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, ctx->client_ctx->settings);
-                        if (tonieInfo->valid)
-                        {
-                            uint32_t audioId = tonieInfo->tafHeader->audio_id;
-                            if (audioId <= 1)
-                            {
-                                TRACE_WARNING(">> Audio ID is %" PRIu32 ", not moving to library\r\n", audioId);
-                            }
-                            else
-                            {
-                                char *libraryByPath = custom_asprintf("%s/by", ctx->client_ctx->settings->internal.librarydirfull);
-                                char *libraryBasePath = custom_asprintf("%s/audioID", libraryByPath);
-                                char *libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", libraryBasePath, audioId);
-
-                                fsCreateDir(libraryByPath);
-                                fsCreateDir(libraryBasePath);
-
-                                tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, ctx->client_ctx->settings);
-                                bool moveToLibrary = true;
-                                bool skipMove = false;
-                                if (tonieInfoLib->valid)
-                                {
-                                    if (!osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
-                                    {
-                                        TRACE_WARNING(">> SHA1 Hash for Audio ID %" PRIu32 ", already in library, deleting downloaded file\r\n", audioId);
-                                        fsDeleteFile(ctx->tonieInfo->contentPath);
-                                        skipMove = true;
-                                    }
-                                    else
-                                    {
-                                        TRACE_WARNING(">> SHA1 Hash forAudio ID %" PRIu32 ", of downloaded file is different to library, not moving to library\r\n", audioId);
-                                        moveToLibrary = false;
-                                    }
-                                }
-                                if (moveToLibrary)
-                                {
-                                    error_t error = NO_ERROR;
-                                    if (!skipMove)
-                                    {
-                                        error = fsMoveFile(ctx->tonieInfo->contentPath, libraryPath, false);
-                                    }
-                                    if (error == NO_ERROR)
-                                    {
-                                        char *libraryShortPath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", audioId);
-
-                                        free(tonieInfo->json.source);
-                                        tonieInfo->json.source = libraryShortPath;
-
-                                        save_content_json(tonieInfo->contentPath, &tonieInfo->json);
-                                        TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
-                                    }
-                                    else
-                                    {
-                                        TRACE_ERROR(">> Failed to move %s to library %s, error=%s\r\n", ctx->tonieInfo->contentPath, libraryPath, error2text(error));
-                                    }
-                                }
-
-                                free(libraryPath);
-                                free(libraryBasePath);
-                            }
-                            freeTonieInfo(tonieInfo);
-                        }
-                        else
-                        {
-                            TRACE_ERROR(">> Invalid TAF, not moving to library\r\n");
-                        }
+                        moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
+                        freeTonieInfo(tonieInfo);
                     }
                 }
                 else
@@ -740,14 +678,120 @@ void setLastUid(uint64_t uid, settings_t *settings)
 }
 void setLastRuid(char ruid[17], settings_t *settings)
 {
-    char *last_ruid = settings->internal.last_ruid;
-    osStrcpy(last_ruid, ruid);
-    for (size_t i = 0; last_ruid[i] != '\0'; i++)
-    {
-        last_ruid[i] = tolower(last_ruid[i]);
-    }
     if (get_settings() != settings)
     {
-        osStrcpy(get_settings()->internal.last_ruid, last_ruid);
+        if (osStrcmp(settings->internal.last_ruid, ruid) != 0)
+        {
+            for (size_t i = 0; ruid[i] != '\0'; i++)
+            {
+                ruid[i] = tolower(ruid[i]);
+            }
+            settings_set_string_id("internal.last_ruid", ruid, settings->internal.overlayNumber);
+        }
     }
+}
+
+char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)
+{
+    char *libraryPathPrefix;
+    if (shortPath)
+    {
+        libraryPathPrefix = "lib:/";
+    }
+    else
+    {
+        libraryPathPrefix = settings->internal.librarydirfull;
+    }
+    char *libraryByPath = custom_asprintf("%s/by", libraryPathPrefix);
+    char *libraryBasePath = custom_asprintf("%s/audioID", libraryByPath);
+    char *libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", libraryBasePath, audioId);
+
+    fsCreateDir(libraryByPath);
+    fsCreateDir(libraryBasePath);
+
+    osFreeMem(libraryByPath);
+    osFreeMem(libraryBasePath);
+
+    return libraryPath;
+}
+
+error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir)
+{
+    error_t error = NO_ERROR;
+    if (tonieInfo->valid)
+    {
+        char *libraryPath = NULL;
+        char *libraryShortPath = NULL;
+        uint32_t audioId = tonieInfo->tafHeader->audio_id;
+        if (rootDir)
+        {
+            libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", settings->internal.librarydirfull, audioId);
+            libraryShortPath = custom_asprintf("%s/%" PRIu32 ".taf", "lib:/", audioId);
+        }
+        else
+        {
+            if (audioId <= 1)
+            {
+                TRACE_WARNING(">> Audio ID is %" PRIu32 ", not moving to library\r\n", audioId);
+                error = ERROR_INVALID_FILE;
+            }
+            else
+            {
+                libraryPath = getLibraryCachePath(settings, audioId, false);
+                libraryShortPath = getLibraryCachePath(settings, audioId, true);
+            }
+        }
+        if (libraryPath)
+        {
+            tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, settings);
+            bool moveToLibrary = true;
+            bool skipMove = false;
+            if (tonieInfoLib->valid)
+            {
+                if (!osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
+                {
+                    TRACE_WARNING(">> SHA1 Hash for Audio ID %" PRIu32 ", already in library, deleting source file\r\n", audioId);
+                    fsDeleteFile(tonieInfo->contentPath);
+                    skipMove = true;
+                }
+                else
+                {
+                    TRACE_WARNING(">> SHA1 Hash forAudio ID %" PRIu32 ", of source file is different to library, not moving to library\r\n", audioId);
+                    moveToLibrary = false;
+                    error = ERROR_INVALID_FILE;
+                }
+            }
+            if (moveToLibrary)
+            {
+                if (!skipMove)
+                {
+                    error = fsMoveFile(tonieInfo->contentPath, libraryPath, false);
+                }
+                if (error == NO_ERROR)
+                {
+
+                    free(tonieInfo->json.source);
+                    tonieInfo->json.source = strdup(libraryShortPath);
+
+                    save_content_json(tonieInfo->contentPath, &tonieInfo->json);
+                    TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
+                }
+                else
+                {
+                    TRACE_ERROR(">> Failed to move %s to library %s, error=%s\r\n", tonieInfo->contentPath, libraryPath, error2text(error));
+                    error = ERROR_INVALID_FILE;
+                }
+            }
+
+            osFreeMem(libraryPath);
+            osFreeMem(libraryShortPath);
+            freeTonieInfo(tonieInfoLib);
+        }
+    }
+    else
+    {
+        TRACE_ERROR(">> Invalid TAF, not moving to library\r\n");
+        error = ERROR_INVALID_FILE;
+    }
+    return error;
 }

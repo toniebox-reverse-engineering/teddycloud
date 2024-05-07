@@ -22,6 +22,8 @@
 #define TONIES_JSON_TMP_FILE TONIES_JSON_FILE ".tmp"
 #define TONIES_CUSTOM_JSON_FILE "tonies.custom.json"
 #define TONIESV2_CUSTOM_JSON_FILE "tonies.custom.json"
+#define TONIEBOX_JSON_FILE "tonieboxes.json"
+#define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
 #define CONFIG_VERSION 10

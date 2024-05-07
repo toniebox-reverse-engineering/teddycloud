@@ -33,8 +33,12 @@
     "certificates": {
       "navigationTitle": "Zertifikate",
       "title": "Zertifikate",
-      "uploadText" : "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich",
-      "uploadHint" : "Ziehe die Client-Zertifikate aus deiner Box hierher"
+      "information": "Information",
+      "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der Teddycloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
+      "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich",
+      "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
+      "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
+      "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!"
     }
   },
   "tonies": {
@@ -42,7 +46,28 @@
     "title": "Tonies",
     "tonies": {
       "navigationTitle": "Tonies",
-      "title": "Tonies"
+      "pageSelector": " Tonies / Seite",
+      "title": "Tonies",
+      "filterBar": {
+        "showFilters": "Filter einblenden",
+        "hideFilters": "Filter ausblenden",
+        "searchLabel": "Suche",
+        "searchPlaceholder": "Suchkriterium eingeben",
+        "filterLabel": "Filter",
+        "seriesFilterPlaceholder": "Serie",
+        "episodeFilterPlaceholder": "Episode",
+        "valid": "Gültig",
+        "invalid": "Ungültig",
+        "live": "Live",
+        "unsetLive": "Live nicht gesetzt",
+        "exists": "Existiert",
+        "notExists": "Existiert nicht",
+        "noCloud": "Cloud deaktiviert",
+        "unsetNoCloud": "Cloud aktiviert",
+        "lastPlayed": "Zuletzt gespielt",
+        "applyFilters": "Filter anwenden",
+        "resetFilters": "Filter zurücksetzen"
+      }
     },
     "system-sounds": {
       "navigationTitle": "System Sounds",
@@ -70,8 +95,8 @@
       "saveAs": "Datei speichern unter",
       "removeFile": "Datei entfernen"
     },
-    "messages" : {
-      "couldNotEmptySource" : "Konnte Quelle nicht leeren!",
+    "messages": {
+      "couldNotEmptySource": "Konnte Quelle nicht leeren!",
       "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
       "couldNotSetSource": "Konnte Quelle nicht setzen! ",
       "liveEnabled": "Live aktiviert!",
@@ -81,38 +106,70 @@
       "cloudAccessEnabled": "Cloud-Zugang aktiviert!",
       "couldNotChangeCloudFlag": "Konnte Cloud-Zugriff (nocloud) Flag nicht ändern! ",
       "downloading": "Herunterladen...",
-      "downloadedFile": "Heruntergeladene Datei",
+      "downloadedFile": "Datei heruntergeladen",
       "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
-      "setTonieToModelSuccessful":  "Setze Tonie-Modell auf {{selectedModel}}!",
-      "setTonieToModelFailed":  "Konnte das Tonie-Modell nicht ändern!"
+      "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
+      "setTonieToModelFailed": "Konnte das Tonie-Modell nicht ändern!"
     },
-    "infoModal" : {
-      "model" : "Modell:",
-      "valid" : "Gültig:",
-      "exists" : "Existiert:",
+    "infoModal": {
+      "model": "Modell:",
+      "valid": "Gültig:",
+      "exists": "Existiert:",
       "yes": "Ja",
       "no": "Nein"
     },
-    "editModelModal" : {
-      "editModel" : "Modell bearbeiten ",
-      "placeholderSearchForAModel" : "Nach einem Modell suchen"
+    "lastPlayedOnModal": {
+      "title": "Dieser Tonie wurde zuletzt gespielt!",
+      "lastPlayedOn": "Zuletzt gepielter Tonie",
+      "lastPlayedOnMessage": "Dieser Tonie ist der zuletzt gespielte Tonie auf"
     },
-    "editTagModal" : {
-      "editTag" : "Tag bearbeiten"
+    "editModelModal": {
+      "editModel": "Modell bearbeiten ",
+      "placeholderSearchForAModel": "Nach einem Modell suchen"
+    },
+    "editTagModal": {
+      "editTag": "Tag bearbeiten"
     }
   },
   "tonieboxes": {
-    "navigationTitle" : "Tonieboxen",
+    "navigationTitle": "Tonieboxen",
     "title": "Deine Tonieboxen",
-    "editModelModal" : {
+    "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
+    "editModelModal": {
       "editModel": "Toniebox {{name}} bearbeiten",
       "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
       "name": "Bezeichnung",
-      "model" : "Modell:"      
+      "model": "Modell:"
     },
     "editTonieboxSettingsModal": {
-      "editTonieboxSettingsLabel": "Einstellungen bearbeiten",
+      "editTonieboxSettingsLabel": "Einstellungen",
       "editTonieboxSettings": "Einstellungen der Toniebox {{name}} bearbeiten"
+    },
+    "uploadTonieboxCertificatesModal": {
+      "Label": "Zertifikate",
+      "uploadTonieboxCertificates": "Zertifikate für Toniebox {{name}} hochladen",
+      "uploadPath": "Upload Pfad (certDir):",
+      "boxSpecific": " (Toniebox spezifisch hinterlegt)",
+      "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)"
+    }
+  },
+  "community": {
+    "navigationTitle": "Community",
+    "title": "Community",
+    "contribution": {
+      "navigationTitle": "Contribution",
+      "title": "Contribution"
+    },
+    "contributors": {
+      "navigationTitle": "Contributors",
+      "title": "Contributors"
+    },
+    "changelog": {
+      "navigationTitle": "Changelog",
+      "title": "Changelog / Release notes"
+    },
+    "forum": {
+      "navigationTitle": "Forum"
     }
   },
   "language": {
@@ -121,8 +178,8 @@
     "german": "DE"
   },
   "fileBrowser": {
-    "selectTafOnly" : "Du kannst nur TAF Dateien auswählen!",
-    "maxSelectedRows" : "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
+    "selectTafOnly": "Du kannst nur TAF Dateien auswählen!",
+    "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
     "name": "Name",
     "size": "Größe",
     "model": "Modell",
@@ -130,7 +187,17 @@
     "episode": "Episode",
     "date": "Datum"
   },
-  "tonieArticleSearch" : {
-    "failedToFetchSearchResults" : "Suchergebnisse konnten nicht abgerufen werden: "
+  "tonieArticleSearch": {
+    "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
+  },
+  "security": {
+    "alert": "ALARM, ALAAARM!",
+    "incident_detected": "Ein Sicherheitsvorfall wurde entdeckt! Bitte überprüfe deine Logs!"
+  },
+  "server": {
+    "boxineStatusOffline": "Nicht mit Boxine/Toniecloud verbunden",
+    "boxineStatusOnline": "Mit Boxine/Toniecloud verbunden",
+    "teddycloudStatusOnline": "Teddycloud Server online",
+    "teddycloudStatusOffline": "Teddycloud Server offline"
   }
 }

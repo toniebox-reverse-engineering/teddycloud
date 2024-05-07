@@ -100,6 +100,8 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/toniesJsonUpdate", SERTY_HTTP, &handleApiToniesJsonUpdate},
     {REQ_GET, "/api/toniesJson", SERTY_HTTP, &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", SERTY_HTTP, &handleApiToniesCustomJson},
+    {REQ_GET, "/api/tonieboxesJson", SERTY_HTTP, &handleApiTonieboxJson},
+    {REQ_GET, "/api/tonieboxesCustomJson", SERTY_HTTP, &handleApiTonieboxCustomJson},
     {REQ_GET, "/api/trigger", SERTY_HTTP, &handleApiTrigger},
     {REQ_GET, "/api/getTagIndex", SERTY_HTTP, &handleApiTagIndex},
     {REQ_GET, "/api/getBoxes", SERTY_HTTP, &handleApiGetBoxes},
@@ -108,6 +110,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
     {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
     {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
+    {REQ_POST, "/api/migrateContent2Lib", SERTY_HTTP, &handleApiMigrateContent2Lib},
     {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
     {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
     /* official tonies API */
@@ -520,7 +523,6 @@ bool sanityChecks()
     ret &= sanityCheckDir("internal.datadirfull");
     ret &= sanityCheckDir("internal.wwwdirfull");
     ret &= sanityCheckDir("internal.contentdirfull");
-    ret &= sanityCheckDir("internal.certdirfull");
 
     if (!ret)
     {
@@ -586,24 +588,28 @@ void server_init(bool test)
     https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
     https_settings.isHttps = true;
 
-    if (httpServerInit(&http_context, &http_settings) != NO_ERROR)
+    error_t err = httpServerInit(&http_context, &http_settings);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTP failed\r\n");
+        TRACE_ERROR("httpServerInit() for HTTP failed with code %d\r\n", err);
         return;
     }
-    if (httpServerInit(&https_context, &https_settings) != NO_ERROR)
+    err = httpServerInit(&https_context, &https_settings);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS failed\r\n");
+        TRACE_ERROR("httpServerInit() for HTTPS failed with code %d\r\n", err);
         return;
     }
-    if (httpServerStart(&http_context) != NO_ERROR)
+    err = httpServerStart(&http_context);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTP failed\r\n");
+        TRACE_ERROR("httpServerStart() for HTTP failed with code %d\r\n", err);
         return;
     }
-    if (httpServerStart(&https_context) != NO_ERROR)
+    err = httpServerStart(&https_context);
+    if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerStart() for HTTPS failed\r\n");
+        TRACE_ERROR("httpServerStart() for HTTPS failed with code %d\r\n", err);
         return;
     }
 
@@ -611,6 +617,7 @@ void server_init(bool test)
     if (get_settings()->core.tonies_json_auto_update || test)
     {
         tonies_update();
+        tonieboxes_update();
     }
 
     systime_t last = osGetSystemTime();
