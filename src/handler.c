@@ -678,15 +678,16 @@ void setLastUid(uint64_t uid, settings_t *settings)
 }
 void setLastRuid(char ruid[17], settings_t *settings)
 {
-    char *last_ruid = settings->internal.last_ruid;
-    osStrcpy(last_ruid, ruid);
-    for (size_t i = 0; last_ruid[i] != '\0'; i++)
-    {
-        last_ruid[i] = tolower(last_ruid[i]);
-    }
     if (get_settings() != settings)
     {
-        osStrcpy(get_settings()->internal.last_ruid, last_ruid);
+        if (osStrcmp(settings->internal.last_ruid, ruid) != 0)
+        {
+            for (size_t i = 0; ruid[i] != '\0'; i++)
+            {
+                ruid[i] = tolower(ruid[i]);
+            }
+            settings_set_string_id("internal.last_ruid", ruid, settings->internal.overlayNumber);
+        }
     }
 }
 
