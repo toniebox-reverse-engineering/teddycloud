@@ -498,6 +498,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->updated = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
+    tonieInfo->jsonPath = custom_asprintf("%s.json", contentPath);
     tonieInfo->exists = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
@@ -585,9 +586,9 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
 
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
-    if (tonieInfo->json._updated)
+    if (tonieInfo->json._updated && tonieInfo->json._create_if_missing)
     {
-        save_content_json(tonieInfo->contentPath, &tonieInfo->json);
+        save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
 
     if (tonieInfo->tafHeader)
@@ -599,6 +600,11 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
     {
         osFreeMem(tonieInfo->contentPath);
         tonieInfo->contentPath = NULL;
+    }
+    if (tonieInfo->jsonPath)
+    {
+        osFreeMem(tonieInfo->jsonPath);
+        tonieInfo->jsonPath = NULL;
     }
 
     if (tonieInfo->valid)
@@ -773,7 +779,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
                     free(tonieInfo->json.source);
                     tonieInfo->json.source = strdup(libraryShortPath);
 
-                    save_content_json(tonieInfo->contentPath, &tonieInfo->json);
+                    save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
                     TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
                 }
                 else

@@ -39,12 +39,14 @@ typedef struct
     bool_t _updated;
 
     bool_t _valid;
+    bool_t _create_if_missing;
 
 } contentJson_t;
 
 typedef struct
 {
     char *contentPath;
+    char *jsonPath;
     bool_t exists;
     bool_t valid;
     bool_t updated;
@@ -56,6 +58,6 @@ typedef struct
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing);
 error_t load_content_json_settings(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings);
-error_t save_content_json(const char *content_path, contentJson_t *content_json);
+error_t save_content_json(const char *json_path, contentJson_t *content_json);
 void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, uint8_t *hash);
 void free_content_json(contentJson_t *content_json);

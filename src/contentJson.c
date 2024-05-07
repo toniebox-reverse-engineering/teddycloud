@@ -33,6 +33,8 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
     content_json->_valid = false;
+    content_json->_create_if_missing = create_if_missing;
+    
     osMemset(&content_json->_tap, 0, sizeof(tonie_audio_playlist_t));
 
     if (fsFileExists(jsonPath))
@@ -147,7 +149,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 
     if (error != NO_ERROR && (error != ERROR_FILE_NOT_FOUND || create_if_missing))
     {
-        error = save_content_json(content_path, content_json);
+        error = save_content_json(jsonPath, content_json);
         if (error == NO_ERROR)
         {
             load_content_json_settings(content_path, content_json, true, settings);
@@ -159,10 +161,12 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     return error;
 }
 
-error_t save_content_json(const char *content_path, contentJson_t *content_json)
+error_t save_content_json(const char *json_path, contentJson_t *content_json)
 {
-    char *jsonPath = custom_asprintf("%s.json", content_path);
-    char *jsonPathTmp = custom_asprintf("%s.json.tmp", content_path);
+    char *content_path = osAllocMem(osStrlen(json_path) - 5 + 1);
+    osStrncpy(content_path, json_path, osStrlen(json_path) - 5);
+
+    char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
     cJSON *contentJson = cJSON_CreateObject();
 
@@ -180,7 +184,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
     char *jsonRaw = cJSON_Print(contentJson);
 
     char *dir = strdup(content_path);
-    dir[osStrlen(dir) - 8] = '\0';
+    fsRemoveFilename(dir);
     if (!fsDirExists(dir))
     {
         fsCreateDir(dir);
@@ -200,7 +204,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     if (error == NO_ERROR)
     {
-        error = fsMoveFile(jsonPathTmp, jsonPath, true);
+        error = fsMoveFile(jsonPathTmp, json_path, true);
     }
 
     if (error == NO_ERROR)
@@ -211,7 +215,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     cJSON_Delete(contentJson);
     osFreeMem(jsonRaw);
-    osFreeMem(jsonPath);
+    osFreeMem(content_path);
     osFreeMem(jsonPathTmp);
     return error;
 }

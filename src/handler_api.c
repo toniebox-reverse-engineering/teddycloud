@@ -2200,7 +2200,9 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
 
     if (updated)
     {
-        error = save_content_json(contentPath, &content_json);
+        char *json_path = custom_asprintf("%s.json", contentPath);
+        error = save_content_json(json_path, &content_json);
+        osFreeMem(json_path);
         if (error != NO_ERROR)
         {
             return error;
