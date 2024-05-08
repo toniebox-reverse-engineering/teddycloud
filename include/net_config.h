@@ -33,6 +33,7 @@
 
 #include "settings.h"
 #include "toniebox_state_type.h"
+#include "pcaplog_types.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
 #define JWT_AUTH_TOKEN_LENGTH 32
@@ -48,7 +49,11 @@ typedef struct
 {
     uint8_t authentication_token[TONIE_AUTH_TOKEN_LENGTH];
     client_ctx_t client_ctx;
-
+    pcaplog_t pcap_data;
+    uint32_t hostIpAddr;
+    uint32_t clientIpAddr;
+    uint16_t hostPort;
+    uint16_t clientPort;
 } http_connection_private_t;
 
 #define CONTENT_LENGTH_MAX (INT32_MAX)

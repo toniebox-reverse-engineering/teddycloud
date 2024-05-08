@@ -147,6 +147,8 @@ ifneq ($(NO_SANITIZERS),1)
 	CFLAGS_linux += -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer 
 	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 endif
+
+
 CFLAGS_linux += $(OPTI_LEVEL)
 
 ## win32 specific headers/sources
@@ -367,7 +369,6 @@ CFLAGS += $(INCLUDES)
 # for opus encoder
 CFLAGS += -DUSE_ALLOCA -DOPUS_BUILD
 CFLAGS_linux += -Wno-error=stringop-overflow= -Wno-error=stringop-overread
-
 
 THIS_MAKEFILE := $(lastword $(MAKEFILE_LIST))
 

@@ -18,6 +18,7 @@ typedef enum
     MUTEX_MQTT_TX_BUFFER,
     MUTEX_MQTT_BOX,
     MUTEX_TONIES_JSON_CACHE,
+    MUTEX_PCAPLOG_FILE,
     MUTEX_LAST
 } mutex_id_t;
 

@@ -42,6 +42,7 @@
 #include "str.h"
 #include "path.h"
 #include "debug.h"
+#include "pcaplog.h"
 
 //Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
@@ -984,6 +985,8 @@ error_t httpSend(HttpConnection *connection,
       //Transmit data to the client
       error = socketSend(connection->socket, data, length, NULL, flags);
    }
+   
+   pcaplog_write(&connection->private, true, (const uint8_t *)data, length);
 
    //Return status code
    return error;
@@ -1032,6 +1035,8 @@ error_t httpReceive(HttpConnection *connection,
       //Receive data from the client
       error = socketReceive(connection->socket, data, size, received, flags);
    }
+   
+   pcaplog_write(&connection->private, true, (const uint8_t *)data, *received);
 
    //Return status code
    return error;

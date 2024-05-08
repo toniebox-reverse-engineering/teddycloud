@@ -279,6 +279,12 @@ typedef struct
 
 typedef struct
 {
+    bool enabled;
+    char *filename;
+} settings_pcap_t;
+
+typedef struct
+{
     uint32_t configVersion;
     char *commonName;
     char *boxName;
@@ -293,6 +299,7 @@ typedef struct
     settings_internal_t internal;
     settings_log_t log;
     settings_rtnl_t rtnl;
+    settings_pcap_t pcap;
 } settings_t;
 
 typedef enum
