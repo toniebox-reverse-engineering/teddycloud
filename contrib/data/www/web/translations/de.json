@@ -109,26 +109,37 @@
       "downloadedFile": "Datei heruntergeladen",
       "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
       "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
-      "setTonieToModelFailed": "Konnte das Tonie-Modell nicht ändern!"
+      "setTonieToModelFailed": "Konnte das Tonie-Modell nicht ändern!",
+      "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
+      "setTonieToSourceFailed": "Konnte die Tonie-Quelle nicht ändern!",
+      "setToEmptyValue": "leer"
     },
     "infoModal": {
       "model": "Modell:",
       "valid": "Gültig:",
       "exists": "Existiert:",
       "yes": "Ja",
-      "no": "Nein"
+      "no": "Nein",
+      "tracklist": "Trackliste:"
     },
     "lastPlayedOnModal": {
       "title": "Dieser Tonie wurde zuletzt gespielt!",
       "lastPlayedOn": "Zuletzt gepielter Tonie",
       "lastPlayedOnMessage": "Dieser Tonie ist der zuletzt gespielte Tonie auf"
     },
-    "editModelModal": {
-      "editModel": "Modell bearbeiten ",
-      "placeholderSearchForAModel": "Nach einem Modell suchen"
+    "editModal": {
+      "title": "Modell bearbeiten",
+      "placeholderSearchForAModel": "Nach einem Modell suchen",
+      "source": "Quelle",
+      "model": "Modell",
+      "save": "Speichern"
     },
-    "editTagModal": {
-      "editTag": "Tag bearbeiten"
+    "selectFileModal": {
+      "selectFile": "TAF-Datei auswählen"
+    },
+    "informationModal": {
+      "unknownModel": "Unbekanntes Model",
+      "ok": "OK"
     }
   },
   "tonieboxes": {
