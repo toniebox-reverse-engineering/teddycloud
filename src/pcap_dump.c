@@ -1,8 +1,5 @@
 /* based on https://github.com/luongnv89/pcap-dump */
 
-#include <sys/time.h>
-#include <fcntl.h>
-
 #include "pcap_dump.h"
 #include "fs_port.h"
 
