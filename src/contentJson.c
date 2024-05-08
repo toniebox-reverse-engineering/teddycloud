@@ -163,15 +163,22 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 
 error_t save_content_json(const char *json_path, contentJson_t *content_json)
 {
-    char *content_path = strdup(json_path);
-    char *last_dot = strrchr(content_path, '.');
-    if (last_dot == NULL || osStrcmp(last_dot, ".json"))
+    /* retrieve content directory */
+    char *content_dir = strdup(json_path);
+
+    if (fsRemoveFilename(content_dir) != NO_ERROR)
     {
-        TRACE_ERROR("Error retrieving content path from json path.\r\n");
+        TRACE_ERROR("Error retrieving content directory from json path.\r\n");
         TRACE_ERROR("  json_path: '%s'\r\n", json_path);
         return ERROR_INVALID_PARAMETER;
     }
-    *last_dot = '\0';
+    /* create if not existing */
+    if (!fsDirExists(content_dir))
+    {
+        TRACE_INFO("Content dir for JSON '%s' not existing, creating it.\r\n", json_path);
+        fsCreateDir(content_dir);
+    }
+    osFreeMem(content_dir);
 
     char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
@@ -189,14 +196,6 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);
-
-    char *dir = strdup(content_path);
-    fsRemoveFilename(dir);
-    if (!fsDirExists(dir))
-    {
-        fsCreateDir(dir);
-    }
-    osFreeMem(dir);
 
     FsFile *file = fsOpenFile(jsonPathTmp, FS_FILE_MODE_WRITE);
     if (file != NULL)
@@ -222,7 +221,6 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
 
     cJSON_Delete(contentJson);
     osFreeMem(jsonRaw);
-    osFreeMem(content_path);
     osFreeMem(jsonPathTmp);
     return error;
 }

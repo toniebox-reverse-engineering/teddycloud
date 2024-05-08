@@ -2159,7 +2159,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     {
         if (osStrcmp(item_data, content_json.source))
         {
-            content_json.source = item_data;
+            content_json.source = strdup(item_data);
             updated = true;
         }
     }
