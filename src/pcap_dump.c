@@ -1,6 +1,5 @@
 /* based on https://github.com/luongnv89/pcap-dump */
 
-#include <unistd.h>
 #include <sys/time.h>
 #include <fcntl.h>
 
