@@ -34,7 +34,7 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     content_json->tonie_model = NULL;
     content_json->_valid = false;
     content_json->_create_if_missing = create_if_missing;
-    
+
     osMemset(&content_json->_tap, 0, sizeof(tonie_audio_playlist_t));
 
     if (fsFileExists(jsonPath))
@@ -163,8 +163,15 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 
 error_t save_content_json(const char *json_path, contentJson_t *content_json)
 {
-    char *content_path = osAllocMem(osStrlen(json_path) - 5 + 1);
-    osStrncpy(content_path, json_path, osStrlen(json_path) - 5);
+    char *content_path = strdup(json_path);
+    char *last_dot = strrchr(content_path, '.');
+    if (last_dot == NULL || osStrcmp(last_dot, ".json"))
+    {
+        TRACE_ERROR("Error retrieving content path from json path.\r\n");
+        TRACE_ERROR("  json_path: '%s'\r\n", json_path);
+        return ERROR_INVALID_PARAMETER;
+    }
+    *last_dot = '\0';
 
     char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
