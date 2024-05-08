@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <netinet/tcp.h>
 #include <netinet/ip.h>
-#include <sys/time.h>
 
 #include "settings.h"
 #include "pcaplog.h"
@@ -96,11 +95,8 @@ void pcaplog_write(http_connection_private_t *ctx, bool is_tx, const uint8_t *pa
     memcpy(packet + sizeof(ip_header), &tcp_header, sizeof(tcp_header));
     memcpy(packet + sizeof(ip_header) + sizeof(tcp_header), payload, payload_len);
 
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
     mutex_lock(MUTEX_PCAPLOG_FILE);
-    pd_write(pcap, packet, packet_len, tv);
+    pd_write(pcap, packet, packet_len);
     mutex_unlock(MUTEX_PCAPLOG_FILE);
 
     free(packet);

@@ -84,10 +84,9 @@ FsFile *pd_create(const char *path, int linktype, int thiszone, int snaplen);
  * @param  fd  points to the pcap file
  * @param  buf packet data
  * @param  len length of packet
- * @param  tv  timestamp
  * @return
  */
-int pd_write(FsFile *fd, uint8_t *buf, int len, struct timeval tv);
+int pd_write(FsFile *fd, uint8_t *buf, int len);
 /**
  * Close a pcap file after finish writing
  * @param fd points to pcap file

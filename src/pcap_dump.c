@@ -20,7 +20,7 @@ int pd_write_header(FsFile *fd, int linktype, int thiszone, int snaplen)
     return 0;
 }
 
-int pd_write(FsFile *fd, uint8_t *buf, int len, struct timeval tv)
+int pd_write(FsFile *fd, uint8_t *buf, int len)
 {
     struct pd_pcap_pkthdr h;
 
@@ -29,8 +29,10 @@ int pd_write(FsFile *fd, uint8_t *buf, int len, struct timeval tv)
         len = 65535;
     }
 
-    h.ts.tv_sec = (uint32_t)tv.tv_sec;
-    h.ts.tv_usec = (uint32_t)tv.tv_usec;
+    systime_t systime = osGetSystemTime();
+
+    h.ts.tv_sec = systime / 1000;
+    h.ts.tv_usec = (systime * 1000) % 1000000;
 
     h.caplen = len;
     h.len = len;
