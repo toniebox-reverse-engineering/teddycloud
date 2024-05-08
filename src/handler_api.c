@@ -2159,6 +2159,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     {
         if (osStrcmp(item_data, content_json.source))
         {
+            osFreeMem(content_json.source);
             content_json.source = strdup(item_data);
             updated = true;
         }
@@ -2167,7 +2168,8 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     {
         if (osStrcmp(item_data, content_json.tonie_model))
         {
-            content_json.tonie_model = item_data;
+            osFreeMem(content_json.tonie_model);
+            content_json.tonie_model = strdup(item_data);
             updated = true;
         }
     }
