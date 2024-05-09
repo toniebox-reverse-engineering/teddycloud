@@ -124,6 +124,8 @@ Socket *socketAccept(Socket *socket, IpAddr *clientIpAddr,
 
     newsock->descriptor = ret;
     newsock->interface = NULL;
+    newsock->remoteIpAddr = *clientIpAddr;
+    newsock->remotePort = *clientPort;
 
     return newsock;
 }
