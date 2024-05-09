@@ -314,10 +314,6 @@ void httpListenerTask(void *param)
                // Reference to the new socket
                connection->socket = socket;
 
-               /* store information for pcap, remote is done in socketAccept */
-               connection->socket->localIpAddr = connection->settings->ipAddr;
-               connection->socket->localPort = connection->settings->port;
-
                // Set timeout for blocking functions
                socketSetTimeout(connection->socket, HTTP_SERVER_TIMEOUT);
 

@@ -78,6 +78,9 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
         return ERROR_FAILURE;
     }
 
+    socket->localIpAddr = *localIpAddr;
+    socket->localPort = localPort;
+
     // printf("socketBind done %d %s\n", ret, strerror(errno));
 
     return NO_ERROR;
@@ -192,6 +195,9 @@ error_t socketConnect(Socket *socket, const IpAddr *remoteIpAddr,
     sa->sin_addr.s_addr = remoteIpAddr->ipv4Addr;
 
     int ret = connect(socket->descriptor, &addr, sizeof(addr));
+
+    socket->remoteIpAddr = *remoteIpAddr;
+    socket->remotePort = remotePort;
 
     return ret != -1 ? NO_ERROR : ERROR_ACCESS_DENIED;
 }
