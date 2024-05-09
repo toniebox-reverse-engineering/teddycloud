@@ -296,6 +296,9 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     }
     client_ctx->state->box.id = client_ctx->settings->commonName;
     client_ctx->state->box.name = client_ctx->settings->boxName;
+
+    char *ipStr = ipAddrToString(&connection->socket->remoteIpAddr, NULL); // TODO remoteIpAddr is not available
+    settings_set_string_id("internal.ip", ipStr, client_ctx->settings->internal.overlayNumber);
     mutex_unlock(MUTEX_CLIENT_CTX);
 
     connection->response.keepAlive = connection->request.keepAlive;

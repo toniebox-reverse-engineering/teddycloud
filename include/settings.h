@@ -217,6 +217,7 @@ typedef struct
 
     time_t last_connection;
     char *last_ruid;
+    char *ip;
     bool online;
 } settings_internal_t;
 
@@ -283,6 +284,7 @@ typedef struct
     char *commonName;
     char *boxName;
     char *boxModel;
+    char *ip;
     settings_core_t core;
     settings_cloud_t cloud;
     settings_encode_t encode;
