@@ -226,6 +226,10 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("rtnl.logRawFile", &settings->rtnl.logRawFile, "config/rtnl.bin", "RTNL bin file", "Specify the filepath for raw RTNL log")
     OPTION_STRING("rtnl.logHumanFile", &settings->rtnl.logHumanFile, "config/rtnl.csv", "RTNL csv file", "Specify the filepath for human-readable RTNL log")
 
+    OPTION_TREE_DESC("pcap", "libpcap packet log")
+    OPTION_BOOL("pcap.enabled", &settings->pcap.enabled, FALSE, "Log HTTP(S) traffic", "Enable logging for HTTP(S) traffic into a .pcap file (needs restart)")
+    OPTION_STRING("pcap.filename", &settings->pcap.filename, "config/traffic.pcap", "libpcap log file", "Specify the filepath for libpcap log")
+
     OPTION_TREE_DESC("mqtt", "MQTT")
     OPTION_BOOL("mqtt.enabled", &settings->mqtt.enabled, FALSE, "Enable MQTT", "Enable MQTT client")
     OPTION_STRING("mqtt.hostname", &settings->mqtt.hostname, "", "MQTT hostname", "IP or Hostname of the MQTT server")

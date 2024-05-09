@@ -314,6 +314,12 @@ void httpListenerTask(void *param)
                // Reference to the new socket
                connection->socket = socket;
 
+               /* store information for pcap */
+               connection->private.clientIpAddr = clientIpAddr.ipv4Addr;
+               connection->private.clientPort = clientPort;
+               connection->private.hostIpAddr = connection->settings->ipAddr.ipv4Addr;
+               connection->private.hostPort = connection->settings->port;
+
                // Set timeout for blocking functions
                socketSetTimeout(connection->socket, HTTP_SERVER_TIMEOUT);
 
