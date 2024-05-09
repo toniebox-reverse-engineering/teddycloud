@@ -7,4 +7,4 @@
 
 void pcaplog_open();
 void pcaplog_close();
-void pcaplog_write(http_connection_private_t *ctx, bool is_tx, const uint8_t *http_data, size_t http_len);
+void pcaplog_write(pcaplog_ctx_t* ctx, bool is_tx, const uint8_t *payload, size_t payload_len);

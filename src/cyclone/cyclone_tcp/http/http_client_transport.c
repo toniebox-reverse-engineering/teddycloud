@@ -36,6 +36,7 @@
 #include "http/http_client.h"
 #include "http/http_client_transport.h"
 #include "debug.h"
+#include "pcaplog.h"
 
 //Check TCP/IP stack configuration
 #if (HTTP_CLIENT_SUPPORT == ENABLED)
@@ -245,6 +246,14 @@ error_t httpClientSendData(HttpClientContext *context, const void *data,
       //Transmit data
       error = socketSend(context->socket, data, length, written, flags);
    }
+   
+   pcaplog_ctx_t ctx;
+   ctx.local_endpoint.ipv4 = 0;
+   ctx.local_endpoint.port = context->socket->localPort;
+   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
+   ctx.remote_endpoint.port = context->socket->remotePort;
+   ctx.pcap_data = &context->private.pcap_data;
+   pcaplog_write(&ctx, true, (const uint8_t *)data, length);
 
    //Return status code
    return error;
@@ -279,6 +288,14 @@ error_t httpClientReceiveData(HttpClientContext *context, void *data,
       //Receive data
       error = socketReceive(context->socket, data, size, received, flags);
    }
+
+   pcaplog_ctx_t ctx;
+   ctx.local_endpoint.ipv4 = 0;
+   ctx.local_endpoint.port = context->socket->localPort;
+   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
+   ctx.remote_endpoint.port = context->socket->remotePort;
+   ctx.pcap_data = &context->private.pcap_data;
+   pcaplog_write(&ctx, false, (const uint8_t *)data, *received);
 
    //Return status code
    return error;

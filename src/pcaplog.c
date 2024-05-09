@@ -46,12 +46,15 @@ void pcaplog_close()
     pcap = 0;
 }
 
-void pcaplog_write(http_connection_private_t *ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
+void pcaplog_write(pcaplog_ctx_t* ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
 {
     if (!pcap || !payload_len || !ctx)
     {
         return;
     }
+
+    pcaplog_endpoint_t src = is_tx ? ctx->local_endpoint : ctx->remote_endpoint;
+    pcaplog_endpoint_t dst = !is_tx ? ctx->local_endpoint : ctx->remote_endpoint;
 
     size_t packet_len = sizeof(struct ip) + sizeof(struct tcphdr) + payload_len;
     uint8_t *packet = malloc(packet_len);
@@ -66,14 +69,14 @@ void pcaplog_write(http_connection_private_t *ctx, bool is_tx, const uint8_t *pa
     ip_header.ip_ttl = 64;
     ip_header.ip_p = IPPROTO_TCP;
     ip_header.ip_sum = 0;
-    ip_header.ip_src.s_addr = is_tx ? ctx->hostIpAddr : ctx->clientIpAddr;
-    ip_header.ip_dst.s_addr = !is_tx ? ctx->hostIpAddr : ctx->clientIpAddr;
+    ip_header.ip_src.s_addr = src.ipv4;
+    ip_header.ip_dst.s_addr = dst.ipv4;
 
     struct tcphdr tcp_header;
-    tcp_header.th_sport = htons(is_tx ? ctx->hostPort : ctx->clientPort);
-    tcp_header.th_dport = htons(!is_tx ? ctx->hostPort : ctx->clientPort);
-    tcp_header.th_ack = htonl(!is_tx ? ctx->pcap_data.seq_tx : ctx->pcap_data.seq_rx);
-    tcp_header.th_seq = htonl(is_tx ? ctx->pcap_data.seq_tx : ctx->pcap_data.seq_rx);
+    tcp_header.th_sport = htons(src.port);
+    tcp_header.th_dport = htons(dst.port);
+    tcp_header.th_ack = htonl(!is_tx ? ctx->pcap_data->seq_tx : ctx->pcap_data->seq_rx);
+    tcp_header.th_seq = htonl(is_tx ? ctx->pcap_data->seq_tx : ctx->pcap_data->seq_rx);
     tcp_header.th_x2 = 0;
     tcp_header.th_off = 5;
     tcp_header.th_flags = TH_ACK;
@@ -84,11 +87,11 @@ void pcaplog_write(http_connection_private_t *ctx, bool is_tx, const uint8_t *pa
 
     if (is_tx)
     {
-        ctx->pcap_data.seq_tx += payload_len;
+        ctx->pcap_data->seq_tx += payload_len;
     }
     else
     {
-        ctx->pcap_data.seq_rx += payload_len;
+        ctx->pcap_data->seq_rx += payload_len;
     }
 
     memcpy(packet, &ip_header, sizeof(ip_header));
