@@ -119,7 +119,7 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     {
         if (queryGet(queryString, "overlay", overlay, overlay_size))
         {
-            TRACE_INFO("got overlay '%s'\r\n", overlay);
+            TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
     }
 
@@ -226,7 +226,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     osStrcpy(overlay, "");
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     for (size_t pos = 0; pos < settings_get_size(); pos++)
     {
@@ -383,7 +383,7 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     osStrcpy(overlay, "");
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
@@ -447,7 +447,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
         osStrcpy(overlay, "");
         if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
         {
-            TRACE_INFO("got overlay '%s'\r\n", overlay);
+            TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
         setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
         bool success = false;
@@ -521,7 +521,7 @@ error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, co
     osStrcpy(overlay, "");
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
     setting_item_t *opt_src = settings_get_by_name(item);
@@ -1021,7 +1021,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
     char overlay[16];
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
 
