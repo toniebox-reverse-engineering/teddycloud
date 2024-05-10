@@ -118,7 +118,8 @@ int_t cloud_request(const char *server, int port, bool https, const char *uri, c
 }
 error_t web_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr, bool isCloud, bool printTextData)
 {
-    client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr->ctx)->client_ctx;
+    cbr_ctx_t *cbr_ctx = (cbr_ctx_t *)cbr->ctx;
+    client_ctx_t *client_ctx = cbr_ctx->client_ctx;
     settings_t *settings;
     error_t error = NO_ERROR;
     static int redirect_counter = 0;
@@ -260,6 +261,11 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                     osStrcat(auth_line, tmp);
                 }
                 httpClientAddHeaderField(&httpClientContext, "Authorization", auth_line);
+            }
+
+            if (cbr_ctx->user_agent)
+            {
+                httpClientAddHeaderField(&httpClientContext, "User-Agent", cbr_ctx->user_agent);
             }
 
             // Send HTTP request header
