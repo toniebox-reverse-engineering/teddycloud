@@ -93,7 +93,7 @@ void sanitizePath(char *path, bool isDir)
     }
 }
 
-error_t queryPrepare(const char *queryString, const char **rootPath, char *overlay, size_t overlay_size)
+error_t queryPrepare(const char *queryString, const char **rootPath, char *overlay, size_t overlay_size, settings_t **settings)
 {
     char special[16];
 
@@ -105,6 +105,8 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
         if (queryGet(queryString, "overlay", overlay, overlay_size))
         {
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
+
+            *settings = get_settings_ovl(overlay);
         }
     }
 
@@ -177,6 +179,7 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
     char *response = "OK";
     error_t ret = NO_ERROR;
 
@@ -187,7 +190,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
     osStrcpy(path, "");
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -565,8 +568,9 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
 {
     char overlay[16];
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -622,7 +626,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
         cJSON_AddBoolToObject(jsonEntry, "isDir", isDir);
 
-        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, settings);
         toniesJson_item_t *item = NULL;
         if (tafInfo->valid)
         {
@@ -725,8 +729,9 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
     {
         char overlay[16];
         const char *rootPath = NULL;
+        settings_t *settings = client_ctx->settings;
 
-        if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+        if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
         {
             return ERROR_FAILURE;
         }
@@ -787,7 +792,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[3 + 1 + 8 + 1 + 40 + 1 + 64 + 1 + 64];
             desc[0] = 0;
-            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, settings);
             toniesJson_item_t *item = NULL;
             if (tafInfo->valid)
             {
@@ -1342,8 +1347,9 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     osStrcpy(path, "");
 
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1405,39 +1411,24 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
-
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
 
     char ogg[16];
     char overlay[16];
-    char special[16];
-
     osStrcpy(ogg, "");
     osStrcpy(overlay, "");
-    osStrcpy(special, "");
+
+    const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
     if (!queryGet(queryString, "ogg", ogg, sizeof(ogg)))
     {
         strcpy(ogg, "false");
     }
-    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
-    {
-        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
-    }
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_DEBUG("requested index for special '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
-        {
-            rootPath = settings_get_string("internal.librarydirfull");
 
-            if (rootPath == NULL || !fsDirExists(rootPath))
-            {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
-            }
-        }
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
     }
 
     bool skipFileHeader = !strcmp(ogg, "true");
@@ -1456,7 +1447,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
+    tonie_info_t *tafInfo = getTonieInfo(file_path, settings);
 
     if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
@@ -1590,8 +1581,9 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
 
     char overlay[16];
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1749,8 +1741,9 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     osStrcpy(audio_id_str, "");
 
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1851,8 +1844,9 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
 {
     char overlay[16];
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1900,8 +1894,9 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
 {
     char overlay[16];
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1948,8 +1943,9 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 {
     char overlay[16];
     const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -2075,22 +2071,13 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
 }
 error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
-    char special[16];
-    osStrcpy(special, "");
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_DEBUG("requested index for special '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
-        {
-            rootPath = settings_get_string("internal.librarydirfull");
+    char overlay[16];
+    const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
 
-            if (rootPath == NULL || !fsDirExists(rootPath))
-            {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
-            }
-        }
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
     }
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
     return httpSendResponseUnsafe(connection, uri, file_path);
@@ -2100,7 +2087,9 @@ error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, 
 {
     char overlay[16];
     const char *rootPath = NULL;
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    settings_t *settings = client_ctx->settings;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -2111,7 +2100,7 @@ error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, 
     }
     char ruid[17];
     osStrcpy(ruid, &uri[osStrlen(uri) - 16]);
-    getContentPathFromCharRUID(ruid, contentPath, get_settings_ovl(overlay));
+    getContentPathFromCharRUID(ruid, contentPath, settings);
 
     return NO_ERROR;
 }
@@ -2224,7 +2213,9 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
 {
     char overlay[16];
     const char *rootPath = NULL;
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    settings_t *settings = client_ctx->settings;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -2325,7 +2316,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             }
             char *tagPath = custom_asprintf("%s%c%s", subDirPath, PATH_SEPARATOR, subEntry.name);
             tagPath[osStrlen(tagPath) - 5] = '\0';
-            tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
+            tonie_info_t *tafInfo = getTonieInfo(tagPath, settings);
 
             contentJson_t contentJson;
             load_content_json(tagPath, &contentJson, false);
@@ -2470,6 +2461,15 @@ error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    char overlay[16];
+    const char *rootPath = NULL;
+    settings_t *settings = client_ctx->settings;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
     char_t post_data[BODY_BUFFER_SIZE];
     error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
@@ -2492,11 +2492,11 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         if (osStrlen(ruid) == 16)
         {
             tonie_info_t *tonieInfo;
-            tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+            tonieInfo = getTonieInfoFromRuid(ruid, settings);
 
             if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
             {
-                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+                error = moveTAF2Lib(tonieInfo, settings, lib_root);
             }
             else
             {
