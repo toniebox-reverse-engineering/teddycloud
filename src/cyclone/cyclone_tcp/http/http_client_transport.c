@@ -167,6 +167,15 @@ error_t httpClientShutdownConnection(HttpClientContext *context)
 
    //Initialize status code
    error = NO_ERROR;
+   
+   pcaplog_ctx_t ctx;
+   ctx.local_endpoint.ipv4 = 0;
+   ctx.local_endpoint.port = context->socket->localPort;
+   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
+   ctx.remote_endpoint.port = context->socket->remotePort;
+   ctx.pcap_data = &context->private.pcap_data;
+   pcaplog_reset(&ctx);
+
 
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Valid TLS context?

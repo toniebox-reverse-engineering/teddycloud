@@ -3,6 +3,7 @@
 
 typedef struct
 {
+    bool established;
     uint32_t seq_rx;
     uint32_t seq_tx;
 } pcaplog_t;
