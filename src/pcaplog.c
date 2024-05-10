@@ -45,9 +45,9 @@ void pcaplog_close()
     pcap = 0;
 }
 
-void pcaplog_write(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
+static void pcaplog_write_flags(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_t payload_len, uint8_t flags)
 {
-    if (!pcap || !payload_len || !ctx)
+    if (!pcap || !ctx)
     {
         return;
     }
@@ -74,23 +74,26 @@ void pcaplog_write(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_
     pcaplog_tcphdr_t tcp_header;
     tcp_header.th_sport = htons(src.port);
     tcp_header.th_dport = htons(dst.port);
-    tcp_header.th_ack = htonl(!is_tx ? ctx->pcap_data->seq_tx : ctx->pcap_data->seq_rx);
+    tcp_header.th_ack = htonl(is_tx ? ctx->pcap_data->seq_rx : ctx->pcap_data->seq_tx);
     tcp_header.th_seq = htonl(is_tx ? ctx->pcap_data->seq_tx : ctx->pcap_data->seq_rx);
     tcp_header.th_x2 = 0;
     tcp_header.th_off = 5;
-    tcp_header.th_flags = TH_ACK;
+    tcp_header.th_flags = flags;
     tcp_header.th_win = htons(65535);
     tcp_header.th_sum = 0;
     tcp_header.th_urp = 0;
     tcp_header.th_sum = 0xFFFF;
 
+    /* if SYN or FIN is set, seq is increased */
+    uint32_t syn_inc = payload_len ? payload_len : ((flags & (TH_SYN | TH_FIN)) ? 1 : 0);
+
     if (is_tx)
     {
-        ctx->pcap_data->seq_tx += payload_len;
+        ctx->pcap_data->seq_tx += syn_inc;
     }
     else
     {
-        ctx->pcap_data->seq_rx += payload_len;
+        ctx->pcap_data->seq_rx += syn_inc;
     }
 
     memcpy(packet, &ip_header, sizeof(ip_header));
@@ -102,4 +105,36 @@ void pcaplog_write(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_
     mutex_unlock(MUTEX_PCAPLOG_FILE);
 
     free(packet);
+}
+
+void pcaplog_write(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
+{
+    if (!pcap || !payload_len || !ctx)
+    {
+        return;
+    }
+
+    /* fake 3-way handshake for first seen connections  */
+    if (!ctx->pcap_data->established)
+    {
+        ctx->pcap_data->established = true;
+
+        pcaplog_write_flags(ctx, is_tx, NULL, 0, TH_SYN);
+        pcaplog_write_flags(ctx, !is_tx, NULL, 0, TH_SYN | TH_ACK);
+        pcaplog_write_flags(ctx, is_tx, NULL, 0, TH_ACK);
+    }
+    pcaplog_write_flags(ctx, is_tx, payload, payload_len, TH_ACK);
+}
+
+void pcaplog_reset(pcaplog_ctx_t *ctx)
+{
+    if (!pcap || !ctx)
+    {
+        return;
+    }
+
+    pcaplog_write_flags(ctx, true, NULL, 0, TH_FIN | TH_ACK);
+    pcaplog_write_flags(ctx, false, NULL, 0, TH_ACK);
+    pcaplog_write_flags(ctx, false, NULL, 0, TH_FIN | TH_ACK);
+    pcaplog_write_flags(ctx, true, NULL, 0, TH_ACK);
 }
