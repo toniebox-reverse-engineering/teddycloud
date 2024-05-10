@@ -5,13 +5,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <netinet/tcp.h>
-#include <netinet/ip.h>
 
 #include "settings.h"
 #include "pcaplog.h"
 #include "pcap_dump.h"
 #include "mutex_manager.h"
+#include "cpu_endian.h"
 
 static FsFile *pcap = NULL;
 
@@ -46,7 +45,7 @@ void pcaplog_close()
     pcap = 0;
 }
 
-void pcaplog_write(pcaplog_ctx_t* ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
+void pcaplog_write(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *payload, size_t payload_len)
 {
     if (!pcap || !payload_len || !ctx)
     {
@@ -56,10 +55,10 @@ void pcaplog_write(pcaplog_ctx_t* ctx, bool is_tx, const uint8_t *payload, size_
     pcaplog_endpoint_t src = is_tx ? ctx->local_endpoint : ctx->remote_endpoint;
     pcaplog_endpoint_t dst = !is_tx ? ctx->local_endpoint : ctx->remote_endpoint;
 
-    size_t packet_len = sizeof(struct ip) + sizeof(struct tcphdr) + payload_len;
+    size_t packet_len = sizeof(pcaplog_ip_t) + sizeof(pcaplog_tcphdr_t) + payload_len;
     uint8_t *packet = malloc(packet_len);
 
-    struct ip ip_header;
+    pcaplog_ip_t ip_header;
     ip_header.ip_hl = 5;
     ip_header.ip_v = 4;
     ip_header.ip_tos = 0;
@@ -67,12 +66,12 @@ void pcaplog_write(pcaplog_ctx_t* ctx, bool is_tx, const uint8_t *payload, size_
     ip_header.ip_id = 0;
     ip_header.ip_off = 0;
     ip_header.ip_ttl = 64;
-    ip_header.ip_p = IPPROTO_TCP;
+    ip_header.ip_p = 6; // IPPROTO_TCP;
     ip_header.ip_sum = 0;
-    ip_header.ip_src.s_addr = src.ipv4;
-    ip_header.ip_dst.s_addr = dst.ipv4;
+    ip_header.ip_src = src.ipv4;
+    ip_header.ip_dst = dst.ipv4;
 
-    struct tcphdr tcp_header;
+    pcaplog_tcphdr_t tcp_header;
     tcp_header.th_sport = htons(src.port);
     tcp_header.th_dport = htons(dst.port);
     tcp_header.th_ack = htonl(!is_tx ? ctx->pcap_data->seq_tx : ctx->pcap_data->seq_rx);

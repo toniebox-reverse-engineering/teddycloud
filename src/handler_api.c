@@ -100,21 +100,6 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     osStrcpy(overlay, "");
     osStrcpy(special, "");
 
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_DEBUG("requested index for '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
-        {
-            *rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
-
-            if (*rootPath == NULL || !fsDirExists(*rootPath))
-            {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", *rootPath);
-                return ERROR_FAILURE;
-            }
-        }
-    }
-
     if (overlay)
     {
         if (queryGet(queryString, "overlay", overlay, overlay_size))
@@ -129,6 +114,21 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     {
         TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", *rootPath);
         return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "special", special, sizeof(special)))
+    {
+        TRACE_DEBUG("requested index for '%s'\r\n", special);
+        if (!osStrcmp(special, "library"))
+        {
+            *rootPath = settings_get_string_ovl("internal.librarydirfull", overlay);
+
+            if (*rootPath == NULL || !fsDirExists(*rootPath))
+            {
+                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", *rootPath);
+                return ERROR_FAILURE;
+            }
+        }
     }
 
     return NO_ERROR;
