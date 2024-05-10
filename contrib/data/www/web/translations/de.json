@@ -44,10 +44,13 @@
   "tonies": {
     "navigationTitle": "Tonies",
     "title": "Tonies",
+    "unsetTonie": "Tonie/Tag",
     "tonies": {
       "navigationTitle": "Tonies",
       "pageSelector": " Tonies / Seite",
       "title": "Tonies",
+      "showPagination": "Pagination einblenden",
+      "showAll": "Zeige alle",
       "filterBar": {
         "showFilters": "Filter einblenden",
         "hideFilters": "Filter ausblenden",
@@ -147,18 +150,24 @@
     "title": "Deine Tonieboxen",
     "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
     "editModelModal": {
-      "editModel": "Toniebox {{name}} bearbeiten",
+      "editModel": "Toniebox \"{{name}}\" bearbeiten",
       "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
       "name": "Bezeichnung",
-      "model": "Modell:"
+      "model": "Modell",
+      "unsetBoxName": "Modell unbekannt/ungesetzt",
+      "errorOnNameChange": "Fehler beim Speichern des Namens: {{error}}",
+      "successOnNameChange": "Der Name der Toniebox wurde geändert",
+      "errorOnModelChange": "Fehler beim Speichern des Models: {{error}}",
+      "successOnModelChange": "Das Model der Toniebox wurde geändert",
+      "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen"
     },
     "editTonieboxSettingsModal": {
       "editTonieboxSettingsLabel": "Einstellungen",
-      "editTonieboxSettings": "Einstellungen der Toniebox {{name}} bearbeiten"
+      "editTonieboxSettings": "Einstellungen der Toniebox \"{{name}}\" bearbeiten"
     },
     "uploadTonieboxCertificatesModal": {
       "Label": "Zertifikate",
-      "uploadTonieboxCertificates": "Zertifikate für Toniebox {{name}} hochladen",
+      "uploadTonieboxCertificates": "Zertifikate für Toniebox \"{{name}}\" hochladen",
       "uploadPath": "Upload Pfad (certDir):",
       "boxSpecific": " (Toniebox spezifisch hinterlegt)",
       "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)"
@@ -169,7 +178,12 @@
     "title": "Community",
     "contribution": {
       "navigationTitle": "Contribution",
-      "title": "Contribution"
+      "title": "Contribution",
+      "toniesJson": {
+        "navigationTitle": "tonies.json",
+        "title": "Contribute tonies.json",
+        "text": "Ihr könnt uns gerne unterstützen, indem ihr uns die fehlenden Daten der unten aufgeführten Tonies zukommen lasst. Perspektivisch wird dies in TeddyCloud direkt möglich sein, momentan könnt ihr dazu TeddyBench nutzen. Wir danken euch schon einmal!"
+      }
     },
     "contributors": {
       "navigationTitle": "Contributors",
