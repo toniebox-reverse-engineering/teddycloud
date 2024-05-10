@@ -2111,7 +2111,7 @@ error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, 
     }
     char ruid[17];
     osStrcpy(ruid, &uri[osStrlen(uri) - 16]);
-    getContentPathFromCharRUID(ruid, contentPath, client_ctx->settings);
+    getContentPathFromCharRUID(ruid, contentPath, get_settings_ovl(overlay));
 
     return NO_ERROR;
 }
