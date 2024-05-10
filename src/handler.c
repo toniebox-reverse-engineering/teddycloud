@@ -13,7 +13,7 @@ void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *qu
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
 
-    if (connection->private.client_ctx.settings->internal.overlayNumber > 0)
+    if (connection && connection->private.client_ctx.settings->internal.overlayNumber > 0)
     {
         ctx->user_agent = connection->request.userAgent;
     }
