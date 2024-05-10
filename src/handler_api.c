@@ -100,14 +100,6 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     osStrcpy(overlay, "");
     osStrcpy(special, "");
 
-    *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
-
-    if (*rootPath == NULL || !fsDirExists(*rootPath))
-    {
-        TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", *rootPath);
-        return ERROR_FAILURE;
-    }
-
     if (queryGet(queryString, "special", special, sizeof(special)))
     {
         TRACE_DEBUG("requested index for '%s'\r\n", special);
@@ -125,10 +117,18 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
 
     if (overlay)
     {
-        if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
+        if (queryGet(queryString, "overlay", overlay, overlay_size))
         {
             TRACE_INFO("got overlay '%s'\r\n", overlay);
         }
+    }
+
+    *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
+
+    if (*rootPath == NULL || !fsDirExists(*rootPath))
+    {
+        TRACE_ERROR("internal.contentdirfull not set to a valid path: '%s'\r\n", *rootPath);
+        return ERROR_FAILURE;
     }
 
     return NO_ERROR;
