@@ -1018,8 +1018,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
 {
     uint_t statusCode = 500;
     char message[128];
-    char overlay[128];
-    osStrcpy(overlay, "");
+    char overlay[16];
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_INFO("got overlay '%s'\r\n", overlay);
@@ -1137,7 +1136,7 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
 {
     uint_t statusCode = 500;
     char message[128];
-    char overlay[128];
+    char overlay[16];
 
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
@@ -1337,7 +1336,7 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char overlay[128];
+    char overlay[16];
     char path[128];
 
     osStrcpy(path, "");
@@ -1737,7 +1736,7 @@ error_t taf_encode_end(void *in_ctx)
 
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char overlay[128];
+    char overlay[16];
     char name[256];
     char uid[32];
     char path[128];
