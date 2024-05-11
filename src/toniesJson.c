@@ -500,18 +500,13 @@ toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, c
 
 const char *tonies_strcasestr(const char *haystack, const char *needle)
 {
-    if (!*needle)
-    {
-        return haystack;
-    }
-
     while (*haystack)
     {
         const char *h = haystack;
         const char *n = needle;
 
         // Compare strings case-insensitively
-        while (*h && *n && tolower(*h) == tolower(*n))
+        while (*h && *n && (tolower(*h) == tolower(*n)))
         {
             h++;
             n++;
