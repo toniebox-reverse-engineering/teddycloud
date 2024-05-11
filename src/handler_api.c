@@ -1340,7 +1340,7 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
-    char path[128];
+    char path[256 + 1];
 
     osStrcpy(path, "");
 
@@ -1726,7 +1726,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     char overlay[16];
     char name[256];
     char uid[32];
-    char path[128];
+    char path[256 + 1];
     char audio_id_str[128];
     uint32_t audio_id = 0;
 
