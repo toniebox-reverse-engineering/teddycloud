@@ -42,6 +42,7 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
     return error;
 }
 
+/* sanitizes the path - needs one additional character in worst case, so make sure 'path' has enough space */
 void sanitizePath(char *path, bool isDir)
 {
     size_t i, j;
@@ -1891,10 +1892,10 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     {
         return ERROR_FAILURE;
     }
-    char path[256];
+    char path[258];
     size_t size = 0;
 
-    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    error_t error = httpReceive(connection, &path, sizeof(path) - 2, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("httpReceive failed!\r\n");
@@ -1940,10 +1941,10 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
         return ERROR_FAILURE;
     }
 
-    char path[256];
+    char path[258];
     size_t size = 0;
 
-    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    error_t error = httpReceive(connection, &path, sizeof(path) - 2, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("httpReceive failed!\r\n");
