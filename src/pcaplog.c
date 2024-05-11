@@ -98,7 +98,10 @@ static void pcaplog_write_flags(pcaplog_ctx_t *ctx, bool is_tx, const uint8_t *p
 
     memcpy(packet, &ip_header, sizeof(ip_header));
     memcpy(packet + sizeof(ip_header), &tcp_header, sizeof(tcp_header));
-    memcpy(packet + sizeof(ip_header) + sizeof(tcp_header), payload, payload_len);
+    if (payload_len > 0)
+    {
+        memcpy(packet + sizeof(ip_header) + sizeof(tcp_header), payload, payload_len);
+    }
 
     mutex_lock(MUTEX_PCAPLOG_FILE);
     pd_write(pcap, packet, packet_len);
