@@ -410,22 +410,16 @@ typedef struct
     ;
 
 void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src);
-void overlay_settings_init();
 
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay_unique_id);
 settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
 
-uint8_t get_overlay_id(const char *overlay_unique_id);
-
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
-void settings_generate_internal_dirs(settings_t *settings);
-void settings_changed();
 void settings_changed_id(uint8_t settingsId);
 void settings_loop();
 
-void settings_init_opt(setting_item_t *opt);
 /**
  * @brief Initializes the settings subsystem.
  *
@@ -438,8 +432,7 @@ error_t settings_init(const char *cwd, const char *base_path);
  *
  * This function should be called to clean up all allocated memory.
  */
-void settings_deinit(uint8_t overlayNumber);
-void settings_deinit_all();
+void settings_deinit();
 
 /**
  * @brief Saves the current settings to a persistent storage (like a file or database).
@@ -459,7 +452,6 @@ void settings_deinit_all();
  * @endcode
  */
 error_t settings_save();
-error_t settings_save_ovl(bool overlay);
 
 /**
  * @brief Loads settings from a persistent storage (like a file or database).
@@ -479,7 +471,6 @@ error_t settings_save_ovl(bool overlay);
  * @endcode
  */
 error_t settings_load();
-error_t settings_load_ovl(bool overlay);
 
 uint16_t settings_get_size();
 
@@ -491,7 +482,6 @@ uint16_t settings_get_size();
  */
 setting_item_t *settings_get(int index);
 setting_item_t *settings_get_ovl(int index, const char *overlay_name);
-setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of a boolean setting item.
@@ -605,8 +595,6 @@ uint64_t *settings_get_u64_array_id(const char *item, uint8_t settingsId, size_t
 bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len);
 bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
 bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
-
-char *settings_sanitize_box_id(const char *input_id);
 
 void settings_load_all_certs();
 error_t settings_try_load_certs_id(uint8_t settingsId);

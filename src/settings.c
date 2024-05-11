@@ -15,6 +15,19 @@
 #include "server_helpers.h"
 #include "cert.h"
 
+/* static functions*/
+static void settings_init_opt(setting_item_t *opt);
+static void settings_deinit_ovl(uint8_t overlayNumber);
+static uint8_t get_overlay_id(const char *overlay_unique_id);
+static void overlay_settings_init();
+static void settings_generate_internal_dirs(settings_t *settings);
+static void settings_changed();
+static error_t settings_save_ovl(bool overlay);
+static error_t settings_load_ovl(bool overlay);
+static setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
+static char *settings_sanitize_box_id(const char *input_id);
+
+/* macros */
 #define ERR_RETURN(command)    \
     do                         \
     {                          \
@@ -259,6 +272,7 @@ static setting_item_t *get_option_map(const char *overlay)
 {
     return Option_Map_Overlay[get_overlay_id(overlay)];
 }
+
 void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
 {
     if (opt == opt_src)
@@ -294,7 +308,8 @@ void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
         opt->overlayed = false;
     }
 }
-void overlay_serttings_init_field(int field, uint8_t overlay)
+
+static void overlay_settings_init_field(int field, uint8_t overlay)
 {
     setting_item_t *option_map = Option_Map_Overlay[overlay];
     setting_item_t *option_map_src = Option_Map_Overlay[0];
@@ -305,21 +320,18 @@ void overlay_serttings_init_field(int field, uint8_t overlay)
     overlay_settings_init_opt(opt, opt_src);
 }
 
-void overlay_settings_init()
+static void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        if (Settings_Overlay[i].internal.config_init)
-        {
-            settings_deinit(i);
-        }
+        settings_deinit_ovl(i);
 
         option_map_init(i);
 
         int field = 0;
         while (Option_Map_Overlay[i][field].type != TYPE_END)
         {
-            overlay_serttings_init_field(field, i);
+            overlay_settings_init_field(field, i);
             field++;
         }
         Settings_Overlay[i].internal.overlayNumber = i;
@@ -337,6 +349,7 @@ settings_t *get_settings_ovl(const char *overlay_unique_id)
 {
     return get_settings_id(get_overlay_id(overlay_unique_id));
 }
+
 settings_t *get_settings_id(uint8_t settingsId)
 {
     return &Settings_Overlay[settingsId];
@@ -344,15 +357,14 @@ settings_t *get_settings_id(uint8_t settingsId)
 
 settings_t *get_settings_cn(const char *commonName)
 {
-    mutex_lock(MUTEX_SETTINGS_CN);
+    mutex_lock(MUTEX_SETTINGS);
     if (commonName != NULL && osStrcmp(commonName, "") != 0)
     {
-
         for (size_t i = 1; i < MAX_OVERLAYS; i++)
         {
             if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
             {
-                mutex_unlock(MUTEX_SETTINGS_CN);
+                mutex_unlock(MUTEX_SETTINGS);
                 return &Settings_Overlay[i];
             }
         }
@@ -373,7 +385,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
-                mutex_unlock(MUTEX_SETTINGS_CN);
+                mutex_unlock(MUTEX_SETTINGS);
 
                 osFreeMem(boxId);
                 osFreeMem(boxName);
@@ -383,11 +395,11 @@ settings_t *get_settings_cn(const char *commonName)
 
         TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.\r\n", commonName);
     }
-    mutex_unlock(MUTEX_SETTINGS_CN);
+    mutex_unlock(MUTEX_SETTINGS);
     return get_settings();
 }
 
-uint8_t get_overlay_id(const char *overlay_unique_id)
+static uint8_t get_overlay_id(const char *overlay_unique_id)
 {
     if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {
@@ -424,7 +436,7 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     fsFixPath(*resolvedPath);
 }
 
-void settings_generate_internal_dirs(settings_t *settings)
+static void settings_generate_internal_dirs(settings_t *settings)
 {
     free(settings->internal.basedirfull);
     free(settings->internal.certdirfull);
@@ -466,19 +478,25 @@ void settings_generate_internal_dirs(settings_t *settings)
     free(tmpPath);
 }
 
-void settings_changed()
+static void settings_changed()
 {
     settings_changed_id(0);
 }
+
 void settings_changed_id(uint8_t settingsId)
 {
-    mutex_lock(MUTEX_SETTINGS_CHANGED);
+    mutex_lock(MUTEX_SETTINGS);
+
     Settings_Overlay[settingsId].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings_id((settingsId)));
     if (config_file_path != NULL)
+    {
         osFreeMem(config_file_path);
+    }
     if (config_overlay_file_path != NULL)
+    {
         osFreeMem(config_overlay_file_path);
+    }
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
 
@@ -486,18 +504,24 @@ void settings_changed_id(uint8_t settingsId)
     {
         settings_load_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_CHANGED);
+
+    mutex_unlock(MUTEX_SETTINGS);
 }
 
-void settings_deinit(uint8_t overlayNumber)
+static void settings_deinit_ovl(uint8_t overlayNumber)
 {
-    int pos = 0;
+    if (!Settings_Overlay[overlayNumber].internal.config_init)
+    {
+        return;
+    }
+
     setting_item_t *option_map = Option_Map_Overlay[overlayNumber];
     if (option_map == NULL)
     {
         return;
     }
 
+    int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
@@ -537,14 +561,15 @@ void settings_deinit(uint8_t overlayNumber)
     Option_Map_Overlay[overlayNumber] = NULL;
 }
 
-void settings_deinit_all()
+void settings_deinit()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit(i);
+        settings_deinit_ovl(i);
     }
 }
-void settings_init_opt(setting_item_t *opt)
+
+static void settings_init_opt(setting_item_t *opt)
 {
     switch (opt->type)
     {
@@ -580,6 +605,7 @@ void settings_init_opt(setting_item_t *opt)
         break;
     }
 }
+
 error_t settings_init(const char *cwd, const char *base_dir)
 {
     bool autogen_certs = Settings_Overlay[0].internal.autogen_certs;
@@ -623,7 +649,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
 
 error_t settings_save()
 {
-    mutex_lock(MUTEX_SETTINGS_SAVE);
+    mutex_lock(MUTEX_SETTINGS);
     error_t err = NO_ERROR;
 
     err = settings_save_ovl(false);
@@ -631,14 +657,13 @@ error_t settings_save()
     {
         err = settings_save_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_SAVE);
+    mutex_unlock(MUTEX_SETTINGS);
 
     return err;
 }
 
-error_t settings_save_ovl(bool overlay)
+static error_t settings_save_ovl(bool overlay)
 {
-    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
@@ -646,7 +671,6 @@ error_t settings_save_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_ERROR("Failed to open config file for writing\r\n");
-        mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
         return ERROR_DIRECTORY_NOT_FOUND;
     }
 
@@ -721,13 +745,12 @@ error_t settings_save_ovl(bool overlay)
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
 
-    mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
     return NO_ERROR;
 }
 
 error_t settings_load()
 {
-    mutex_lock(MUTEX_SETTINGS_LOAD);
+    mutex_lock(MUTEX_SETTINGS);
     error_t err = NO_ERROR;
 
     err = settings_load_ovl(false);
@@ -735,13 +758,12 @@ error_t settings_load()
     {
         err = settings_load_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_LOAD);
+    mutex_unlock(MUTEX_SETTINGS);
     return err;
 }
 
-error_t settings_load_ovl(bool overlay)
+static error_t settings_load_ovl(bool overlay)
 {
-    mutex_lock(MUTEX_SETTINGS_LOAD_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
@@ -755,7 +777,6 @@ error_t settings_load_ovl(bool overlay)
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
 
         error_t err = settings_save_ovl(overlay);
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return err;
     }
 
@@ -764,7 +785,6 @@ error_t settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -772,7 +792,6 @@ error_t settings_load_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -960,7 +979,6 @@ error_t settings_load_ovl(bool overlay)
         }
     }
 
-    mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
     return NO_ERROR;
 }
 
@@ -992,7 +1010,7 @@ setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_n
     return settings_get_by_name_id(item, get_overlay_id(overlay_name));
 }
 
-setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
+static setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
 {
     int pos = 0;
     setting_item_t *option_map = Option_Map_Overlay[settingsId];
@@ -1296,11 +1314,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     }
 
     char **ptr = (char **)opt->ptr;
-
-    if (*ptr)
-    {
-        free(*ptr);
-    }
+    char *old_ptr = *ptr;
 
     *ptr = strdup(value);
 
@@ -1312,6 +1326,12 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     {
         settings_changed_id(settingsId);
     }
+
+    if (old_ptr)
+    {
+        free(old_ptr);
+    }
+
     return true;
 }
 
@@ -1410,7 +1430,7 @@ void settings_loop()
     }
 }
 
-char *settings_sanitize_box_id(const char *input_id)
+static char *settings_sanitize_box_id(const char *input_id)
 {
     char *new_str = osAllocMem(osStrlen(input_id) + 1);
     if (new_str == NULL)
@@ -1433,6 +1453,7 @@ char *settings_sanitize_box_id(const char *input_id)
     return new_str;
 }
 
+/* unused? */
 void settings_load_all_certs()
 {
     for (size_t id = 0; id < MAX_OVERLAYS; id++)
