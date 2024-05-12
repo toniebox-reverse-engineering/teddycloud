@@ -474,7 +474,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     settings_t *settings = client_ctx->settings;
 
-    if (client_ctx->settings->cloud.dumpRuidAuthContentJson)
+    if (client_ctx->settings->cloud.dumpRuidAuthContentJson && connection->request.auth.found)
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
     }
