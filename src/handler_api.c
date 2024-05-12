@@ -137,7 +137,7 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
     return NO_ERROR;
 }
 
-void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
+void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *parent)
 {
     cJSON *tracksJson = cJSON_CreateArray();
     cJSON *tonieInfoJson;
@@ -169,7 +169,14 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
     }
     else
     {
-        cJSON_AddStringToObject(tonieInfoJson, "model", "");
+        if (fallbackModel != NULL)
+        {
+            cJSON_AddStringToObject(tonieInfoJson, "model", fallbackModel);
+        }
+        else
+        {
+            cJSON_AddStringToObject(tonieInfoJson, "model", "");
+        }
         cJSON_AddStringToObject(tonieInfoJson, "series", "");
         cJSON_AddStringToObject(tonieInfoJson, "episode", "");
 
@@ -741,7 +748,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         }
         if (item != NULL)
         {
-            addToniesJsonInfoJson(item, jsonEntry);
+            addToniesJsonInfoJson(item, NULL, jsonEntry);
         }
         freeTonieInfo(tafInfo);
 
@@ -899,7 +906,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             }
             if (item != NULL)
             {
-                addToniesJsonInfoJson(item, jsonEntry);
+                addToniesJsonInfoJson(item, NULL, jsonEntry);
             }
 
             freeTonieInfo(tafInfo);
@@ -2087,7 +2094,7 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
     cJSON *jsonArray = cJSON_CreateArray();
     for (size_t i = 0; i < result_size; i++)
     {
-        addToniesJsonInfoJson(result[i], jsonArray);
+        addToniesJsonInfoJson(result[i], NULL, jsonArray);
     }
 
     char *jsonString = cJSON_PrintUnformatted(jsonArray);
@@ -2395,7 +2402,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 osFreeMem(audioUrl);
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
-                addToniesJsonInfoJson(item, jsonEntry);
+                addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
             }
