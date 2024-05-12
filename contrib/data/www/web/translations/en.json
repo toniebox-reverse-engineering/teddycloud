@@ -23,6 +23,8 @@
     "title": "Settings",
     "information": "Information",
     "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
+    "warning": "Attention!",
+    "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field.",
     "tonieboxes": "tonieboxes",
     "overlayed": "overlayed",
     "general": {
@@ -78,7 +80,8 @@
     "content": {
       "navigationTitle": "Content",
       "title": "Content",
-      "toniePicture": "Tonie Picture"
+      "toniePicture": "Tonie Picture",
+      "showToniesOfBoxes": "Content of the following Tonieboxes"
     },
     "library": {
       "navigationTitle": "Library",
@@ -148,6 +151,9 @@
     "navigationTitle": "Tonieboxes",
     "title": "Your Tonieboxes",
     "lastPlayedTonie": "Last played Tonie: ",
+    "online": "online",
+    "offline": "offline",
+    "lastOnline": "last online",
     "editModelModal": {
       "editModel": "Edit Toniebox \"{{name}}\"",
       "placeholderSearchForAModel": "Select color variant of your Toniebox",

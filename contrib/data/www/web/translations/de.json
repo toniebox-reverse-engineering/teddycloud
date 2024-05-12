@@ -24,6 +24,8 @@
     "title": "Einstellungen",
     "information": "Information",
     "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
+    "warning": "Achtung!",
+    "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes.",
     "tonieboxes": "Tonieboxen",
     "overlayed": "überschrieben",
     "general": {
@@ -79,7 +81,8 @@
     "content": {
       "navigationTitle": "Content",
       "title": "Content",
-      "toniePicture": "Tonie Bild"
+      "toniePicture": "Tonie Bild",
+      "showToniesOfBoxes": "Inhalte der folgenden Tonieboxen anzeigen"
     },
     "library": {
       "navigationTitle": "Library",
@@ -149,6 +152,9 @@
     "navigationTitle": "Tonieboxen",
     "title": "Deine Tonieboxen",
     "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
+    "online": "online",
+    "offline": "offline",
+    "lastOnline": "zuletzt online",
     "editModelModal": {
       "editModel": "Toniebox \"{{name}}\" bearbeiten",
       "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
