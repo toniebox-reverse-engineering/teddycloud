@@ -61,7 +61,9 @@ typedef struct
 #define CONTENT_LENGTH_MAX (INT32_MAX)
 #define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - 0x1000)
 
-#define HTTP_CLIENT_PRIVATE_CONTEXT http_client_private_t private; void *sourceCtx;
+#define HTTP_CLIENT_PRIVATE_CONTEXT \
+    http_client_private_t private;  \
+    void *sourceCtx;
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
