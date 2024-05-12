@@ -1362,7 +1362,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
-    char message[256];
+    char message[512];
 
     osSnprintf(message, sizeof(message), "OK");
 
@@ -1768,7 +1768,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
-    char message[256];
+    char message[512];
     osSnprintf(message, sizeof(message), "OK");
 
     if (!fsDirExists(pathAbsolute))
