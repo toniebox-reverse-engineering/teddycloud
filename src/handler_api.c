@@ -436,13 +436,20 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     }
     else
     {
-        error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
-        if (error != NO_ERROR)
+        if (connection->request.byteCount > 0)
         {
-            TRACE_ERROR("httpReceive failed!\r\n");
-            return error;
+            error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("httpReceive failed!\r\n");
+                return error;
+            }
         }
-        data[size] = 0;
+        else
+        {
+            size = 0;
+        }
+        data[size] = '\0';
 
         TRACE_INFO("Setting: '%s' to '%s'\r\n", item, data);
 
@@ -455,50 +462,57 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
         setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
         bool success = false;
 
-        if (opt)
+        if (size > 0 || opt->type == TYPE_STRING)
         {
-            switch (opt->type)
+            if (opt)
             {
-            case TYPE_BOOL:
-            {
-                success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
-                break;
-            }
-            case TYPE_STRING:
-            {
-                success = settings_set_string_ovl(item, data, overlay);
-                break;
-            }
-            case TYPE_HEX:
-            {
-                uint32_t value = strtoul(data, NULL, 16);
-                success = settings_set_unsigned_ovl(item, value, overlay);
-                break;
-            }
+                switch (opt->type)
+                {
+                case TYPE_BOOL:
+                {
+                    success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
+                    break;
+                }
+                case TYPE_STRING:
+                {
+                    success = settings_set_string_ovl(item, data, overlay);
+                    break;
+                }
+                case TYPE_HEX:
+                {
+                    uint32_t value = strtoul(data, NULL, 16);
+                    success = settings_set_unsigned_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_UNSIGNED:
-            {
-                uint32_t value = strtoul(data, NULL, 10);
-                success = settings_set_unsigned_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_UNSIGNED:
+                {
+                    uint32_t value = strtoul(data, NULL, 10);
+                    success = settings_set_unsigned_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_SIGNED:
-            {
-                int32_t value = strtol(data, NULL, 10);
-                success = settings_set_signed_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_SIGNED:
+                {
+                    int32_t value = strtol(data, NULL, 10);
+                    success = settings_set_signed_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_FLOAT:
-            {
-                float value = strtof(data, NULL);
-                success = settings_set_float_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_FLOAT:
+                {
+                    float value = strtof(data, NULL);
+                    success = settings_set_float_ovl(item, value, overlay);
+                    break;
+                }
 
-            default:
-                break;
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                TRACE_WARNING("Setting: '%s' cannot be set to '%s'\r\n", item, data);
             }
         }
         else
