@@ -358,14 +358,14 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 200;
 
-    if (client_ctx->settings->cloud.dumpRuidAuthContentJson)
+    if (client_ctx->settings->cloud.dumpRuidAuthContentJson && connection->request.auth.found)
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
     }
 
     if (!tonieInfo->json.nocloud || tonieInfo->json.cloud_override)
     {
-        if (checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override)
+        if (checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override && connection->request.auth.found)
         {
             TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
             markCustomTonie(tonieInfo);
@@ -466,7 +466,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
 
-    if (!tonieInfo->json.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override)
+    if (!tonieInfo->json.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override && connection->request.auth.found)
     {
         TRACE_INFO(" >> custom tonie detected, nothing forwarded\r\n");
         markCustomTonie(tonieInfo);
