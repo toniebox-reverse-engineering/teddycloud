@@ -27,6 +27,9 @@
     "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field.",
     "tonieboxes": "tonieboxes",
     "overlayed": "overlayed",
+    "saved": "Setting saved!",
+    "overlayDisabled": "Overlayed disabled!",
+    "overlayEnabled": "Overlayed enabled!",
     "general": {
       "navigationTitle": "General",
       "title": "General settings"

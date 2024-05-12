@@ -28,6 +28,9 @@
     "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes.",
     "tonieboxes": "Tonieboxen",
     "overlayed": "überschrieben",
+    "saved": "Einstellung gespeichert!",
+    "overlayDisabled": "Overlayed deaktiviert!",
+    "overlayEnabled": "Overlayed aktiviert!",
     "general": {
       "navigationTitle": "Allgemein",
       "title": "Allgemeine Einstellungen"
