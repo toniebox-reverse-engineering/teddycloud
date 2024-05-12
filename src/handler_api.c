@@ -1626,13 +1626,11 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     ruid[16] = '\0';
 
     bool isSys = (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0');
-    if (contentJson.cloud_auth_len != 32 && !isSys)
+    if (contentJson.cloud_auth_len == 32 && !isSys)
     {
-        free_content_json(&contentJson);
-        return ERROR_FILE_NOT_FOUND;
+        osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
     }
 
-    osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
     free_content_json(&contentJson);
     if (isSys)
     {
