@@ -27,7 +27,7 @@ void tbs_tag_placed(client_ctx_t *client_ctx, uint64_t uid, bool valid)
     client_ctx->state->tag.valid = valid;
     if (valid)
     {
-        setLastUid(client_ctx->state->tag.uid, client_ctx->settings);
+        setLastUid(client_ctx->state->tag.uid, client_ctx->settingsNoOverlay);
     }
 
     char cuid[16 + 1];

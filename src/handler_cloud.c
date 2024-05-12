@@ -348,7 +348,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     char current_time[64];
     time_format_current(current_time);
     mqtt_sendBoxEvent("LastCloudClaimTime", current_time, client_ctx);
-    setLastRuid(ruid, client_ctx->settings);
+    setLastRuid(ruid, client_ctx->settingsNoOverlay);
 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
@@ -441,7 +441,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     TRACE_INFO(" >> client requested content for rUID %s, auth %s\r\n", ruid, msg);
     if (!noPassword)
     {
-        setLastRuid(ruid, client_ctx->settings);
+        setLastRuid(ruid, client_ctx->settingsNoOverlay);
     }
 
     bool_t tonie_marked = false;

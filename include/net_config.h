@@ -46,6 +46,7 @@ typedef struct
 typedef struct
 {
     settings_t *settings;
+    settings_t *settingsNoOverlay;
     toniebox_state_t *state;
     bool skip_taf_header;
 } client_ctx_t;
