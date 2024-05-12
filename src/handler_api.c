@@ -2387,12 +2387,13 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
                 char *audioUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
+                char *downloadUrl = custom_asprintf("%s&skip_header=true", audioUrl);
                 cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
                 if (!tafInfo->exists && !tafInfo->json.nocloud)
                 {
                     if (contentJson._has_cloud_auth || isSys)
                     {
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", audioUrl);
+                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
                     }
                     else
                     {
@@ -2400,6 +2401,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                     }
                 }
                 osFreeMem(audioUrl);
+                osFreeMem(downloadUrl);
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
                 addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
