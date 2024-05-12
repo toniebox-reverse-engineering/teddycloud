@@ -227,15 +227,36 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
 
     char overlay[16];
     osStrcpy(overlay, "");
+    char internal[16];
+    osStrcpy(internal, "");
+    bool showInternal = false;
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "internal", internal, sizeof(internal)))
+    {
+        if (internal[0] == 't')
+        {
+            showInternal = true;
+        }
     }
     for (size_t pos = 0; pos < settings_get_size(); pos++)
     {
         setting_item_t *opt = settings_get_ovl(pos, overlay);
 
-        if (opt->internal || opt->type == TYPE_TREE_DESC)
+        if (opt->type == TYPE_TREE_DESC)
+        {
+            continue;
+        }
+
+        if (opt->internal && !showInternal)
+        {
+            continue;
+        }
+
+        settings_level user_level = get_settings_ovl(overlay)->core.settings_level;
+        if (opt->level > user_level)
         {
             continue;
         }
@@ -246,6 +267,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "description", opt->description);
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
         cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
+        cJSON_AddBoolToObject(jsonEntry, "internal", opt->internal);
 
         switch (opt->type)
         {
@@ -390,28 +412,31 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
-    if (opt)
+    if (opt->level != LEVEL_SECRET)
     {
-        switch (opt->type)
+        if (opt)
         {
-        case TYPE_BOOL:
-            osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
-            break;
-        case TYPE_HEX:
-        case TYPE_UNSIGNED:
-            osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
-            break;
-        case TYPE_SIGNED:
-            osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
-            break;
-        case TYPE_STRING:
-            response_ptr = settings_get_string_ovl(item, overlay);
-            break;
-        case TYPE_FLOAT:
-            osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
-            break;
-        default:
-            break;
+            switch (opt->type)
+            {
+            case TYPE_BOOL:
+                osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
+                break;
+            case TYPE_HEX:
+            case TYPE_UNSIGNED:
+                osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
+                break;
+            case TYPE_SIGNED:
+                osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
+                break;
+            case TYPE_STRING:
+                response_ptr = settings_get_string_ovl(item, overlay);
+                break;
+            case TYPE_FLOAT:
+                osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
+                break;
+            default:
+                break;
+            }
         }
     }
 
