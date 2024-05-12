@@ -2357,7 +2357,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 char *audioUrl = custom_asprintf("/v1/content/%s?skip_header=true", ruid);
                 cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
                 osFreeMem(audioUrl);
-                if (!tafInfo->exists)
+                if (!tafInfo->exists && !tafInfo->json.nocloud)
                 {
                     if (contentJson._has_cloud_auth || isSys)
                     {
