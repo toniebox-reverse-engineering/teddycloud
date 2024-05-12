@@ -1652,18 +1652,21 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
 
     bool isSys = (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0');
 
-    free_content_json(&contentJson);
+    error_t error = NO_ERROR;
     if (isSys || contentJson.nocloud)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
-        return handleCloudContent(connection, uri, queryString, client_ctx, true);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, true);
     }
     else
     {
         osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
         osSprintf((char *)uri, "/v2/content/%s", ruid);
-        return handleCloudContent(connection, uri, queryString, client_ctx, false);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, false);
     }
+
+    free_content_json(&contentJson);
+    return error;
 }
 
 typedef struct
@@ -2376,14 +2379,14 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-                char *audioUrl = custom_asprintf("/v1/content/%s?skip_header=true", ruid);
+                char *audioUrl = custom_asprintf("/v1/content/%s?overlay=%s&skip_header=true", overlay, ruid);
                 cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
                 osFreeMem(audioUrl);
                 if (!tafInfo->exists && !tafInfo->json.nocloud)
                 {
                     if (contentJson._has_cloud_auth || isSys)
                     {
-                        char *downloadTriggerUrl = custom_asprintf("/content/download%s", &tagPath[osStrlen(rootPath)]);
+                        char *downloadTriggerUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
                         osFreeMem(downloadTriggerUrl);
                     }
