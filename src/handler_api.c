@@ -689,7 +689,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         }
 
                         contentJson_t contentJson = {0};
-                        load_content_json(filePathAbsoluteSub, &contentJson, false);
+                        load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
                         free_content_json(&contentJson);
@@ -704,7 +704,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                     *json_extension = '\0';
                 }
                 contentJson_t contentJson = {0};
-                load_content_json(filePathAbsolute, &contentJson, false);
+                load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                 item = tonies_byModel(contentJson.tonie_model);
 
                 if (contentJson._has_cloud_auth)
@@ -847,7 +847,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                             }
 
                             contentJson_t contentJson = {0};
-                            load_content_json(filePathAbsoluteSub, &contentJson, false);
+                            load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                             item = tonies_byModel(contentJson.tonie_model);
                             osFreeMem(filePathAbsoluteSub);
                             free_content_json(&contentJson);
@@ -862,7 +862,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                         *json_extension = '\0';
                     }
                     contentJson_t contentJson = {0};
-                    load_content_json(filePathAbsolute, &contentJson, false);
+                    load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                     item = tonies_byModel(contentJson.tonie_model);
 
                     if (contentJson._has_cloud_auth)
@@ -1614,7 +1614,7 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     char ruid[17];
 
     contentJson_t contentJson;
-    load_content_json(pathAbsolute, &contentJson, false);
+    load_content_json(pathAbsolute, &contentJson, false, client_ctx->settings);
     osFreeMem(pathAbsolute);
 
     osStrncpy(ruid, path, 8);
@@ -2143,7 +2143,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     }
 
     contentJson_t content_json;
-    load_content_json(contentPath, &content_json, true);
+    load_content_json(contentPath, &content_json, true, client_ctx->settings);
 
     char item_data[256];
     bool_t updated = false;
@@ -2322,7 +2322,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
 
             contentJson_t contentJson;
-            load_content_json(tagPath, &contentJson, false);
+            load_content_json(tagPath, &contentJson, false, client_ctx->settings);
 
             if (contentJson._valid)
             {

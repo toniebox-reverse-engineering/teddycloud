@@ -514,7 +514,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
             // TODO: Nice checking if valid tonie path
-            load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
+            load_content_json(contentPath, &tonieInfo->json, true, settings);
         }
 
         if (tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED)
