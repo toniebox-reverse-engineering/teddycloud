@@ -1415,7 +1415,7 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     if (!fsDirExists(pathAbsolute))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "invalid path: '%s'", path);
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
         TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
@@ -1818,7 +1818,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     if (!fsDirExists(pathAbsolute))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "invalid path: '%s'", path);
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
         TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
@@ -2243,6 +2243,20 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     return NO_ERROR;
 }
 
+bool isHexString(const char *buf, size_t maxLen)
+{
+    bool isHex = true;
+
+    for (size_t i = 0; i < osStrlen(buf) && i < maxLen; i++)
+    {
+        char letter = toupper(buf[i]);
+
+        isHex &= (letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9');
+    }
+
+    return isHex;
+}
+
 error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
@@ -2281,20 +2295,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             continue;
         }
 
-        bool_t isHex = true;
-        for (size_t i = 0; i < 8; i++)
-        {
-            char letter = entry.name[i];
-            if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
-            {
-            }
-            else
-            {
-                isHex = false;
-                break;
-            }
-        }
-        if (!isHex)
+        if (!isHexString(entry.name, 8))
         {
             continue;
         }
@@ -2305,7 +2306,9 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
         char *subDirPath = custom_asprintf("%s/%s", rootPath, entry.name);
         FsDir *subDir = fsOpenDir(subDirPath);
 
-        while (true)
+        bool dirProcessed = false;
+
+        while (!dirProcessed)
         {
             FsDirEntry subEntry;
             if (fsReadDir(subDir, &subEntry) != NO_ERROR)
@@ -2314,48 +2317,43 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 break;
             }
 
+            /* do not process directories here */
             if ((subEntry.attributes & FS_FILE_ATTR_DIRECTORY))
             {
                 continue;
             }
-            if (osStrlen(subEntry.name) != 13 && osStrcmp(&subEntry.name[8], ".json"))
+            /* filename must start with 8 hex characters */
+            if (!isHexString(subEntry.name, 8))
             {
                 continue;
             }
 
-            isHex = true;
-            for (size_t i = 0; i < 8; i++)
-            {
-                char letter = subEntry.name[i];
-                if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
-                {
-                }
-                else
-                {
-                    isHex = false;
-                    break;
-                }
-            }
-            if (!isHex)
-            {
-                continue;
-            }
-
+            /* fill rest of reverse UID */
             osStrncpy(&ruid[8], subEntry.name, 8);
             ruid[16] = '\0';
             for (size_t i = 0; ruid[i] != '\0'; i++)
             {
                 ruid[i] = tolower(ruid[i]);
             }
-            char *tagPath = custom_asprintf("%s%c%s", subDirPath, PATH_SEPARATOR, subEntry.name);
-            tagPath[osStrlen(tagPath) - 5] = '\0';
+
+            /* build filename with 8 chars of the taf/json */
+            char *tagPath = custom_asprintf("%s%c%.8s", subDirPath, PATH_SEPARATOR, subEntry.name);
+
+            /* read TAF info - will create .json if not existing */
             tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
+            /* now update with updated model if found. */
+            if (tafInfo->json._updated && tafInfo->json._create_if_missing)
+            {
+                save_content_json(tafInfo->jsonPath, &tafInfo->json);
+            }
 
             contentJson_t contentJson;
             load_content_json(tagPath, &contentJson, false, client_ctx->settings);
 
             if (contentJson._valid)
             {
+                /* only process one TAF/json per directory */
+                dirProcessed = true;
                 cJSON *jsonEntry = cJSON_CreateObject();
                 cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
 
