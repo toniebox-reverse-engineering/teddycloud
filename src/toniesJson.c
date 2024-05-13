@@ -464,7 +464,7 @@ toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCac
 #if TONIES_JSON_CACHED == 1
     for (size_t i = 0; i < toniesCount; i++)
     {
-        if (osStrcmp(toniesCache[i].model, model) == 0)
+        if (osStrcasecmp(toniesCache[i].model, model) == 0)
             return &toniesCache[i];
     }
 #else
@@ -498,6 +498,32 @@ toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, c
     return item;
 }
 
+const char *tonies_strcasestr(const char *haystack, const char *needle)
+{
+    while (*haystack)
+    {
+        const char *h = haystack;
+        const char *n = needle;
+
+        // Compare strings case-insensitively
+        while (*h && *n && (tolower(*h) == tolower(*n)))
+        {
+            h++;
+            n++;
+        }
+
+        // If the end of needle is reached, match found
+        if (!*n)
+        {
+            return haystack;
+        }
+
+        haystack++;
+    }
+
+    return NULL;
+}
+
 bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
@@ -514,12 +540,12 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
             {
                 break;
             }
-            if (osStrstr(toniesCache[i].model, model) != NULL)
+            if (tonies_strcasestr(toniesCache[i].model, model) != NULL)
             {
                 bool duplicate = false;
                 for (size_t j = 0; j < count; j++)
                 {
-                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    if (osStrcasecmp(result[j]->model, toniesCache[i].model) == 0)
                     {
                         duplicate = true;
                         break;
@@ -541,12 +567,12 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
             {
                 break;
             }
-            if (osStrstr(toniesCache[i].series, series) != NULL)
+            if (tonies_strcasestr(toniesCache[i].series, series) != NULL)
             {
                 bool duplicate = false;
                 for (size_t j = 0; j < count; j++)
                 {
-                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    if (osStrcasecmp(result[j]->model, toniesCache[i].model) == 0)
                     {
                         duplicate = true;
                         break;
@@ -568,12 +594,12 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
             {
                 break;
             }
-            if (osStrstr(toniesCache[i].episodes, episode) != NULL)
+            if (tonies_strcasestr(toniesCache[i].episodes, episode) != NULL)
             {
                 bool duplicate = false;
                 for (size_t j = 0; j < count; j++)
                 {
-                    if (osStrcmp(result[j]->model, toniesCache[i].model) == 0)
+                    if (osStrcasecmp(result[j]->model, toniesCache[i].model) == 0)
                     {
                         duplicate = true;
                         break;

@@ -12,6 +12,11 @@ void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *qu
     ctx->status = PROX_STATUS_IDLE;
     ctx->connection = connection;
     ctx->client_ctx = client_ctx;
+
+    if (connection && connection->private.client_ctx.settings->internal.overlayNumber > 0)
+    {
+        ctx->user_agent = connection->request.userAgent;
+    }
 }
 
 req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
@@ -498,6 +503,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->updated = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
+    tonieInfo->jsonPath = custom_asprintf("%s.json", contentPath);
     tonieInfo->exists = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
@@ -508,7 +514,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
         {
             // TODO: Nice checking if valid tonie path
-            load_content_json_settings(contentPath, &tonieInfo->json, true, settings);
+            load_content_json(contentPath, &tonieInfo->json, true, settings);
         }
 
         if (tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED)
@@ -585,9 +591,9 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
 
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
-    if (tonieInfo->json._updated)
+    if (tonieInfo->json._updated && tonieInfo->json._create_if_missing)
     {
-        save_content_json(tonieInfo->contentPath, &tonieInfo->json);
+        save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
 
     if (tonieInfo->tafHeader)
@@ -599,6 +605,11 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
     {
         osFreeMem(tonieInfo->contentPath);
         tonieInfo->contentPath = NULL;
+    }
+    if (tonieInfo->jsonPath)
+    {
+        osFreeMem(tonieInfo->jsonPath);
+        tonieInfo->jsonPath = NULL;
     }
 
     if (tonieInfo->valid)
@@ -773,7 +784,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
                     free(tonieInfo->json.source);
                     tonieInfo->json.source = strdup(libraryShortPath);
 
-                    save_content_json(tonieInfo->contentPath, &tonieInfo->json);
+                    save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
                     TRACE_INFO(">> Successfully set to library %s\r\n", libraryShortPath);
                 }
                 else

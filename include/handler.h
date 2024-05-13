@@ -56,6 +56,7 @@ typedef struct
 {
     const char_t *uri;
     const char_t *queryString;
+    char_t *user_agent;
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;

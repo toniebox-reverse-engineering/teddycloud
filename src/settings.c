@@ -15,6 +15,19 @@
 #include "server_helpers.h"
 #include "cert.h"
 
+/* static functions*/
+static void settings_init_opt(setting_item_t *opt);
+static void settings_deinit_ovl(uint8_t overlayNumber);
+static uint8_t get_overlay_id(const char *overlay_unique_id);
+static void overlay_settings_init();
+static void settings_generate_internal_dirs(settings_t *settings);
+static void settings_changed();
+static error_t settings_save_ovl(bool overlay);
+static error_t settings_load_ovl(bool overlay);
+static setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
+static char *settings_sanitize_box_id(const char *input_id);
+
+/* macros */
 #define ERR_RETURN(command)    \
     do                         \
     {                          \
@@ -41,203 +54,209 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_START()
 
-    OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version")
-    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)")
-    OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box")
-    OPTION_INTERNAL_STRING("boxModel", &settings->boxModel, "", "Model of the box")
+    OPTION_INTERNAL_UNSIGNED("configVersion", &settings->configVersion, 0, 0, 255, "Config version", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("boxModel", &settings->boxModel, "", "Model of the box", LEVEL_NONE)
 
-    OPTION_TREE_DESC("log", "Logging")
-    OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "Loglevel", "0=off - 6=verbose")
-    OPTION_BOOL("log.color", &settings->log.color, TRUE, "Colored log", "Colored log")
-    OPTION_BOOL("log.logFullAuth", &settings->log.logFullAuth, FALSE, "Log auth", "Log full authentication of tags")
+    OPTION_TREE_DESC("log", "Logging", LEVEL_DETAIL)
+    OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "Loglevel", "0=off - 6=verbose", LEVEL_DETAIL)
+    OPTION_BOOL("log.color", &settings->log.color, TRUE, "Colored log", "Colored log", LEVEL_DETAIL)
+    OPTION_BOOL("log.logFullAuth", &settings->log.logFullAuth, FALSE, "Log auth", "Log full authentication of tags", LEVEL_DETAIL)
 
     /* settings for HTTPS server */
-    OPTION_TREE_DESC("core.server", "Server ports")
-    OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port")
-    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port")
-    OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to")
+    OPTION_TREE_DESC("core.server", "Server ports", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port", LEVEL_EXPERT)
+    OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("core.server", "HTTP server")
-    OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server")
-    OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates")
-    OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir")
-    OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content")
-    OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library")
-    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative")
-    OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir")
-    OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware")
-    OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename")
+    OPTION_TREE_DESC("core.server", "HTTP server", LEVEL_BASIC)
+    OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server", LEVEL_BASIC)
+    OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir", LEVEL_EXPERT)
+    OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content", LEVEL_DETAIL)
+    OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library", LEVEL_DETAIL)
+    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", LEVEL_NONE)
+    OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
+    OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates")
-    OPTION_TREE_DESC("core.client_cert.file", "File certificates")
-    OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "CA certificate", "CA certificate")
-    OPTION_STRING("core.server_cert.file.ca_der", &settings->core.server_cert.file.ca_der, "certs/server/ca.der", "CA certificate as DER", "CA certificate as DER")
-    OPTION_STRING("core.server_cert.file.ca_key", &settings->core.server_cert.file.ca_key, "certs/server/ca-key.pem", "CA key", "CA key")
-    OPTION_STRING("core.server_cert.file.crt", &settings->core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate", "Server certificate")
-    OPTION_STRING("core.server_cert.file.key", &settings->core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key", "Server key")
-    OPTION_TREE_DESC("core.server_cert.data", "Raw certificates")
-    OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "CA certificate data", "CA certificate data")
-    OPTION_INTERNAL_STRING("core.server_cert.data.ca_key", &settings->core.server_cert.data.ca_key, "", "CA key data")
-    OPTION_INTERNAL_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data")
-    OPTION_INTERNAL_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data")
+    OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
+    OPTION_TREE_DESC("core.client_cert.file", "File certificates", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "CA certificate", "CA certificate", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.file.ca_der", &settings->core.server_cert.file.ca_der, "certs/server/ca.der", "CA certificate as DER", "CA certificate as DER", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.file.ca_key", &settings->core.server_cert.file.ca_key, "certs/server/ca-key.pem", "CA key", "CA key", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.file.crt", &settings->core.server_cert.file.crt, "certs/server/teddy-cert.pem", "Server certificate", "Server certificate", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.file.key", &settings->core.server_cert.file.key, "certs/server/teddy-key.pem", "Server key", "Server key", LEVEL_EXPERT)
+    OPTION_TREE_DESC("core.server_cert.data", "Raw certificates", LEVEL_EXPERT)
+    OPTION_STRING("core.server_cert.data.ca", &settings->core.server_cert.data.ca, "", "CA certificate data", "CA certificate data", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.server_cert.data.ca_key", &settings->core.server_cert.data.ca_key, "", "CA key data", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.server_cert.data.crt", &settings->core.server_cert.data.crt, "", "Server certificate data", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data", LEVEL_EXPERT)
 
     /* settings for HTTPS/cloud client */
-    OPTION_TREE_DESC("core.client_cert", "Cloud client certificates")
-    OPTION_TREE_DESC("core.client_cert.file", "File certificates")
-    OPTION_STRING("core.client_cert.file.ca", &settings->core.client_cert.file.ca, "certs/client/ca.der", "Client CA", "Client Certificate Authority")
-    OPTION_STRING("core.client_cert.file.crt", &settings->core.client_cert.file.crt, "certs/client/client.der", "Client certificate", "Client certificate")
-    OPTION_STRING("core.client_cert.file.key", &settings->core.client_cert.file.key, "certs/client/private.der", "Client key", "Client key")
-    OPTION_TREE_DESC("core.client_cert.data", "Raw certificates")
-    OPTION_INTERNAL_STRING("core.client_cert.data.ca", &settings->core.client_cert.data.ca, "", "Client Certificate Authority")
-    OPTION_INTERNAL_STRING("core.client_cert.data.crt", &settings->core.client_cert.data.crt, "", "Client certificate data")
-    OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data")
+    OPTION_TREE_DESC("core.client_cert", "Cloud client certificates", LEVEL_DETAIL)
+    OPTION_TREE_DESC("core.client_cert.file", "File certificates", LEVEL_DETAIL)
+    OPTION_STRING("core.client_cert.file.ca", &settings->core.client_cert.file.ca, "certs/client/ca.der", "Client CA", "Client Certificate Authority", LEVEL_DETAIL)
+    OPTION_STRING("core.client_cert.file.crt", &settings->core.client_cert.file.crt, "certs/client/client.der", "Client certificate", "Client certificate", LEVEL_DETAIL)
+    OPTION_STRING("core.client_cert.file.key", &settings->core.client_cert.file.key, "certs/client/private.der", "Client key", "Client key", LEVEL_DETAIL)
+    OPTION_TREE_DESC("core.client_cert.data", "Raw certificates", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("core.client_cert.data.ca", &settings->core.client_cert.data.ca, "", "Client Certificate Authority", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.client_cert.data.crt", &settings->core.client_cert.data.crt, "", "Client certificate data", LEVEL_EXPERT)
+    OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data", LEVEL_EXPERT)
 
-    OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header")
-    OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)")
+    OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
+    OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)", LEVEL_DETAIL)
 
-    OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface")
-    OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned")
-    OPTION_BOOL("core.tonies_json_auto_update", &settings->core.tonies_json_auto_update, TRUE, "Auto-Update tonies.json", "Auto-Update tonies.json for Tonies information and images.")
+    OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)
+    OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned", LEVEL_DETAIL)
+    OPTION_UNSIGNED("core.settings_level", &settings->core.settings_level, 1, 1, 3, "Settings level", "1: Basic, 2: Detail, 3: Expert", LEVEL_BASIC)
+    OPTION_BOOL("core.tonies_json_auto_update", &settings->core.tonies_json_auto_update, TRUE, "Auto-Update tonies.json", "Auto-Update tonies.json for Tonies information and images.", LEVEL_DETAIL)
 
-    OPTION_TREE_DESC("security_mit", "Security mitigation")
-    OPTION_BOOL("security_mit.warnAccess", &settings->security_mit.warnAccess, TRUE, "Warning on unwanted access", "If teddyCloud detects unusal access, warn on frontend until restart. (See on*)")
-    OPTION_BOOL("security_mit.lockAccess", &settings->security_mit.lockAccess, TRUE, "Lock on unwanted access", "If teddyCloud detects a unusal access, lock frontend until restart. (See on*)")
-    OPTION_BOOL("security_mit.httpsOnly", &settings->security_mit.httpsOnly, TRUE, "On HTTPS only", "Lock/Warn on HTTPS port only.")
-    OPTION_BOOL("security_mit.onBlacklistDomain", &settings->security_mit.onBlacklistDomain, TRUE, "Detect blacklist domains", "Lock/Warn, if domain is known to be public.")
-    OPTION_BOOL("security_mit.onCrawler", &settings->security_mit.onCrawler, TRUE, "Detect crawlers", "Lock/Warn, if crawler is detected (User-Agent).")
-    // OPTION_BOOL("security_mit.onExternal", &settings->security_mit.onExternal, TRUE, "Detect external access", "Lock/Warn, if external access is detected.")
-    OPTION_BOOL("security_mit.onRobotsTxt", &settings->security_mit.onRobotsTxt, TRUE, "Detect robots.txt", "Lock/Warn, if robots.txt is accessed.")
+    OPTION_TREE_DESC("security_mit", "Security mitigation", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.warnAccess", &settings->security_mit.warnAccess, TRUE, "Warning on unwanted access", "If teddyCloud detects unusal access, warn on frontend until restart. (See on*)", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.lockAccess", &settings->security_mit.lockAccess, TRUE, "Lock on unwanted access", "If teddyCloud detects a unusal access, lock frontend until restart. (See on*)", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.httpsOnly", &settings->security_mit.httpsOnly, TRUE, "On HTTPS only", "Lock/Warn on HTTPS port only.", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.onBlacklistDomain", &settings->security_mit.onBlacklistDomain, TRUE, "Detect blacklist domains", "Lock/Warn, if domain is known to be public.", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.onCrawler", &settings->security_mit.onCrawler, TRUE, "Detect crawlers", "Lock/Warn, if crawler is detected (User-Agent).", LEVEL_EXPERT)
+    // OPTION_BOOL("security_mit.onExternal", &settings->security_mit.onExternal, TRUE, "Detect external access", "Lock/Warn, if external access is detected.", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.onRobotsTxt", &settings->security_mit.onRobotsTxt, TRUE, "Detect robots.txt", "Lock/Warn, if robots.txt is accessed.", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("internal", "Internal")
-    OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data")
-    OPTION_INTERNAL_STRING("internal.server.ca_key", &settings->internal.server.ca_key, "", "Server CA key data")
-    OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data")
-    OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data")
-    OPTION_INTERNAL_STRING("internal.server.cert_chain", &settings->internal.server.cert_chain, "", "TLS certificate chain")
-    OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA")
-    OPTION_INTERNAL_STRING("internal.client.crt", &settings->internal.client.crt, "", "Client certificate data")
-    OPTION_INTERNAL_STRING("internal.client.key", &settings->internal.client.key, "", "Client key data")
-    OPTION_INTERNAL_BOOL("internal.autogen_certs", &settings->internal.autogen_certs, TRUE, "Generate certificates if missing")
+    OPTION_TREE_DESC("internal", "Internal", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.server.ca_key", &settings->internal.server.ca_key, "", "Server CA key data", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.server.crt", &settings->internal.server.crt, "", "Server certificate data", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.server.key", &settings->internal.server.key, "", "Server key data", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.server.cert_chain", &settings->internal.server.cert_chain, "", "TLS certificate chain", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.client.ca", &settings->internal.client.ca, "", "Client CA", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.client.crt", &settings->internal.client.crt, "", "Client certificate data", LEVEL_SECRET)
+    OPTION_INTERNAL_STRING("internal.client.key", &settings->internal.client.key, "", "Client key data", LEVEL_SECRET)
+    OPTION_INTERNAL_BOOL("internal.autogen_certs", &settings->internal.autogen_certs, TRUE, "Generate certificates if missing", LEVEL_NONE)
 
-    OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server")
-    OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting")
-    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?")
-    OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?")
-    OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?")
-    OPTION_INTERNAL_BOOL("internal.logColorSupport", &settings->internal.logColorSupport, FALSE, "Terminal supports color (log)")
-    OPTION_INTERNAL_STRING("internal.basedir", &settings->internal.basedir, BASE_PATH, "basedir")
-    OPTION_INTERNAL_STRING("internal.basedirfull", &settings->internal.basedirfull, "", "basedirfull")
-    OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)")
-    OPTION_INTERNAL_STRING("internal.certdirfull", &settings->internal.certdirfull, "", "Directory where the certs are placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.configdirfull", &settings->internal.configdirfull, "", "Directory where the config is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)")
-    OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)")
-    OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)")
-    OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay")
-    OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay")
-    OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag")
+    OPTION_INTERNAL_BOOL("internal.exit", &settings->internal.exit, FALSE, "Exit the server", LEVEL_NONE)
+    OPTION_INTERNAL_SIGNED("internal.returncode", &settings->internal.returncode, 0, -128, 127, "Returncode when exiting", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.config_init", &settings->internal.config_init, FALSE, "Config initialized?", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.config_used", &settings->internal.config_used, FALSE, "Config used?", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.config_changed", &settings->internal.config_changed, FALSE, "Config changed and unsaved?", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.logColorSupport", &settings->internal.logColorSupport, FALSE, "Terminal supports color (log)", LEVEL_BASIC)
+    OPTION_INTERNAL_STRING("internal.basedir", &settings->internal.basedir, BASE_PATH, "basedir", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.basedirfull", &settings->internal.basedirfull, "", "basedirfull", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.cwd", &settings->internal.cwd, "", "current working dir (cwd)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.certdirfull", &settings->internal.certdirfull, "", "Directory where the certs are placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.configdirfull", &settings->internal.configdirfull, "", "Directory where the config is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.contentdirrel", &settings->internal.contentdirrel, "", "Directory where cloud content is placed (relative)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.contentdirfull", &settings->internal.contentdirfull, "", "Directory where cloud content is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag", LEVEL_NONE)
 
-    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarId", &settings->internal.rtnl.lastEarId, EAR_NONE, EAR_BIG, EAR_NONE, "Id of the last pressed id")
-    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarpress", &settings->internal.rtnl.lastEarpress, 0, 0, UINT64_MAX, "Timestamp of the last pressed ear")
-    OPTION_INTERNAL_BOOL("internal.rtnl.wasDoubleEarpress", &settings->internal.rtnl.wasDoubleEarpress, FALSE, "Was double Earpress?")
-    OPTION_INTERNAL_UNSIGNED("internal.rtnl.multipressTime", &settings->internal.rtnl.multipressTime, 300, 0, UINT16_MAX, "Multipress time")
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarId", &settings->internal.rtnl.lastEarId, EAR_NONE, EAR_BIG, EAR_NONE, "Id of the last pressed id", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarpress", &settings->internal.rtnl.lastEarpress, 0, 0, UINT64_MAX, "Timestamp of the last pressed ear", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.rtnl.wasDoubleEarpress", &settings->internal.rtnl.wasDoubleEarpress, FALSE, "Was double Earpress?", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.rtnl.multipressTime", &settings->internal.rtnl.multipressTime, 300, 0, UINT16_MAX, "Multipress time", LEVEL_NONE)
 
-    OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id")
-    OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Short Git SHA-1 hash of the build version")
-    OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Full Git SHA-1 hash of the build version")
-    OPTION_INTERNAL_BOOL("internal.version.dirty", &settings->internal.version.dirty, FALSE, "Indicates if the build was made from a modified (dirty) git tree")
-    OPTION_INTERNAL_STRING("internal.version.datetime", &settings->internal.version.datetime, "", "Datetime of the build or git commit")
-    OPTION_INTERNAL_STRING("internal.version.platform", &settings->internal.version.platform, "", "Platform on which the software was built")
-    OPTION_INTERNAL_STRING("internal.version.os", &settings->internal.version.os, "", "Operating System used for the build")
-    OPTION_INTERNAL_STRING("internal.version.architecture", &settings->internal.version.architecture, "", "System architecture for the build")
-    OPTION_INTERNAL_STRING("internal.version.v_short", &settings->internal.version.v_short, "", "Concise version descriptor")
-    OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor")
-    OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details")
+    OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Short Git SHA-1 hash of the build version", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.git_sha", &settings->internal.version.git_sha, "", "Full Git SHA-1 hash of the build version", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.version.dirty", &settings->internal.version.dirty, FALSE, "Indicates if the build was made from a modified (dirty) git tree", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.datetime", &settings->internal.version.datetime, "", "Datetime of the build or git commit", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.platform", &settings->internal.version.platform, "", "Platform on which the software was built", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.os", &settings->internal.version.os, "", "Operating System used for the build", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.architecture", &settings->internal.version.architecture, "", "System architecture for the build", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.v_short", &settings->internal.version.v_short, "", "Concise version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details", LEVEL_NONE)
 
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, 0, "Box IC from User Agent")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, 0, "Firmware version from User Agent")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, 0, "Service Pack version from User Agent")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionHardware", &settings->internal.toniebox_firmware.uaVersionHardware, 0, 0, 0, "Hardware version from User Agent")
-    OPTION_INTERNAL_STRING("internal.toniebox_firmware.uaEsp32Firmware", &settings->internal.toniebox_firmware.uaEsp32Firmware, "", "Firmware version from User Agent (esp32)")
-    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlVersion", &settings->internal.toniebox_firmware.rtnlVersion, "", "Firmware version from RTNL")
-    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlFullVersion", &settings->internal.toniebox_firmware.rtnlFullVersion, "", "Firmware full version from RTNL")
-    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlDetail", &settings->internal.toniebox_firmware.rtnlDetail, "", "Firmware detail information")
-    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlRegion", &settings->internal.toniebox_firmware.rtnlRegion, "", "Firmware region")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionSfx", &settings->internal.toniebox_firmware.otaVersionSfx, 0, 0, 0, " ota version")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionServicePack", &settings->internal.toniebox_firmware.otaVersionServicePack, 0, 0, 0, " ota version")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionHtml", &settings->internal.toniebox_firmware.otaVersionHtml, 0, 0, 0, "Html ota version")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, 0, "Firmware EU ota version")
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, 0, "Firmware PD ota version")
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, 0, "Box IC from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, 0, "Firmware version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, 0, "Service Pack version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionHardware", &settings->internal.toniebox_firmware.uaVersionHardware, 0, 0, 0, "Hardware version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.uaEsp32Firmware", &settings->internal.toniebox_firmware.uaEsp32Firmware, "", "Firmware version from User Agent (esp32)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlVersion", &settings->internal.toniebox_firmware.rtnlVersion, "", "Firmware version from RTNL", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlFullVersion", &settings->internal.toniebox_firmware.rtnlFullVersion, "", "Firmware full version from RTNL", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlDetail", &settings->internal.toniebox_firmware.rtnlDetail, "", "Firmware detail information", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlRegion", &settings->internal.toniebox_firmware.rtnlRegion, "", "Firmware region", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionSfx", &settings->internal.toniebox_firmware.otaVersionSfx, 0, 0, 0, " ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionServicePack", &settings->internal.toniebox_firmware.otaVersionServicePack, 0, 0, 0, " ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionHtml", &settings->internal.toniebox_firmware.otaVersionHtml, 0, 0, 0, "Html ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, 0, "Firmware EU ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, 0, "Firmware PD ota version", LEVEL_NONE)
 
-    OPTION_INTERNAL_U64_ARRAY("internal.freshnessCache", &settings->internal.freshnessCache, 0, "Cache for freshnessCheck")
+    OPTION_INTERNAL_U64_ARRAY("internal.freshnessCache", &settings->internal.freshnessCache, 0, "Cache for freshnessCheck", LEVEL_NONE)
 
-    OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, 0, "Last connection timestamp")
-    OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID")
-    OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online")
+    OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, 0, "Last connection timestamp", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.ip", &settings->internal.ip, "", "IP", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online", LEVEL_NONE)
 
-    OPTION_INTERNAL_BOOL("internal.security_mit.incident", &settings->internal.security_mit.incident, FALSE, "We had a security incident")
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.blacklisted_domain_access", &settings->internal.security_mit.blacklisted_domain_access, 0, 0, 0, "Check accessed via blacklisted domain")
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.crawler_access", &settings->internal.security_mit.crawler_access, 0, 0, 0, "Last access via crawler")
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.external_access", &settings->internal.security_mit.external_access, 0, 0, 0, "Last external access")
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.robots_txt_access", &settings->internal.security_mit.robots_txt_access, 0, 0, 0, "Last access onto the robots.txt")
+    OPTION_INTERNAL_BOOL("internal.security_mit.incident", &settings->internal.security_mit.incident, FALSE, "We had a security incident", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.blacklisted_domain_access", &settings->internal.security_mit.blacklisted_domain_access, 0, 0, 0, "Check accessed via blacklisted domain", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.crawler_access", &settings->internal.security_mit.crawler_access, 0, 0, 0, "Last access via crawler", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.external_access", &settings->internal.security_mit.external_access, 0, 0, 0, "Last external access", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.robots_txt_access", &settings->internal.security_mit.robots_txt_access, 0, 0, 0, "Last access onto the robots.txt", LEVEL_NONE)
 
-    OPTION_TREE_DESC("cloud", "Cloud")
-    OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation")
-    OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Cloud hostname", "Hostname of remote cloud server")
-    OPTION_UNSIGNED("cloud.remote_port", &settings->cloud.remote_port, 443, 1, 65535, "Cloud port", "Port of remote cloud server")
-    OPTION_BOOL("cloud.enableV1Claim", &settings->cloud.enableV1Claim, TRUE, "Forward 'claim'", "Forward 'claim' queries to claim tonies in the household in the tonies cloud")
-    OPTION_BOOL("cloud.enableV1CloudReset", &settings->cloud.enableV1CloudReset, FALSE, "Forward 'cloudReset'", "Forward 'cloudReset' queries to tonies cloud")
-    OPTION_BOOL("cloud.enableV1FreshnessCheck", &settings->cloud.enableV1FreshnessCheck, TRUE, "Forward 'freshnessCheck'", "Forward 'freshnessCheck' queries to mark new content as updated to tonies cloud")
-    OPTION_BOOL("cloud.enableV1Log", &settings->cloud.enableV1Log, FALSE, "Forward 'log'", "Forward 'log' queries to tonies cloud")
-    OPTION_BOOL("cloud.enableV1Time", &settings->cloud.enableV1Time, FALSE, "Forward 'time'", "Forward 'time' queries to tonies cloud")
-    OPTION_BOOL("cloud.enableV1Ota", &settings->cloud.enableV1Ota, FALSE, "Forward 'ota'", "Forward 'ota' queries to tonies cloud")
-    OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Forward 'content'", "Forward 'content' queries to download content from the tonies cloud")
-    OPTION_BOOL("cloud.cacheOta", &settings->cloud.cacheOta, TRUE, "Cache OTA", "Cache OTA files in firmware dir of local server (this still blocks OTA if local OTA delivery is disabled)")
-    OPTION_BOOL("cloud.localOta", &settings->cloud.localOta, FALSE, "Local OTA delivery", "Send local OTA files in firmware dir")
-    OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, TRUE, "Cache content", "Cache cloud content on local server")
-    OPTION_BOOL("cloud.cacheToLibrary", &settings->cloud.cacheToLibrary, TRUE, "Cache to library", "Cache cloud content to library")
-    OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password")
-    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)")
-    OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id")
-    OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.")
+    OPTION_TREE_DESC("cloud", "Cloud", LEVEL_BASIC)
+    OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation", LEVEL_BASIC)
+    OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Cloud hostname", "Hostname of remote cloud server", LEVEL_EXPERT)
+    OPTION_UNSIGNED("cloud.remote_port", &settings->cloud.remote_port, 443, 1, 65535, "Cloud port", "Port of remote cloud server", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.enableV1Claim", &settings->cloud.enableV1Claim, TRUE, "Forward 'claim'", "Forward 'claim' queries to claim tonies in the household in the tonies cloud", LEVEL_BASIC)
+    OPTION_BOOL("cloud.enableV1CloudReset", &settings->cloud.enableV1CloudReset, FALSE, "Forward 'cloudReset'", "Forward 'cloudReset' queries to tonies cloud", LEVEL_DETAIL)
+    OPTION_BOOL("cloud.enableV1FreshnessCheck", &settings->cloud.enableV1FreshnessCheck, TRUE, "Forward 'freshnessCheck'", "Forward 'freshnessCheck' queries to mark new content as updated to tonies cloud", LEVEL_DETAIL)
+    OPTION_BOOL("cloud.enableV1Log", &settings->cloud.enableV1Log, FALSE, "Forward 'log'", "Forward 'log' queries to tonies cloud", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.enableV1Time", &settings->cloud.enableV1Time, FALSE, "Forward 'time'", "Forward 'time' queries to tonies cloud", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.enableV1Ota", &settings->cloud.enableV1Ota, FALSE, "Forward 'ota'", "Forward 'ota' queries to tonies cloud", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Forward 'content'", "Forward 'content' queries to download content from the tonies cloud", LEVEL_BASIC)
+    OPTION_BOOL("cloud.cacheOta", &settings->cloud.cacheOta, TRUE, "Cache OTA", "Cache OTA files in firmware dir of local server (this still blocks OTA if local OTA delivery is disabled)", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.localOta", &settings->cloud.localOta, FALSE, "Local OTA delivery", "Send local OTA files in firmware dir", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, TRUE, "Cache content", "Cache cloud content on local server", LEVEL_DETAIL)
+    OPTION_BOOL("cloud.cacheToLibrary", &settings->cloud.cacheToLibrary, TRUE, "Cache to library", "Cache cloud content to library", LEVEL_DETAIL)
+    OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("encode", "TAF encoding")
-    OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!")
-    OPTION_UNSIGNED("encode.ffmpeg_stream_buffer_ms", &settings->encode.ffmpeg_stream_buffer_ms, 2000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.")
-    OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, FALSE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.")
-    OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.")
-    OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.")
+    OPTION_TREE_DESC("encode", "TAF encoding", LEVEL_EXPERT)
+    OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!", LEVEL_EXPERT)
+    OPTION_UNSIGNED("encode.ffmpeg_stream_buffer_ms", &settings->encode.ffmpeg_stream_buffer_ms, 2000, 0, 60000, "Stream buffer ms", "Stream buffer for ffmpeg based streaming.", LEVEL_EXPERT)
+    OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, FALSE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.", LEVEL_EXPERT)
+    OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.", LEVEL_EXPERT)
+    OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("toniebox", "Toniebox")
-    OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings for the toniebox with those set here")
-    OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume", "0=25%, 1=50%, 2=75%, 3=100%")
-    OPTION_UNSIGNED("toniebox.max_vol_hdp", &settings->toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume", "0=25%, 1=50%, 2=75%, 3=100%")
-    OPTION_BOOL("toniebox.slap_enabled", &settings->toniebox.slap_enabled, TRUE, "Slap to skip", "Enable track skip via slapping gesture")
-    OPTION_BOOL("toniebox.slap_back_left", &settings->toniebox.slap_back_left, FALSE, "Slap direction", "Determine slap direction for skipping track: False for left-backward, True for left-forward")
-    OPTION_UNSIGNED("toniebox.led", &settings->toniebox.led, 0, 0, 2, "LED brightness", "0=on, 1=off, 2=dimmed")
+    OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
+    OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings for the toniebox with those set here", LEVEL_BASIC)
+    OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
+    OPTION_UNSIGNED("toniebox.max_vol_hdp", &settings->toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
+    OPTION_BOOL("toniebox.slap_enabled", &settings->toniebox.slap_enabled, TRUE, "Slap to skip", "Enable track skip via slapping gesture", LEVEL_BASIC)
+    OPTION_BOOL("toniebox.slap_back_left", &settings->toniebox.slap_back_left, FALSE, "Slap direction", "Determine slap direction for skipping track: False for left-backward, True for left-forward", LEVEL_BASIC)
+    OPTION_UNSIGNED("toniebox.led", &settings->toniebox.led, 0, 0, 2, "LED brightness", "0=on, 1=off, 2=dimmed", LEVEL_BASIC)
 
-    OPTION_TREE_DESC("rtnl", "RTNL log")
-    OPTION_BOOL("rtnl.logRaw", &settings->rtnl.logRaw, FALSE, "Log RTNL (bin)", "Enable logging for raw RTNL data")
-    OPTION_BOOL("rtnl.logHuman", &settings->rtnl.logHuman, FALSE, "Log RTNL (csv)", "Enable logging for human-readable RTNL data")
-    OPTION_STRING("rtnl.logRawFile", &settings->rtnl.logRawFile, "config/rtnl.bin", "RTNL bin file", "Specify the filepath for raw RTNL log")
-    OPTION_STRING("rtnl.logHumanFile", &settings->rtnl.logHumanFile, "config/rtnl.csv", "RTNL csv file", "Specify the filepath for human-readable RTNL log")
+    OPTION_TREE_DESC("rtnl", "RTNL log", LEVEL_EXPERT)
+    OPTION_BOOL("rtnl.logRaw", &settings->rtnl.logRaw, FALSE, "Log RTNL (bin)", "Enable logging for raw RTNL data", LEVEL_EXPERT)
+    OPTION_BOOL("rtnl.logHuman", &settings->rtnl.logHuman, FALSE, "Log RTNL (csv)", "Enable logging for human-readable RTNL data", LEVEL_EXPERT)
+    OPTION_STRING("rtnl.logRawFile", &settings->rtnl.logRawFile, "config/rtnl.bin", "RTNL bin file", "Specify the filepath for raw RTNL log", LEVEL_EXPERT)
+    OPTION_STRING("rtnl.logHumanFile", &settings->rtnl.logHumanFile, "config/rtnl.csv", "RTNL csv file", "Specify the filepath for human-readable RTNL log", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("mqtt", "MQTT")
-    OPTION_BOOL("mqtt.enabled", &settings->mqtt.enabled, FALSE, "Enable MQTT", "Enable MQTT client")
-    OPTION_STRING("mqtt.hostname", &settings->mqtt.hostname, "", "MQTT hostname", "IP or Hostname of the MQTT server")
-    OPTION_UNSIGNED("mqtt.port", &settings->mqtt.port, 1883, 1, 65535, "MQTT port", "Port of MQTT server")
-    OPTION_STRING("mqtt.username", &settings->mqtt.username, "", "Username", "MQTT Username")
-    OPTION_STRING("mqtt.password", &settings->mqtt.password, "", "Password", "MQTT Password")
-    OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification", "Client identification")
-    OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix")
-    OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level")
+    OPTION_TREE_DESC("pcap", "libpcap packet log", LEVEL_EXPERT)
+    OPTION_BOOL("pcap.enabled", &settings->pcap.enabled, FALSE, "Log HTTP(S) traffic", "Enable logging for HTTP(S) traffic into a .pcap file (needs restart)", LEVEL_EXPERT)
+    OPTION_STRING("pcap.filename", &settings->pcap.filename, "config/traffic.pcap", "libpcap log file", "Specify the filepath for libpcap log", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("hass", "Home Assistant")
-    OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name")
-    OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device")
+    OPTION_TREE_DESC("mqtt", "MQTT", LEVEL_DETAIL)
+    OPTION_BOOL("mqtt.enabled", &settings->mqtt.enabled, FALSE, "Enable MQTT", "Enable MQTT client", LEVEL_DETAIL)
+    OPTION_STRING("mqtt.hostname", &settings->mqtt.hostname, "", "MQTT hostname", "IP or Hostname of the MQTT server", LEVEL_DETAIL)
+    OPTION_UNSIGNED("mqtt.port", &settings->mqtt.port, 1883, 1, 65535, "MQTT port", "Port of MQTT server", LEVEL_DETAIL)
+    OPTION_STRING("mqtt.username", &settings->mqtt.username, "", "Username", "MQTT Username", LEVEL_DETAIL)
+    OPTION_STRING("mqtt.password", &settings->mqtt.password, "", "Password", "MQTT Password", LEVEL_DETAIL)
+    OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification", "Client identification", LEVEL_DETAIL)
+    OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix", LEVEL_DETAIL)
+    OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level", LEVEL_DETAIL)
+
+    OPTION_TREE_DESC("hass", "Home Assistant", LEVEL_DETAIL)
+    OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name", LEVEL_DETAIL)
+    OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device", LEVEL_DETAIL)
     OPTION_END()
 
     settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;
@@ -254,6 +273,7 @@ static setting_item_t *get_option_map(const char *overlay)
 {
     return Option_Map_Overlay[get_overlay_id(overlay)];
 }
+
 void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
 {
     if (opt == opt_src)
@@ -289,7 +309,8 @@ void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src)
         opt->overlayed = false;
     }
 }
-void overlay_serttings_init_field(int field, uint8_t overlay)
+
+static void overlay_settings_init_field(int field, uint8_t overlay)
 {
     setting_item_t *option_map = Option_Map_Overlay[overlay];
     setting_item_t *option_map_src = Option_Map_Overlay[0];
@@ -300,21 +321,18 @@ void overlay_serttings_init_field(int field, uint8_t overlay)
     overlay_settings_init_opt(opt, opt_src);
 }
 
-void overlay_settings_init()
+static void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        if (Settings_Overlay[i].internal.config_init)
-        {
-            settings_deinit(i);
-        }
+        settings_deinit_ovl(i);
 
         option_map_init(i);
 
         int field = 0;
         while (Option_Map_Overlay[i][field].type != TYPE_END)
         {
-            overlay_serttings_init_field(field, i);
+            overlay_settings_init_field(field, i);
             field++;
         }
         Settings_Overlay[i].internal.overlayNumber = i;
@@ -332,6 +350,7 @@ settings_t *get_settings_ovl(const char *overlay_unique_id)
 {
     return get_settings_id(get_overlay_id(overlay_unique_id));
 }
+
 settings_t *get_settings_id(uint8_t settingsId)
 {
     return &Settings_Overlay[settingsId];
@@ -339,15 +358,14 @@ settings_t *get_settings_id(uint8_t settingsId)
 
 settings_t *get_settings_cn(const char *commonName)
 {
-    mutex_lock(MUTEX_SETTINGS_CN);
+    mutex_lock(MUTEX_SETTINGS);
     if (commonName != NULL && osStrcmp(commonName, "") != 0)
     {
-
         for (size_t i = 1; i < MAX_OVERLAYS; i++)
         {
             if (osStrcmp(Settings_Overlay[i].commonName, commonName) == 0)
             {
-                mutex_unlock(MUTEX_SETTINGS_CN);
+                mutex_unlock(MUTEX_SETTINGS);
                 return &Settings_Overlay[i];
             }
         }
@@ -368,7 +386,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
-                mutex_unlock(MUTEX_SETTINGS_CN);
+                mutex_unlock(MUTEX_SETTINGS);
 
                 osFreeMem(boxId);
                 osFreeMem(boxName);
@@ -378,11 +396,11 @@ settings_t *get_settings_cn(const char *commonName)
 
         TRACE_WARNING("Could not create new overlay for unknown client %s, to many overlays.\r\n", commonName);
     }
-    mutex_unlock(MUTEX_SETTINGS_CN);
+    mutex_unlock(MUTEX_SETTINGS);
     return get_settings();
 }
 
-uint8_t get_overlay_id(const char *overlay_unique_id)
+static uint8_t get_overlay_id(const char *overlay_unique_id)
 {
     if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {
@@ -419,7 +437,7 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     fsFixPath(*resolvedPath);
 }
 
-void settings_generate_internal_dirs(settings_t *settings)
+static void settings_generate_internal_dirs(settings_t *settings)
 {
     free(settings->internal.basedirfull);
     free(settings->internal.certdirfull);
@@ -461,19 +479,25 @@ void settings_generate_internal_dirs(settings_t *settings)
     free(tmpPath);
 }
 
-void settings_changed()
+static void settings_changed()
 {
     settings_changed_id(0);
 }
+
 void settings_changed_id(uint8_t settingsId)
 {
-    mutex_lock(MUTEX_SETTINGS_CHANGED);
+    mutex_lock(MUTEX_SETTINGS);
+
     Settings_Overlay[settingsId].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings_id((settingsId)));
     if (config_file_path != NULL)
+    {
         osFreeMem(config_file_path);
+    }
     if (config_overlay_file_path != NULL)
+    {
         osFreeMem(config_overlay_file_path);
+    }
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
 
@@ -481,18 +505,24 @@ void settings_changed_id(uint8_t settingsId)
     {
         settings_load_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_CHANGED);
+
+    mutex_unlock(MUTEX_SETTINGS);
 }
 
-void settings_deinit(uint8_t overlayNumber)
+static void settings_deinit_ovl(uint8_t overlayNumber)
 {
-    int pos = 0;
+    if (!Settings_Overlay[overlayNumber].internal.config_init)
+    {
+        return;
+    }
+
     setting_item_t *option_map = Option_Map_Overlay[overlayNumber];
     if (option_map == NULL)
     {
         return;
     }
 
+    int pos = 0;
     while (option_map[pos].type != TYPE_END)
     {
         setting_item_t *opt = &option_map[pos];
@@ -532,14 +562,15 @@ void settings_deinit(uint8_t overlayNumber)
     Option_Map_Overlay[overlayNumber] = NULL;
 }
 
-void settings_deinit_all()
+void settings_deinit()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit(i);
+        settings_deinit_ovl(i);
     }
 }
-void settings_init_opt(setting_item_t *opt)
+
+static void settings_init_opt(setting_item_t *opt)
 {
     switch (opt->type)
     {
@@ -575,6 +606,7 @@ void settings_init_opt(setting_item_t *opt)
         break;
     }
 }
+
 error_t settings_init(const char *cwd, const char *base_dir)
 {
     bool autogen_certs = Settings_Overlay[0].internal.autogen_certs;
@@ -618,7 +650,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
 
 error_t settings_save()
 {
-    mutex_lock(MUTEX_SETTINGS_SAVE);
+    mutex_lock(MUTEX_SETTINGS);
     error_t err = NO_ERROR;
 
     err = settings_save_ovl(false);
@@ -626,14 +658,13 @@ error_t settings_save()
     {
         err = settings_save_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_SAVE);
+    mutex_unlock(MUTEX_SETTINGS);
 
     return err;
 }
 
-error_t settings_save_ovl(bool overlay)
+static error_t settings_save_ovl(bool overlay)
 {
-    mutex_lock(MUTEX_SETTINGS_SAVE_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Save settings to %s\r\n", config_path);
@@ -641,7 +672,6 @@ error_t settings_save_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_ERROR("Failed to open config file for writing\r\n");
-        mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
         return ERROR_DIRECTORY_NOT_FOUND;
     }
 
@@ -716,13 +746,12 @@ error_t settings_save_ovl(bool overlay)
     fsCloseFile(file);
     Settings_Overlay[0].internal.config_changed = false;
 
-    mutex_unlock(MUTEX_SETTINGS_SAVE_OVL);
     return NO_ERROR;
 }
 
 error_t settings_load()
 {
-    mutex_lock(MUTEX_SETTINGS_LOAD);
+    mutex_lock(MUTEX_SETTINGS);
     error_t err = NO_ERROR;
 
     err = settings_load_ovl(false);
@@ -730,13 +759,12 @@ error_t settings_load()
     {
         err = settings_load_ovl(true);
     }
-    mutex_unlock(MUTEX_SETTINGS_LOAD);
+    mutex_unlock(MUTEX_SETTINGS);
     return err;
 }
 
-error_t settings_load_ovl(bool overlay)
+static error_t settings_load_ovl(bool overlay)
 {
-    mutex_lock(MUTEX_SETTINGS_LOAD_OVL);
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
 
     TRACE_INFO("Load settings from %s\r\n", config_path);
@@ -750,7 +778,6 @@ error_t settings_load_ovl(bool overlay)
         TRACE_WARNING("Config file does not exist, creating it...\r\n");
 
         error_t err = settings_save_ovl(overlay);
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return err;
     }
 
@@ -759,7 +786,6 @@ error_t settings_load_ovl(bool overlay)
     if (result != NO_ERROR)
     {
         TRACE_WARNING("Failed to get config file size\r\n");
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -767,7 +793,6 @@ error_t settings_load_ovl(bool overlay)
     if (file == NULL)
     {
         TRACE_WARNING("Failed to open config file for reading\r\n");
-        mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
         return ERROR_ABORTED;
     }
 
@@ -955,7 +980,6 @@ error_t settings_load_ovl(bool overlay)
         }
     }
 
-    mutex_unlock(MUTEX_SETTINGS_LOAD_OVL);
     return NO_ERROR;
 }
 
@@ -987,7 +1011,7 @@ setting_item_t *settings_get_by_name_ovl(const char *item, const char *overlay_n
     return settings_get_by_name_id(item, get_overlay_id(overlay_name));
 }
 
-setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
+static setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId)
 {
     int pos = 0;
     setting_item_t *option_map = Option_Map_Overlay[settingsId];
@@ -1291,11 +1315,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     }
 
     char **ptr = (char **)opt->ptr;
-
-    if (*ptr)
-    {
-        free(*ptr);
-    }
+    char *old_ptr = *ptr;
 
     *ptr = strdup(value);
 
@@ -1307,6 +1327,12 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
     {
         settings_changed_id(settingsId);
     }
+
+    if (old_ptr)
+    {
+        free(old_ptr);
+    }
+
     return true;
 }
 
@@ -1405,7 +1431,7 @@ void settings_loop()
     }
 }
 
-char *settings_sanitize_box_id(const char *input_id)
+static char *settings_sanitize_box_id(const char *input_id)
 {
     char *new_str = osAllocMem(osStrlen(input_id) + 1);
     if (new_str == NULL)
@@ -1428,6 +1454,7 @@ char *settings_sanitize_box_id(const char *input_id)
     return new_str;
 }
 
+/* unused? */
 void settings_load_all_certs()
 {
     for (size_t id = 0; id < MAX_OVERLAYS; id++)

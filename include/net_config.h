@@ -33,13 +33,20 @@
 
 #include "settings.h"
 #include "toniebox_state_type.h"
+#include "pcaplog_types.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
 #define JWT_AUTH_TOKEN_LENGTH 32
 
 typedef struct
 {
+    pcaplog_t pcap_data;
+} http_client_private_t;
+
+typedef struct
+{
     settings_t *settings;
+    settings_t *settingsNoOverlay;
     toniebox_state_t *state;
     bool skip_taf_header;
 } client_ctx_t;
@@ -48,11 +55,15 @@ typedef struct
 {
     uint8_t authentication_token[TONIE_AUTH_TOKEN_LENGTH];
     client_ctx_t client_ctx;
-
+    pcaplog_t pcap_data;
 } http_connection_private_t;
 
 #define CONTENT_LENGTH_MAX (INT32_MAX)
 #define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - 0x1000)
+
+#define HTTP_CLIENT_PRIVATE_CONTEXT \
+    http_client_private_t private;  \
+    void *sourceCtx;
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;

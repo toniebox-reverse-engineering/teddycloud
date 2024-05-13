@@ -207,3 +207,22 @@ error_t fsCreateDirEx(const char_t *path, bool_t recursive)
     }
     return fsCreateDir(path);
 }
+
+error_t fsRemoveFilename(char *dir)
+{
+    if (dir == NULL)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+    if (dir[osStrlen(dir) - 1] == PATH_SEPARATOR)
+    {
+        return NO_ERROR;
+    }
+    char *last_slash = strrchr(dir, PATH_SEPARATOR);
+    if (last_slash == NULL)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+    *last_slash = '\0';
+    return NO_ERROR;
+}

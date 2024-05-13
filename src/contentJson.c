@@ -9,11 +9,7 @@
 #include "handler.h"
 #include "json_helper.h"
 
-error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing)
-{
-    return load_content_json_settings(content_path, content_json, create_if_missing, get_settings());
-}
-error_t load_content_json_settings(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings)
+error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings)
 {
     char *jsonPath = custom_asprintf("%s.json", content_path);
     error_t error = NO_ERROR;
@@ -33,6 +29,8 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
     content_json->_valid = false;
+    content_json->_create_if_missing = create_if_missing;
+
     osMemset(&content_json->_tap, 0, sizeof(tonie_audio_playlist_t));
 
     if (fsFileExists(jsonPath))
@@ -147,10 +145,10 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
 
     if (error != NO_ERROR && (error != ERROR_FILE_NOT_FOUND || create_if_missing))
     {
-        error = save_content_json(content_path, content_json);
+        error = save_content_json(jsonPath, content_json);
         if (error == NO_ERROR)
         {
-            load_content_json_settings(content_path, content_json, true, settings);
+            load_content_json(content_path, content_json, true, settings);
         }
     }
 
@@ -159,10 +157,26 @@ error_t load_content_json_settings(const char *content_path, contentJson_t *cont
     return error;
 }
 
-error_t save_content_json(const char *content_path, contentJson_t *content_json)
+error_t save_content_json(const char *json_path, contentJson_t *content_json)
 {
-    char *jsonPath = custom_asprintf("%s.json", content_path);
-    char *jsonPathTmp = custom_asprintf("%s.json.tmp", content_path);
+    /* retrieve content directory */
+    char *content_dir = strdup(json_path);
+
+    if (fsRemoveFilename(content_dir) != NO_ERROR)
+    {
+        TRACE_ERROR("Error retrieving content directory from json path.\r\n");
+        TRACE_ERROR("  json_path: '%s'\r\n", json_path);
+        return ERROR_INVALID_PARAMETER;
+    }
+    /* create if not existing */
+    if (!fsDirExists(content_dir))
+    {
+        TRACE_INFO("Content dir for JSON '%s' not existing, creating it.\r\n", json_path);
+        fsCreateDir(content_dir);
+    }
+    osFreeMem(content_dir);
+
+    char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
     cJSON *contentJson = cJSON_CreateObject();
 
@@ -179,14 +193,6 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     char *jsonRaw = cJSON_Print(contentJson);
 
-    char *dir = strdup(content_path);
-    dir[osStrlen(dir) - 8] = '\0';
-    if (!fsDirExists(dir))
-    {
-        fsCreateDir(dir);
-    }
-    osFreeMem(dir);
-
     FsFile *file = fsOpenFile(jsonPathTmp, FS_FILE_MODE_WRITE);
     if (file != NULL)
     {
@@ -200,7 +206,7 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     if (error == NO_ERROR)
     {
-        error = fsMoveFile(jsonPathTmp, jsonPath, true);
+        error = fsMoveFile(jsonPathTmp, json_path, true);
     }
 
     if (error == NO_ERROR)
@@ -211,7 +217,6 @@ error_t save_content_json(const char *content_path, contentJson_t *content_json)
 
     cJSON_Delete(contentJson);
     osFreeMem(jsonRaw);
-    osFreeMem(jsonPath);
     osFreeMem(jsonPathTmp);
     return error;
 }

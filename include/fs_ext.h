@@ -21,3 +21,4 @@ error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, siz
 error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
 error_t fsCreateDirEx(const char_t *path, bool_t recursive);
+error_t fsRemoveFilename(char *dir);

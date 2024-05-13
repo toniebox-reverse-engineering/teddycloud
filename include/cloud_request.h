@@ -1,8 +1,6 @@
 #ifndef __CLOUD_REQUEST_H__
 #define __CLOUD_REQUEST_H__
 
-#define HTTP_CLIENT_PRIVATE_CONTEXT void *sourceCtx;
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "http/http_client.h"

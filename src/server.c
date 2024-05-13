@@ -38,6 +38,7 @@
 #include "handler_sse.h"
 #include "handler_security_mit.h"
 #include "proto/toniebox.pb.rtnl.pb-c.h"
+#include "pcaplog.h"
 
 #define APP_HTTP_MAX_CONNECTIONS 32
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
@@ -296,6 +297,10 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     }
     client_ctx->state->box.id = client_ctx->settings->commonName;
     client_ctx->state->box.name = client_ctx->settings->boxName;
+    client_ctx->settingsNoOverlay = client_ctx->settings;
+
+    char *ipStr = ipAddrToString(&connection->socket->remoteIpAddr, NULL);
+    settings_set_string_id("internal.ip", ipStr, client_ctx->settings->internal.overlayNumber);
     mutex_unlock(MUTEX_CLIENT_CTX);
 
     connection->response.keepAlive = connection->request.keepAlive;
@@ -600,6 +605,9 @@ void server_init(bool test)
         TRACE_ERROR("httpServerInit() for HTTPS failed with code %d\r\n", err);
         return;
     }
+
+    pcaplog_open();
+
     err = httpServerStart(&http_context);
     if (err != NO_ERROR)
     {
@@ -683,6 +691,8 @@ void server_init(bool test)
     }
     tonies_deinit();
     mutex_manager_deinit();
+
+    pcaplog_close();
 
     int ret = settings_get_signed("internal.returncode");
     TRACE_INFO("Exiting TeddyCloud with returncode %d\r\n", ret);

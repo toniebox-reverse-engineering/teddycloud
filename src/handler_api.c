@@ -42,6 +42,7 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
     return error;
 }
 
+/* sanitizes the path - needs two additional characters in worst case, so make sure 'path' has enough space */
 void sanitizePath(char *path, bool isDir)
 {
     size_t i, j;
@@ -93,12 +94,22 @@ void sanitizePath(char *path, bool isDir)
     }
 }
 
-error_t queryPrepare(const char *queryString, const char **rootPath, char *overlay, size_t overlay_size)
+error_t queryPrepare(const char *queryString, const char **rootPath, char *overlay, size_t overlay_size, settings_t **settings)
 {
     char special[16];
 
     osStrcpy(overlay, "");
     osStrcpy(special, "");
+
+    if (overlay)
+    {
+        if (queryGet(queryString, "overlay", overlay, overlay_size))
+        {
+            TRACE_DEBUG("got overlay '%s'\r\n", overlay);
+
+            *settings = get_settings_ovl(overlay);
+        }
+    }
 
     *rootPath = settings_get_string_ovl("internal.contentdirfull", overlay);
 
@@ -123,18 +134,10 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
         }
     }
 
-    if (overlay)
-    {
-        if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
-        {
-            TRACE_INFO("got overlay '%s'\r\n", overlay);
-        }
-    }
-
     return NO_ERROR;
 }
 
-void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
+void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *parent)
 {
     cJSON *tracksJson = cJSON_CreateArray();
     cJSON *tonieInfoJson;
@@ -166,7 +169,14 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, cJSON *parent)
     }
     else
     {
-        cJSON_AddStringToObject(tonieInfoJson, "model", "");
+        if (fallbackModel != NULL)
+        {
+            cJSON_AddStringToObject(tonieInfoJson, "model", fallbackModel);
+        }
+        else
+        {
+            cJSON_AddStringToObject(tonieInfoJson, "model", "");
+        }
         cJSON_AddStringToObject(tonieInfoJson, "series", "");
         cJSON_AddStringToObject(tonieInfoJson, "episode", "");
 
@@ -187,7 +197,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
 
     osStrcpy(path, "");
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -224,15 +234,36 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
 
     char overlay[16];
     osStrcpy(overlay, "");
+    char internal[16];
+    osStrcpy(internal, "");
+    bool showInternal = false;
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
+    }
+    if (queryGet(queryString, "internal", internal, sizeof(internal)))
+    {
+        if (internal[0] == 't')
+        {
+            showInternal = true;
+        }
     }
     for (size_t pos = 0; pos < settings_get_size(); pos++)
     {
         setting_item_t *opt = settings_get_ovl(pos, overlay);
 
-        if (opt->internal || opt->type == TYPE_TREE_DESC)
+        if (opt->type == TYPE_TREE_DESC)
+        {
+            continue;
+        }
+
+        if (opt->internal && !showInternal)
+        {
+            continue;
+        }
+
+        settings_level user_level = get_settings_ovl(overlay)->core.settings_level;
+        if (opt->level > user_level)
         {
             continue;
         }
@@ -243,6 +274,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "description", opt->description);
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
         cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
+        cJSON_AddBoolToObject(jsonEntry, "internal", opt->internal);
 
         switch (opt->type)
         {
@@ -383,32 +415,35 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     osStrcpy(overlay, "");
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
-    if (opt)
+    if (opt->level != LEVEL_SECRET)
     {
-        switch (opt->type)
+        if (opt)
         {
-        case TYPE_BOOL:
-            osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
-            break;
-        case TYPE_HEX:
-        case TYPE_UNSIGNED:
-            osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
-            break;
-        case TYPE_SIGNED:
-            osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
-            break;
-        case TYPE_STRING:
-            response_ptr = settings_get_string_ovl(item, overlay);
-            break;
-        case TYPE_FLOAT:
-            osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
-            break;
-        default:
-            break;
+            switch (opt->type)
+            {
+            case TYPE_BOOL:
+                osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
+                break;
+            case TYPE_HEX:
+            case TYPE_UNSIGNED:
+                osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
+                break;
+            case TYPE_SIGNED:
+                osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
+                break;
+            case TYPE_STRING:
+                response_ptr = settings_get_string_ovl(item, overlay);
+                break;
+            case TYPE_FLOAT:
+                osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
+                break;
+            default:
+                break;
+            }
         }
     }
 
@@ -433,13 +468,20 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     }
     else
     {
-        error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
-        if (error != NO_ERROR)
+        if (connection->request.byteCount > 0)
         {
-            TRACE_ERROR("httpReceive failed!\r\n");
-            return error;
+            error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("httpReceive failed!\r\n");
+                return error;
+            }
         }
-        data[size] = 0;
+        else
+        {
+            size = 0;
+        }
+        data[size] = '\0';
 
         TRACE_INFO("Setting: '%s' to '%s'\r\n", item, data);
 
@@ -447,55 +489,62 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
         osStrcpy(overlay, "");
         if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
         {
-            TRACE_INFO("got overlay '%s'\r\n", overlay);
+            TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
         setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
         bool success = false;
 
-        if (opt)
+        if (size > 0 || opt->type == TYPE_STRING)
         {
-            switch (opt->type)
+            if (opt)
             {
-            case TYPE_BOOL:
-            {
-                success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
-                break;
-            }
-            case TYPE_STRING:
-            {
-                success = settings_set_string_ovl(item, data, overlay);
-                break;
-            }
-            case TYPE_HEX:
-            {
-                uint32_t value = strtoul(data, NULL, 16);
-                success = settings_set_unsigned_ovl(item, value, overlay);
-                break;
-            }
+                switch (opt->type)
+                {
+                case TYPE_BOOL:
+                {
+                    success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
+                    break;
+                }
+                case TYPE_STRING:
+                {
+                    success = settings_set_string_ovl(item, data, overlay);
+                    break;
+                }
+                case TYPE_HEX:
+                {
+                    uint32_t value = strtoul(data, NULL, 16);
+                    success = settings_set_unsigned_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_UNSIGNED:
-            {
-                uint32_t value = strtoul(data, NULL, 10);
-                success = settings_set_unsigned_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_UNSIGNED:
+                {
+                    uint32_t value = strtoul(data, NULL, 10);
+                    success = settings_set_unsigned_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_SIGNED:
-            {
-                int32_t value = strtol(data, NULL, 10);
-                success = settings_set_signed_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_SIGNED:
+                {
+                    int32_t value = strtol(data, NULL, 10);
+                    success = settings_set_signed_ovl(item, value, overlay);
+                    break;
+                }
 
-            case TYPE_FLOAT:
-            {
-                float value = strtof(data, NULL);
-                success = settings_set_float_ovl(item, value, overlay);
-                break;
-            }
+                case TYPE_FLOAT:
+                {
+                    float value = strtof(data, NULL);
+                    success = settings_set_float_ovl(item, value, overlay);
+                    break;
+                }
 
-            default:
-                break;
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                TRACE_WARNING("Setting: '%s' cannot be set to '%s'\r\n", item, data);
             }
         }
         else
@@ -521,7 +570,7 @@ error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, co
     osStrcpy(overlay, "");
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
     setting_item_t *opt_src = settings_get_by_name(item);
@@ -566,7 +615,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
     char overlay[16];
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -672,7 +721,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         }
 
                         contentJson_t contentJson = {0};
-                        load_content_json(filePathAbsoluteSub, &contentJson, false);
+                        load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
                         free_content_json(&contentJson);
@@ -687,7 +736,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                     *json_extension = '\0';
                 }
                 contentJson_t contentJson = {0};
-                load_content_json(filePathAbsolute, &contentJson, false);
+                load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                 item = tonies_byModel(contentJson.tonie_model);
 
                 if (contentJson._has_cloud_auth)
@@ -699,7 +748,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         }
         if (item != NULL)
         {
-            addToniesJsonInfoJson(item, jsonEntry);
+            addToniesJsonInfoJson(item, NULL, jsonEntry);
         }
         freeTonieInfo(tafInfo);
 
@@ -726,7 +775,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         char overlay[16];
         const char *rootPath = NULL;
 
-        if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+        if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
         {
             return ERROR_FAILURE;
         }
@@ -830,7 +879,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                             }
 
                             contentJson_t contentJson = {0};
-                            load_content_json(filePathAbsoluteSub, &contentJson, false);
+                            load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                             item = tonies_byModel(contentJson.tonie_model);
                             osFreeMem(filePathAbsoluteSub);
                             free_content_json(&contentJson);
@@ -845,7 +894,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                         *json_extension = '\0';
                     }
                     contentJson_t contentJson = {0};
-                    load_content_json(filePathAbsolute, &contentJson, false);
+                    load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                     item = tonies_byModel(contentJson.tonie_model);
 
                     if (contentJson._has_cloud_auth)
@@ -857,7 +906,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             }
             if (item != NULL)
             {
-                addToniesJsonInfoJson(item, jsonEntry);
+                addToniesJsonInfoJson(item, NULL, jsonEntry);
             }
 
             freeTonieInfo(tafInfo);
@@ -1018,11 +1067,10 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
 {
     uint_t statusCode = 500;
     char message[128];
-    char overlay[128];
-    osStrcpy(overlay, "");
+    char overlay[16];
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
-        TRACE_INFO("got overlay '%s'\r\n", overlay);
+        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
 
@@ -1137,7 +1185,7 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
 {
     uint_t statusCode = 500;
     char message[128];
-    char overlay[128];
+    char overlay[16];
 
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
@@ -1337,14 +1385,14 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 
 error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char overlay[128];
-    char path[128];
+    char overlay[16];
+    char path[256 + 1];
 
     osStrcpy(path, "");
 
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1360,14 +1408,14 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
-    char message[256];
+    char message[512];
 
     osSnprintf(message, sizeof(message), "OK");
 
     if (!fsDirExists(pathAbsolute))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "invalid path: '%s'", path);
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
         TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
@@ -1406,39 +1454,23 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 
 error_t handleApiContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
-
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
 
     char ogg[16];
     char overlay[16];
-    char special[16];
-
     osStrcpy(ogg, "");
     osStrcpy(overlay, "");
-    osStrcpy(special, "");
+
+    const char *rootPath = NULL;
 
     if (!queryGet(queryString, "ogg", ogg, sizeof(ogg)))
     {
         strcpy(ogg, "false");
     }
-    if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
-    {
-        TRACE_DEBUG("got overlay '%s'\r\n", overlay);
-    }
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_DEBUG("requested index for special '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
-        {
-            rootPath = settings_get_string("internal.librarydirfull");
 
-            if (rootPath == NULL || !fsDirExists(rootPath))
-            {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
-            }
-        }
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
     }
 
     bool skipFileHeader = !strcmp(ogg, "true");
@@ -1592,7 +1624,7 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     char overlay[16];
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1614,7 +1646,7 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     char ruid[17];
 
     contentJson_t contentJson;
-    load_content_json(pathAbsolute, &contentJson, false);
+    load_content_json(pathAbsolute, &contentJson, false, client_ctx->settings);
     osFreeMem(pathAbsolute);
 
     osStrncpy(ruid, path, 8);
@@ -1626,24 +1658,22 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     ruid[16] = '\0';
 
     bool isSys = (ruid[0] == '0' && ruid[1] == '0' && ruid[2] == '0' && ruid[3] == '0' && ruid[4] == '0' && ruid[5] == '0' && ruid[6] == '0');
-    if (contentJson.cloud_auth_len != 32 && !isSys)
-    {
-        free_content_json(&contentJson);
-        return ERROR_FILE_NOT_FOUND;
-    }
 
-    osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
-    free_content_json(&contentJson);
-    if (isSys)
+    error_t error = NO_ERROR;
+    if (isSys || contentJson.nocloud)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
-        return handleCloudContent(connection, uri, queryString, client_ctx, true);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, true);
     }
     else
     {
+        osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
         osSprintf((char *)uri, "/v2/content/%s", ruid);
-        return handleCloudContent(connection, uri, queryString, client_ctx, false);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, false);
     }
+
+    free_content_json(&contentJson);
+    return error;
 }
 
 typedef struct
@@ -1737,10 +1767,10 @@ error_t taf_encode_end(void *in_ctx)
 
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char overlay[128];
+    char overlay[16];
     char name[256];
     char uid[32];
-    char path[128];
+    char path[256 + 1];
     char audio_id_str[128];
     uint32_t audio_id = 0;
 
@@ -1751,7 +1781,7 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
 
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -1782,13 +1812,13 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     sanitizePath(pathAbsolute, true);
 
     uint_t statusCode = 500;
-    char message[256];
+    char message[512];
     osSnprintf(message, sizeof(message), "OK");
 
     if (!fsDirExists(pathAbsolute))
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "invalid path: '%s'", path);
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
         TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
     }
     else
@@ -1853,15 +1883,15 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     char overlay[16];
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
 
-    char path[256];
+    char path[256 + 3];
     size_t size = 0;
 
-    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    error_t error = httpReceive(connection, &path, sizeof(path) - 3, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("httpReceive failed!\r\n");
@@ -1902,14 +1932,15 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     char overlay[16];
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
-    char path[256];
+
+    char path[256 + 3];
     size_t size = 0;
 
-    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    error_t error = httpReceive(connection, &path, sizeof(path) - 3, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("httpReceive failed!\r\n");
@@ -1950,15 +1981,15 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     char overlay[16];
     const char *rootPath = NULL;
 
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
 
-    char path[256];
+    char path[256 + 3];
     size_t size = 0;
 
-    error_t error = httpReceive(connection, &path, sizeof(path), &size, 0x00);
+    error_t error = httpReceive(connection, &path, sizeof(path) - 3, &size, 0x00);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("httpReceive failed!\r\n");
@@ -1966,12 +1997,12 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     }
     path[size] = 0;
 
-    TRACE_INFO("Deleting file: '%s'\r\n", path);
-
     /* first canonicalize path, then merge to prevent directory traversal bugs */
     sanitizePath(path, false);
     char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
     sanitizePath(pathAbsolute, false);
+
+    TRACE_INFO("Deleting file: '%s'\r\n", path);
 
     uint_t statusCode = 200;
     char message[256 + 64];
@@ -2063,7 +2094,7 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
     cJSON *jsonArray = cJSON_CreateArray();
     for (size_t i = 0; i < result_size; i++)
     {
-        addToniesJsonInfoJson(result[i], jsonArray);
+        addToniesJsonInfoJson(result[i], NULL, jsonArray);
     }
 
     char *jsonString = cJSON_PrintUnformatted(jsonArray);
@@ -2076,22 +2107,12 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
 }
 error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *rootPath = settings_get_string("internal.contentdirfull");
-    char special[16];
-    osStrcpy(special, "");
-    if (queryGet(queryString, "special", special, sizeof(special)))
-    {
-        TRACE_DEBUG("requested index for special '%s'\r\n", special);
-        if (!osStrcmp(special, "library"))
-        {
-            rootPath = settings_get_string("internal.librarydirfull");
+    char overlay[16];
+    const char *rootPath = NULL;
 
-            if (rootPath == NULL || !fsDirExists(rootPath))
-            {
-                TRACE_ERROR("internal.librarydirfull not set to a valid path: '%s'\r\n", rootPath);
-                return ERROR_FAILURE;
-            }
-        }
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
     }
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
     return httpSendResponseUnsafe(connection, uri, file_path);
@@ -2101,7 +2122,8 @@ error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, 
 {
     char overlay[16];
     const char *rootPath = NULL;
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -2151,7 +2173,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     }
 
     contentJson_t content_json;
-    load_content_json(contentPath, &content_json, true);
+    load_content_json(contentPath, &content_json, true, client_ctx->settings);
 
     char item_data[256];
     bool_t updated = false;
@@ -2159,7 +2181,8 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     {
         if (osStrcmp(item_data, content_json.source))
         {
-            content_json.source = item_data;
+            osFreeMem(content_json.source);
+            content_json.source = strdup(item_data);
             updated = true;
         }
     }
@@ -2167,7 +2190,8 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     {
         if (osStrcmp(item_data, content_json.tonie_model))
         {
-            content_json.tonie_model = item_data;
+            osFreeMem(content_json.tonie_model);
+            content_json.tonie_model = strdup(item_data);
             updated = true;
         }
     }
@@ -2200,7 +2224,9 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
 
     if (updated)
     {
-        error = save_content_json(contentPath, &content_json);
+        char *json_path = custom_asprintf("%s.json", contentPath);
+        error = save_content_json(json_path, &content_json);
+        osFreeMem(json_path);
         if (error != NO_ERROR)
         {
             return error;
@@ -2217,11 +2243,26 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     return NO_ERROR;
 }
 
+bool isHexString(const char *buf, size_t maxLen)
+{
+    bool isHex = true;
+
+    for (size_t i = 0; i < osStrlen(buf) && i < maxLen; i++)
+    {
+        char letter = toupper(buf[i]);
+
+        isHex &= (letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9');
+    }
+
+    return isHex;
+}
+
 error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
     const char *rootPath = NULL;
-    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay)) != NO_ERROR)
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
     {
         return ERROR_FAILURE;
     }
@@ -2254,20 +2295,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             continue;
         }
 
-        bool_t isHex = true;
-        for (size_t i = 0; i < 8; i++)
-        {
-            char letter = entry.name[i];
-            if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
-            {
-            }
-            else
-            {
-                isHex = false;
-                break;
-            }
-        }
-        if (!isHex)
+        if (!isHexString(entry.name, 8))
         {
             continue;
         }
@@ -2278,7 +2306,9 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
         char *subDirPath = custom_asprintf("%s/%s", rootPath, entry.name);
         FsDir *subDir = fsOpenDir(subDirPath);
 
-        while (true)
+        bool dirProcessed = false;
+
+        while (!dirProcessed)
         {
             FsDirEntry subEntry;
             if (fsReadDir(subDir, &subEntry) != NO_ERROR)
@@ -2287,48 +2317,43 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 break;
             }
 
+            /* do not process directories here */
             if ((subEntry.attributes & FS_FILE_ATTR_DIRECTORY))
             {
                 continue;
             }
-            if (osStrlen(subEntry.name) != 13 && osStrcmp(&subEntry.name[8], ".json"))
+            /* filename must start with 8 hex characters */
+            if (!isHexString(subEntry.name, 8))
             {
                 continue;
             }
 
-            isHex = true;
-            for (size_t i = 0; i < 8; i++)
-            {
-                char letter = subEntry.name[i];
-                if ((letter >= 'A' && letter <= 'F') || (letter >= '0' && letter <= '9'))
-                {
-                }
-                else
-                {
-                    isHex = false;
-                    break;
-                }
-            }
-            if (!isHex)
-            {
-                continue;
-            }
-
+            /* fill rest of reverse UID */
             osStrncpy(&ruid[8], subEntry.name, 8);
             ruid[16] = '\0';
             for (size_t i = 0; ruid[i] != '\0'; i++)
             {
                 ruid[i] = tolower(ruid[i]);
             }
-            char *tagPath = custom_asprintf("%s%c%s", subDirPath, PATH_SEPARATOR, subEntry.name);
-            tagPath[osStrlen(tagPath) - 5] = '\0';
+
+            /* build filename with 8 chars of the taf/json */
+            char *tagPath = custom_asprintf("%s%c%.8s", subDirPath, PATH_SEPARATOR, subEntry.name);
+
+            /* read TAF info - will create .json if not existing */
             tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
+            /* now update with updated model if found. */
+            if (tafInfo->json._updated && tafInfo->json._create_if_missing)
+            {
+                save_content_json(tafInfo->jsonPath, &tafInfo->json);
+            }
 
             contentJson_t contentJson;
-            load_content_json(tagPath, &contentJson, false);
+            load_content_json(tagPath, &contentJson, false, client_ctx->settings);
 
             if (contentJson._valid)
             {
+                /* only process one TAF/json per directory */
+                dirProcessed = true;
                 cJSON *jsonEntry = cJSON_CreateObject();
                 cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
 
@@ -2359,25 +2384,25 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-                char *audioUrl = custom_asprintf("/v1/content/%s?skip_header=true", ruid);
+                char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
+                char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
                 cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
-                osFreeMem(audioUrl);
-                if (!tafInfo->exists)
+                if (!tafInfo->exists && !tafInfo->json.nocloud)
                 {
                     if (contentJson._has_cloud_auth || isSys)
                     {
-                        char *downloadTriggerUrl = custom_asprintf("/content/download%s", &tagPath[osStrlen(rootPath)]);
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadTriggerUrl);
-                        osFreeMem(downloadTriggerUrl);
+                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
                     }
                     else
                     {
                         cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
                     }
                 }
+                osFreeMem(audioUrl);
+                osFreeMem(downloadUrl);
 
                 toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
-                addToniesJsonInfoJson(item, jsonEntry);
+                addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
 
                 cJSON_AddItemToArray(jsonArray, jsonEntry);
             }
@@ -2467,6 +2492,14 @@ error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri,
 
 error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
     char_t post_data[BODY_BUFFER_SIZE];
     error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
