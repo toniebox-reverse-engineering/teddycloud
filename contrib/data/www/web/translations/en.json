@@ -1,236 +1,236 @@
 {
-  "home": {
-    "navigationTitle": "Home",
-    "title": "Welcome to TeddyCloud!",
-    "intro": "TeddyCloud is an alternative server for your Toniebox, allowing you to host the cloud services locally. This gives you the control about which data is sent to the original manufacturer’s cloud and allows you to host your own figurine audio files.",
-    "forumIntroPart1": "Discover more insights, engage with like-minded individuals, and stay updated on the latest discussions at our forum: ",
-    "forumIntroPart2": ". Dive deeper into topics, share your experiences, and connect with our community. Join the conversation today!",
-    "yourTonies": "Your Tonies",
-    "toAllYourTonies": "To all Tonies",
-    "helpfulLinks": "Helpful Links",
-    "stats": {
-      "navigationTitle": "Stats",
-      "title": "Stats",
-      "connections": "Connections made to this server",
-      "reverse_requests": "Reverse proxy calls made by clients",
-      "cloud_requests": "Cloud requests executed",
-      "cloud_blocked": "Blocked cloud requests",
-      "cloud_failed": "Failed cloud requests"
-    }
-  },
-  "settings": {
-    "navigationTitle": "Settings",
-    "title": "Settings",
-    "information": "Information",
-    "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
-    "warning": "Attention!",
-    "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field.",
-    "tonieboxes": "tonieboxes",
-    "overlayed": "overlayed",
-    "saved": "Setting saved!",
-    "overlayDisabled": "Overlayed disabled!",
-    "overlayEnabled": "Overlayed enabled!",
-    "general": {
-      "navigationTitle": "General",
-      "title": "General settings"
+    "home": {
+        "navigationTitle": "Home",
+        "title": "Welcome to TeddyCloud!",
+        "intro": "TeddyCloud is an alternative server for your Toniebox, allowing you to host the cloud services locally. This gives you the control about which data is sent to the original manufacturer’s cloud and allows you to host your own figurine audio files.",
+        "forumIntroPart1": "Discover more insights, engage with like-minded individuals, and stay updated on the latest discussions at our forum: ",
+        "forumIntroPart2": ". Dive deeper into topics, share your experiences, and connect with our community. Join the conversation today!",
+        "yourTonies": "Your Tonies",
+        "toAllYourTonies": "To all Tonies",
+        "helpfulLinks": "Helpful Links",
+        "stats": {
+            "navigationTitle": "Stats",
+            "title": "Stats",
+            "connections": "Connections made to this server",
+            "reverse_requests": "Reverse proxy calls made by clients",
+            "cloud_requests": "Cloud requests executed",
+            "cloud_blocked": "Blocked cloud requests",
+            "cloud_failed": "Failed cloud requests"
+        }
     },
-    "certificates": {
-      "navigationTitle": "Certificates",
-      "title": "Certificates",
-      "information": "Information",
-      "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
-      "uploadText": "Click or drag client certificates to this area to upload",
-      "uploadHint": "Drag and drop client certificates from your box here",
-      "uploadSuccessful": "{{filename}} file uploaded successfully.",
-      "uploadFailed": "{{filename}} file upload failed. Take a look into the console"
-    }
-  },
-  "tonies": {
-    "navigationTitle": "Tonies",
-    "title": "Tonies",
-    "unsetTonie": "Tonie/Tag",
+    "settings": {
+        "navigationTitle": "Settings",
+        "title": "Settings",
+        "information": "Information",
+        "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
+        "warning": "Attention! Save button + Settings level",
+        "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'.",
+        "tonieboxes": "tonieboxes",
+        "overlayed": "overlayed",
+        "saved": "Setting saved!",
+        "overlayDisabled": "Overlayed disabled!",
+        "overlayEnabled": "Overlayed enabled!",
+        "general": {
+            "navigationTitle": "General",
+            "title": "General settings"
+        },
+        "certificates": {
+            "navigationTitle": "Certificates",
+            "title": "Certificates",
+            "information": "Information",
+            "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
+            "uploadText": "Click or drag client certificates to this area to upload",
+            "uploadHint": "Drag and drop client certificates from your box here",
+            "uploadSuccessful": "{{filename}} file uploaded successfully.",
+            "uploadFailed": "{{filename}} file upload failed. Take a look into the console"
+        }
+    },
     "tonies": {
-      "navigationTitle": "Tonies",
-      "pageSelector": " tonies / page",
-      "title": "Tonies",
-      "showPagination": "Show pagination",
-      "showAll": "Show all",
-      "filterBar": {
-        "showFilters": "Show filters",
-        "hideFilters": "Hide filters",
-        "searchLabel": "Search",
-        "searchPlaceholder": "Enter search criteria",
-        "filterLabel": "Filter",
-        "seriesFilterPlaceholder": "Series",
-        "episodeFilterPlaceholder": "Episode",
-        "valid": "Valid",
-        "invalid": "Invalid",
-        "live": "Live",
-        "unsetLive": "Live disabled",
-        "exists": "Exists",
-        "notExists": "Exists not",
-        "noCloud": "Cloud disabled",
-        "unsetNoCloud": "Cloud enabled",
-        "lastPlayed": "Last played",
-        "applyFilters": "Apply filter",
-        "resetFilters": "Reset filter"
-      }
+        "navigationTitle": "Tonies",
+        "title": "Tonies",
+        "unsetTonie": "Tonie/Tag",
+        "tonies": {
+            "navigationTitle": "Tonies",
+            "pageSelector": " tonies / page",
+            "title": "Tonies",
+            "showPagination": "Show pagination",
+            "showAll": "Show all",
+            "filterBar": {
+                "showFilters": "Show filters",
+                "hideFilters": "Hide filters",
+                "searchLabel": "Search",
+                "searchPlaceholder": "Enter search criteria",
+                "filterLabel": "Filter",
+                "seriesFilterPlaceholder": "Series",
+                "episodeFilterPlaceholder": "Episode",
+                "valid": "Valid",
+                "invalid": "Invalid",
+                "live": "Live",
+                "unsetLive": "Live disabled",
+                "exists": "Exists",
+                "notExists": "Exists not",
+                "noCloud": "Cloud disabled",
+                "unsetNoCloud": "Cloud enabled",
+                "lastPlayed": "Last played",
+                "applyFilters": "Apply filter",
+                "resetFilters": "Reset filter"
+            }
+        },
+        "system-sounds": {
+            "navigationTitle": "System Sounds",
+            "title": "System Sounds"
+        },
+        "content": {
+            "navigationTitle": "Content",
+            "title": "Content",
+            "toniePicture": "Tonie Picture",
+            "showToniesOfBoxes": "Content of the following Tonieboxes"
+        },
+        "library": {
+            "navigationTitle": "Library",
+            "title": "Library"
+        },
+        "encoder": {
+            "navigationTitle": "Audio Encoder",
+            "title": "Audio Encoder",
+            "uploadFiles": "Select File(s)",
+            "uploading": "Uploading...",
+            "upload": "Upload",
+            "filename": "Filename",
+            "uploadSuccessful": "The file was added successfully to the library",
+            "uploadFailed": "The upload encountered an error",
+            "targetDirectory": "Choose target directory",
+            "saveAs": "Save file as",
+            "removeFile": "Remove file"
+        },
+        "messages": {
+            "couldNotEmptySource": "Could not empty source!",
+            "sourceSetSuccessful": "Source set to {{selectedFile}}!",
+            "couldNotSetSource": "Could not set source! ",
+            "liveEnabled": "Live enabled!",
+            "liveDisabled": "Live disabled!",
+            "couldNotChangeLiveFlag": "Could not change live flag! ",
+            "cloudAccessBlocked": "Cloud access blocked!",
+            "cloudAccessEnabled": "Cloud access enabled!",
+            "couldNotChangeCloudFlag": "Could not change cloud access (nocloud) flag! ",
+            "downloading": "Downloading...",
+            "downloadedFile": "Downloaded file",
+            "errorDuringDownload": "Error during background download: ",
+            "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
+            "setTonieToModelFailed": "Could not change tonie model!",
+            "setTonieToSourceSuccessful": "Set tonie source to {{selectedSource}}!",
+            "setTonieToSourceFailed": "Could not change tonie source!",
+            "setToEmptyValue": "empty"
+        },
+        "infoModal": {
+            "model": "Model:",
+            "valid": "Valid:",
+            "exists": "Exists:",
+            "yes": "Yes",
+            "no": "No",
+            "tracklist": "Tracklist:"
+        },
+        "lastPlayedOnModal": {
+            "title": "This Tonie was played last!",
+            "lastPlayedOn": "Last played Tonie",
+            "lastPlayedOnMessage": "This Tonie was the last played one on"
+        },
+        "editModal": {
+            "title": "Edit model",
+            "placeholderSearchForAModel": "Search for a model",
+            "source": "Source",
+            "model": "Model",
+            "save": "Save"
+        },
+        "selectFileModal": {
+            "selectFile": "Select TAF-file"
+        },
+        "informationModal": {
+            "unknownModel": "Unknown Model",
+            "ok": "OK"
+        }
     },
-    "system-sounds": {
-      "navigationTitle": "System Sounds",
-      "title": "System Sounds"
+    "tonieboxes": {
+        "navigationTitle": "Tonieboxes",
+        "title": "Your Tonieboxes",
+        "lastPlayedTonie": "Last played Tonie: ",
+        "online": "online",
+        "offline": "offline",
+        "lastOnline": "last online",
+        "editModelModal": {
+            "editModel": "Edit Toniebox \"{{name}}\"",
+            "placeholderSearchForAModel": "Select color variant of your Toniebox",
+            "name": "Name",
+            "model": "Model",
+            "unsetBoxName": "Model unknown/not set",
+            "errorOnNameChange": "Error saving name: {{error}}",
+            "successOnNameChange": "Name of the Toniebox was edited",
+            "errorOnModelChange": "Error saving model: {{error}}",
+            "successOnModelChange": "Model of the Toniebox was edited",
+            "errorWhileSavingConfig": "Error while saving config to file."
+        },
+        "editTonieboxSettingsModal": {
+            "editTonieboxSettingsLabel": "Settings",
+            "editTonieboxSettings": "Edit settings for Toniebox \"{{name}}\""
+        },
+        "uploadTonieboxCertificatesModal": {
+            "Label": "Certificates",
+            "uploadTonieboxCertificates": "Upload certificates for Toniebox \"{{name}}\"",
+            "uploadPath": "Upload path (certDir):",
+            "boxSpecific": " (overlayed for toniebox)",
+            "AttentionGeneralPath": "(ATTENTION: Default Path!)"
+        }
     },
-    "content": {
-      "navigationTitle": "Content",
-      "title": "Content",
-      "toniePicture": "Tonie Picture",
-      "showToniesOfBoxes": "Content of the following Tonieboxes"
+    "community": {
+        "navigationTitle": "Community",
+        "title": "Community",
+        "contribution": {
+            "navigationTitle": "Contribution",
+            "title": "Contribution",
+            "toniesJson": {
+                "navigationTitle": "tonies.json",
+                "title": "Contribute tonies.json",
+                "text": "You are welcome to support us by sending us the missing data of the Tonies listed below. In the future this will be possible directly in TeddyCloud, at the moment you can use TeddyBench. Thank you in advance!"
+            }
+        },
+        "contributors": {
+            "navigationTitle": "Contributors",
+            "title": "Contributors"
+        },
+        "changelog": {
+            "navigationTitle": "Changelog",
+            "title": "Changelog / Release notes"
+        },
+        "forum": {
+            "navigationTitle": "Forum"
+        }
     },
-    "library": {
-      "navigationTitle": "Library",
-      "title": "Library"
+    "language": {
+        "change": "Change language",
+        "english": "EN",
+        "german": "DE"
     },
-    "encoder": {
-      "navigationTitle": "Audio Encoder",
-      "title": "Audio Encoder",
-      "uploadFiles": "Select File(s)",
-      "uploading": "Uploading...",
-      "upload": "Upload",
-      "filename": "Filename",
-      "uploadSuccessful": "The file was added successfully to the library",
-      "uploadFailed": "The upload encountered an error",
-      "targetDirectory": "Choose target directory",
-      "saveAs": "Save file as",
-      "removeFile": "Remove file"
+    "fileBrowser": {
+        "selectTafOnly": "You can only select TAF files!",
+        "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
+        "name": "Name",
+        "size": "Size",
+        "model": "Model",
+        "series": "Series",
+        "episode": "Episode",
+        "date": "Date"
     },
-    "messages": {
-      "couldNotEmptySource": "Could not empty source!",
-      "sourceSetSuccessful": "Source set to {{selectedFile}}!",
-      "couldNotSetSource": "Could not set source! ",
-      "liveEnabled": "Live enabled!",
-      "liveDisabled": "Live disabled!",
-      "couldNotChangeLiveFlag": "Could not change live flag! ",
-      "cloudAccessBlocked": "Cloud access blocked!",
-      "cloudAccessEnabled": "Cloud access enabled!",
-      "couldNotChangeCloudFlag": "Could not change cloud access (nocloud) flag! ",
-      "downloading": "Downloading...",
-      "downloadedFile": "Downloaded file",
-      "errorDuringDownload": "Error during background download: ",
-      "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
-      "setTonieToModelFailed": "Could not change tonie model!",
-      "setTonieToSourceSuccessful": "Set tonie source to {{selectedSource}}!",
-      "setTonieToSourceFailed": "Could not change tonie source!",
-      "setToEmptyValue": "empty"
+    "tonieArticleSearch": {
+        "failedToFetchSearchResults": "Failed to fetch search results: "
     },
-    "infoModal": {
-      "model": "Model:",
-      "valid": "Valid:",
-      "exists": "Exists:",
-      "yes": "Yes",
-      "no": "No",
-      "tracklist": "Tracklist:"
+    "security": {
+        "alert": "Alert",
+        "incident_detected": "Security Incident Detected! Please check your logs!"
     },
-    "lastPlayedOnModal": {
-      "title": "This Tonie was played last!",
-      "lastPlayedOn": "Last played Tonie",
-      "lastPlayedOnMessage": "This Tonie was the last played one on"
-    },
-    "editModal": {
-      "title": "Edit model",
-      "placeholderSearchForAModel": "Search for a model",
-      "source": "Source",
-      "model": "Model",
-      "save": "Save"
-    },
-    "selectFileModal": {
-      "selectFile": "Select TAF-file"
-    },
-    "informationModal": {
-      "unknownModel": "Unknown Model",
-      "ok": "OK"
+    "server": {
+        "boxineStatusOffline": "Not connected to Boxine/Toniecloud",
+        "boxineStatusOnline": "Connected to Boxine/Toniecloud",
+        "teddycloudStatusOnline": "Teddycloud server running fine",
+        "teddycloudStatusOffline": "Teddycloud server offline"
     }
-  },
-  "tonieboxes": {
-    "navigationTitle": "Tonieboxes",
-    "title": "Your Tonieboxes",
-    "lastPlayedTonie": "Last played Tonie: ",
-    "online": "online",
-    "offline": "offline",
-    "lastOnline": "last online",
-    "editModelModal": {
-      "editModel": "Edit Toniebox \"{{name}}\"",
-      "placeholderSearchForAModel": "Select color variant of your Toniebox",
-      "name": "Name",
-      "model": "Model",
-      "unsetBoxName": "Model unknown/not set",
-      "errorOnNameChange": "Error saving name: {{error}}",
-      "successOnNameChange": "Name of the Toniebox was edited",
-      "errorOnModelChange": "Error saving model: {{error}}",
-      "successOnModelChange": "Model of the Toniebox was edited",
-      "errorWhileSavingConfig": "Error while saving config to file."
-    },
-    "editTonieboxSettingsModal": {
-      "editTonieboxSettingsLabel": "Settings",
-      "editTonieboxSettings": "Edit settings for Toniebox \"{{name}}\""
-    },
-    "uploadTonieboxCertificatesModal": {
-      "Label": "Certificates",
-      "uploadTonieboxCertificates": "Upload certificates for Toniebox \"{{name}}\"",
-      "uploadPath": "Upload path (certDir):",
-      "boxSpecific": " (overlayed for toniebox)",
-      "AttentionGeneralPath": "(ATTENTION: Default Path!)"
-    }
-  },
-  "community": {
-    "navigationTitle": "Community",
-    "title": "Community",
-    "contribution": {
-      "navigationTitle": "Contribution",
-      "title": "Contribution",
-      "toniesJson": {
-        "navigationTitle": "tonies.json",
-        "title": "Contribute tonies.json",
-        "text": "You are welcome to support us by sending us the missing data of the Tonies listed below. In the future this will be possible directly in TeddyCloud, at the moment you can use TeddyBench. Thank you in advance!"
-      }
-    },
-    "contributors": {
-      "navigationTitle": "Contributors",
-      "title": "Contributors"
-    },
-    "changelog": {
-      "navigationTitle": "Changelog",
-      "title": "Changelog / Release notes"
-    },
-    "forum": {
-      "navigationTitle": "Forum"
-    }
-  },
-  "language": {
-    "change": "Change language",
-    "english": "EN",
-    "german": "DE"
-  },
-  "fileBrowser": {
-    "selectTafOnly": "You can only select TAF files!",
-    "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
-    "name": "Name",
-    "size": "Size",
-    "model": "Model",
-    "series": "Series",
-    "episode": "Episode",
-    "date": "Date"
-  },
-  "tonieArticleSearch": {
-    "failedToFetchSearchResults": "Failed to fetch search results: "
-  },
-  "security": {
-    "alert": "Alert",
-    "incident_detected": "Security Incident Detected! Please check your logs!"
-  },
-  "server": {
-    "boxineStatusOffline": "Not connected to Boxine/Toniecloud",
-    "boxineStatusOnline": "Connected to Boxine/Toniecloud",
-    "teddycloudStatusOnline": "Teddycloud server running fine",
-    "teddycloudStatusOffline": "Teddycloud server offline"
-  }
 }
