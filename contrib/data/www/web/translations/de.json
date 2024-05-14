@@ -139,6 +139,7 @@
         "editModal": {
             "title": "Modell bearbeiten",
             "placeholderSearchForAModel": "Nach einem Modell suchen",
+            "placeholderSearchForARadioStream": "Suche nach einem Radiostream",
             "source": "Quelle",
             "model": "Modell",
             "save": "Speichern"
@@ -219,9 +220,21 @@
         "model": "Modell",
         "series": "Serie",
         "episode": "Episode",
-        "date": "Datum"
+        "date": "Datum",
+        "playFile": "Abspielen",
+        "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
+        "migrateContentToLibRoot": "TAF-Datei in Library (root) migrieren",
+        "messages": {
+            "migrationOngoing": "migriere...",
+            "migrationSuccessful": "Migration erfolgreich!",
+            "migrationFailed": "Migration fehlgeschlagen!"
+        }
     },
     "tonieArticleSearch": {
+        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
+    },
+    "radioStreamSearch": {
+        "searchLabel": "[optional] Radio stream suchen",
         "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
     },
     "security": {
