@@ -14,11 +14,8 @@ jobs:
         submodules: recursive
 
     - name: Update teddycloud_web submodule
-      run: |
-          cd teddycloud_web
-          git pull --rebase
-          cd ..
-    
+      run: git submodule update --remote teddycloud_web
+
     - uses: actions/setup-node@v4
       with:
         node-version: "20.11.1"
