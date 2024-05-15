@@ -1,0 +1,33 @@
+name: Make web and commit
+
+on:
+    workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Make Web
+      run: make web
+
+    - name: Configure Git
+      run: |
+        git config --global user.email "scilor@users.noreply.github.com"
+        git config --global user.name "SciLor"
+        
+    - name: Git status tonies-ota-backup
+      run: |
+        git status
+    - name: Commit and push if changed tonies-ota-backup
+      run: |
+        if [[ -n $(git status --porcelain) ]]; then
+        git add .
+        git commit -m "Update webinterface"
+        git pull --rebase
+        else
+        echo "No changes to commit and push."
+        fi
