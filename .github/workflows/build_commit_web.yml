@@ -18,7 +18,7 @@ jobs:
 
     - uses: actions/setup-node@v4
       with:
-        node-version: "12.22.9"
+        node-version: "20.11.1"
   
     - name: Make Web
       run: make web
