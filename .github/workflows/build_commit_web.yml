@@ -16,7 +16,7 @@ jobs:
     - name: Update teddycloud_web submodule
       run: |
           cd teddycloud_web
-          git pull
+          git pull --rebase
           cd ..
     
     - uses: actions/setup-node@v4
