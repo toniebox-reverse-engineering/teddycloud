@@ -22,6 +22,7 @@
     "settings": {
         "navigationTitle": "Einstellungen",
         "title": "Einstellungen",
+        "levelLabel": "Settings level",
         "information": "Information",
         "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
         "warning": "Achtung! Speicherbutton + Settings level",
@@ -31,6 +32,10 @@
         "saved": "Einstellung gespeichert!",
         "overlayDisabled": "Overlayed deaktiviert!",
         "overlayEnabled": "Overlayed aktiviert!",
+        "restartServer": "Server neustarten",
+        "restartInProgress": "TeddyCloud wird gestartet...",
+        "restartFailed": "Neustart TeddyCloud Server fehlgeschlagen!",
+        "restartComplete": "Neustart TeddyCloud Server erfolgreich!",
         "general": {
             "navigationTitle": "Allgemein",
             "title": "Allgemeine Einstellungen"
