@@ -19,7 +19,9 @@ jobs:
     - uses: actions/setup-node@v4
       with:
         node-version: "12.22.9"
-
+    - name: Install NPM version
+      run: npm install -g npm@10.2.4
+  
     - name: Make Web
       run: make web
 
