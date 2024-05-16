@@ -49,6 +49,12 @@
             "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
             "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
             "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!"
+        },
+        "rtnl": {
+            "navigationTitle": "RTNL log",
+            "title": "RTNL Log",
+            "enableRtnl": "Logging aktivieren",
+            "clear": "RTNL Log leeren"
         }
     },
     "tonies": {
@@ -186,6 +192,10 @@
             "uploadPath": "Upload Pfad (certDir):",
             "boxSpecific": " (Toniebox spezifisch hinterlegt)",
             "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)"
+        },
+        "esp32BoxFlashing": {
+            "navigationTitle": "ESP32 Box Flashing",
+            "title": "ESP32 Box Flashing"
         }
     },
     "community": {
