@@ -419,6 +419,11 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
+    if (opt == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+
     if (opt->level != LEVEL_SECRET)
     {
         if (opt)
@@ -492,6 +497,10 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
         setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
+        if (opt == NULL)
+        {
+            return ERROR_NOT_FOUND;
+        }
         bool success = false;
 
         if (size > 0 || opt->type == TYPE_STRING)
