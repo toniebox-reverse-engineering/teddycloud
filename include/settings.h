@@ -226,6 +226,7 @@ typedef struct
 
     time_t last_connection;
     char *last_ruid;
+    time_t *last_ruid_time;
     char *ip;
     bool online;
 } settings_internal_t;

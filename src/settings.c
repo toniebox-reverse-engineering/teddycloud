@@ -190,6 +190,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, 0, "Last connection timestamp", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.last_ruid_time", &settings->internal.last_ruid_time, 0, 0, 0, "Last rUID (unixtime)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.ip", &settings->internal.ip, "", "IP", LEVEL_NONE)
     OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online", LEVEL_NONE)
 

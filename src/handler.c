@@ -698,6 +698,7 @@ void setLastRuid(char ruid[17], settings_t *settings)
                 ruid[i] = tolower(ruid[i]);
             }
             settings_set_string_id("internal.last_ruid", ruid, settings->internal.overlayNumber);
+            settings_set_unsigned_id("internal.last_ruid_time", time(NULL), settings->internal.overlayNumber);
         }
     }
 }
