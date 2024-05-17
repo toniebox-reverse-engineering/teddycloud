@@ -120,6 +120,24 @@
             "environment": [],
             "externalConsole": true,
             "preLaunchTask": "[win32] build"
+        },
+        {
+            "name": "Python: Fake Server",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/fake-server/server.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Fake Server with profiler",
+            "type": "python",
+            "request": "launch",
+            "module": "cProfile",
+            "args": [
+                "-o", "${workspaceFolder}/fake-server/server.py.prof", "${workspaceFolder}/fake-server/server.py"
+            ],
+            "justMyCode": true
         }
     ]
 }
