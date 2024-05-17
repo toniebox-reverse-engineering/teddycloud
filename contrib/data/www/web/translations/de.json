@@ -195,7 +195,12 @@
         },
         "esp32BoxFlashing": {
             "navigationTitle": "ESP32 Box Flashing",
-            "title": "ESP32 Box Flashing"
+            "title": "ESP32 Box Flashing",
+            "attention": "Achtung",
+            "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird. Wenn du deine ESP32 Toniebox flashen willst, dann deaktiviern bitte vorübergehend die Option \"Webinterface HTTP only\".",
+            "enabledWebHttpOnly": "\"Webinterface HTTP only\" aktiv",
+            "redirectToHttpsAfterDeactivation": "Bei Deaktivierung  auf HTTPS weitergeleitet.",
+            "redirectToHttpAfterActivation": "Bei Aktivierung wird auf HTTP weitergeleitet (falls HTTPS aktiv)."
         }
     },
     "community": {
