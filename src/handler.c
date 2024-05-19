@@ -1,6 +1,7 @@
 #include "handler.h"
 #include "server_helpers.h"
 #include "fs_ext.h"
+#include "mutex_manager.h"
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
@@ -507,6 +508,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->exists = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
+    mutex_lock_id(tonieInfo->jsonPath);
     if (osStrstr(contentPath, ".json") == NULL)
     {
         if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
@@ -595,6 +597,7 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
     {
         save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
+    mutex_unlock_id(tonieInfo->jsonPath);
 
     if (tonieInfo->tafHeader)
     {
