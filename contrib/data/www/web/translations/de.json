@@ -65,7 +65,7 @@
             "navigationTitle": "Tonies",
             "pageSelector": " Tonies / Seite",
             "title": "Tonies",
-            "showPagination": "Pagination einblenden",
+            "showPagination": "Paginierung einblenden",
             "showAll": "Zeige alle",
             "filterBar": {
                 "showFilters": "Filter einblenden",
@@ -73,6 +73,7 @@
                 "searchLabel": "Suche",
                 "searchPlaceholder": "Suchkriterium eingeben",
                 "filterLabel": "Filter",
+                "languagePlaceholder": "Sprachen auswählen",
                 "seriesFilterPlaceholder": "Serie",
                 "episodeFilterPlaceholder": "Episode",
                 "valid": "Gültig",
@@ -249,6 +250,9 @@
         "actions": "Aktionen",
         "playFile": "Abspielen",
         "delete": "Löschen",
+        "confirmDeleteModal": "Bestätige Löschvorgang",
+        "confirmDeleteDialog": "Möchtest du die Datei {{fileToDelete}} wirklich löschen?",
+        "cancel": "Cancel",
         "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
         "migrateContentToLibRoot": "TAF-Datei in Library (root) migrieren",
         "messages": {
@@ -280,5 +284,18 @@
         "boxineStatusOnline": "Mit Boxine/Toniecloud verbunden",
         "teddycloudStatusOnline": "Teddycloud Server online",
         "teddycloudStatusOffline": "Teddycloud Server offline"
+    },
+    "languageUtil": {
+        "en-gb": "Englisch (GB)",
+        "en-us": "Englisch (US)",
+        "es-es": "Spanisch",
+        "pt-pt": "Portugiesisch",
+        "pl-pl": "Polnisch",
+        "fr-fr": "Französisch",
+        "nl-nl": "Niederländisch (Niederlande)",
+        "nl-be": "Niederländisch (Belgien)",
+        "it-it": "Italienisch",
+        "de-de": "Deutsch",
+        "undefined": "Andere/undefiniert"
     }
 }

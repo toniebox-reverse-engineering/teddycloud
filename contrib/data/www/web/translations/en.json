@@ -72,6 +72,7 @@
                 "searchLabel": "Search",
                 "searchPlaceholder": "Enter search criteria",
                 "filterLabel": "Filter",
+                "languagePlaceholder": "Select language",
                 "seriesFilterPlaceholder": "Series",
                 "episodeFilterPlaceholder": "Episode",
                 "valid": "Valid",
@@ -248,6 +249,9 @@
         "actions": "Actions",
         "playFile": "Play",
         "delete": "Delete",
+        "confirmDeleteModal": "Confirm delete",
+        "confirmDeleteDialog": "Are you sure you want to delete {{fileToDelete}}?",
+        "cancel": "Cancel",
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
         "messages": {
@@ -279,5 +283,18 @@
         "boxineStatusOnline": "Connected to Boxine/Toniecloud",
         "teddycloudStatusOnline": "Teddycloud server running fine",
         "teddycloudStatusOffline": "Teddycloud server offline"
+    },
+    "languageUtil": {
+        "en-gb": "English (GB)",
+        "en-us": "English (US)",
+        "es-es": "Spanish",
+        "pt-pt": "Portuguese",
+        "pl-pl": "Polish",
+        "fr-fr": "French",
+        "nl-nl": "Dutch (Netherlands)",
+        "nl-be": "Dutch (Belgium)",
+        "it-it": "Italian",
+        "de-de": "German",
+        "undefined": "Other/undefined"
     }
 }
