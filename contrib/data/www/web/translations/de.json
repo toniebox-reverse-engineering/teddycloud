@@ -115,6 +115,10 @@
             "saveAs": "Datei speichern unter",
             "removeFile": "Datei entfernen"
         },
+        "tap": {
+            "navigationTitle": "Audio Playlists",
+            "title": "Tonie Audio Playlists"
+        },
         "messages": {
             "couldNotEmptySource": "Konnte Quelle nicht leeren!",
             "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
@@ -200,7 +204,8 @@
             "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird. Wenn du deine ESP32 Toniebox flashen willst, dann deaktiviern bitte vorübergehend die Option \"Webinterface HTTP only\".",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" aktiv",
             "redirectToHttpsAfterDeactivation": "Bei Deaktivierung  auf HTTPS weitergeleitet.",
-            "redirectToHttpAfterActivation": "Bei Aktivierung wird auf HTTP weitergeleitet (falls HTTPS aktiv)."
+            "redirectToHttpAfterActivation": "Bei Aktivierung wird auf HTTP weitergeleitet (falls HTTPS aktiv).",
+            "disableHttpOnlyForFlashing": "Bitte deaktiviere \"Webinterface http only\" und öffne diese Seite mit https."
         }
     },
     "community": {
@@ -241,13 +246,22 @@
         "series": "Serie",
         "episode": "Episode",
         "date": "Datum",
+        "actions": "Aktionen",
         "playFile": "Abspielen",
+        "delete": "Löschen",
         "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
         "migrateContentToLibRoot": "TAF-Datei in Library (root) migrieren",
         "messages": {
             "migrationOngoing": "migriere...",
             "migrationSuccessful": "Migration erfolgreich!",
-            "migrationFailed": "Migration fehlgeschlagen!"
+            "migrationFailed": "Migration fehlgeschlagen",
+            "deleting": "Wird gelöscht...",
+            "deleteSuccessful": "Löschvorgang erfolgreich!",
+            "deleteFailed": "Löschvorgang fehlgeschlagen"
+        },
+        "tap": {
+            "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren",
+            "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren"
         }
     },
     "tonieArticleSearch": {

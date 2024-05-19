@@ -114,6 +114,10 @@
             "saveAs": "Save file as",
             "removeFile": "Remove file"
         },
+        "tap": {
+            "navigationTitle": "Audio Playlists",
+            "title": "Tonie Audio Playlists"
+        },
         "messages": {
             "couldNotEmptySource": "Could not empty source!",
             "sourceSetSuccessful": "Source set to {{selectedFile}}!",
@@ -199,7 +203,8 @@
             "hint": "This section is only available if HTTPS is used. If you want to flash your ESP32 Toniebox, then please temporarily disable the \"Webinterface HTTP only\" option.",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" enabled",
             "redirectToHttpsAfterDeactivation": "After Deactivation you will be redirected to HTTPS.",
-            "redirectToHttpAfterActivation": "After Activation you will be redirected to HTTP (if HTTPS is active)."
+            "redirectToHttpAfterActivation": "After Activation you will be redirected to HTTP (if HTTPS is active).",
+            "disableHttpOnlyForFlashing": "Please disable \"Webinterface http only\" and open page with https."
         }
     },
     "community": {
@@ -240,13 +245,22 @@
         "series": "Series",
         "episode": "Episode",
         "date": "Date",
+        "actions": "Actions",
         "playFile": "Play",
+        "delete": "Delete",
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
         "messages": {
             "migrationOngoing": "Migrating...",
             "migrationSuccessful": "Migration successful!",
-            "migrationFailed": "Migration failed!"
+            "migrationFailed": "Migration failed",
+            "deleting": "Deleting...",
+            "deleteSuccessful": "Deleted successful!",
+            "deleteFailed": "Delete failed"
+        },
+        "tap": {
+            "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist",
+            "copy": "(WIP - not implemented yet) Duplicate Tonie Audio Playlist"
         }
     },
     "tonieArticleSearch": {
