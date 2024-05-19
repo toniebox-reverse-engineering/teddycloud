@@ -964,7 +964,9 @@ static error_t settings_load_ovl(bool overlay)
 
         if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
         {
+            mutex_unlock(MUTEX_SETTINGS);
             settings_save();
+            mutex_lock(MUTEX_SETTINGS);
         }
         Settings_Overlay[0].internal.config_changed = false;
     }
