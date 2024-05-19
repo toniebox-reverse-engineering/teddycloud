@@ -2510,7 +2510,8 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    error_t error = ERROR_FILE_NOT_FOUND;
+    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -2526,23 +2527,24 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         }
     }
 
-    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)))
+    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)) && osStrlen(ruid) == 16)
     {
-        if (osStrlen(ruid) == 16)
-        {
-            tonie_info_t *tonieInfo;
-            tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+        tonie_info_t *tonieInfo;
+        tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
 
-            if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
-            {
-                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
-            }
-            freeTonieInfo(tonieInfo);
-            if (error != NO_ERROR)
-            {
-                return ERROR_FILE_NOT_FOUND;
-            }
+        if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
+        {
+            error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
         }
+        else
+        {
+            error = ERROR_FILE_NOT_FOUND;
+        }
+        freeTonieInfo(tonieInfo);
+    }
+    if (error != NO_ERROR)
+    {
+        return ERROR_FILE_NOT_FOUND;
     }
     httpInitResponseHeader(connection);
     connection->response.contentLength = 2;
