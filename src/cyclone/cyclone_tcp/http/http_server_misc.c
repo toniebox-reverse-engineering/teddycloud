@@ -795,6 +795,8 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       connection->response.chunkedEncoding = FALSE;
       //The size of the response body is not limited
       connection->response.byteCount = UINT_MAX;
+      //empty buffer
+      buffer[0] = '\0';
       //We are done since HTTP 0.9 does not support Full-Response format
       return NO_ERROR;
    }
