@@ -254,6 +254,7 @@ typedef struct
     settings_cert_opt_t client_cert;
     char *allowOrigin;
     bool webHttpOnly;
+    bool webHttpsCertAuth;
 
     bool flex_enabled;
     char *flex_uid;

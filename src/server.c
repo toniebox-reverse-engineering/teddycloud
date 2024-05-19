@@ -179,6 +179,9 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                 commonName[osStrlen(commonName) - 1] = '\0';
                 client_ctx->settings = get_settings_cn(commonName);
                 osFreeMem(commonName);
+
+                connection->private.authenticated = true;
+                // TODO: CHECK THE CERTIFICATES FOR REAL!!!!!
             }
             else
             {
@@ -313,6 +316,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         if (isSecMitIncident(connection) && get_settings()->security_mit.lockAccess)
         {
             error = handleSecMitLock(connection, uri, connection->request.queryString, client_ctx);
+            break;
+        }
+
+        if (connection->settings->isHttps && client_ctx->settings->core.webHttpsCertAuth && !connection->private.authenticated)
+        {
+            error = httpServerUriNotFoundCallback(connection, uri); // TODO NOT AUTHENTICATED handler
             break;
         }
 

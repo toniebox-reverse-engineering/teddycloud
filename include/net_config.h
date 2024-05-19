@@ -55,6 +55,7 @@ typedef struct
 {
     uint8_t authentication_token[TONIE_AUTH_TOKEN_LENGTH];
     client_ctx_t client_ctx;
+    bool_t authenticated;
     pcaplog_t pcap_data;
 } http_connection_private_t;
 
