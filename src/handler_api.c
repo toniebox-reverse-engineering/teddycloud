@@ -681,7 +681,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
         cJSON_AddBoolToObject(jsonEntry, "isDir", isDir);
 
-        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, false, client_ctx->settings);
         toniesJson_item_t *item = NULL;
         if (tafInfo->valid)
         {
@@ -846,7 +846,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[3 + 1 + 8 + 1 + 40 + 1 + 64 + 1 + 64];
             desc[0] = 0;
-            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, false, client_ctx->settings);
             toniesJson_item_t *item = NULL;
             if (tafInfo->valid)
             {
@@ -1499,7 +1499,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
+    tonie_info_t *tafInfo = getTonieInfo(file_path, false, client_ctx->settings);
 
     if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
@@ -2350,7 +2350,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
             char *tagPath = custom_asprintf("%s%c%.8s", subDirPath, PATH_SEPARATOR, subEntry.name);
 
             /* read TAF info - will create .json if not existing */
-            tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
+            tonie_info_t *tafInfo = getTonieInfo(tagPath, false, client_ctx->settings);
             /* now update with updated model if found. */
             if (tafInfo->json._updated && tafInfo->json._create_if_missing)
             {
@@ -2531,7 +2531,7 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
     if (queryGet(post_data, "ruid", ruid, sizeof(ruid)) && osStrlen(ruid) == 16)
     {
         tonie_info_t *tonieInfo;
-        tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+        tonieInfo = getTonieInfoFromRuid(ruid, false, client_ctx->settings);
 
         if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
         {

@@ -306,7 +306,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                     if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                     {
-                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, ctx->client_ctx->settings);
+                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, true, ctx->client_ctx->settings);
                         moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
                         freeTonieInfo(tonieInfo);
                     }
@@ -479,23 +479,23 @@ bool_t isValidTaf(const char *contentPath)
     return valid;
 }
 
-tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings)
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings)
 {
     char *contentPath;
     getContentPathFromUID(uid, &contentPath, settings);
-    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, lock, settings);
     osFreeMem(contentPath);
     return tonieInfo;
 }
-tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings)
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings)
 {
     char *contentPath;
     getContentPathFromCharRUID(ruid, &contentPath, settings);
-    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, lock, settings);
     osFreeMem(contentPath);
     return tonieInfo;
 }
-tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
+tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings)
 {
     tonie_info_t *tonieInfo;
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
@@ -506,9 +506,13 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->jsonPath = custom_asprintf("%s.json", contentPath);
     tonieInfo->exists = false;
+    tonieInfo->locked = lock;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
-    mutex_lock_id(tonieInfo->jsonPath);
+    if (tonieInfo->locked)
+    {
+        mutex_lock_id(tonieInfo->jsonPath);
+    }
     if (osStrstr(contentPath, ".json") == NULL)
     {
         if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
@@ -597,7 +601,11 @@ void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock)
     {
         save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
-    mutex_unlock_id(tonieInfo->jsonPath);
+    if (tonieInfo->locked && unlock)
+    {
+        tonieInfo->locked = false;
+        mutex_unlock_id(tonieInfo->jsonPath);
+    }
 }
 void freeTonieInfo(tonie_info_t *tonieInfo)
 {
@@ -761,7 +769,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
         }
         if (libraryPath)
         {
-            tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, settings);
+            tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, false, settings);
             bool moveToLibrary = true;
             bool skipMove = false;
             if (tonieInfoLib->valid)

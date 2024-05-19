@@ -89,9 +89,9 @@ void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
 bool_t isValidTaf(const char *contentPath);
-tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings);
-tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings);
-tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings);
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
+tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 

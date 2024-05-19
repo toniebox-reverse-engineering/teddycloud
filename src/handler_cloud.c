@@ -351,7 +351,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     setLastRuid(ruid, client_ctx->settingsNoOverlay);
 
     tonie_info_t *tonieInfo;
-    tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
     /* allow to override HTTP status code if needed */
     bool served = false;
@@ -465,7 +465,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     tonie_info_t *tonieInfo;
-    tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
     if (!tonieInfo->json.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override && connection->request.auth.found)
     {
@@ -520,7 +520,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             }
 
             /* check assignFile for validity */
-            tonie_info_t *tonieInfoAssign = getTonieInfo(assignFile, client_ctx->settings);
+            tonie_info_t *tonieInfoAssign = getTonieInfo(assignFile, true, client_ctx->settings);
             if (!tonieInfoAssign->valid)
             {
                 freeTonieInfo(tonieInfoAssign);
@@ -547,7 +547,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             char *oldFile = strdup(tonieInfo->contentPath);
             freeTonieInfo(tonieInfo);
 
-            tonieInfo = getTonieInfo(oldFile, client_ctx->settings);
+            tonieInfo = getTonieInfo(oldFile, true, client_ctx->settings);
             free(oldFile);
 
             if (!tonieInfo->valid)
@@ -829,7 +829,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
                 tonie_info_t *tonieInfo;
-                tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, client_ctx->settings);
+                tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, false, client_ctx->settings);
 
                 char date_buffer_box[32];
                 bool_t custom_box;

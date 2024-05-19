@@ -180,7 +180,7 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
 {
     error_t error = NO_ERROR;
     bool_t sweep = false;
-    tonie_info_t *tonieInfo = getTonieInfo(tap->_filepath_resolved, get_settings());
+    tonie_info_t *tonieInfo = getTonieInfo(tap->_filepath_resolved, false, get_settings());
 
     // TODO custom audio id resolving
     if (force || !tonieInfo->valid || tonieInfo->tafHeader->audio_id != tap->audio_id)
