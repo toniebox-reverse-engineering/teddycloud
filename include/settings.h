@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 10
+#define CONFIG_VERSION 11
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -116,6 +116,7 @@ typedef struct
 
 typedef struct
 {
+    bool api_access;
     bool overrideCloud;
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;

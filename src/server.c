@@ -180,7 +180,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                 client_ctx->settings = get_settings_cn(commonName);
                 osFreeMem(commonName);
 
-                connection->private.authenticated = true;
+                connection->private.authenticated = client_ctx->settings->toniebox.api_access;
                 // TODO: CHECK THE CERTIFICATES FOR REAL!!!!!
             }
             else

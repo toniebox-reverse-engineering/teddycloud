@@ -229,6 +229,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
+    OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, FALSE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_BASIC)
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings for the toniebox with those set here", LEVEL_BASIC)
     OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
     OPTION_UNSIGNED("toniebox.max_vol_hdp", &settings->toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
@@ -384,6 +385,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
                 settings_set_string_id("boxName", boxName, i);
                 settings_set_string_id("boxModel", "", i);
+                settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
@@ -964,6 +966,15 @@ static error_t settings_load_ovl(bool overlay)
 
         if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
         {
+            for (size_t i = 1; i < MAX_OVERLAYS; i++)
+            {
+                if (!Settings_Overlay[i].internal.config_used)
+                    continue;
+                if (Settings_Overlay[i].configVersion < 11)
+                {
+                    settings_set_bool_id("toniebox.api_access", true, i);
+                }
+            }
             mutex_unlock(MUTEX_SETTINGS);
             settings_save();
             mutex_lock(MUTEX_SETTINGS);
