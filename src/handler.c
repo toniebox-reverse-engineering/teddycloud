@@ -591,14 +591,17 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     return tonieInfo;
 }
 
-void freeTonieInfo(tonie_info_t *tonieInfo)
+void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock)
 {
     if (tonieInfo->json._updated && tonieInfo->json._create_if_missing)
     {
         save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
     mutex_unlock_id(tonieInfo->jsonPath);
-
+}
+void freeTonieInfo(tonie_info_t *tonieInfo)
+{
+    saveTonieInfo(tonieInfo, true);
     if (tonieInfo->tafHeader)
     {
         toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);

@@ -362,6 +362,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
     }
+    saveTonieInfo(tonieInfo, true);
 
     if (!tonieInfo->json.nocloud || tonieInfo->json.cloud_override)
     {
@@ -568,6 +569,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         settings_set_string("internal.assign_unknown", "");
         error = NO_ERROR;
     }
+
+    saveTonieInfo(tonieInfo, true);
 
     bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
     if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
