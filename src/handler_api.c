@@ -2537,10 +2537,6 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
             {
                 error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
             }
-            else
-            {
-                error = ERROR_FILE_NOT_FOUND;
-            }
             freeTonieInfo(tonieInfo);
             if (error != NO_ERROR)
             {
@@ -2549,6 +2545,6 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         }
     }
     httpInitResponseHeader(connection);
-    connection->response.contentLength = 0;
-    return httpWriteResponse(connection, "", connection->response.contentLength, false);
+    connection->response.contentLength = 2;
+    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
 }
