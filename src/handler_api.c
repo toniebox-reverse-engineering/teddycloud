@@ -162,6 +162,7 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *
         cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
         cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
         cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+        cJSON_AddStringToObject(tonieInfoJson, "language", item->language);
         for (size_t i = 0; i < item->tracks_count; i++)
         {
             cJSON_AddItemToArray(tracksJson, cJSON_CreateString(item->tracks[i]));
