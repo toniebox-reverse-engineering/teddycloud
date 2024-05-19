@@ -83,7 +83,7 @@ void mutex_unlock_id(char *id)
     for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
-        if (osStrcmp(mutex_info->id, id) == 0)
+        if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
             mutex_unlock(i);
             osFreeMem(mutex_info->id);
