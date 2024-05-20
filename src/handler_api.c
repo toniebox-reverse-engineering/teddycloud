@@ -2552,3 +2552,26 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
     connection->response.contentLength = 2;
     return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
 }
+
+error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+    if (get_overlay_id(overlay) == 0)
+    {
+        TRACE_ERROR("No overlay detected %s\n", overlay);
+        return ERROR_FAILURE;
+    }
+    get_settings_cn(overlay)->internal.config_used = false;
+    settings_save();
+    TRACE_INFO("Removed overlay %s\n", overlay);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 2;
+    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
+}

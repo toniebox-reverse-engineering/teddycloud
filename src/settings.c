@@ -692,6 +692,10 @@ static error_t settings_save_ovl(bool overlay)
         {
             break;
         }
+        if (!Settings_Overlay[i].internal.config_used)
+        {
+            continue;
+        }
         Settings_Overlay[i].configVersion = CONFIG_VERSION;
 
         setting_item_t *option_map = Option_Map_Overlay[i];

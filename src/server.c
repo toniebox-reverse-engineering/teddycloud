@@ -111,6 +111,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
     {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
     {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
+    {REQ_POST, "/api/settings/removeOverlay", SERTY_HTTP, &handleDeleteOverlay},
     {REQ_POST, "/api/migrateContent2Lib", SERTY_HTTP, &handleApiMigrateContent2Lib},
     {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
     {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
