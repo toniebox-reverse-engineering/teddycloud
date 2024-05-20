@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 11
+#define CONFIG_VERSION 12
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
