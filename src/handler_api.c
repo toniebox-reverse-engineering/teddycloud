@@ -2392,6 +2392,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
                 cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
+                cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
                 char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
