@@ -808,6 +808,15 @@ error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri
     TRACE_WARNING(" >> 500 with error code %s on %s\r\n", error2text(error), uri);
     return new_error;
 }
+error_t httpServerUriUnauthorizedCallback(HttpConnection *connection, const char_t *uri)
+{
+    error_t new_error = NO_ERROR;
+
+    new_error = httpSendErrorResponse(connection, 401, "Unauthorized");
+
+    TRACE_WARNING(" >> 401 on %s\r\n", uri);
+    return new_error;
+}
 
 bool resolveSpecialPathPrefix(char **path, settings_t *settings)
 {

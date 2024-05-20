@@ -18,7 +18,6 @@
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
 static void settings_deinit_ovl(uint8_t overlayNumber);
-static uint8_t get_overlay_id(const char *overlay_unique_id);
 static void overlay_settings_init();
 static void settings_generate_internal_dirs(settings_t *settings);
 static void settings_changed();
@@ -108,6 +107,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
     OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)", LEVEL_DETAIL)
     OPTION_BOOL("core.webHttpsCertAuth", &settings->core.webHttpsCertAuth, TRUE, "HTTPS client cert auth", "Client certificates are required for access to the HTTPS webinterface", LEVEL_EXPERT)
+    OPTION_BOOL("core.allowNewBox", &settings->core.allowNewBox, TRUE, "Allow new boxes", "Allow new boxes to be added, if they try to connect", LEVEL_BASIC)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned", LEVEL_DETAIL)
@@ -404,7 +404,7 @@ settings_t *get_settings_cn(const char *commonName)
     return get_settings();
 }
 
-static uint8_t get_overlay_id(const char *overlay_unique_id)
+uint8_t get_overlay_id(const char *overlay_unique_id)
 {
     if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {

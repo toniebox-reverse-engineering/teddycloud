@@ -177,15 +177,32 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
                 char_t *commonName;
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
-                client_ctx->settings = get_settings_cn(commonName);
+                if (get_overlay_id(commonName) == 0)
+                {
+                    if (client_ctx->settings->core.allowNewBox)
+                    {
+                        TRACE_INFO("Added new client certificate with CN=%s\n", commonName);
+                    }
+                    else
+                    {
+                        TRACE_WARNING("Found unknown client certificate with CN=%s\n", commonName);
+                    }
+                }
+                if (get_overlay_id(commonName) > 0 || client_ctx->settings->core.allowNewBox)
+                {
+                    client_ctx->settings = get_settings_cn(commonName);
+                    connection->private.authenticated = client_ctx->settings->toniebox.api_access;
+                }
                 osFreeMem(commonName);
-
-                connection->private.authenticated = client_ctx->settings->toniebox.api_access;
                 // TODO: CHECK THE CERTIFICATES FOR REAL!!!!!
             }
             else
             {
-                client_ctx->settings = get_settings_cn(subject);
+                if (get_overlay_id(subject) > 0 || client_ctx->settings->core.allowNewBox)
+                {
+                    client_ctx->settings = get_settings_cn(subject);
+                    connection->private.authenticated = client_ctx->settings->toniebox.api_access;
+                }
             }
             client_ctx->state = get_toniebox_state_id(client_ctx->settings->internal.overlayNumber);
 
@@ -321,7 +338,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
 
         if (connection->settings->isHttps && client_ctx->settings->core.webHttpsCertAuth && !connection->private.authenticated)
         {
-            error = httpServerUriNotFoundCallback(connection, uri); // TODO NOT AUTHENTICATED handler
+            error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
         }
 

@@ -256,6 +256,7 @@ typedef struct
     char *allowOrigin;
     bool webHttpOnly;
     bool webHttpsCertAuth;
+    bool allowNewBox;
 
     bool flex_enabled;
     char *flex_uid;
@@ -430,6 +431,7 @@ settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay_unique_id);
 settings_t *get_settings_id(uint8_t settingsId);
 settings_t *get_settings_cn(const char *cn);
+uint8_t get_overlay_id(const char *overlay_unique_id);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_changed_id(uint8_t settingsId);
