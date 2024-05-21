@@ -688,6 +688,13 @@ error_t httpFlushStream(HttpConnection *connection)
     return httpCloseStream(connection);
 }
 
+error_t httpOkResponse(HttpConnection *connection)
+{
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 2;
+    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
+}
+
 void setLastUid(uint64_t uid, settings_t *settings)
 {
     uint16_t cuid[9];

@@ -188,7 +188,6 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = NULL;
-    char *response = "OK";
     error_t ret = NO_ERROR;
 
     TRACE_INFO("Query: '%s'\r\n", queryString);
@@ -221,11 +220,7 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
         osFreeMem(pathAbsolute);
     }
 
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
-    connection->response.contentLength = osStrlen(response);
-
-    return httpWriteResponseString(connection, response, false);
+    return httpOkResponse(connection);
 }
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -2272,11 +2267,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     osFreeMem(contentPath);
     free_content_json(&content_json);
 
-    char *message = "success";
-    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
-    httpWriteResponseString(connection, message, false);
-
-    return NO_ERROR;
+    return httpOkResponse(connection);
 }
 
 bool isHexString(const char *buf, size_t maxLen)
@@ -2643,9 +2634,7 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
     {
         return ERROR_FILE_NOT_FOUND;
     }
-    httpInitResponseHeader(connection);
-    connection->response.contentLength = 2;
-    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
+    return httpOkResponse(connection);
 }
 
 error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -2666,7 +2655,5 @@ error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const
     settings_save();
     TRACE_INFO("Removed overlay %s\n", overlay);
 
-    httpInitResponseHeader(connection);
-    connection->response.contentLength = 2;
-    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
+    return httpOkResponse(connection);
 }
