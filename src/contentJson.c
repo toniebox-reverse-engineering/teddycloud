@@ -28,6 +28,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
     content_json->cloud_override = false;
     content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
+    content_json->hide = false;
+    content_json->claimed = false;
     content_json->_valid = false;
     content_json->_create_if_missing = create_if_missing;
 
@@ -76,6 +78,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 content_json->cloud_auth = jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
                 content_json->cloud_override = jsonGetBool(contentJson, "cloud_override");
                 content_json->tonie_model = jsonGetString(contentJson, "tonie_model");
+                content_json->hide = jsonGetBool(contentJson, "hide");
+                content_json->claimed = jsonGetBool(contentJson, "claimed");
 
                 // TODO: use checkCustomTonie to validate
                 // TODO validate rUID
@@ -189,6 +193,8 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
     jsonAddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
     cJSON_AddBoolToObject(contentJson, "cloud_override", content_json->cloud_override);
     jsonAddStringToObject(contentJson, "tonie_model", content_json->tonie_model);
+    cJSON_AddBoolToObject(contentJson, "hide", content_json->hide);
+    cJSON_AddBoolToObject(contentJson, "claimed", content_json->claimed);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);

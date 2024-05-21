@@ -362,6 +362,11 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
     }
+    if (tonieInfo->json.hide || !tonieInfo->json.claimed)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json.claimed = true;
+    }
     saveTonieInfo(tonieInfo, true);
 
     if (!tonieInfo->json.nocloud || tonieInfo->json.cloud_override)

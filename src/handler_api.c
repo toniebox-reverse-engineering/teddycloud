@@ -2231,6 +2231,32 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
             updated = true;
         }
     }
+    if (queryGet(post_data, "hide", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.hide)
+        {
+            content_json.hide = target_value;
+            updated = true;
+        }
+    }
+    if (queryGet(post_data, "claimed", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.claimed)
+        {
+            content_json.claimed = target_value;
+            updated = true;
+        }
+    }
 
     if (updated)
     {
@@ -2393,6 +2419,8 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
                 cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
                 cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
+                cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
+                cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
                 cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
                 char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);

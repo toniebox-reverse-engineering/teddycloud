@@ -29,6 +29,8 @@ typedef struct
     size_t cloud_auth_len;
     bool_t cloud_override;
     char *tonie_model;
+    bool_t hide;
+    bool_t claimed;
 
     bool_t _has_cloud_auth;
     ct_source_t _source_type;
