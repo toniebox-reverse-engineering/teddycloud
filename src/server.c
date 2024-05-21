@@ -105,6 +105,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/tonieboxesCustomJson", SERTY_HTTP, &handleApiTonieboxCustomJson},
     {REQ_GET, "/api/trigger", SERTY_HTTP, &handleApiTrigger},
     {REQ_GET, "/api/getTagIndex", SERTY_HTTP, &handleApiTagIndex},
+    {REQ_GET, "/api/getTagInfo", SERTY_HTTP, &handleApiTagInfo},
     {REQ_GET, "/api/getBoxes", SERTY_HTTP, &handleApiGetBoxes},
     {REQ_POST, "/api/assignUnknown", SERTY_HTTP, &handleApiAssignUnknown},
     {REQ_GET, "/api/settings/getIndex", SERTY_HTTP, &handleApiGetIndex},

@@ -2293,6 +2293,148 @@ bool isHexString(const char *buf, size_t maxLen)
     return isHex;
 }
 
+error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ctx)
+{
+    error_t error = NO_ERROR;
+    /* build filename with 8 chars of the taf/json */
+    char *tagPath = custom_asprintf("%c%.8s%c%.8s", PATH_SEPARATOR, &ruid[0], PATH_SEPARATOR, &ruid[8]);
+    for (size_t i = 0; tagPath[i] != '\0'; i++)
+    {
+        tagPath[i] = toupper(tagPath[i]);
+    }
+    char *fullTagPath = custom_asprintf("%s%c%s", client_ctx->settings->internal.contentdirfull, PATH_SEPARATOR, tagPath);
+    char *fullJsonPath = custom_asprintf("%s%c%s.json", client_ctx->settings->internal.contentdirfull, PATH_SEPARATOR, tagPath);
+
+    if (fsFileExists(fullJsonPath))
+    {
+        /* read TAF info - would create .json if not existing */
+        tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+        /* now update with updated model if found. */
+        if (tafInfo->json._updated && tafInfo->json._create_if_missing)
+        {
+            save_content_json(tafInfo->jsonPath, &tafInfo->json);
+        }
+
+        contentJson_t contentJson;
+        load_content_json(fullTagPath, &contentJson, false, client_ctx->settings);
+
+        if (contentJson._valid)
+        {
+            /* only process one TAF/json per directory */
+            cJSON *jsonEntry = cJSON_CreateObject();
+            cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
+
+            char huid[24];
+            for (size_t i = 0; i < 8; i++)
+            {
+                size_t hcharId = (i * 3);
+                size_t rcharId = 16 - (i * 2) - 1;
+                huid[hcharId + 2] = ':';
+                huid[hcharId + 1] = toupper(ruid[rcharId]);
+                huid[hcharId] = toupper(ruid[rcharId - 1]);
+            }
+            huid[23] = '\0';
+            cJSON_AddStringToObject(jsonEntry, "uid", huid);
+
+            bool isSys = !osStrncmp(ruid, "0000000", 7);
+            if (isSys)
+            {
+                cJSON_AddStringToObject(jsonEntry, "type", "system");
+            }
+            else
+            {
+                cJSON_AddStringToObject(jsonEntry, "type", "tag");
+            }
+            cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
+            cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+            cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
+            cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
+            cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
+            cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
+            cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
+            cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
+
+            char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
+            char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
+            cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
+            if (!tafInfo->exists && !tafInfo->json.nocloud)
+            {
+                if (contentJson._has_cloud_auth || isSys)
+                {
+                    cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
+                }
+                else
+                {
+                    cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
+                }
+            }
+            osFreeMem(audioUrl);
+            osFreeMem(downloadUrl);
+
+            toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
+            addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
+
+            if (cJSON_IsArray(jsonTarget))
+            {
+                cJSON_AddItemToArray(jsonTarget, jsonEntry);
+            }
+            else
+            {
+                cJSON_AddItemToObject(jsonTarget, "tagInfo", jsonEntry);
+            }
+        }
+        else
+        {
+            error = ERROR_NOT_FOUND;
+        }
+        freeTonieInfo(tafInfo);
+        free_content_json(&contentJson);
+    }
+    else
+    {
+        error = ERROR_NOT_FOUND;
+    }
+
+    osFreeMem(tagPath);
+    osFreeMem(fullTagPath);
+    osFreeMem(fullJsonPath);
+
+    return error;
+}
+
+error_t handleApiTagInfo(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    char ruid[17];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+    if (!queryGet(queryString, "ruid", ruid, sizeof(ruid)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+
+    error_t error = getTagInfoJson(ruid, json, client_ctx);
+    if (error != NO_ERROR)
+    {
+        cJSON_Delete(json);
+        return error;
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
 error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
@@ -2342,14 +2484,11 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
         char *subDirPath = custom_asprintf("%s/%s", rootPath, entry.name);
         FsDir *subDir = fsOpenDir(subDirPath);
 
-        bool dirProcessed = false;
-
-        while (!dirProcessed)
+        while (true)
         {
             FsDirEntry subEntry;
             if (fsReadDir(subDir, &subEntry) != NO_ERROR)
             {
-                fsCloseDir(subDir);
                 break;
             }
 
@@ -2372,84 +2511,12 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 ruid[i] = tolower(ruid[i]);
             }
 
-            /* build filename with 8 chars of the taf/json */
-            char *tagPath = custom_asprintf("%s%c%.8s", subDirPath, PATH_SEPARATOR, subEntry.name);
-
-            /* read TAF info - will create .json if not existing */
-            tonie_info_t *tafInfo = getTonieInfo(tagPath, false, client_ctx->settings);
-            /* now update with updated model if found. */
-            if (tafInfo->json._updated && tafInfo->json._create_if_missing)
+            if (getTagInfoJson(ruid, jsonArray, client_ctx) == NO_ERROR)
             {
-                save_content_json(tafInfo->jsonPath, &tafInfo->json);
+                break;
             }
-
-            contentJson_t contentJson;
-            load_content_json(tagPath, &contentJson, false, client_ctx->settings);
-
-            if (contentJson._valid)
-            {
-                /* only process one TAF/json per directory */
-                dirProcessed = true;
-                cJSON *jsonEntry = cJSON_CreateObject();
-                cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
-
-                char huid[24];
-                for (size_t i = 0; i < 8; i++)
-                {
-                    size_t hcharId = (i * 3);
-                    size_t rcharId = 16 - (i * 2) - 1;
-                    huid[hcharId + 2] = ':';
-                    huid[hcharId + 1] = toupper(ruid[rcharId]);
-                    huid[hcharId] = toupper(ruid[rcharId - 1]);
-                }
-                huid[23] = '\0';
-                cJSON_AddStringToObject(jsonEntry, "uid", huid);
-
-                bool isSys = !osStrncmp(ruid, "0000000", 7);
-                if (isSys)
-                {
-                    cJSON_AddStringToObject(jsonEntry, "type", "system");
-                }
-                else
-                {
-                    cJSON_AddStringToObject(jsonEntry, "type", "tag");
-                }
-                cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
-                cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
-                cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
-                cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
-                cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
-                cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
-                cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
-                cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
-
-                char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
-                char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
-                cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
-                if (!tafInfo->exists && !tafInfo->json.nocloud)
-                {
-                    if (contentJson._has_cloud_auth || isSys)
-                    {
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
-                    }
-                    else
-                    {
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
-                    }
-                }
-                osFreeMem(audioUrl);
-                osFreeMem(downloadUrl);
-
-                toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
-                addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
-
-                cJSON_AddItemToArray(jsonArray, jsonEntry);
-            }
-
-            freeTonieInfo(tafInfo);
-            free_content_json(&contentJson);
-            osFreeMem(tagPath);
         }
+        fsCloseDir(subDir);
         osFreeMem(subDirPath);
     }
 
