@@ -53,8 +53,8 @@ void mutex_lock_id(char *id)
             mutex_lock(MUTEX_ID);
             if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
             {
-                mutex_lock(i);
                 mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
                 return;
             }
             mutex_unlock(MUTEX_ID);
@@ -66,8 +66,8 @@ void mutex_lock_id(char *id)
             if (mutex_info->id == NULL)
             {
                 mutex_info->id = strdup(id);
-                mutex_lock(i);
                 mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
                 return;
             }
             mutex_unlock(MUTEX_ID);
@@ -83,10 +83,10 @@ void mutex_unlock_id(char *id)
         mutex_lock(MUTEX_ID);
         if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
-            mutex_unlock(i);
             osFreeMem(mutex_info->id);
             mutex_info->id = NULL;
             mutex_unlock(MUTEX_ID);
+            mutex_unlock(i);
             break;
         }
         mutex_unlock(MUTEX_ID);
