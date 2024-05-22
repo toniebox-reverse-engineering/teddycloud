@@ -45,9 +45,9 @@ void mutex_manager_deinit()
 
 void mutex_lock_id(char *id)
 {
-    mutex_lock(MUTEX_ID);
     while (true)
     {
+        mutex_lock(MUTEX_ID);
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
@@ -70,8 +70,8 @@ void mutex_lock_id(char *id)
             }
         }
         TRACE_WARNING("Too many mutexes by id, waiting for %s!\r\n", id);
+        mutex_unlock(MUTEX_ID);
     }
-    mutex_unlock(MUTEX_ID);
 }
 void mutex_unlock_id(char *id)
 {
