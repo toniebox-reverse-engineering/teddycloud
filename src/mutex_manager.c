@@ -51,40 +51,42 @@ void mutex_manager_deinit()
 
 void mutex_lock_id(char *id)
 {
-    mutex_lock(MUTEX_ID);
     while (true)
     {
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
+            mutex_lock(MUTEX_ID);
             if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
             {
-                mutex_lock(i);
                 mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
                 return;
             }
+            mutex_unlock(MUTEX_ID);
         }
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
+            mutex_lock(MUTEX_ID);
             if (mutex_info->id == NULL)
             {
                 mutex_info->id = strdup(id);
-                mutex_lock(i);
                 mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
                 return;
             }
+            mutex_unlock(MUTEX_ID);
         }
         TRACE_WARNING("Too many mutexes by id, waiting for %s!\r\n", id);
     }
-    mutex_unlock(MUTEX_ID);
 }
 void mutex_unlock_id(char *id)
 {
-    mutex_lock(MUTEX_ID);
     for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
+        mutex_lock(MUTEX_ID);
         if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
             mutex_unlock(i);
@@ -93,8 +95,8 @@ void mutex_unlock_id(char *id)
             mutex_unlock(MUTEX_ID);
             return;
         }
+        mutex_unlock(MUTEX_ID);
     }
-    mutex_unlock(MUTEX_ID);
 }
 
 void mutex_lock(mutex_id_t mutex_id)
@@ -103,8 +105,8 @@ void mutex_lock(mutex_id_t mutex_id)
 
     TRACE_VERBOSE(">locking mutex %s\r\n", mutex_info->id);
     osAcquireMutex(&mutex_info->mutex);
-    mutex_info->last_lock = osGetSystemTime();
     mutex_info->locked = TRUE;
+    mutex_info->last_lock = osGetSystemTime();
     TRACE_VERBOSE(">mutex locked %s\r\n", mutex_info->id);
 }
 void mutex_unlock(mutex_id_t mutex_id)
@@ -112,19 +114,26 @@ void mutex_unlock(mutex_id_t mutex_id)
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
     TRACE_VERBOSE("<unlocking mutex %s\r\n", mutex_info->id);
-    osReleaseMutex(&mutex_info->mutex);
-    mutex_info->locked = FALSE;
-    if (mutex_info->warned)
+    if (mutex_info->locked)
     {
-        TRACE_WARNING("<mutex %s had a warning\r\n", mutex_info->id);
-        mutex_info->warned = FALSE;
+        osReleaseMutex(&mutex_info->mutex);
+        mutex_info->locked = FALSE;
+        if (mutex_info->warned)
+        {
+            TRACE_WARNING("<mutex %s had a warning\r\n", mutex_info->id);
+            mutex_info->warned = FALSE;
+        }
+        if (mutex_info->errored)
+        {
+            TRACE_ERROR("<mutex %s had an error\r\n", mutex_info->id);
+            mutex_info->errored = FALSE;
+        }
+        TRACE_VERBOSE("<mutex unlocked %s\r\n", mutex_info->id);
     }
-    if (mutex_info->errored)
+    else
     {
-        TRACE_ERROR("<mutex %s had an error\r\n", mutex_info->id);
-        mutex_info->errored = FALSE;
+        // TRACE_WARNING("<unlocking mutex %s, which is not locked?!\r\n", mutex_info->id);
     }
-    TRACE_VERBOSE("<mutex unlocked %s\r\n", mutex_info->id);
 }
 
 void mutex_manager_loop()
