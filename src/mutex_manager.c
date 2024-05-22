@@ -106,26 +106,23 @@ void mutex_unlock(mutex_id_t mutex_id)
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
     TRACE_VERBOSE("<unlocking mutex %s\r\n", mutex_info->id);
-    if (mutex_info->locked)
+    if (!mutex_info->locked)
     {
-        osReleaseMutex(&mutex_info->mutex);
-        mutex_info->locked = FALSE;
-        if (mutex_info->warned)
-        {
-            TRACE_WARNING("<mutex %s had a warning\r\n", mutex_info->id);
-            mutex_info->warned = FALSE;
-        }
-        if (mutex_info->errored)
-        {
-            TRACE_ERROR("<mutex %s had an error\r\n", mutex_info->id);
-            mutex_info->errored = FALSE;
-        }
-        TRACE_VERBOSE("<mutex unlocked %s\r\n", mutex_info->id);
+        TRACE_WARNING("<unlocking mutex %s, which is not locked?!\r\n", mutex_info->id);
     }
-    else
+    osReleaseMutex(&mutex_info->mutex);
+    mutex_info->locked = FALSE;
+    if (mutex_info->warned)
     {
-        // TRACE_WARNING("<unlocking mutex %s, which is not locked?!\r\n", mutex_info->id);
+        TRACE_WARNING("<mutex %s had a warning\r\n", mutex_info->id);
+        mutex_info->warned = FALSE;
     }
+    if (mutex_info->errored)
+    {
+        TRACE_ERROR("<mutex %s had an error\r\n", mutex_info->id);
+        mutex_info->errored = FALSE;
+    }
+    TRACE_VERBOSE("<mutex unlocked %s\r\n", mutex_info->id);
 }
 
 void mutex_manager_loop()
