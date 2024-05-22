@@ -45,6 +45,8 @@ void mutex_manager_deinit()
 
 void mutex_lock_id(char *id)
 {
+    if (true)
+        return; // TODO Find deadlock in combination with TagIndex
     while (true)
     {
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
@@ -77,6 +79,8 @@ void mutex_lock_id(char *id)
 }
 void mutex_unlock_id(char *id)
 {
+    if (true)
+        return; // TODO Find deadlock in combination with TagIndex
     for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
