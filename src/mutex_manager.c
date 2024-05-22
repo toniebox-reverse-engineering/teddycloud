@@ -24,16 +24,10 @@ void mutex_manager_init()
     for (size_t i = 0; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
-        mutex_info->locked = FALSE;
-        mutex_info->warned = FALSE;
-        mutex_info->errored = FALSE;
+        osMemset(mutex_info, 0, sizeof(mutex_info_t));
         if (i < MUTEX_ID_START)
         {
             mutex_info->id = custom_asprintf("%" PRIu8, i);
-        }
-        else
-        {
-            mutex_info->id = NULL;
         }
         osCreateMutex(&mutex_info->mutex);
     }
@@ -51,42 +45,40 @@ void mutex_manager_deinit()
 
 void mutex_lock_id(char *id)
 {
+    mutex_lock(MUTEX_ID);
     while (true)
     {
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
-            mutex_lock(MUTEX_ID);
             if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
             {
-                mutex_unlock(MUTEX_ID);
                 mutex_lock(i);
+                mutex_unlock(MUTEX_ID);
                 return;
             }
-            mutex_unlock(MUTEX_ID);
         }
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
-            mutex_lock(MUTEX_ID);
             if (mutex_info->id == NULL)
             {
                 mutex_info->id = strdup(id);
-                mutex_unlock(MUTEX_ID);
                 mutex_lock(i);
+                mutex_unlock(MUTEX_ID);
                 return;
             }
-            mutex_unlock(MUTEX_ID);
         }
         TRACE_WARNING("Too many mutexes by id, waiting for %s!\r\n", id);
     }
+    mutex_unlock(MUTEX_ID);
 }
 void mutex_unlock_id(char *id)
 {
+    mutex_lock(MUTEX_ID);
     for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
-        mutex_lock(MUTEX_ID);
         if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
             mutex_unlock(i);
@@ -95,8 +87,8 @@ void mutex_unlock_id(char *id)
             mutex_unlock(MUTEX_ID);
             return;
         }
-        mutex_unlock(MUTEX_ID);
     }
+    mutex_unlock(MUTEX_ID);
 }
 
 void mutex_lock(mutex_id_t mutex_id)
