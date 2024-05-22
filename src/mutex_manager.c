@@ -101,11 +101,11 @@ void mutex_lock(mutex_id_t mutex_id)
 {
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
-    TRACE_VERBOSE(">locking mutex %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE(">locking mutex %s\r\n", mutex_info->id);
     osAcquireMutex(&mutex_info->mutex);
     mutex_info->last_lock = osGetSystemTime();
     mutex_info->locked = TRUE;
-    TRACE_VERBOSE(">mutex locked %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE(">mutex locked %s\r\n", mutex_info->id);
 }
 void mutex_unlock(mutex_id_t mutex_id)
 {
