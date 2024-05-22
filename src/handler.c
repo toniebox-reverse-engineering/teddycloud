@@ -509,7 +509,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
     tonieInfo->locked = lock;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
-    if (tonieInfo->locked)
+    if (lock)
     {
         mutex_lock_id(tonieInfo->jsonPath);
     }
@@ -603,8 +603,8 @@ void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock)
     }
     if (tonieInfo->locked && unlock)
     {
-        tonieInfo->locked = false;
         mutex_unlock_id(tonieInfo->jsonPath);
+        tonieInfo->locked = false;
     }
 }
 void freeTonieInfo(tonie_info_t *tonieInfo)
