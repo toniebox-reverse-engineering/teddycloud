@@ -626,10 +626,7 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
         tonieInfo->jsonPath = NULL;
     }
 
-    if (tonieInfo->valid)
-    {
-        free_content_json(&tonieInfo->json);
-    }
+    free_content_json(&tonieInfo->json);
     free(tonieInfo);
 }
 
