@@ -1,3 +1,5 @@
+#define TRACE_LEVEL TRACE_LEVEL_VERBOSE
+
 #include "mutex_manager.h"
 #include "server_helpers.h"
 #include "debug.h"
