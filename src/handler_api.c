@@ -2298,16 +2298,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
 
     if (fsFileExists(fullJsonPath))
     {
+        contentJson_t contentJson;
         /* read TAF info - would create .json if not existing */
         tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
         /* now update with updated model if found. */
-        if (tafInfo->json._updated && tafInfo->json._create_if_missing)
-        {
-            save_content_json(tafInfo->jsonPath, &tafInfo->json);
-        }
-
-        contentJson_t contentJson;
-        load_content_json(fullTagPath, &contentJson, false, client_ctx->settings);
+        saveTonieInfo(tafInfo, true);
+        contentJson = tafInfo->json;
 
         if (contentJson._valid)
         {
@@ -2379,7 +2375,6 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             error = ERROR_NOT_FOUND;
         }
         freeTonieInfo(tafInfo);
-        free_content_json(&contentJson);
     }
     else
     {
