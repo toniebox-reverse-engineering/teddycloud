@@ -150,8 +150,8 @@
         "accessApiDisabled": "Zugriff auf TeddyCloud APIs deaktiviert.",
         "accessApiEnabled": "Zugriff auf TeddyCloud APIs aktiviert.",
         "boxWithoutAPIAccess": "Toniebox ohne TeddyCloud API Zugang!",
-        "boxWithoutAPIAccessText": "Folgende Tonieboxen haben keinen aktivierten API-Zugang:",
         "boxWithoutAPIAccessGoToTonieboxes": "Falls du das ändern möchtest, aktiviere den API-Zugang bei den genannten ",
+        "boxWithoutAPIAccessText": "Folgende Tonieboxen haben keinen aktivierten API-Zugang:",
         "cancel": "Abbrechen",
         "confirmDeleteDialog": "Möchtest du die Toniebox {{tonieboxToDelete}} wirklich löschen?",
         "confirmDeleteModal": "Bestätige Löschvorgang",
@@ -207,6 +207,26 @@
         }
     },
     "tonies": {
+        "addToniesCustomJsonEntry": "Modell anlegen (WIP)",
+        "addNewCustomTonie": "WIP: Not working! Neues Modell anlegen",
+        "addNewCustomTonieHint": "Lege ein neues Modell an und weise es dem aktuellen Tag zu",
+        "addNewCustomTonieModal": {
+            "addAudioIdHash": "Audio ID und Hash hinzufügen",
+            "addTrack": "Track hinzufügen",
+            "audioId": "Audio ID",
+            "episode": "Episode",
+            "faifailedToCreate": "Modellerstellung fehlgeschlagen: ",
+            "hash": "Hash",
+            "language": "Sprache [Format: de-de]",
+            "model": "Modell",
+            "pic": "Url zum Bild",
+            "remove": "entfernen",
+            "save": "Speichern",
+            "series": "Serie",
+            "successfullyCreated": "Modell erfolgreich erstellt",
+            "title": "WIP: Not working! Neuen Custom Tonie/Tag anlegen",
+            "track": "Track"
+        },
         "content": {
             "navigationTitle": "Content",
             "showToniesOfBoxes": "Inhalte der folgenden Tonieboxen anzeigen",
@@ -234,6 +254,12 @@
             "uploading": "Lädt hoch",
             "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt"
         },
+        "confirmHideModal": {
+            "title": "Tonie/Tag ausblenden",
+            "hide": "Ausblenden",
+            "cancel": "Abbrechen",
+            "confirmHideDialog": "Möchtest du den Tonie/Tag {{tonieToHide}} wirklich ausblenden? Nach dem Ausblenden taucht der Tonie/Tag nach Neuladen der Liste nicht mehr auf. Um ihn wieder einzublenden musst du den Tonie/Tag auf eine Toniebox platzieren."
+        },
         "infoModal": {
             "exists": "Existiert:",
             "model": "Modell:",
@@ -244,7 +270,8 @@
         },
         "informationModal": {
             "ok": "OK",
-            "unknownModel": "Unbekanntes Model"
+            "unknownModel": "Unbekanntes Model",
+            "hideTag": "Tonie/Tag ausblenden"
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Zuletzt gepielter Tonie",
@@ -272,7 +299,9 @@
             "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
             "setTonieToSourceFailed": "Konnte die Tonie-Quelle nicht ändern!",
             "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
-            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!"
+            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
+            "hideTonieSuccessful": "Tonie/Tag erfolgreich als ausgeblendet markiert!",
+            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen: "
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {

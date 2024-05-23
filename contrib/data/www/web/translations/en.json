@@ -206,6 +206,26 @@
         }
     },
     "tonies": {
+        "addToniesCustomJsonEntry": "(WIP) Add Model",
+        "addNewCustomTonie": "WIP: Not working! Create new model",
+        "addNewCustomTonieHint": "Create a new model and assign it to the current tag",
+        "addNewCustomTonieModal": {
+            "addAudioIdHash": "Add audio ID and hash",
+            "addTrack": "Add track",
+            "audioId": "Audio ID",
+            "episode": "Episode",
+            "failedToCreate": "Model creation failed: ",
+            "hash": "Hash",
+            "language": "Language [Format: de-de]",
+            "model": "Model",
+            "pic": "Url to picture",
+            "remove": "remove",
+            "save": "Save",
+            "series": "Serie",
+            "successfullyCreated": "Model created successful!",
+            "title": "WIP: Not working! Create new Custom Tonie/Tag",
+            "track": "Track"
+        },
         "content": {
             "navigationTitle": "Content",
             "showToniesOfBoxes": "Content of the following Tonieboxes",
@@ -233,6 +253,12 @@
             "uploading": "Uploading...",
             "uploadSuccessful": "The file was added successfully to the library"
         },
+        "confirmHideModal": {
+            "title": "Hide Tonie/Tag",
+            "hide": "Hide",
+            "cancel": "Cancel",
+            "confirmHideDialog": "Do you really want to hide the Tonie/Tag {{tonieToHide}}? After hiding, the Tonie/Tag will no longer appear when the list is reloaded. To make it visible again, you need to place the Tonie/Tag on a Toniebox."
+        },
         "infoModal": {
             "exists": "Exists:",
             "model": "Model:",
@@ -243,7 +269,8 @@
         },
         "informationModal": {
             "ok": "OK",
-            "unknownModel": "Unknown Model"
+            "unknownModel": "Unknown Model",
+            "hideTag": "Hide Tonie/Tag"
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Last played Tonie",
@@ -271,7 +298,9 @@
             "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
             "setTonieToSourceFailed": "Could not change tonie source!",
             "setTonieToSourceSuccessful": "Set tonie source to {{selectedSource}}!",
-            "sourceSetSuccessful": "Source set to {{selectedFile}}!"
+            "sourceSetSuccessful": "Source set to {{selectedFile}}!",
+            "hideTonieSuccessful": "Tonie/Tag successfully marked as hidden!",
+            "hideTonieFailed": "Failed to hide Tonie/Tag: "
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
