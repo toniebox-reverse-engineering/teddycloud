@@ -219,10 +219,12 @@
             "hash": "Hash",
             "language": "Sprache [Format: de-de]",
             "model": "Modell",
+            "modelRequired": "Das Modell muss ausgefüllt werden.",
             "pic": "Url zum Bild",
             "remove": "entfernen",
             "save": "Speichern",
             "series": "Serie",
+            "seriesRequired": "Die Serie muss ausgefüllt werden.",
             "successfullyCreated": "Modell erfolgreich erstellt",
             "title": "WIP: Not working! Neuen Custom Tonie/Tag anlegen",
             "track": "Track"
@@ -258,7 +260,7 @@
             "title": "Tonie/Tag ausblenden",
             "hide": "Ausblenden",
             "cancel": "Abbrechen",
-            "confirmHideDialog": "Möchtest du den Tonie/Tag {{tonieToHide}} wirklich ausblenden? Nach dem Ausblenden taucht der Tonie/Tag nach Neuladen der Liste nicht mehr auf. Um ihn wieder einzublenden musst du den Tonie/Tag auf eine Toniebox platzieren."
+            "confirmHideDialog": "Möchtest du den Tonie/Tag \"{{tonieToHide}}\" wirklich aus der Toniesübersicht ausblenden? Um ihn wieder einzublenden musst du den Tonie/Tag auf eine deiner Tonieboxen platzieren."
         },
         "infoModal": {
             "exists": "Existiert:",

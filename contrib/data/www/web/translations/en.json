@@ -218,10 +218,12 @@
             "hash": "Hash",
             "language": "Language [Format: de-de]",
             "model": "Model",
+            "modelRequired": "The model must be filled.",
             "pic": "Url to picture",
             "remove": "remove",
             "save": "Save",
-            "series": "Serie",
+            "series": "Series",
+            "seriesRequired": "The series must be filled.",
             "successfullyCreated": "Model created successful!",
             "title": "WIP: Not working! Create new Custom Tonie/Tag",
             "track": "Track"
@@ -257,7 +259,7 @@
             "title": "Hide Tonie/Tag",
             "hide": "Hide",
             "cancel": "Cancel",
-            "confirmHideDialog": "Do you really want to hide the Tonie/Tag {{tonieToHide}}? After hiding, the Tonie/Tag will no longer appear when the list is reloaded. To make it visible again, you need to place the Tonie/Tag on a Toniebox."
+            "confirmHideDialog": "Do you really want to hide the Tonie/Tag \"{{tonieToHide}}\" in the Tonies overview? To make it visible again, you need to place the Tonie/Tag on one of your Tonieboxes."
         },
         "infoModal": {
             "exists": "Exists:",
