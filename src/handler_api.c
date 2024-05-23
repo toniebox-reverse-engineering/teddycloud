@@ -2288,7 +2288,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
 {
     error_t error = NO_ERROR;
     /* build filename with 8 chars of the taf/json */
-    char *tagPath = custom_asprintf("%c%.8s%c%.8s", PATH_SEPARATOR, &ruid[0], PATH_SEPARATOR, &ruid[8]);
+    char *tagPath = custom_asprintf("%.8s%c%.8s", &ruid[0], PATH_SEPARATOR, &ruid[8]);
     for (size_t i = 0; tagPath[i] != '\0'; i++)
     {
         tagPath[i] = toupper(tagPath[i]);
