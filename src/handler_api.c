@@ -2341,7 +2341,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
             cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-            char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
+            char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
             char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
             cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
             if (!tafInfo->exists && !tafInfo->json.nocloud)
