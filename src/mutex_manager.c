@@ -49,22 +49,20 @@ void mutex_lock_id(char *id)
         return; // TODO Find deadlock in combination with TagIndex
     while (true)
     {
+        mutex_lock(MUTEX_ID);
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
-            mutex_lock(MUTEX_ID);
             if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
             {
                 mutex_unlock(MUTEX_ID);
                 mutex_lock(i);
                 return;
             }
-            mutex_unlock(MUTEX_ID);
         }
         for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
         {
             mutex_info_t *mutex_info = &mutex_list[i];
-            mutex_lock(MUTEX_ID);
             if (mutex_info->id == NULL)
             {
                 mutex_info->id = strdup(id);
@@ -72,8 +70,8 @@ void mutex_lock_id(char *id)
                 mutex_lock(i);
                 return;
             }
-            mutex_unlock(MUTEX_ID);
         }
+        mutex_unlock(MUTEX_ID);
         TRACE_WARNING("Too many mutexes by id, waiting for %s!\r\n", id);
     }
 }
@@ -81,20 +79,19 @@ void mutex_unlock_id(char *id)
 {
     if (true)
         return; // TODO Find deadlock in combination with TagIndex
+    mutex_lock(MUTEX_ID);
     for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
-        mutex_lock(MUTEX_ID);
         if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
             osFreeMem(mutex_info->id);
             mutex_info->id = NULL;
-            mutex_unlock(MUTEX_ID);
             mutex_unlock(i);
             break;
         }
-        mutex_unlock(MUTEX_ID);
     }
+    mutex_unlock(MUTEX_ID);
 }
 
 void mutex_lock(mutex_id_t mutex_id)
