@@ -506,15 +506,16 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->jsonPath = custom_asprintf("%s.json", contentPath);
     tonieInfo->exists = false;
-    tonieInfo->locked = lock;
+    tonieInfo->locked = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
-    if (lock)
-    {
-        mutex_lock_id(tonieInfo->jsonPath);
-    }
     if (osStrstr(contentPath, ".json") == NULL)
     {
+        if (lock)
+        {
+            tonieInfo->locked = true;
+            mutex_lock_id(tonieInfo->jsonPath);
+        }
         if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
             (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
