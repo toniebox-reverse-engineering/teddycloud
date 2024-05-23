@@ -366,6 +366,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         tonieInfo->json.hide = false;
         tonieInfo->json.claimed = true;
+        tonieInfo->json._updated = true;
     }
     saveTonieInfo(tonieInfo, true);
 
@@ -483,6 +484,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     if (client_ctx->settings->cloud.dumpRuidAuthContentJson && connection->request.auth.found)
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
+    }
+    if (tonieInfo->json.hide)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json._updated = true;
     }
 
     bool setLive = false;
