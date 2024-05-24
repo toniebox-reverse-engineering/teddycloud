@@ -206,7 +206,7 @@
         }
     },
     "tonies": {
-        "addToniesCustomJsonEntry": "(WIP) Add Model",
+        "addToniesCustomJsonEntry": "WIP: Add Model",
         "addNewCustomTonie": "WIP: Not working! Create new model",
         "addNewCustomTonieHint": "Create a new model and assign it to the current tag",
         "addNewCustomTonieModal": {
@@ -315,6 +315,21 @@
         "tap": {
             "navigationTitle": "Audio Playlists",
             "title": "Tonie Audio Playlists"
+        },
+        "tapEditor": {
+            "titleEdit": "Edit TAP",
+            "titleCreate": "Create new TAP",
+            "save": "Save",
+            "create": "Create",
+            "cancel": "Cancel",
+            "filePath": "File path Playlist",
+            "filePathRequired": "File path Playlist must be set",
+            "name": "TAP Name",
+            "nameRequired": "TAP Name  must be set",
+            "filePathContentFile": "File path",
+            "filePathContentFileRequired": "File path must be set",
+            "fileNameContentFile": "Description",
+            "addFile": "Add file"
         },
         "title": "Tonies",
         "tonies": {
