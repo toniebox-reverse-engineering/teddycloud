@@ -53,6 +53,11 @@
             "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
         }
     },
+    "404": {
+        "navigationTitle": "404 - Page not found",
+        "title": "404",
+        "description": "Oops - Page not found"
+    },
     "home": {
         "forumIntroPart1": "Discover more insights, engage with like-minded individuals, and stay updated on the latest discussions at our forum: ",
         "forumIntroPart2": ". Dive deeper into topics, share your experiences, and connect with our community. Join the conversation today!",
@@ -70,7 +75,10 @@
         },
         "title": "Welcome to TeddyCloud!",
         "toAllYourTonies": "To all Tonies",
-        "yourTonies": "Your Tonies"
+        "yourTonies": "Your Tonies",
+        "tonieMeeting": {
+            "navigationTitle": "Tonie Meeting"
+        }
     },
     "language": {
         "change": "Change language",
@@ -206,7 +214,6 @@
         }
     },
     "tonies": {
-        "addToniesCustomJsonEntry": "WIP: Add Model",
         "addNewCustomTonie": "WIP: Not working! Create new model",
         "addNewCustomTonieHint": "Create a new model and assign it to the current tag",
         "addNewCustomTonieModal": {
@@ -227,6 +234,13 @@
             "successfullyCreated": "Model created successful!",
             "title": "WIP: Not working! Create new Custom Tonie/Tag",
             "track": "Track"
+        },
+        "addToniesCustomJsonEntry": "WIP: Add Model",
+        "confirmHideModal": {
+            "cancel": "Cancel",
+            "confirmHideDialog": "Do you really want to hide the Tonie/Tag \"{{tonieToHide}}\" in the Tonies overview? To make it visible again, you need to place the Tonie/Tag on one of your Tonieboxes.",
+            "hide": "Hide",
+            "title": "Hide Tonie/Tag"
         },
         "content": {
             "navigationTitle": "Content",
@@ -255,12 +269,6 @@
             "uploading": "Uploading...",
             "uploadSuccessful": "The file was added successfully to the library"
         },
-        "confirmHideModal": {
-            "title": "Hide Tonie/Tag",
-            "hide": "Hide",
-            "cancel": "Cancel",
-            "confirmHideDialog": "Do you really want to hide the Tonie/Tag \"{{tonieToHide}}\" in the Tonies overview? To make it visible again, you need to place the Tonie/Tag on one of your Tonieboxes."
-        },
         "infoModal": {
             "exists": "Exists:",
             "model": "Model:",
@@ -270,9 +278,9 @@
             "yes": "Yes"
         },
         "informationModal": {
+            "hideTag": "Hide Tonie/Tag",
             "ok": "OK",
-            "unknownModel": "Unknown Model",
-            "hideTag": "Hide Tonie/Tag"
+            "unknownModel": "Unknown Model"
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Last played Tonie",
@@ -293,6 +301,8 @@
             "downloadedFile": "Downloaded file",
             "downloading": "Downloading...",
             "errorDuringDownload": "Error during background download: ",
+            "hideTonieFailed": "Failed to hide Tonie/Tag: ",
+            "hideTonieSuccessful": "Tonie/Tag successfully marked as hidden!",
             "liveDisabled": "Live disabled!",
             "liveEnabled": "Live enabled!",
             "setToEmptyValue": "empty",
@@ -300,9 +310,7 @@
             "setTonieToModelSuccessful": "Set tonie model to {{selectedModel}}!",
             "setTonieToSourceFailed": "Could not change tonie source!",
             "setTonieToSourceSuccessful": "Set tonie source to {{selectedSource}}!",
-            "sourceSetSuccessful": "Source set to {{selectedFile}}!",
-            "hideTonieSuccessful": "Tonie/Tag successfully marked as hidden!",
-            "hideTonieFailed": "Failed to hide Tonie/Tag: "
+            "sourceSetSuccessful": "Source set to {{selectedFile}}!"
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
@@ -312,24 +320,25 @@
             "navigationTitle": "System Sounds",
             "title": "System Sounds"
         },
+        "tafHeaderOf": "TAF-Header of ",
         "tap": {
             "navigationTitle": "Audio Playlists",
             "title": "Tonie Audio Playlists"
         },
         "tapEditor": {
-            "titleEdit": "Edit TAP",
-            "titleCreate": "Create new TAP",
-            "save": "Save",
-            "create": "Create",
+            "addFile": "Add file",
             "cancel": "Cancel",
+            "create": "Create",
+            "fileNameContentFile": "Description",
             "filePath": "File path Playlist",
+            "filePathContentFile": "File path",
+            "filePathContentFileRequired": "File path must be set",
             "filePathRequired": "File path Playlist must be set",
             "name": "TAP Name",
             "nameRequired": "TAP Name  must be set",
-            "filePathContentFile": "File path",
-            "filePathContentFileRequired": "File path must be set",
-            "fileNameContentFile": "Description",
-            "addFile": "Add file"
+            "save": "Save",
+            "titleCreate": "Create new TAP",
+            "titleEdit": "Edit TAP"
         },
         "title": "Tonies",
         "tonies": {

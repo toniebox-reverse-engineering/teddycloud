@@ -53,6 +53,11 @@
             "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
         }
     },
+    "404": {
+        "navigationTitle": "404 - Seite nicht gefunden",
+        "title": "404",
+        "description": "Hups - Seite nicht gefunden"
+    },
     "home": {
         "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
         "forumIntroPart2": ". Vertief dich in Themen, teile deine Erfahrungen und vernetze dich mit unserer Community. Tritt noch heute in die Diskussion ein!",
@@ -71,7 +76,10 @@
         "title": "Willkommen auf der TeddyCloud!",
         "toAllYourTonies": "Zu allen Tonies",
         "yourCustomTonies": "Deine Custom Tonies",
-        "yourTonies": "Deine Tonies"
+        "yourTonies": "Deine Tonies",
+        "tonieMeeting": {
+            "navigationTitle": "Tonie Meeting"
+        }
     },
     "language": {
         "change": "Sprache ändern",
@@ -207,7 +215,6 @@
         }
     },
     "tonies": {
-        "addToniesCustomJsonEntry": "WIP: Modell anlegen",
         "addNewCustomTonie": "WIP: Not working! Neues Modell anlegen",
         "addNewCustomTonieHint": "Lege ein neues Modell an und weise es dem aktuellen Tag zu",
         "addNewCustomTonieModal": {
@@ -228,6 +235,13 @@
             "successfullyCreated": "Modell erfolgreich erstellt",
             "title": "WIP: Not working! Neuen Custom Tonie/Tag anlegen",
             "track": "Track"
+        },
+        "addToniesCustomJsonEntry": "WIP: Modell anlegen",
+        "confirmHideModal": {
+            "cancel": "Abbrechen",
+            "confirmHideDialog": "Möchtest du den Tonie/Tag \"{{tonieToHide}}\" wirklich aus der Toniesübersicht ausblenden? Um ihn wieder einzublenden musst du den Tonie/Tag auf eine deiner Tonieboxen platzieren.",
+            "hide": "Ausblenden",
+            "title": "Tonie/Tag ausblenden"
         },
         "content": {
             "navigationTitle": "Content",
@@ -256,12 +270,6 @@
             "uploading": "Lädt hoch",
             "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt"
         },
-        "confirmHideModal": {
-            "title": "Tonie/Tag ausblenden",
-            "hide": "Ausblenden",
-            "cancel": "Abbrechen",
-            "confirmHideDialog": "Möchtest du den Tonie/Tag \"{{tonieToHide}}\" wirklich aus der Toniesübersicht ausblenden? Um ihn wieder einzublenden musst du den Tonie/Tag auf eine deiner Tonieboxen platzieren."
-        },
         "infoModal": {
             "exists": "Existiert:",
             "model": "Modell:",
@@ -271,9 +279,9 @@
             "yes": "Ja"
         },
         "informationModal": {
+            "hideTag": "Tonie/Tag ausblenden",
             "ok": "OK",
-            "unknownModel": "Unbekanntes Model",
-            "hideTag": "Tonie/Tag ausblenden"
+            "unknownModel": "Unbekanntes Model"
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Zuletzt gepielter Tonie",
@@ -294,6 +302,8 @@
             "downloadedFile": "Datei heruntergeladen",
             "downloading": "Herunterladen...",
             "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
+            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen: ",
+            "hideTonieSuccessful": "Tonie/Tag erfolgreich als ausgeblendet markiert!",
             "liveDisabled": "Live deaktiviert!",
             "liveEnabled": "Live aktiviert!",
             "setToEmptyValue": "leer",
@@ -301,9 +311,7 @@
             "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
             "setTonieToSourceFailed": "Konnte die Tonie-Quelle nicht ändern!",
             "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
-            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
-            "hideTonieSuccessful": "Tonie/Tag erfolgreich als ausgeblendet markiert!",
-            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen: "
+            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!"
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
@@ -313,24 +321,25 @@
             "navigationTitle": "System Sounds",
             "title": "System Sounds"
         },
+        "tafHeaderOf": "TAF-Header von ",
         "tap": {
             "navigationTitle": "Audio Playlists",
             "title": "Tonie Audio Playlists"
         },
         "tapEditor": {
-            "titleEdit": "TAP bearbeiten",
-            "titleCreate": "Neue TAP erstellen",
-            "save": "Speichern",
-            "create": "Anlegen",
+            "addFile": "Datei hinzufügen",
             "cancel": "Abbrechen",
+            "create": "Anlegen",
+            "fileNameContentFile": "Beschreibung",
             "filePath": "Dateipfad Playlist",
+            "filePathContentFile": "Dateipfad",
+            "filePathContentFileRequired": "Der Dateipfad muss ausgefüllt werden",
             "filePathRequired": "Der Dateipfad Playlist muss ausgefüllt werden",
             "name": "TAP Name",
             "nameRequired": "Der TAP Name muss ausgefüllt werden",
-            "filePathContentFile": "Dateipfad",
-            "filePathContentFileRequired": "Der Dateipfad muss ausgefüllt werden",
-            "fileNameContentFile": "Beschreibung",
-            "addFile": "Datei hinzufügen"
+            "save": "Speichern",
+            "titleCreate": "Neue TAP erstellen",
+            "titleEdit": "TAP bearbeiten"
         },
         "title": "Tonies",
         "tonies": {
