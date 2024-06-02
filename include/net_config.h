@@ -60,7 +60,8 @@ typedef struct
 } http_connection_private_t;
 
 #define CONTENT_LENGTH_MAX (INT32_MAX)
-#define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - 0x1000)
+#define TONIE_HEADER_LENGTH 0x1000
+#define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - TONIE_HEADER_LENGTH)
 
 #define HTTP_CLIENT_PRIVATE_CONTEXT \
     http_client_private_t private;  \

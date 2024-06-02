@@ -556,7 +556,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
                                 tonieInfo->valid = true;
-                                if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                                if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }

@@ -196,8 +196,8 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
         {
             osStrcpy(source[i], tap->files[i]._filepath_resolved);
         }
-        // toniefile_t *taf = toniefile_create(tmp_taf, tap->audio_id, false);
-        error = ffmpeg_stream(source, tap->filesCount, current_source, tmp_taf, 0, active, &sweep, false);
+        // toniefile_t *taf = toniefile_create(tmp_taf, tap->audio_id, false, 0);
+        error = ffmpeg_stream(source, tap->filesCount, current_source, tmp_taf, 0, active, &sweep, false, false);
         // toniefile_close(taf);
         if (error != NO_ERROR)
         {

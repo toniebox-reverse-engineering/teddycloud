@@ -1044,12 +1044,12 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
 
    if (connection->private.client_ctx.skip_taf_header)
    {
-      length -= 4096;
+      length -= TONIE_HEADER_LENGTH;
    }
    file_length = length;
    if (isStream)
    {
-      length = CONTENT_LENGTH_MAX;
+      length = connection->private.client_ctx.settings->encode.stream_max_size; //CONTENT_LENGTH_MAX
       if (!connection->private.client_ctx.settings->encode.ffmpeg_stream_restart)
       {
          file_length = length;
@@ -1108,11 +1108,11 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    {
       if (connection->request.Range.start > 0)
       {
-         connection->request.Range.start += 4096;
+         connection->request.Range.start += TONIE_HEADER_LENGTH;
       }
       else
       {
-         fsSeekFile(file, 4096, FS_SEEK_SET);
+         fsSeekFile(file, TONIE_HEADER_LENGTH, FS_SEEK_SET);
       }
    }
    if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)

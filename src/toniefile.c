@@ -91,7 +91,7 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     return size;
 }
 
-toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append)
+toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append, int32_t size)
 {
     int err;
     TonieboxAudioFileHeader *tafHeader = NULL;
@@ -99,10 +99,15 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     toniefile_t *ctx = osAllocMem(sizeof(toniefile_t));
     osMemset(ctx, 0x00, sizeof(toniefile_t));
 
+    int32_t tonie_audio_size = TONIE_LENGTH_MAX;
+    if (size > 0) {
+        tonie_audio_size = size;
+    }
+
     /* init TAF header */
     toniebox_audio_file_header__init(&ctx->taf);
     ctx->taf.audio_id = audio_id;
-    ctx->taf.num_bytes = TONIE_LENGTH_MAX;
+    ctx->taf.num_bytes = tonie_audio_size; //TONIE_LENGTH_MAX;
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
@@ -635,10 +640,10 @@ error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *cur
 {
     bool_t active = true;
     bool_t sweep = false;
-    return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false);
+    return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream)
 {
     TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
@@ -665,7 +670,12 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         return ERROR_ABORTED;
     }
 
-    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append);
+    int32_t size = 0;
+    if (isStream)
+    {
+        size = get_settings()->encode.stream_max_size - TONIE_HEADER_LENGTH;
+    }
+    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append, size);
     if (!taf)
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
@@ -743,7 +753,7 @@ void ffmpeg_stream_task(void *param)
 
     char source[99][PATH_LEN]; // waste memory, but warning otherwise
     strncpy(source[0], ffmpeg_ctx->source, PATH_LEN - 1);
-    stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append);
+    stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append, true);
     stream_ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }

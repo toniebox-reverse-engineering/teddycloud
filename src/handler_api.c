@@ -1499,7 +1499,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
         isStream = true;
-        length = CONTENT_LENGTH_MAX;
+        length = client_ctx->settings->encode.stream_max_size;
         connection->response.noCache = true;
     }
 
@@ -1700,7 +1700,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
         TRACE_INFO("[TAF] Start encoding to %s\r\n", ctx->file_path);
         TRACE_INFO("[TAF]   first file: %s\r\n", name);
 
-        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id, false);
+        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id, false, 0);
 
         if (ctx->taf == NULL)
         {

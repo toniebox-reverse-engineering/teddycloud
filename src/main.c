@@ -527,7 +527,7 @@ int_t main(int argc, char *argv[])
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("File: %s\r\n", options.encode_test);
 
-        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF, false);
+        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF, false, 0);
 
         if (!taf)
         {
