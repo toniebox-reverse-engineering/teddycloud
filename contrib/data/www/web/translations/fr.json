@@ -1,0 +1,381 @@
+{
+    "404": {
+        "description": "Oups - Page non trouvée",
+        "navigationTitle": "404 - Page non trouvée",
+        "title": "404"
+    },
+    "community": {
+        "changelog": {
+            "navigationTitle": "Journal des modifications",
+            "title": "Journal des modifications / Notes de version"
+        },
+        "contribution": {
+            "navigationTitle": "Contribution",
+            "title": "Contribution",
+            "toniesJson": {
+                "navigationTitle": "tonies.json",
+                "text": "Vous êtes les bienvenus pour nous aider en nous envoyant les données manquantes des Tonies listés ci-dessous. À l'avenir, cela sera possible directement dans TeddyCloud, pour le moment vous pouvez utiliser TeddyBench. Merci d'avance !",
+                "title": "Contribuer à tonies.json"
+            }
+        },
+        "contributors": {
+            "navigationTitle": "Contributeurs",
+            "title": "Contributeurs"
+        },
+        "forum": {
+            "navigationTitle": "Forum"
+        },
+        "navigationTitle": "Communauté",
+        "title": "Communauté"
+    },
+    "fileBrowser": {
+        "actions": "Actions",
+        "cancel": "Annuler",
+        "confirmDeleteDialog": "Êtes-vous sûr de vouloir supprimer {{fileToDelete}}?",
+        "confirmDeleteModal": "Confirmer la suppression",
+        "date": "Date",
+        "delete": "Supprimer",
+        "episode": "Épisode",
+        "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
+        "messages": {
+            "deleteFailed": "Échec de la suppression",
+            "deleteSuccessful": "Suppression réussie !",
+            "deleting": "Suppression...",
+            "migrationFailed": "Échec de la migration",
+            "migrationOngoing": "Migration en cours...",
+            "migrationSuccessful": "Migration réussie !"
+        },
+        "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
+        "migrateContentToLibRoot": "Migrer TAF vers la bibliothèque (racine)",
+        "model": "Modèle",
+        "name": "Nom",
+        "playFile": "Lire",
+        "selectTafOrTapOnly": "Vous ne pouvez sélectionner que des fichiers TAF ou TAP !",
+        "series": "Série",
+        "size": "Taille",
+        "tap": {
+            "copy": "(WIP - non implémenté) Dupliquer la playlist audio Tonie",
+            "edit": "(WIP - non implémenté) Modifier la playlist audio Tonie"
+        }
+    },
+    "home": {
+        "forumIntroPart1": "Découvrez plus d'informations, engagez-vous avec des personnes partageant les mêmes idées et restez à jour sur les dernières discussions sur notre forum : ",
+        "forumIntroPart2": ". Plongez plus profondément dans les sujets, partagez vos expériences et connectez-vous avec notre communauté. Rejoignez la conversation aujourd'hui !",
+        "helpfulLinks": "Liens utiles",
+        "intro": "TeddyCloud est un serveur alternatif pour votre Toniebox, vous permettant d'héberger les services cloud localement. Cela vous donne le contrôle sur les données envoyées au cloud du fabricant d'origine et vous permet d'héberger vos propres fichiers audio de figurines.",
+        "navigationTitle": "Accueil",
+        "stats": {
+            "cloud_blocked": "Requêtes cloud bloquées",
+            "cloud_failed": "Requêtes cloud échouées",
+            "cloud_requests": "Requêtes cloud exécutées",
+            "connections": "Connexions à ce serveur",
+            "navigationTitle": "Statistiques",
+            "reverse_requests": "Appels de proxy inverse effectués par les clients",
+            "title": "Statistiques"
+        },
+        "title": "Bienvenue sur TeddyCloud !",
+        "toAllYourTonies": "À tous les Tonies",
+        "tonieMeeting": {
+            "navigationTitle": "Réunion Tonie"
+        },
+        "yourTonies": "Vos Tonies"
+    },
+    "language": {
+        "change": "Changer de langue",
+        "english": "EN",
+        "german": "DE",
+        "french": "FR"
+    },
+    "languageUtil": {
+        "de-de": "Allemand",
+        "en-gb": "Anglais (GB)",
+        "en-us": "Anglais (US)",
+        "es-es": "Espagnol",
+        "fr-fr": "Français",
+        "it-it": "Italien",
+        "nl-be": "Néerlandais (Belgique)",
+        "nl-nl": "Néerlandais (Pays-Bas)",
+        "pl-pl": "Polonais",
+        "pt-pt": "Portugais",
+        "undefined": "Autre/indéfini"
+    },
+    "radioStreamSearch": {
+        "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche : ",
+        "searchLabel": "[Optionnel] Rechercher un flux radio"
+    },
+    "security": {
+        "alert": "Alerte",
+        "incident_detected": "Incident de sécurité détecté ! Veuillez vérifier vos journaux !"
+    },
+    "server": {
+        "boxineStatusOffline": "Non connecté à Boxine/Toniecloud",
+        "boxineStatusOnline": "Connecté à Boxine/Toniecloud",
+        "teddycloudStatusOffline": "Serveur TeddyCloud hors ligne",
+        "teddycloudStatusOnline": "Le serveur TeddyCloud fonctionne correctement"
+    },
+    "settings": {
+        "certificates": {
+            "hint": "Voici les certificats utilisés pour l'utilisation générale de TeddyCloud. Des certificats spécifiques peuvent être utilisés pour vos Tonieboxes. Pour les changer, allez à ",
+            "information": "Informations",
+            "navigationTitle": "Certificats",
+            "title": "Certificats",
+            "uploadFailed": "Échec du téléchargement du fichier {{filename}}. Consultez la console",
+            "uploadHint": "Glissez-déposez les certificats clients de votre box ici",
+            "uploadSuccessful": "Fichier {{filename}} téléchargé avec succès.",
+            "uploadText": "Cliquez ou faites glisser les certificats clients dans cette zone pour les télécharger"
+        },
+        "general": {
+            "navigationTitle": "Général",
+            "title": "Paramètres généraux"
+        },
+        "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
+        "information": "Informations",
+        "levelLabel": "Niveau des paramètres",
+        "navigationTitle": "Paramètres",
+        "overlayDisabled": "Superposition désactivée !",
+        "overlayed": "superposé",
+        "overlayEnabled": "Superposition activée !",
+        "restartComplete": "Redémarrage du serveur TeddyCloud réussi !",
+        "restartFailed": "Échec du redémarrage du serveur TeddyCloud !",
+        "restartInProgress": "Redémarrage de TeddyCloud en cours...",
+        "restartServer": "Redémarrer le serveur",
+        "rtnl": {
+            "clear": "Effacer le journal RTNL",
+            "enableRtnl": "Activer la journalisation",
+            "navigationTitle": "Journal RTNL",
+            "title": "Journal RTNL"
+        },
+        "saved": "Paramètre enregistré !",
+        "title": "Paramètres",
+        "tonieboxes": "tonieboxes",
+        "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
+        "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+    },
+    "tonieArticleSearch": {
+        "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche : "
+    },
+    "tonieboxes": {
+        "accessApiDisabled": "Accès aux API de TeddyCloud désactivé.",
+        "accessApiEnabled": "Accès aux API de TeddyCloud activé.",
+        "boxWithoutAPIAccess": "Toniebox sans accès à l'API de TeddyCloud!",
+        "boxWithoutAPIAccessGoToTonieboxes": "Si vous souhaitez changer cela, activez l'accès à l'API pour la boîte mentionnée ",
+        "boxWithoutAPIAccessText": "Les Tonieboxes suivantes n'ont pas accès à l'API activé:",
+        "cancel": "Annuler",
+        "confirmDeleteDialog": "Voulez-vous vraiment supprimer {{tonieboxToDelete}}?",
+        "confirmDeleteModal": "Confirmer la suppression",
+        "delete": "Supprimer",
+        "editModelModal": {
+            "editModel": "Modifier le modèle de la Toniebox \"{{name}}\"",
+            "errorOnModelChange": "Erreur lors de l'enregistrement du modèle: {{error}}",
+            "errorOnNameChange": "Erreur lors de l'enregistrement du nom: {{error}}",
+            "errorWhileSavingConfig": "Erreur lors de la sauvegarde de la configuration.",
+            "model": "Modèle",
+            "name": "Nom",
+            "placeholderSearchForAModel": "Sélectionnez la variante de couleur de votre Toniebox",
+            "successOnModelChange": "Le modèle de la Toniebox a été modifié",
+            "successOnNameChange": "Le nom de la Toniebox a été modifié",
+            "unsetBoxName": "Modèle inconnu/non défini"
+        },
+        "editTonieboxSettingsModal": {
+            "editTonieboxSettings": "Modifier les paramètres pour la Toniebox \"{{name}}\"",
+            "editTonieboxSettingsLabel": "Paramètres"
+        },
+        "esp32BoxFlashing": {
+            "attention": "Attention",
+            "disableHttpOnlyForFlashing": "Veuillez désactiver \"Interface web uniquement HTTP\" et ouvrir la page avec HTTPS.",
+            "enabledWebHttpOnly": "\"Interface web uniquement HTTP\" activée",
+            "enabledWebHttpsClientCertAuth": "\"Authentification du certificat client HTTPS\" activée",
+            "hint": "Cette section n'est disponible que si HTTPS est utilisé. Si vous souhaitez flasher votre Toniebox ESP32, veuillez désactiver temporairement l'option \"Interface web uniquement HTTP\".",
+            "httpsSettings": "Paramètres HTTPS",
+            "navigationTitle": "Flashage de la boîte ESP32",
+            "redirectToHttpAfterActivation": "Après avoir activé \"Interface web uniquement HTTP\" et sauvegardé, vous serez redirigé vers la page HTTP (si HTTPS est actif).",
+            "redirectToHttpsAfterDeactivation": "Après avoir désactivé \"Interface web uniquement HTTP\" et sauvegardé, vous serez redirigé vers la page HTTPS.",
+            "save": "Enregistrer les paramètres",
+            "title": "Flashage de la boîte ESP32"
+        },
+        "lastOnline": "dernière connexion",
+        "lastPlayedTonie": "Dernier Tonie joué: ",
+        "linkToBoxCFW": "Ouvrir l'interface web de la Toniebox",
+        "messages": {
+            "apiAccessDisabled": "Accès aux API de TeddyCloud désactivé!",
+            "apiAccessEnabled": "Accès aux API de TeddyCloud activé!",
+            "apiAccessNotChangedError": "Échec du changement d'accès à l'API de TeddyCloud: ",
+            "deleteFailed": "Échec de la suppression:",
+            "deleteSuccessful": "Supprimé avec succès!",
+            "deleting": "Suppression..."
+        },
+        "navigationTitle": "Tonieboxes",
+        "newBoxesAllowed": "Nouvelles Tonieboxes autorisées",
+        "newBoxesAllowedText": "Vous pouvez connecter de nouvelles Tonieboxes à TeddyCloud. Une fois que vous avez connecté toutes vos boîtes, veuillez désactiver le réglage \"Autoriser les nouvelles boîtes\" pour des raisons de sécurité.",
+        "offline": "hors ligne",
+        "online": "en ligne",
+        "title": "Vos Tonieboxes",
+        "uploadTonieboxCertificatesModal": {
+            "AttentionGeneralPath": "(ATTENTION: Chemin par défaut!)",
+            "boxSpecific": " (superposé pour la Toniebox)",
+            "Label": "Certificats",
+            "uploadPath": "Chemin de téléchargement (certDir):",
+            "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox \"{{name}}\""
+        }
+    },
+    "tonies": {
+        "addNewCustomTonie": "WIP: Ne fonctionne pas! Créer un nouveau modèle",
+        "addNewCustomTonieHint": "Créez un nouveau modèle et assignez-le au tag actuel",
+        "addNewCustomTonieModal": {
+            "addAudioIdHash": "Ajouter un ID audio et un hash",
+            "addTrack": "Ajouter une piste",
+            "audioId": "ID audio",
+            "episode": "Épisode",
+            "failedToCreate": "Échec de la création du modèle: ",
+            "hash": "Hash",
+            "language": "Langue [Format: fr-fr]",
+            "model": "Modèle",
+            "modelRequired": "Le modèle doit être rempli.",
+            "pic": "URL de l'image",
+            "remove": "supprimer",
+            "save": "Enregistrer",
+            "series": "Série",
+            "seriesRequired": "La série doit être remplie.",
+            "successfullyCreated": "Modèle créé avec succès!",
+            "title": "WIP: Ne fonctionne pas! Créer un nouveau Tonie/Tag personnalisé",
+            "track": "Piste"
+        },
+        "addToniesCustomJsonEntry": "WIP: Ajouter un modèle",
+        "confirmHideModal": {
+            "cancel": "Annuler",
+            "confirmHideDialog": "Voulez-vous vraiment masquer le Tonie/Tag \"{{tonieToHide}}\" dans la vue d'ensemble des Tonies? Pour le rendre visible à nouveau, vous devez placer le Tonie/Tag sur l'une de vos Tonieboxes.",
+            "hide": "Masquer",
+            "title": "Masquer le Tonie/Tag"
+        },
+        "content": {
+            "navigationTitle": "Contenu",
+            "showToniesOfBoxes": "Contenu des Tonieboxes suivants",
+            "title": "Contenu",
+            "toniePicture": "Image du Tonie"
+        },
+        "editModal": {
+            "model": "Modèle",
+            "placeholderSearchForAModel": "Rechercher un modèle",
+            "placeholderSearchForARadioStream": "Rechercher un flux radio",
+            "save": "Enregistrer",
+            "source": "Source",
+            "title": "Modifier le modèle"
+        },
+        "encoder": {
+            "filename": "Nom du fichier",
+            "navigationTitle": "Encodeur audio",
+            "removeFile": "Supprimer le fichier",
+            "saveAs": "Enregistrer le fichier sous",
+            "targetDirectory": "Choisir le répertoire cible",
+            "title": "Encodeur audio",
+            "upload": "Télécharger",
+            "uploadFailed": "Le téléchargement a rencontré une erreur",
+            "uploadFiles": "Sélectionner le(s) fichier(s)",
+            "uploading": "Téléchargement...",
+            "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque"
+        },
+        "infoModal": {
+            "exists": "Existe:",
+            "model": "Modèle:",
+            "no": "Non",
+            "tracklist": "Liste des pistes:",
+            "valid": "Valide:",
+            "yes": "Oui"
+        },
+        "informationModal": {
+            "hideTag": "Masquer le Tonie/Tag",
+            "ok": "OK",
+            "unknownModel": "Modèle inconnu"
+        },
+        "lastPlayedOnModal": {
+            "lastPlayedOn": "Dernier Tonie joué",
+            "lastPlayedOnMessage": "Ce Tonie a été le dernier joué sur",
+            "title": "Ce Tonie a été joué en dernier!"
+        },
+        "library": {
+            "navigationTitle": "Bibliothèque",
+            "title": "Bibliothèque"
+        },
+        "messages": {
+            "cloudAccessBlocked": "Accès au cloud bloqué!",
+            "cloudAccessEnabled": "Accès au cloud activé!",
+            "couldNotChangeCloudFlag": "Impossible de changer le drapeau d'accès au cloud (nocloud)! ",
+            "couldNotChangeLiveFlag": "Impossible de changer le drapeau en direct! ",
+            "couldNotEmptySource": "Impossible de vider la source!",
+            "couldNotSetSource": "Impossible de définir la source! ",
+            "downloadedFile": "Fichier téléchargé",
+            "downloading": "Téléchargement...",
+            "errorDuringDownload": "Erreur lors du téléchargement en arrière-plan: ",
+            "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag: ",
+            "hideTonieSuccessful": "Tonie/Tag masqué avec succès!",
+            "liveDisabled": "En direct désactivé!",
+            "liveEnabled": "En direct activé!",
+            "setToEmptyValue": "vide",
+            "setTonieToModelFailed": "Impossible de changer le modèle de Tonie!",
+            "setTonieToModelSuccess": "Le modèle a été changé pour: ",
+            "setTonieToRadioStreamSuccess": "Le flux radio a été changé pour: ",
+            "setTracklistFailed": "Impossible de modifier la liste de lecture: ",
+            "successfulTonieUpdate": "Tonie mis à jour avec succès!"
+        },
+        "navigationTitle": "Tonies",
+        "selectFileModal": {
+            "selectFile": "Sélectionner un fichier TAF/TAP"
+        },
+        "system-sounds": {
+            "navigationTitle": "Sons du système",
+            "title": "Sons du système"
+        },
+        "tafHeaderOf": "En-tête TAF de ",
+        "tap": {
+            "navigationTitle": "WIP: Listes de lecture audio",
+            "title": "WIP: Listes de lecture audio de Tonie"
+        },
+        "tapEditor": {
+            "addFile": "Ajouter un fichier",
+            "cancel": "Annuler",
+            "create": "Créer",
+            "fileNameContentFile": "Description",
+            "filePath": "Chemin du fichier Playlist",
+            "filePathContentFile": "Chemin du fichier",
+            "filePathContentFileRequired": "Le chemin du fichier doit être défini",
+            "filePathRequired": "Le chemin du fichier Playlist doit être défini",
+            "name": "Nom TAP",
+            "nameRequired": "Le nom TAP doit être défini",
+            "save": "Enregistrer",
+            "titleCreate": "Créer un nouveau TAP",
+            "titleEdit": "Modifier le TAP"
+        },
+        "title": "Tonies",
+        "tonies": {
+            "filterBar": {
+                "applyFilters": "Appliquer le filtre",
+                "episodeFilterPlaceholder": "Épisode",
+                "exists": "Existe Oui",
+                "filterLabel": "Filtrer",
+                "hasCloudAuth": "Auth cloud définie",
+                "hideFilters": "Masquer les filtres",
+                "invalid": "Valide Non",
+                "languagePlaceholder": "Sélectionner la langue",
+                "lastPlayed": "Dernier joué",
+                "live": "Live activé",
+                "noCloud": "Cloud désactivé",
+                "notExists": "Existe Non",
+                "resetFilters": "Réinitialiser le filtre",
+                "searchLabel": "Rechercher",
+                "searchPlaceholder": "Entrez les critères de recherche",
+                "seriesFilterPlaceholder": "Série",
+                "showFilters": "Afficher les filtres",
+                "unsetHasCloudAuth": "Pas d'auth cloud",
+                "unsetLive": "Live désactivé",
+                "unsetNoCloud": "Cloud activé",
+                "valid": "Valide Oui"
+            },
+            "navigationTitle": "Tonies",
+            "pageSelector": " tonies / page",
+            "showAll": "Afficher tout",
+            "showPagination": "Afficher la pagination",
+            "title": "Tonies"
+        },
+        "unsetTonie": "Tonie/Tag"
+    }
+}

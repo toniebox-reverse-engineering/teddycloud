@@ -1,4 +1,9 @@
 {
+    "404": {
+        "description": "Oops - Page not found",
+        "navigationTitle": "404 - Page not found",
+        "title": "404"
+    },
     "community": {
         "changelog": {
             "navigationTitle": "Changelog",
@@ -45,18 +50,13 @@
         "model": "Model",
         "name": "Name",
         "playFile": "Play",
-        "selectTafOnly": "You can only select TAF files!",
+        "selectTafOrTapOnly": "You can only select TAF or TAP files!",
         "series": "Series",
         "size": "Size",
         "tap": {
             "copy": "(WIP - not implemented yet) Duplicate Tonie Audio Playlist",
             "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
         }
-    },
-    "404": {
-        "navigationTitle": "404 - Page not found",
-        "title": "404",
-        "description": "Oops - Page not found"
     },
     "home": {
         "forumIntroPart1": "Discover more insights, engage with like-minded individuals, and stay updated on the latest discussions at our forum: ",
@@ -75,15 +75,16 @@
         },
         "title": "Welcome to TeddyCloud!",
         "toAllYourTonies": "To all Tonies",
-        "yourTonies": "Your Tonies",
         "tonieMeeting": {
             "navigationTitle": "Tonie Meeting"
-        }
+        },
+        "yourTonies": "Your Tonies"
     },
     "language": {
         "change": "Change language",
         "english": "EN",
-        "german": "DE"
+        "german": "DE",
+        "french": "FR"
     },
     "languageUtil": {
         "de-de": "German",
@@ -183,14 +184,18 @@
             "attention": "Attention",
             "disableHttpOnlyForFlashing": "Please disable \"Webinterface http only\" and open page with https.",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" enabled",
+            "enabledWebHttpsClientCertAuth": "\"HTTPS client cert auth\" enabled",
             "hint": "This section is only available if HTTPS is used. If you want to flash your ESP32 Toniebox, then please temporarily disable the \"Webinterface HTTP only\" option.",
+            "httpsSettings": "HTTPS Settings",
             "navigationTitle": "ESP32 Box Flashing",
-            "redirectToHttpAfterActivation": "After Activation you will be redirected to HTTP (if HTTPS is active).",
-            "redirectToHttpsAfterDeactivation": "After Deactivation you will be redirected to HTTPS.",
+            "redirectToHttpAfterActivation": "After enabling \"Webinterface HTTP only\" and saving, you will be redirected to HTTP page (if HTTPS is active).",
+            "redirectToHttpsAfterDeactivation": "After disabling \"Webinterface HTTP only\" and saving, you will be redirected to HTTPS page.",
+            "save": "Save settings",
             "title": "ESP32 Box Flashing"
         },
         "lastOnline": "last online",
         "lastPlayedTonie": "Last played Tonie: ",
+        "linkToBoxCFW": "Open web interface of Toniebox",
         "messages": {
             "apiAccessDisabled": "Disabled access to TeddyCloud APIs!",
             "apiAccessEnabled": "Enabled access to TeddyCloud APIs!",
@@ -314,7 +319,7 @@
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
-            "selectFile": "Select TAF-file"
+            "selectFile": "Select TAF/TAP-file"
         },
         "system-sounds": {
             "navigationTitle": "System Sounds",
@@ -322,8 +327,8 @@
         },
         "tafHeaderOf": "TAF-Header of ",
         "tap": {
-            "navigationTitle": "Audio Playlists",
-            "title": "Tonie Audio Playlists"
+            "navigationTitle": "WIP: Audio Playlists",
+            "title": "WIP: Tonie Audio Playlists"
         },
         "tapEditor": {
             "addFile": "Add file",

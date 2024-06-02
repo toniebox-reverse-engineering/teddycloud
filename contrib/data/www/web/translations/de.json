@@ -1,4 +1,9 @@
 {
+    "404": {
+        "description": "Hups - Seite nicht gefunden",
+        "navigationTitle": "404 - Seite nicht gefunden",
+        "title": "404"
+    },
     "community": {
         "changelog": {
             "navigationTitle": "Changelog",
@@ -45,18 +50,13 @@
         "model": "Modell",
         "name": "Name",
         "playFile": "Abspielen",
-        "selectTafOnly": "Du kannst nur TAF Dateien auswählen!",
+        "selectTafOrTapOnly": "Du kannst nur TAF oder TAP Dateien auswählen!",
         "series": "Serie",
         "size": "Größe",
         "tap": {
             "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren",
             "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
         }
-    },
-    "404": {
-        "navigationTitle": "404 - Seite nicht gefunden",
-        "title": "404",
-        "description": "Hups - Seite nicht gefunden"
     },
     "home": {
         "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
@@ -75,16 +75,17 @@
         },
         "title": "Willkommen auf der TeddyCloud!",
         "toAllYourTonies": "Zu allen Tonies",
-        "yourCustomTonies": "Deine Custom Tonies",
-        "yourTonies": "Deine Tonies",
         "tonieMeeting": {
             "navigationTitle": "Tonie Meeting"
-        }
+        },
+        "yourCustomTonies": "Deine Custom Tonies",
+        "yourTonies": "Deine Tonies"
     },
     "language": {
         "change": "Sprache ändern",
         "english": "EN",
-        "german": "DE"
+        "german": "DE",
+        "french": "FR"
     },
     "languageUtil": {
         "de-de": "Deutsch",
@@ -182,16 +183,20 @@
         },
         "esp32BoxFlashing": {
             "attention": "Achtung",
-            "disableHttpOnlyForFlashing": "Bitte deaktiviere \"Webinterface http only\" und öffne diese Seite mit https.",
+            "disableHttpOnlyForFlashing": "Bitte deaktiviere \"Webinterface http only\" und öffne diese Seite mit HTTPS.",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" aktiv",
+            "enabledWebHttpsClientCertAuth": "\"HTTPS client cert auth\" aktiv",
             "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird. Wenn du deine ESP32 Toniebox flashen willst, dann deaktiviern bitte vorübergehend die Option \"Webinterface HTTP only\".",
+            "httpsSettings": "HTTPS Settings",
             "navigationTitle": "ESP32 Box Flashing",
-            "redirectToHttpAfterActivation": "Bei Aktivierung wird auf HTTP weitergeleitet (falls HTTPS aktiv).",
-            "redirectToHttpsAfterDeactivation": "Bei Deaktivierung  auf HTTPS weitergeleitet.",
+            "redirectToHttpAfterActivation": "Bei Aktivierung \"Webinterface HTTP only\" wird nach Speichern auf HTTP Seite weitergeleitet (falls HTTPS aktiv).",
+            "redirectToHttpsAfterDeactivation": "Bei Deaktivierung \"Webinterface HTTP only\" wird nach Speichern auf HTTPS Seite weitergeleitet.",
+            "save": "Settings speichern",
             "title": "ESP32 Box Flashing"
         },
         "lastOnline": "zuletzt online",
         "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
+        "linkToBoxCFW": "Öffne Web Frontend deiner Toniebox",
         "messages": {
             "apiAccessDisabled": "Zugriff auf TeddyCloud APIs deaktiviert!",
             "apiAccessEnabled": "Zugriff auf TeddyCloud APIs aktiviert!",
@@ -315,7 +320,7 @@
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
-            "selectFile": "TAF-Datei auswählen"
+            "selectFile": "TAF/TAP-Datei auswählen"
         },
         "system-sounds": {
             "navigationTitle": "System Sounds",
@@ -323,8 +328,8 @@
         },
         "tafHeaderOf": "TAF-Header von ",
         "tap": {
-            "navigationTitle": "Audio Playlists",
-            "title": "Tonie Audio Playlists"
+            "navigationTitle": "WIP: Audio Playlists",
+            "title": "WIP: Tonie Audio Playlists"
         },
         "tapEditor": {
             "addFile": "Datei hinzufügen",
