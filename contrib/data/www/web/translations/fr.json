@@ -148,6 +148,9 @@
         "saved": "Paramètre enregistré !",
         "title": "Paramètres",
         "tonieboxes": "tonieboxes",
+        "updateToniesJson": "Mettre à jour Tonies.json",
+        "tonieJsonUpdateTriggered": "Mise à jour Tonies.json déclenchée!",
+        "tonieJsonUpdateFailed": "La mise à jour de Tonies.json a échoué!",
         "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
         "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
@@ -241,6 +244,9 @@
             "track": "Piste"
         },
         "addToniesCustomJsonEntry": "WIP: Ajouter un modèle",
+        "cancel": "Annuler",
+        "closeAudioPlayer": "Fermer le lecteur audio",
+        "closeAudioPlayerPopover": "Fermer arrête la lecture!",
         "confirmHideModal": {
             "cancel": "Annuler",
             "confirmHideDialog": "Voulez-vous vraiment masquer le Tonie/Tag \"{{tonieToHide}}\" dans la vue d'ensemble des Tonies? Pour le rendre visible à nouveau, vous devez placer le Tonie/Tag sur l'une de vos Tonieboxes.",

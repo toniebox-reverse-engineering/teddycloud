@@ -148,6 +148,9 @@
         "saved": "Setting saved!",
         "title": "Settings",
         "tonieboxes": "tonieboxes",
+        "updateToniesJson": "Update Tonies.json",
+        "tonieJsonUpdateTriggered": "Tonies.json update triggered!",
+        "tonieJsonUpdateFailed": "Tonies.json update failed!",
         "warning": "Attention! Save button + Settings level",
         "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
     },
@@ -241,6 +244,9 @@
             "track": "Track"
         },
         "addToniesCustomJsonEntry": "WIP: Add Model",
+        "cancel": "Cancel",
+        "closeAudioPlayer": "Close player",
+        "closeAudioPlayerPopover": "Close stops playback!",
         "confirmHideModal": {
             "cancel": "Cancel",
             "confirmHideDialog": "Do you really want to hide the Tonie/Tag \"{{tonieToHide}}\" in the Tonies overview? To make it visible again, you need to place the Tonie/Tag on one of your Tonieboxes.",
