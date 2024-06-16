@@ -84,8 +84,8 @@
     "language": {
         "change": "Sprache ändern",
         "english": "EN",
-        "german": "DE",
-        "french": "FR"
+        "french": "FR",
+        "german": "DE"
     },
     "languageUtil": {
         "de-de": "Deutsch",
@@ -149,9 +149,9 @@
         "saved": "Einstellung gespeichert!",
         "title": "Einstellungen",
         "tonieboxes": "Tonieboxen",
-        "updateToniesJson": "Update Tonies.json",
-        "tonieJsonUpdateTriggered": "Tonies.json Aktualisierung angetriggert!",
         "tonieJsonUpdateFailed": "Tonies.json Aktualisierung fehlgeschlagen!",
+        "tonieJsonUpdateTriggered": "Tonies.json Aktualisierung angetriggert!",
+        "updateToniesJson": "Update Tonies.json",
         "warning": "Achtung! Speicherbutton + Settings level",
         "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
     },
@@ -230,15 +230,18 @@
             "addTrack": "Track hinzufügen",
             "audioId": "Audio ID",
             "episode": "Episode",
+            "episodeHint": "Die Episode wird innerhalb der Toniecard angezeigt",
             "faifailedToCreate": "Modellerstellung fehlgeschlagen: ",
             "hash": "Hash",
-            "language": "Sprache [Format: de-de]",
+            "language": "Sprache",
+            "languageHint": "Format: de-de",
             "model": "Modell",
             "modelRequired": "Das Modell muss ausgefüllt werden.",
             "pic": "Url zum Bild",
             "remove": "entfernen",
             "save": "Speichern",
             "series": "Serie",
+            "seriesHint": "Die Serie wird als Titel der Toniecard angezeigt",
             "seriesRequired": "Die Serie muss ausgefüllt werden.",
             "successfullyCreated": "Modell erfolgreich erstellt",
             "title": "WIP: Not working! Neuen Custom Tonie/Tag anlegen",
@@ -260,6 +263,15 @@
             "title": "Content",
             "toniePicture": "Tonie Bild"
         },
+        "createDirectory": {
+            "cancel": "Abbrechen",
+            "create": "Anlegen",
+            "createDirectory": "Neuen Ordner anlegen",
+            "directoryCreated": "Neuer Ordner wurde angelegt!",
+            "modalTitle": "Neuen Ordner anlegen",
+            "placeholder": "Gib den Ordnernamen an"
+        },
+        "currentPath": "Aktueller Pfad: ",
         "editModal": {
             "model": "Modell",
             "placeholderSearchForAModel": "Nach einem Modell suchen",

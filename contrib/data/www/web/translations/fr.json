@@ -83,8 +83,8 @@
     "language": {
         "change": "Changer de langue",
         "english": "EN",
-        "german": "DE",
-        "french": "FR"
+        "french": "FR",
+        "german": "DE"
     },
     "languageUtil": {
         "de-de": "Allemand",
@@ -148,9 +148,9 @@
         "saved": "Paramètre enregistré !",
         "title": "Paramètres",
         "tonieboxes": "tonieboxes",
-        "updateToniesJson": "Mettre à jour Tonies.json",
-        "tonieJsonUpdateTriggered": "Mise à jour Tonies.json déclenchée!",
         "tonieJsonUpdateFailed": "La mise à jour de Tonies.json a échoué!",
+        "tonieJsonUpdateTriggered": "Mise à jour Tonies.json déclenchée!",
+        "updateToniesJson": "Mettre à jour Tonies.json",
         "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
         "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
@@ -229,15 +229,18 @@
             "addTrack": "Ajouter une piste",
             "audioId": "ID audio",
             "episode": "Épisode",
+            "episodeHint": "Sera affiché sur la Toniecard",
             "failedToCreate": "Échec de la création du modèle: ",
             "hash": "Hash",
-            "language": "Langue [Format: fr-fr]",
+            "language": "Langue",
+            "languageHint": "Format : fr-fr",
             "model": "Modèle",
             "modelRequired": "Le modèle doit être rempli.",
             "pic": "URL de l'image",
             "remove": "supprimer",
             "save": "Enregistrer",
             "series": "Série",
+            "seriesHint": "Sera affiché comme titre de la Toniecard",
             "seriesRequired": "La série doit être remplie.",
             "successfullyCreated": "Modèle créé avec succès!",
             "title": "WIP: Ne fonctionne pas! Créer un nouveau Tonie/Tag personnalisé",
@@ -259,6 +262,15 @@
             "title": "Contenu",
             "toniePicture": "Image du Tonie"
         },
+        "createDirectory": {
+            "cancel": "Annuler",
+            "create": "Créer",
+            "createDirectory": "Créer un nouveau dossier",
+            "directoryCreated": "Le nouveau dossier a été créé !",
+            "modalTitle": "Créer un nouveau dossier",
+            "placeholder": "Entrez le nom du dossier"
+        },
+        "currentPath": "Chemin actuel : ",
         "editModal": {
             "model": "Modèle",
             "placeholderSearchForAModel": "Rechercher un modèle",

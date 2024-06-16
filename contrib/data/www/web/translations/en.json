@@ -83,8 +83,8 @@
     "language": {
         "change": "Change language",
         "english": "EN",
-        "german": "DE",
-        "french": "FR"
+        "french": "FR",
+        "german": "DE"
     },
     "languageUtil": {
         "de-de": "German",
@@ -148,9 +148,9 @@
         "saved": "Setting saved!",
         "title": "Settings",
         "tonieboxes": "tonieboxes",
-        "updateToniesJson": "Update Tonies.json",
-        "tonieJsonUpdateTriggered": "Tonies.json update triggered!",
         "tonieJsonUpdateFailed": "Tonies.json update failed!",
+        "tonieJsonUpdateTriggered": "Tonies.json update triggered!",
+        "updateToniesJson": "Update Tonies.json",
         "warning": "Attention! Save button + Settings level",
         "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
     },
@@ -229,15 +229,18 @@
             "addTrack": "Add track",
             "audioId": "Audio ID",
             "episode": "Episode",
+            "episodeHint": "Will be displayed within the Toniecard",
             "failedToCreate": "Model creation failed: ",
             "hash": "Hash",
-            "language": "Language [Format: de-de]",
+            "language": "Language",
+            "languageHint": "Format: en-gb",
             "model": "Model",
             "modelRequired": "The model must be filled.",
             "pic": "Url to picture",
             "remove": "remove",
             "save": "Save",
             "series": "Series",
+            "seriesHint": "Will be displayed as the title of the Toniecard",
             "seriesRequired": "The series must be filled.",
             "successfullyCreated": "Model created successful!",
             "title": "WIP: Not working! Create new Custom Tonie/Tag",
@@ -259,6 +262,15 @@
             "title": "Content",
             "toniePicture": "Tonie Picture"
         },
+        "createDirectory": {
+            "cancel": "Cancel",
+            "create": "Create",
+            "createDirectory": "Create New Directory",
+            "directoryCreated": "New directory has been created!",
+            "modalTitle": "Create New Directory",
+            "placeholder": "Enter the folder name"
+        },
+        "currentPath": "Current Path: ",
         "editModal": {
             "model": "Model",
             "placeholderSearchForAModel": "Search for a model",
