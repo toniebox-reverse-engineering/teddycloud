@@ -22,12 +22,59 @@
             "navigationTitle": "Contributors",
             "title": "Contributors"
         },
+        "faq": {
+            "navigationTitle": "FAQ",
+            "title": "FAQ",
+            "intro": "Here you can find answers to some frequently asked questions. If your question is not answered here, please visit the forum or use the Telegram group to get assistance."
+        },
         "forum": {
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Community",
         "title": "Community"
     },
+    "faq": [
+        {
+            "question": "How can I force an update of a Tonie after assigning new content in TeddyCloud?",
+            "answer": "To force an update, perform a freshness check on your Toniebox. Press and hold one of the ears for approximately 3 seconds until you hear a sound. Wait until a second sound confirms the completion of the update."
+        },
+        {
+            "question": "How can I create a multi-track TAF file?",
+            "answer": "Use the Audioencoder tool and add multiple audio files. Each file will be assigned its own track in the created TAF file."
+        },
+        {
+            "question": "How many Tonieboxes can I add to a TeddyCloud instance?",
+            "answer": "You can add up to 16 Tonieboxes to a single TeddyCloud instance."
+        },
+        {
+            "question": "How can I add a new tag to TeddyCloud?",
+            "answer": "Place the tag on a connected Toniebox. It will automatically be added to your Tonies in TeddyCloud. If you have many unknown tags, you can filter for the last played tags or open the Toniebox management page and click on the last played tag."
+        },
+        {
+            "question": "How can I remove a tag from my TeddyCloud?",
+            "answer": "The easiest way to remove a tag is to hide it. Open the information modal for the tag you want to remove and click the 'Hide' button. The tag will remain hidden until it is placed on a Toniebox again. Alternatively, if you have access to the SD cards of all connected Tonieboxes, you can delete the tag physically by removing the corresponding content folder for that tag on each box and then removing it in TeddyCloud content view."
+        },
+        {
+            "question": "How can I manage different contents for a tag on different Tonieboxes?",
+            "answer": "Set up a separate content directory for each Toniebox in the Toniebox management settings. Afterward, the Tonies overview will feature a dropdown menu in the top right corner where you can choose between different content directories. You don't need to assign a unique content directory to each box; boxes with the same content directory will be grouped together in the Tonies overview."
+        },
+        {
+            "question": "Why is the Tonies overview empty after adding a new content directory to a box?",
+            "answer": "Perform a freshness check on that Toniebox. This will re-add all tags that have ever been placed on the box (and are not deleted) to TeddyCloud. Original Tonies need to be placed at least once to get the cloud authentication and download their linked content to TeddyCloud."
+        },
+        {
+            "question": "Why does my tag with custom content always start from the beginning instead of the last played position?",
+            "answer": "Ensure that the 'nocloud' flag is set to true and verify that no one has secretly placed another tag on the box."
+        },
+        {
+            "question": "Why isn't the content of my tags cached to TeddyCloud?",
+            "answer": "Ensure the following settings are enabled: 'Cache Content' and 'Dump rUID/auth'. We also recommend enabling 'Cache to library'."
+        },
+        {
+            "question": "Why isn't my RFID tag working?",
+            "answer": "Make sure you're using the correct type of tag. Only original NSP SLIX-L tags are generally compatible. You will find more information about this in the forum. If you have the CC3200 version of the Toniebox, you can enable other RFID tags as well. Check the wiki for more details. Additionally, ensure there is a certain distance between the tag and the Toniebox (at least 2-3mm) as a directly placed RFID tag won't work properly."
+        }
+    ],
     "fileBrowser": {
         "actions": "Actions",
         "cancel": "Cancel",
@@ -98,6 +145,7 @@
         "nl-nl": "Dutch (Netherlands)",
         "pl-pl": "Polish",
         "pt-pt": "Portuguese",
+        "tr-tr": "Turkish",
         "undefined": "Other/undefined"
     },
     "radioStreamSearch": {
@@ -253,7 +301,7 @@
             "track": "Track"
         },
         "addToniesCustomJsonEntry": "WIP: Add Model",
-        "alternativeSource": "This Tonie \"{{originalTonie}}\" has an alternative content assigned: \"{{assignedContent}}\"!",
+        "alternativeSource": "This Tonie {{originalTonie}} is assigned the content {{assignedContent}}!",
         "cancel": "Cancel",
         "closeAudioPlayer": "Close player",
         "closeAudioPlayerPopover": "Close stops playback!",
