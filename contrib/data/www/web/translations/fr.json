@@ -23,9 +23,9 @@
             "title": "Contributeurs"
         },
         "faq": {
+            "intro": "Vous trouverez ici des réponses à certaines questions fréquemment posées. Si votre question n'est pas répondue ici, veuillez visiter le forum ou utiliser le groupe Telegram pour obtenir de l'aide.",
             "navigationTitle": "FAQ",
-            "title": "FAQ",
-            "intro": "Vous trouverez ici des réponses à certaines questions fréquemment posées. Si votre question n'est pas répondue ici, veuillez visiter le forum ou utiliser le groupe Telegram pour obtenir de l'aide."
+            "title": "FAQ"
         },
         "forum": {
             "navigationTitle": "Forum"
@@ -33,46 +33,96 @@
         "navigationTitle": "Communauté",
         "title": "Communauté"
     },
+    "esp32flasher": {
+        "chipMAC": "MAC du chip",
+        "chipType": "Type de chip",
+        "connected": "Connecté",
+        "connectingReadFlash": "Connexion pour lire le flash...",
+        "connectingReadMac": "Connexion pour lire l'adresse MAC...",
+        "connectingTo": "Connexion à",
+        "connectingToESP": "Connexion à l'ESP...",
+        "connectingWriteFlash": "Connexion pour écrire le flash...",
+        "error": "Erreur",
+        "failedToCommunicate": "Échec de la communication :",
+        "failedToConnect": "Échec de la connexion :",
+        "flashDevice": "Périphérique flash",
+        "flashEsp32": "Flasher l'ESP32",
+        "flashId": "ID du flash",
+        "flashManuf": "Fabricant du flash",
+        "flashSize": "Taille du flash",
+        "flashSizeError": "Erreur de taille du flash",
+        "hintESP32FirmwareFlashed": "Le patchage est terminé. Déconnecte la Toniebox de l'UART, retire le court-circuit du J100 et redémarre la box. Elle devrait maintenant pouvoir se connecter à TeddyCloud ! N'oublie pas d'activer \"Webinterface HTTP only\" une fois terminé.",
+        "hintFlashESP32": "Déconnecte l'alimentation de ta Toniebox une fois de plus. Clique sur \"Flasher l'ESP32\", choisis le port COM si nécessaire. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
+        "hintPatchFlash": "Entre le nom d'hôte souhaité de ton instance TeddyCloud et clique sur \"Patch\".",
+        "hintReadESP32ImportFlash": "Connecte ton UART à ton PC et à la Toniebox. Déconnecte l'alimentation de ta Toniebox. Court-circuite les trous de broche J100. Clique sur \"Lire le Flash\" ou \"Charger le fichier\", puis choisis le port COM. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
+        "hostname": "Nom d'hôte TeddyCloud :",
+        "hostnameToLong": "La longueur du nom d'hôte doit être inférieure à 13 caractères.",
+        "invalidSerialPort": "Port série invalide",
+        "loadFile": "Charger le fichier",
+        "next": "Suivant",
+        "noPortAvailable": "Aucun port disponible ou utilisateur a annulé",
+        "patchImage": "Patch",
+        "patchingFailed": "Échec du patchage",
+        "patchingFlashImage": "Patch de l'image du flash...",
+        "patchingSuccessful": "Patch réussi, prêt à flasher {{size}} MiB",
+        "payloadReceived": "Charge utile reçue",
+        "portOpenFailedInUse": "Échec de l'ouverture de ce port. Déjà en cours d'utilisation ?",
+        "preparingFlash": "Préparation du flash de {{size}} MiB",
+        "previous": "Précédent",
+        "readFlash": "Lire le flash",
+        "readingFinished": "Lecture terminée",
+        "readingFlash": "Lecture du flash...",
+        "retrievingMac": "Récupération de l'adresse MAC...",
+        "titleESP32FirmwareFlashed": "ESP32 flashé",
+        "titleFlashESP32": "Flasher l'ESP32",
+        "titlePatchFlash": "Patch Flash",
+        "titleReadESP32ImportFlash": "Lire l'ESP32 / Importer le Flash",
+        "uploadFailed": "Échec du téléchargement",
+        "uploading": "Téléchargement en cours...",
+        "uploadSuccessful": "Téléchargement réussi, enregistré sous",
+        "writingFinished": "Écriture terminée",
+        "writingFlash": "Écriture de {{size}} MiB de mémoire flash"
+    },
     "faq": [
         {
-            "question": "Comment forcer une mise à jour d'un Tonie après avoir attribué du nouveau contenu dans TeddyCloud ?",
-            "answer": "Pour forcer une mise à jour, fais un contrôle de fraîcheur sur ton Toniebox. Appuie sur une oreille pendant environ 3 secondes jusqu'à ce que tu entendes un son. Attends jusqu'à ce qu'un second son confirme la fin de la mise à jour."
+            "answer": "Pour forcer une mise à jour, fais un contrôle de fraîcheur sur ton Toniebox. Appuie sur une oreille pendant environ 3 secondes jusqu'à ce que tu entendes un son. Attends jusqu'à ce qu'un second son confirme la fin de la mise à jour.",
+            "question": "Comment forcer une mise à jour d'un Tonie après avoir attribué du nouveau contenu dans TeddyCloud ?"
         },
         {
-            "question": "Comment créer un fichier TAF multi-pistes ?",
-            "answer": "Utilise l'outil Audioencoder et ajoute plusieurs fichiers audio. Chaque fichier sera assigné à une piste distincte dans le fichier TAF créé."
+            "answer": "Utilise l'outil Audioencoder et ajoute plusieurs fichiers audio. Chaque fichier sera assigné à une piste distincte dans le fichier TAF créé.",
+            "question": "Comment créer un fichier TAF multi-pistes ?"
         },
         {
-            "question": "Combien de Toniebox puis-je ajouter à une instance de TeddyCloud ?",
-            "answer": "Tu peux ajouter jusqu'à 16 Toniebox à une seule instance de TeddyCloud."
+            "answer": "Tu peux ajouter jusqu'à 16 Toniebox à une seule instance de TeddyCloud.",
+            "question": "Combien de Toniebox puis-je ajouter à une instance de TeddyCloud ?"
         },
         {
-            "question": "Comment ajouter une nouvelle étiquette à TeddyCloud ?",
-            "answer": "Place l'étiquette sur une Toniebox connectée. Elle sera automatiquement ajoutée à tes Tonies dans TeddyCloud. Si tu as beaucoup d'étiquettes inconnues, tu peux filtrer les étiquettes récemment jouées ou ouvrir la page de gestion de la Toniebox et cliquer sur l'étiquette récemment jouée."
+            "answer": "Place l'étiquette sur une Toniebox connectée. Elle sera automatiquement ajoutée à tes Tonies dans TeddyCloud. Si tu as beaucoup d'étiquettes inconnues, tu peux filtrer les étiquettes récemment jouées ou ouvrir la page de gestion de la Toniebox et cliquer sur l'étiquette récemment jouée.",
+            "question": "Comment ajouter une nouvelle étiquette à TeddyCloud ?"
         },
         {
-            "question": "Comment supprimer une étiquette de ma TeddyCloud ?",
-            "answer": "Le moyen le plus simple de supprimer une étiquette est de la masquer. Ouvre la fenêtre d'information de l'étiquette que tu veux supprimer et clique sur le bouton 'Masquer'. L'étiquette restera masquée jusqu'à ce qu'elle soit replacée sur une Toniebox. Alternativement, si tu as accès aux cartes SD de toutes les Toniebox connectées, tu peux supprimer physiquement l'étiquette en retirant le dossier de contenu correspondant pour cette étiquette sur chaque boîte, puis en la supprimant dans la vue de contenu de TeddyCloud."
+            "answer": "Le moyen le plus simple de supprimer une étiquette est de la masquer. Ouvre la fenêtre d'information de l'étiquette que tu veux supprimer et clique sur le bouton 'Masquer'. L'étiquette restera masquée jusqu'à ce qu'elle soit replacée sur une Toniebox. Alternativement, si tu as accès aux cartes SD de toutes les Toniebox connectées, tu peux supprimer physiquement l'étiquette en retirant le dossier de contenu correspondant pour cette étiquette sur chaque boîte, puis en la supprimant dans la vue de contenu de TeddyCloud.",
+            "question": "Comment supprimer une étiquette de ma TeddyCloud ?"
         },
         {
-            "question": "Comment gérer différents contenus pour une étiquette sur différentes Toniebox ?",
-            "answer": "Configure un répertoire de contenu distinct pour chaque Toniebox dans les paramètres de gestion de la Toniebox. Ensuite, la vue d'ensemble des Tonies comportera un menu déroulant en haut à droite où tu pourras choisir entre les différents répertoires de contenu. Il n'est pas nécessaire d'assigner un répertoire de contenu unique à chaque boîte ; les boîtes avec le même répertoire de contenu seront regroupées dans la vue d'ensemble des Tonies."
+            "answer": "Configure un répertoire de contenu distinct pour chaque Toniebox dans les paramètres de gestion de la Toniebox. Ensuite, la vue d'ensemble des Tonies comportera un menu déroulant en haut à droite où tu pourras choisir entre les différents répertoires de contenu. Il n'est pas nécessaire d'assigner un répertoire de contenu unique à chaque boîte ; les boîtes avec le même répertoire de contenu seront regroupées dans la vue d'ensemble des Tonies.",
+            "question": "Comment gérer différents contenus pour une étiquette sur différentes Toniebox ?"
         },
         {
-            "question": "Pourquoi la vue d'ensemble des Tonies est-elle vide après avoir ajouté un nouveau répertoire de contenu à une boîte ?",
-            "answer": "Fais simplement un contrôle de fraîcheur sur cette Toniebox. Cela réajoutera toutes les étiquettes qui ont été placées sur la boîte (et qui ne sont pas supprimées) à TeddyCloud. Les Tonies originales doivent être placées au moins une fois pour obtenir l'authentification cloud et télécharger leur contenu lié à TeddyCloud."
+            "answer": "Fais simplement un contrôle de fraîcheur sur cette Toniebox. Cela réajoutera toutes les étiquettes qui ont été placées sur la boîte (et qui ne sont pas supprimées) à TeddyCloud. Les Tonies originales doivent être placées au moins une fois pour obtenir l'authentification cloud et télécharger leur contenu lié à TeddyCloud.",
+            "question": "Pourquoi la vue d'ensemble des Tonies est-elle vide après avoir ajouté un nouveau répertoire de contenu à une boîte ?"
         },
         {
-            "question": "Pourquoi mon étiquette avec du contenu personnalisé commence-t-elle toujours au début au lieu de la dernière position jouée ?",
-            "answer": "Assure-toi que le drapeau 'nocloud' est réglé sur vrai et que personne n'a secrètement placé une autre étiquette sur la boîte."
+            "answer": "Assure-toi que le drapeau 'nocloud' est réglé sur vrai et que personne n'a secrètement placé une autre étiquette sur la boîte.",
+            "question": "Pourquoi mon étiquette avec du contenu personnalisé commence-t-elle toujours au début au lieu de la dernière position jouée ?"
         },
         {
-            "question": "Pourquoi le contenu de mes étiquettes n'est-il pas mis en cache dans TeddyCloud ?",
-            "answer": "Assure-toi que les paramètres suivants sont activés : 'Cache Content' et 'Dump rUID/auth'. Nous recommandons également d'activer 'Cache to library'."
+            "answer": "Assure-toi que les paramètres suivants sont activés : 'Cache Content' et 'Dump rUID/auth'. Nous recommandons également d'activer 'Cache to library'.",
+            "question": "Pourquoi le contenu de mes étiquettes n'est-il pas mis en cache dans TeddyCloud ?"
         },
         {
-            "question": "Pourquoi mon étiquette RFID ne fonctionne-t-elle pas ?",
-            "answer": "Assure-toi que tu utilises le bon type d'étiquette. Seules les étiquettes NSP SLIX-L originales fonctionnent généralement. Trouvez plus d'informations dans le forum. Si tu as la version CC3200 de la Toniebox, tu peux également activer d'autres étiquettes RFID. Consulte le wiki pour plus de détails. Assure-toi également qu'il y a une certaine distance entre l'étiquette et la Toniebox (au moins 2-3mm), car une étiquette RFID placée directement ne fonctionnera pas correctement."
+            "answer": "Assure-toi que tu utilises le bon type d'étiquette. Seules les étiquettes NSP SLIX-L originales fonctionnent généralement. Trouvez plus d'informations dans le forum. Si tu as la version CC3200 de la Toniebox, tu peux également activer d'autres étiquettes RFID. Consulte le wiki pour plus de détails. Assure-toi également qu'il y a une certaine distance entre l'étiquette et la Toniebox (au moins 2-3mm), car une étiquette RFID placée directement ne fonctionnera pas correctement.",
+            "question": "Pourquoi mon étiquette RFID ne fonctionne-t-elle pas ?"
         }
     ],
     "fileBrowser": {
@@ -83,6 +133,7 @@
         "date": "Date",
         "delete": "Supprimer",
         "episode": "Épisode",
+        "filter": "Filtrer dans le dossier actuel",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
         "messages": {
             "deleteFailed": "Échec de la suppression",
@@ -271,7 +322,7 @@
         }
     },
     "tonies": {
-        "addNewCustomTonie": "WIP: Ne fonctionne pas! Créer un nouveau modèle",
+        "addNewCustomTonie": "Créer un nouveau modèle",
         "addNewCustomTonieHint": "Créez un nouveau modèle et assignez-le au tag actuel",
         "addNewCustomTonieModal": {
             "addAudioIdHash": "Ajouter un ID audio et un hash",
@@ -297,7 +348,7 @@
             "seriesHint": "Sera affiché comme titre de la Toniecard",
             "seriesRequired": "La série doit être remplie.",
             "successfullyCreated": "Modèle créé avec succès!",
-            "title": "WIP: Ne fonctionne pas! Créer un nouveau Tonie/Tag personnalisé",
+            "title": "Créer un nouveau Tonie/Tag personnalisé",
             "track": "Piste"
         },
         "addToniesCustomJsonEntry": "WIP: Ajouter un modèle",

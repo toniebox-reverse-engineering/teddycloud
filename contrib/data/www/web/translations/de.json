@@ -23,9 +23,9 @@
             "title": "Contributors"
         },
         "faq": {
+            "intro": "Hier findest du einige Antworten zu oft gestellten Fragen. Sollte deine Frage hier nicht beantwortet werden, so gehe ins Forum oder nutze die Telegram-Gruppe um Hilfe zu erhalten.",
             "navigationTitle": "FAQ",
-            "title": "FAQ",
-            "intro": "Hier findest du einige Antworten zu oft gestellten Fragen. Sollte deine Frage hier nicht beantwortet werden, so gehe ins Forum oder nutze die Telegram-Gruppe um Hilfe zu erhalten."
+            "title": "FAQ"
         },
         "forum": {
             "navigationTitle": "Forum"
@@ -33,46 +33,96 @@
         "navigationTitle": "Community",
         "title": "Community"
     },
+    "esp32flasher": {
+        "chipMAC": "Chip-MAC",
+        "chipType": "Chip-Typ",
+        "connected": "Verbunden",
+        "connectingReadFlash": "Verbinde zum Lesen des Flash...",
+        "connectingReadMac": "Verbinde zum Lesen der MAC-Adresse...",
+        "connectingTo": "Verbinde zu",
+        "connectingToESP": "Verbinde zum ESP...",
+        "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
+        "error": "Fehler",
+        "failedToCommunicate": "Kommunikation fehlgeschlagen:",
+        "failedToConnect": "Verbindung fehlgeschlagen:",
+        "flashDevice": "Flash-Gerät",
+        "flashEsp32": "ESP32 flashen",
+        "flashId": "Flash-ID",
+        "flashManuf": "Flash-Hersteller",
+        "flashSize": "Flash-Größe",
+        "flashSizeError": "Flash-Größenfehler",
+        "hintESP32FirmwareFlashed": "Das Patchen ist abgeschlossen. Trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte sich jetzt mit TeddyCloud verbinden können! Vergiss nicht, \"Webinterface HTTP only\" zu aktivieren, sobald du fertig bist.",
+        "hintFlashESP32": "Trenne die Stromversorgung deiner Toniebox noch einmal. Klicke auf \"ESP32 flashen\", wähle bei Bedarf den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
+        "hintPatchFlash": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein und klicke auf \"Patch\".",
+        "hintReadESP32ImportFlash": "Verbinde dein UART mit deinem PC und der Toniebox. Trenne die Stromversorgung deiner Toniebox. Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
+        "hostname": "TeddyCloud-Hostname:",
+        "hostnameToLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
+        "invalidSerialPort": "Ungültiger serieller Port",
+        "loadFile": "Datei laden",
+        "next": "Weiter",
+        "noPortAvailable": "Kein Port verfügbar oder Benutzer hat abgebrochen",
+        "patchImage": "Patch",
+        "patchingFailed": "Patchen fehlgeschlagen",
+        "patchingFlashImage": "Flash-Image wird gepatcht...",
+        "patchingSuccessful": "Patchen erfolgreich, bereit zum Flashen von {{size}} MiB",
+        "payloadReceived": "Payload empfangen",
+        "portOpenFailedInUse": "Port konnte nicht geöffnet werden. Bereits in Gebrauch?",
+        "preparingFlash": "Vorbereitung von {{size}} MiB Flash",
+        "previous": "Zurück",
+        "readFlash": "Flash lesen",
+        "readingFinished": "Lesen abgeschlossen",
+        "readingFlash": "Flash wird gelesen...",
+        "retrievingMac": "MAC-Adresse wird abgerufen...",
+        "titleESP32FirmwareFlashed": "ESP32 geflasht",
+        "titleFlashESP32": "ESP32 flashen",
+        "titlePatchFlash": "Flash patchen",
+        "titleReadESP32ImportFlash": "ESP32 lesen / Flash importieren",
+        "uploadFailed": "Upload fehlgeschlagen",
+        "uploading": "Upload läuft...",
+        "uploadSuccessful": "Upload erfolgreich, gespeichert als",
+        "writingFinished": "Schreiben abgeschlossen",
+        "writingFlash": "Schreibe {{size}}  MiB Flash"
+    },
     "faq": [
         {
-            "question": "Wie kann ich ein Update eines Tonies nach der Zuweisung neuer Inhalte in TeddyCloud erzwingen?",
-            "answer": "Um ein Update zu erzwingen, mach einen Freshness-Check auf deinem Toniebox. Drücke ein Ohr für ca. 3 Sekunden, bis du einen Ton hörst. Warte, bis ein zweiter Ton die Fertigstellung des Updates bestätigt."
+            "answer": "Um ein Update zu erzwingen, mach einen Freshness-Check auf deinem Toniebox. Drücke ein Ohr für ca. 3 Sekunden, bis du einen Ton hörst. Warte, bis ein zweiter Ton die Fertigstellung des Updates bestätigt.",
+            "question": "Wie kann ich ein Update eines Tonies nach der Zuweisung neuer Inhalte in TeddyCloud erzwingen?"
         },
         {
-            "question": "Wie kann ich eine Multi-Track-TAF-Datei erstellen?",
-            "answer": "Verwende das Audioencoder-Tool und füge mehrere Audiodateien hinzu. Jede Datei wird in der erstellten TAF-Datei einem eigenen Track zugewiesen."
+            "answer": "Verwende das Audioencoder-Tool und füge mehrere Audiodateien hinzu. Jede Datei wird in der erstellten TAF-Datei einem eigenen Track zugewiesen.",
+            "question": "Wie kann ich eine Multi-Track-TAF-Datei erstellen?"
         },
         {
-            "question": "Wie viele Tonieboxen kann ich zu einer TeddyCloud-Instanz hinzufügen?",
-            "answer": "Du kannst bis zu 16 Tonieboxen zu einer einzigen TeddyCloud-Instanz hinzufügen."
+            "answer": "Du kannst bis zu 16 Tonieboxen zu einer einzigen TeddyCloud-Instanz hinzufügen.",
+            "question": "Wie viele Tonieboxen kann ich zu einer TeddyCloud-Instanz hinzufügen?"
         },
         {
-            "question": "Wie kann ich einen neuen Tag zu TeddyCloud hinzufügen?",
-            "answer": "Platziere den Tag auf einer verbundenen Toniebox. Er wird automatisch zu deinen Tonies in TeddyCloud hinzugefügt. Wenn du viele unbekannte Tags hast, kannst du nach zuletzt gespielten Tags filtern oder die Toniebox-Verwaltungsseite öffnen und auf den zuletzt gespielten Tag klicken."
+            "answer": "Platziere den Tag auf einer verbundenen Toniebox. Er wird automatisch zu deinen Tonies in TeddyCloud hinzugefügt. Wenn du viele unbekannte Tags hast, kannst du nach zuletzt gespielten Tags filtern oder die Toniebox-Verwaltungsseite öffnen und auf den zuletzt gespielten Tag klicken.",
+            "question": "Wie kann ich einen neuen Tag zu TeddyCloud hinzufügen?"
         },
         {
-            "question": "Wie kann ich einen Tag aus meiner TeddyCloud entfernen?",
-            "answer": "Der einfachste Weg, einen Tag zu entfernen, ist, ihn zu verstecken. Öffne das Informationsmodal des Tags, den du entfernen möchtest, und klicke auf die Schaltfläche 'Verstecken'. Der Tag bleibt versteckt, bis er erneut auf einer Toniebox platziert wird. Alternativ, wenn du Zugang zu den SD-Karten aller verbundenen Tonieboxen hast, kannst du den Tag physisch löschen, indem du den entsprechenden Inhaltsordner dieses Tags auf jeder Box entfernst und ihn dann in der TeddyCloud-Content-Ansicht löschst."
+            "answer": "Der einfachste Weg, einen Tag zu entfernen, ist, ihn zu verstecken. Öffne das Informationsmodal des Tags, den du entfernen möchtest, und klicke auf die Schaltfläche 'Verstecken'. Der Tag bleibt versteckt, bis er erneut auf einer Toniebox platziert wird. Alternativ, wenn du Zugang zu den SD-Karten aller verbundenen Tonieboxen hast, kannst du den Tag physisch löschen, indem du den entsprechenden Inhaltsordner dieses Tags auf jeder Box entfernst und ihn dann in der TeddyCloud-Content-Ansicht löschst.",
+            "question": "Wie kann ich einen Tag aus meiner TeddyCloud entfernen?"
         },
         {
-            "question": "Wie kann ich unterschiedliche Inhalte für einen Tag auf verschiedenen Tonieboxen verwalten?",
-            "answer": "Richte ein separates Inhaltsverzeichnis für jede Toniebox in den Toniebox-Verwaltungseinstellungen ein. Danach gibt es in der Tonies-Übersicht ein Dropdown-Menü in der oberen rechten Ecke, in dem du zwischen den Verzeichnissen wählen kannst. Du musst nicht jeder Box ein eigenes Verzeichnis zuweisen; Boxen mit demselben Verzeichnis werden in der Tonies-Übersicht gruppiert."
+            "answer": "Richte ein separates Inhaltsverzeichnis für jede Toniebox in den Toniebox-Verwaltungseinstellungen ein. Danach gibt es in der Tonies-Übersicht ein Dropdown-Menü in der oberen rechten Ecke, in dem du zwischen den Verzeichnissen wählen kannst. Du musst nicht jeder Box ein eigenes Verzeichnis zuweisen; Boxen mit demselben Verzeichnis werden in der Tonies-Übersicht gruppiert.",
+            "question": "Wie kann ich unterschiedliche Inhalte für einen Tag auf verschiedenen Tonieboxen verwalten?"
         },
         {
-            "question": "Warum ist die Tonies-Übersicht leer, nachdem ich ein neues Inhaltsverzeichnis zu einer Box hinzugefügt habe?",
-            "answer": "Mach einfach einen Freshness-Check auf der Toniebox. Dadurch werden alle Tags, die jemals auf der Box platziert wurden (und nicht gelöscht sind), wieder zu TeddyCloud hinzugefügt. Original-Tonies müssen mindestens einmal platziert werden, um die Cloud-Authentifizierung zu erhalten und ihren verknüpften Inhalt zu TeddyCloud herunterzuladen."
+            "answer": "Mach einfach einen Freshness-Check auf der Toniebox. Dadurch werden alle Tags, die jemals auf der Box platziert wurden (und nicht gelöscht sind), wieder zu TeddyCloud hinzugefügt. Original-Tonies müssen mindestens einmal platziert werden, um die Cloud-Authentifizierung zu erhalten und ihren verknüpften Inhalt zu TeddyCloud herunterzuladen.",
+            "question": "Warum ist die Tonies-Übersicht leer, nachdem ich ein neues Inhaltsverzeichnis zu einer Box hinzugefügt habe?"
         },
         {
-            "question": "Warum startet mein Tag mit benutzerdefinierten Inhalten immer von vorne und nicht an der zuletzt gespielten Position?",
-            "answer": "Stelle sicher, dass das 'nocloud'-Flag auf 'true' gesetzt ist und niemand heimlich einen anderen Tag auf die Box gelegt hat."
+            "answer": "Stelle sicher, dass das 'nocloud'-Flag auf 'true' gesetzt ist und niemand heimlich einen anderen Tag auf die Box gelegt hat.",
+            "question": "Warum startet mein Tag mit benutzerdefinierten Inhalten immer von vorne und nicht an der zuletzt gespielten Position?"
         },
         {
-            "question": "Warum wird der Inhalt meiner Tags nicht in TeddyCloud zwischengespeichert?",
-            "answer": "Stelle sicher, dass die folgenden Einstellungen aktiviert sind: 'Cache Content' und 'Dump rUID/auth'. Wir empfehlen auch, 'Cache to library' zu aktivieren."
+            "answer": "Stelle sicher, dass die folgenden Einstellungen aktiviert sind: 'Cache Content' und 'Dump rUID/auth'. Wir empfehlen auch, 'Cache to library' zu aktivieren.",
+            "question": "Warum wird der Inhalt meiner Tags nicht in TeddyCloud zwischengespeichert?"
         },
         {
-            "question": "Warum funktioniert mein RFID-Tag nicht?",
-            "answer": "Stelle sicher, dass du den richtigen Typ verwendest. Nur originale NSP SLIX-L-Tags funktionieren im Allgemeinen. Mehr dazu findest du im Forum. Wenn du die CC3200-Version der Toniebox hast, kannst du auch andere RFID-Tags aktivieren. Schau dir die Details im Wiki dazu an. Achte auch darauf, dass ein gewisser Abstand zwischen dem Tag und der Toniebox besteht (mindestens 2-3mm), da ein direkt platzierter RFID-Tag normalerweise nicht richtig funktioniert."
+            "answer": "Stelle sicher, dass du den richtigen Typ verwendest. Nur originale NSP SLIX-L-Tags funktionieren im Allgemeinen. Mehr dazu findest du im Forum. Wenn du die CC3200-Version der Toniebox hast, kannst du auch andere RFID-Tags aktivieren. Schau dir die Details im Wiki dazu an. Achte auch darauf, dass ein gewisser Abstand zwischen dem Tag und der Toniebox besteht (mindestens 2-3mm), da ein direkt platzierter RFID-Tag normalerweise nicht richtig funktioniert.",
+            "question": "Warum funktioniert mein RFID-Tag nicht?"
         }
     ],
     "fileBrowser": {
@@ -83,6 +133,7 @@
         "date": "Datum",
         "delete": "Löschen",
         "episode": "Episode",
+        "filter": "Filter im aktuellen Ordner",
         "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
         "messages": {
             "deleteFailed": "Löschvorgang fehlgeschlagen",
@@ -272,7 +323,7 @@
         }
     },
     "tonies": {
-        "addNewCustomTonie": "WIP: Not working! Neues Modell anlegen",
+        "addNewCustomTonie": "Neues Modell anlegen",
         "addNewCustomTonieHint": "Lege ein neues Modell an und weise es dem aktuellen Tag zu",
         "addNewCustomTonieModal": {
             "addAudioIdHash": "Audio ID und Hash hinzufügen",
@@ -298,7 +349,7 @@
             "seriesHint": "Die Serie wird als Titel der Toniecard angezeigt",
             "seriesRequired": "Die Serie muss ausgefüllt werden.",
             "successfullyCreated": "Modell erfolgreich erstellt",
-            "title": "WIP: Not working! Neuen Custom Tonie/Tag anlegen",
+            "title": "Neuen Custom Tonie/Tag anlegen",
             "track": "Track"
         },
         "addToniesCustomJsonEntry": "WIP: Modell anlegen",
