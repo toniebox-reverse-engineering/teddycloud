@@ -255,6 +255,332 @@ error_t esp32_wl_init(struct wl_state *state, FsFile *file, size_t offset, size_
     return NO_ERROR;
 }
 
+/* according to https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html */
+#define NVS_SECTOR_SIZE 4096
+
+#define NVS_PAGE_BIT_INIT 1
+#define NVS_PAGE_BIT_FULL 2
+#define NVS_PAGE_BIT_FREEING 4
+#define NVS_PAGE_BIT_CORRUPT 8
+
+#define NVS_PAGE_STATE_UNINIT 0xFFFFFFFF
+#define NVS_PAGE_STATE_ACTIVE (NVS_PAGE_STATE_UNINIT & ~NVS_PAGE_BIT_INIT)
+#define NVS_PAGE_STATE_FULL (NVS_PAGE_STATE_ACTIVE & ~NVS_PAGE_BIT_FULL)
+#define NVS_PAGE_STATE_FREEING (NVS_PAGE_STATE_FULL & ~NVS_PAGE_BIT_FREEING)
+#define NVS_PAGE_STATE_CORRUPT (NVS_PAGE_STATE_FREEING & ~NVS_PAGE_BIT_CORRUPT)
+
+#define MAX_NAMESPACE_COUNT 32
+
+enum ESP32_nvs_type
+{
+    NVS_TYPE_U8 = 0x01,
+    NVS_TYPE_U16 = 0x02,
+    NVS_TYPE_U32 = 0x04,
+    NVS_TYPE_U64 = 0x08,
+    NVS_TYPE_I8 = 0x11,
+    NVS_TYPE_I16 = 0x12,
+    NVS_TYPE_I32 = 0x14,
+    NVS_TYPE_I64 = 0x18,
+    NVS_TYPE_STR = 0x21,
+    NVS_TYPE_BLOB = 0x42,
+    NVS_TYPE_BLOB_IDX = 0x48,
+    NVS_TYPE_ANY = 0xff
+};
+
+enum ESP32_nvs_item_state
+{
+    NVS_STATE_ERASED = 0x00,
+    NVS_STATE_WRITTEN = 0x02,
+    NVS_STATE_EMPTY = 0x03
+};
+
+struct ESP32_nvs_page_header
+{
+    uint32_t state;
+    uint32_t seq;
+    uint8_t version;
+    uint8_t unused[19];
+    uint32_t crc32;
+    uint8_t state_bitmap[32];
+};
+
+struct ESP32_nvs_item
+{
+    uint8_t nsIndex;
+    uint8_t datatype;
+    uint8_t span;
+    uint8_t chunkIndex;
+    uint32_t crc32;
+    char key[16];
+    union
+    {
+        struct
+        {
+            uint16_t size;
+            uint16_t reserved;
+            uint32_t data_crc32;
+        } var_length;
+        struct
+        {
+            uint32_t size;
+            uint8_t chunk_count;
+            uint8_t chunk_start;
+            uint16_t reserved;
+        } blob_index;
+        uint8_t data[8];
+        uint8_t uint8;
+        uint16_t uint16;
+        uint32_t uint32;
+        uint64_t uint64;
+        int8_t int8;
+        int16_t int16;
+        int32_t int32;
+        int64_t int64;
+    };
+};
+
+error_t esp32_fixup_nvs(FsFile *file, size_t offset, size_t length, bool modify)
+{
+    size_t sector_offset = 0;
+    char *namespaces[MAX_NAMESPACE_COUNT] = {0};
+
+    while (sector_offset < length)
+    {
+        error_t error;
+        size_t read;
+        struct ESP32_nvs_page_header header;
+
+        error = fsSeekFile(file, offset + sector_offset, FS_SEEK_SET);
+
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to seek ininput file\r\n");
+            return ERROR_FAILURE;
+        }
+        error = fsReadFile(file, &header, sizeof(header), &read);
+
+        if (error != NO_ERROR || read != sizeof(header))
+        {
+            TRACE_ERROR("Failed to read from input file\r\n");
+            return ERROR_FAILURE;
+        }
+
+        bool process = true;
+        switch (header.state)
+        {
+        case NVS_PAGE_STATE_UNINIT:
+            TRACE_INFO("  State: %s\r\n", "Uninitialized");
+            process = false;
+            break;
+        case NVS_PAGE_STATE_CORRUPT:
+            TRACE_INFO("  State: %s\r\n", "Corrupt");
+            process = false;
+            break;
+
+        case NVS_PAGE_STATE_ACTIVE:
+            TRACE_INFO("  State: %s\r\n", "Active");
+            break;
+        case NVS_PAGE_STATE_FULL:
+            TRACE_INFO("  State: %s\r\n", "Full");
+            break;
+        case NVS_PAGE_STATE_FREEING:
+            TRACE_INFO("  State: %s\r\n", "Freeing");
+            break;
+        }
+
+        if (process)
+        {
+            TRACE_INFO("NVS Block #%u\r\n", header.seq);
+            for (int entry = 0; entry < 126; entry++)
+            {
+                int bmp_idx = entry / 4;
+                int bmp_bit = (entry % 4) * 2;
+                uint8_t bmp = (header.state_bitmap[bmp_idx] >> (bmp_bit)) & 3;
+
+                if (bmp == NVS_STATE_WRITTEN)
+                {
+                    size_t part_offset = sector_offset + sizeof(struct ESP32_nvs_page_header) + entry * sizeof(struct ESP32_nvs_item);
+                    TRACE_INFO("    Entry #%u, offset 0x%lu\r\n", entry, part_offset);
+
+                    error = fsSeekFile(file, offset + part_offset, FS_SEEK_SET);
+
+                    if (error != NO_ERROR)
+                    {
+                        TRACE_ERROR("Failed to seek ininput file\r\n");
+                        return ERROR_FAILURE;
+                    }
+
+                    struct ESP32_nvs_item item;
+                    error = fsReadFile(file, &item, sizeof(item), &read);
+
+                    if (error != NO_ERROR || read != sizeof(item))
+                    {
+                        TRACE_ERROR("Failed to read from input file\r\n");
+                        return ERROR_FAILURE;
+                    }
+
+                    if (item.nsIndex == 0)
+                    {
+                        TRACE_INFO("      Namespace   %s\r\n", item.key);
+                        if (item.uint8 > MAX_NAMESPACE_COUNT)
+                        {
+                            TRACE_ERROR("namespace index is %u, which seems invalid", item.uint8);
+                            break;
+                        }
+                        namespaces[item.uint8] = strdup(item.key);
+                    }
+                    else
+                    {
+                        if (item.nsIndex > MAX_NAMESPACE_COUNT || !namespaces[item.nsIndex])
+                        {
+                            TRACE_ERROR("      Namespace   index is %u, which seems invalid", item.nsIndex);
+                        }
+                        else
+                        {
+                            TRACE_INFO("      Namespace   %s\r\n", namespaces[item.nsIndex]);
+                        }
+                        TRACE_INFO("      Key         %s\r\n", item.key);
+                        TRACE_INFO("      Header CRC  %08X\r\n", item.crc32);
+
+                        switch (item.datatype & 0xF0)
+                        {
+                        case 0x00:
+                        case 0x10:
+                        {
+                            char type_string[32] = {0};
+                            sprintf(type_string, "%sint%u_t", (item.datatype & 0xF0) ? "" : "u", (item.datatype & 0x0F) * 8);
+                            TRACE_INFO("      Type        %s (0x%02X)\r\n", type_string, item.datatype);
+                            switch (item.datatype)
+                            {
+                            case NVS_TYPE_U8:
+                                TRACE_INFO("      Value       %" PRIu8 " (0x%02" PRIx8 ")\r\n", item.uint8, item.uint8);
+                                break;
+                            case NVS_TYPE_U16:
+                                TRACE_INFO("      Value       %" PRIu16 " (0x%02" PRIx16 ")\r\n", item.uint16, item.uint16);
+                                break;
+                            case NVS_TYPE_U32:
+                                TRACE_INFO("      Value       %" PRIu32 " (0x%02" PRIx32 ")\r\n", item.uint32, item.uint32);
+                                break;
+                            case NVS_TYPE_U64:
+                                TRACE_INFO("      Value       %" PRIu64 " (0x%02" PRIx64 ")\r\n", item.uint64, item.uint64);
+                                break;
+                            case NVS_TYPE_I8:
+                                TRACE_INFO("      Value       %" PRId8 " (0x%02" PRIx8 ")\r\n", item.int8, item.int8);
+                                break;
+                            case NVS_TYPE_I16:
+                                TRACE_INFO("      Value       %" PRId16 " (0x%02" PRIx16 ")\r\n", item.int16, item.int16);
+                                break;
+                            case NVS_TYPE_I32:
+                                TRACE_INFO("      Value       %" PRId32 " (0x%02" PRIx32 ")\r\n", item.int32, item.int32);
+                                break;
+                            case NVS_TYPE_I64:
+                                TRACE_INFO("      Value       %" PRId64 " (0x%02" PRIx64 ")\r\n", item.int64, item.int64);
+                                break;
+                            }
+                            break;
+                        }
+                        }
+
+                        switch (item.datatype)
+                        {
+                        case NVS_TYPE_STR:
+                        {
+                            /* string contains the length and the data is in the next item slots (also uses span)*/
+                            TRACE_INFO("      Type        string (0x%02X)\r\n", item.datatype);
+                            uint16_t length = item.uint16;
+                            if (length > 64)
+                            {
+                                TRACE_ERROR("length is %u, which seems invalid", length);
+                                break;
+                            }
+                            char *buffer = malloc(length);
+                            error = fsSeekFile(file, offset + part_offset + sizeof(struct ESP32_nvs_item), FS_SEEK_SET);
+
+                            if (error != NO_ERROR)
+                            {
+                                TRACE_ERROR("Failed to seek ininput file\r\n");
+                                return ERROR_FAILURE;
+                            }
+
+                            error = fsReadFile(file, buffer, length, &read);
+
+                            if (error != NO_ERROR || read != length)
+                            {
+                                TRACE_ERROR("Failed to read from input file\r\n");
+                                return ERROR_FAILURE;
+                            }
+                            TRACE_INFO("      Size        %u\r\n", item.var_length.size);
+                            TRACE_INFO("      Data        %s\r\n", buffer);
+                            TRACE_INFO("      Data CRC    %08X\r\n", item.var_length.data_crc32);
+
+                            free(buffer);
+                            break;
+                        }
+
+                        case NVS_TYPE_BLOB_IDX:
+                        {
+                            TRACE_INFO("      Type        blob index (0x%02X)\r\n", item.datatype);
+                            TRACE_INFO("      Total size  %u\r\n", item.blob_index.size);
+                            TRACE_INFO("      Chunk count %u\r\n", item.blob_index.chunk_count);
+                            TRACE_INFO("      Chunk start %u\r\n", item.blob_index.chunk_start);
+                            break;
+                        }
+
+                        case NVS_TYPE_BLOB:
+                        {
+                            /* blob contains the length and the data is in the next item slots (also uses span)*/
+                            TRACE_INFO("      Type        blob (0x%02X)\r\n", item.datatype);
+                            uint16_t length = item.uint16;
+                            if (length > 64)
+                            {
+                                TRACE_ERROR("length is %u, which seems invalid", length);
+                                break;
+                            }
+
+                            uint8_t *buffer = malloc(length);
+                            char *buffer_hex = malloc(length * 3 + 3);
+
+                            error = fsSeekFile(file, offset + part_offset + sizeof(struct ESP32_nvs_item), FS_SEEK_SET);
+
+                            if (error != NO_ERROR)
+                            {
+                                TRACE_ERROR("Failed to seek ininput file\r\n");
+                                return ERROR_FAILURE;
+                            }
+
+                            error = fsReadFile(file, buffer, length, &read);
+
+                            if (error != NO_ERROR || read != length)
+                            {
+                                TRACE_ERROR("Failed to read from input file\r\n");
+                                return ERROR_FAILURE;
+                            }
+
+                            for (int hex_pos = 0; hex_pos < length; hex_pos++)
+                            {
+                                sprintf(&buffer_hex[3 * hex_pos], "%02X ", buffer[hex_pos]);
+                            }
+                            TRACE_INFO("      Size        %u\r\n", item.var_length.size);
+                            TRACE_INFO("      Data        %s\r\n", buffer_hex);
+                            TRACE_INFO("      Data CRC    %08X\r\n", item.var_length.data_crc32);
+
+                            free(buffer);
+                            break;
+                        }
+                        }
+                    }
+
+                    entry += item.span - 1;
+                }
+            }
+        }
+
+        sector_offset += NVS_SECTOR_SIZE;
+    }
+
+    return 0;
+}
+
 error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modify)
 {
     if (esp32_wl_init(&esp32_wl_state, file, offset, length) != NO_ERROR)
@@ -524,6 +850,10 @@ error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
             if (entry.partType == ESP_PARTITION_TYPE_DATA && entry.partSubType == 0x81)
             {
                 esp32_fixup_fatfs(file, entry.fileOffset, entry.length, modify);
+            }
+            if (entry.partType == ESP_PARTITION_TYPE_DATA && entry.partSubType == 0x02)
+            {
+                esp32_fixup_nvs(file, entry.fileOffset, entry.length, modify);
             }
         }
         else
