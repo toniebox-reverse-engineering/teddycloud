@@ -1247,9 +1247,11 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 
     bool generate_certs = false;
     bool inject_ca = true;
-    char patch_host[32];
-    char filename[255];
-    char mac[13];
+    char patch_host[32] = {0};
+    char wifi_ssid[64] = {0};
+    char wifi_pass[64] = {0};
+    char filename[255] = {0};
+    char mac[13] = {0};
     osStrcpy(patch_host, "");
     osStrcpy(filename, "");
     osStrcpy(mac, "");
@@ -1262,6 +1264,16 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
     {
         TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
+    }
+
+    if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
+    {
+        TRACE_INFO("wifi ssid '%s'\r\n", wifi_ssid);
+    }
+
+    if (queryGet(queryString, "wifi_pass", wifi_pass, sizeof(wifi_pass)))
+    {
+        TRACE_INFO("wifi pass '%s'\r\n", wifi_pass);
     }
 
     const char *sep = osStrchr(filename, '_');
@@ -1314,6 +1326,15 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
         char *oldrtnl = "rtnl.bxcl.de";
         char *oldapi = "prod.de.tbs.toys";
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (osStrlen(wifi_ssid) > 0)
+    {
+        if (esp32_patch_wifi(patched_path, wifi_ssid, wifi_pass) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
             return ERROR_NOT_FOUND;
