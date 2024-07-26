@@ -392,8 +392,8 @@ static uint32_t crc32_header(void *header)
     uint8_t *ptr = (uint8_t *)header;
     uint8_t buf[0x20 - 4];
 
-    memcpy(&buf[0], &ptr[0], 0x04);
-    memcpy(&buf[4], &ptr[8], 0x18);
+    osMemcpy(&buf[0], &ptr[0], 0x04);
+    osMemcpy(&buf[4], &ptr[8], 0x18);
 
     return crc32(buf, 0x1C);
 }
@@ -473,7 +473,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             TRACE_ERROR("namespace index is %" PRIu32 ", which seems invalid", item->uint8);
             return ERROR_FAILURE;
         }
-        strcpy((*namespaces)[item->uint8], item->key);
+        osStrcpy((*namespaces)[item->uint8], item->key);
 
         uint32_t crc_header_calc = crc32_header(item);
         TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
@@ -510,7 +510,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
         case 0x00:
         case 0x10:
             char type_string[32] = {0};
-            sprintf(type_string, "%sint%u_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
+            osSprintf(type_string, "%sint%u_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
             TRACE_INFO("      Type        %s (0x%08" PRIX32 ")\r\n", type_string, item->datatype);
             TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
             switch (item->datatype)
@@ -555,7 +555,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
                 TRACE_ERROR("length is %" PRIu32 ", which seems invalid", length);
                 return ERROR_FAILURE;
             }
-            char *buffer = malloc(length);
+            char *buffer = osAllocMem(length);
             if (!buffer)
             {
                 TRACE_ERROR("Failed to allocate memory\r\n");
@@ -565,7 +565,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             error = file_read_block(file, offset + part_offset + sizeof(struct ESP32_nvs_item), buffer, length);
             if (error != NO_ERROR)
             {
-                free(buffer);
+                osFreeMem(buffer);
                 return ERROR_FAILURE;
             }
 
@@ -579,7 +579,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
                 item->var_length.data_crc32 = crc_data_calc;
                 error = ERROR_BAD_CRC;
             }
-            free(buffer);
+            osFreeMem(buffer);
             break;
         }
 
@@ -601,27 +601,27 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
                 TRACE_ERROR("length is %" PRIu32 ", which seems invalid", length);
                 return ERROR_FAILURE;
             }
-            uint8_t *buffer = malloc(length);
-            char *buffer_hex = malloc(BUFFER_HEX_SIZE(length));
+            uint8_t *buffer = osAllocMem(length);
+            char *buffer_hex = osAllocMem(BUFFER_HEX_SIZE(length));
             if (!buffer || !buffer_hex)
             {
                 TRACE_ERROR("Failed to allocate memory\r\n");
-                free(buffer);
-                free(buffer_hex);
+                osFreeMem(buffer);
+                osFreeMem(buffer_hex);
                 return ERROR_FAILURE;
             }
 
             error = file_read_block(file, offset + part_offset + sizeof(struct ESP32_nvs_item), buffer, length);
             if (error != NO_ERROR)
             {
-                free(buffer);
-                free(buffer_hex);
+                osFreeMem(buffer);
+                osFreeMem(buffer_hex);
                 return ERROR_FAILURE;
             }
 
             for (int hex_pos = 0; hex_pos < length; hex_pos++)
             {
-                sprintf(&buffer_hex[3 * hex_pos], "%02" PRIX8 " ", buffer[hex_pos]);
+                osSprintf(&buffer_hex[3 * hex_pos], "%02" PRIX8 " ", buffer[hex_pos]);
             }
             uint32_t crc_data_calc = crc32(buffer, length);
             TRACE_INFO("      Size        %" PRIu32 "\r\n", item->var_length.size);
@@ -633,8 +633,8 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
                 item->var_length.data_crc32 = crc_data_calc;
                 error = ERROR_BAD_CRC;
             }
-            free(buffer);
-            free(buffer_hex);
+            osFreeMem(buffer);
+            osFreeMem(buffer_hex);
             break;
         }
         }
@@ -834,28 +834,30 @@ error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *na
 
 struct ESP32_nvs_item *esp32_nvs_create_uint8(const char *name, uint8_t value)
 {
-    struct ESP32_nvs_item *item = calloc(1, sizeof(struct ESP32_nvs_item));
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item));
+    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item));
 
     item[0].datatype = NVS_TYPE_U8;
     item[0].span = 1;
     item[0].chunkIndex = 0xFF;
     item[0].uint8 = value;
-    strcpy(item[0].key, name);
+    osStrcpy(item[0].key, name);
 
     return item;
 }
 
 struct ESP32_nvs_item *esp32_nvs_create_string(const char *name, const char *value)
 {
-    int span = 2 + strlen(value) / sizeof(struct ESP32_nvs_item);
-    struct ESP32_nvs_item *item = calloc(1, sizeof(struct ESP32_nvs_item) * span);
+    int span = 2 + osStrlen(value) / sizeof(struct ESP32_nvs_item);
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * span);
+    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item) * span);
 
     item[0].datatype = NVS_TYPE_STR;
     item[0].span = span;
     item[0].chunkIndex = 0xFF;
-    item[0].uint16 = strlen(value);
-    strcpy(item[0].key, name);
-    strcpy((char *)&item[1], value);
+    item[0].uint16 = osStrlen(value);
+    osStrcpy(item[0].key, name);
+    osStrcpy((char *)&item[1], value);
 
     return item;
 }
@@ -863,20 +865,21 @@ struct ESP32_nvs_item *esp32_nvs_create_string(const char *name, const char *val
 struct ESP32_nvs_item *esp32_nvs_create_blob(const char *name, const char *value, size_t length)
 {
     int span = 2 + length / sizeof(struct ESP32_nvs_item);
-    struct ESP32_nvs_item *item = calloc(1, sizeof(struct ESP32_nvs_item) * (span + 1));
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * (span + 1));
+    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item) * (span + 1));
 
     item[0].datatype = NVS_TYPE_BLOB;
     item[0].span = span;
     item[0].chunkIndex = 0;
     item[0].var_length.size = length;
-    strcpy(item[0].key, name);
-    memcpy((char *)&item[1], value, length);
+    osStrcpy(item[0].key, name);
+    osMemcpy((char *)&item[1], value, length);
 
     int idx = 2 + length / sizeof(struct ESP32_nvs_item);
     item[idx].datatype = NVS_TYPE_BLOB_IDX;
     item[idx].span = 1;
     item[idx].chunkIndex = 0xFF;
-    strcpy(item[idx].key, name);
+    osStrcpy(item[idx].key, name);
     item[idx].blob_index.size = length;
     item[idx].blob_index.chunk_count = 1;
     item[idx].blob_index.chunk_start = 0;
@@ -1302,17 +1305,17 @@ error_t esp32_update_wifi_partitions(FsFile *file, size_t offset, const char *ss
                 esp32_nvs_del(file, entry.fileOffset, entry.length, "TB_WIFI", "PW0");
                 esp32_nvs_del(file, entry.fileOffset, entry.length, "TB_WIFI", "INDEX");
 
-                struct ESP32_nvs_item *ssid_item = esp32_nvs_create_blob("SSID0", ssid, strlen(ssid));
-                struct ESP32_nvs_item *pass_item = esp32_nvs_create_blob("PW0", password, strlen(password));
+                struct ESP32_nvs_item *ssid_item = esp32_nvs_create_blob("SSID0", ssid, osStrlen(ssid));
+                struct ESP32_nvs_item *pass_item = esp32_nvs_create_blob("PW0", password, osStrlen(password));
                 struct ESP32_nvs_item *index_item = esp32_nvs_create_uint8("INDEX", 1);
 
                 esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", ssid_item, ssid_item->span + 1);
                 esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", pass_item, pass_item->span + 1);
                 esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", index_item, index_item->span);
 
-                free(ssid_item);
-                free(pass_item);
-                free(index_item);
+                osFreeMem(ssid_item);
+                osFreeMem(pass_item);
+                osFreeMem(index_item);
             }
         }
         else
@@ -1640,8 +1643,8 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
 uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, const char *replace)
 {
     int replaced = 0;
-    size_t pattern_len = strlen(pattern) + 1;
-    size_t replace_len = strlen(replace) + 1;
+    size_t pattern_len = osStrlen(pattern) + 1;
+    size_t replace_len = osStrlen(replace) + 1;
 
     if (pattern_len == 0 || buffer_len == 0)
     {
@@ -1659,7 +1662,7 @@ uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, co
                 break;
             }
 
-            memcpy(&buffer[i], replace, replace_len);
+            osMemcpy(&buffer[i], replace, replace_len);
             i += (pattern_len - 1); // Skip ahead
             replaced++;
         }
@@ -1702,7 +1705,7 @@ error_t esp32_inject_cert(const char *rootPath, const char *patchedPath, const c
         }
     } while (0);
 
-    free(cert_path);
+    osFreeMem(cert_path);
 
     return ret;
 }
@@ -1731,13 +1734,13 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
         size_t server_ca_der_size = 0;
 
         TRACE_INFO("Convert CA certificate...\r\n");
-        if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
+        if (pemImportCertificate(server_ca, osStrlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
         {
             TRACE_ERROR("pemImportCertificate failed\r\n");
             return ERROR_FAILURE;
         }
         uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
-        if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
+        if (pemImportCertificate(server_ca, osStrlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
         {
             TRACE_ERROR("pemImportCertificate failed\r\n");
             return ERROR_FAILURE;
@@ -1789,8 +1792,8 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
         }
     } while (0);
 
-    free(cert_path);
-    free(ca_file);
+    osFreeMem(cert_path);
+    osFreeMem(ca_file);
 
     return ret;
 }
