@@ -495,15 +495,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             TRACE_INFO("      Namespace   %s\r\n", (*namespaces)[item->nsIndex]);
         }
 
-        uint32_t crc_header_calc = crc32_header(item);
         TRACE_INFO("      Key         %s\r\n", item->key);
-        TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
-        if (item->crc32 != crc_header_calc)
-        {
-            TRACE_INFO("      * Updating CRC\r\n");
-            item->crc32 = crc_header_calc;
-            error = ERROR_BAD_CRC;
-        }
 
         switch (item->datatype & 0xF0)
         {
@@ -626,7 +618,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             uint32_t crc_data_calc = crc32(buffer, length);
             TRACE_INFO("      Size        %" PRIu32 "\r\n", item->var_length.size);
             TRACE_INFO("      Data        %s\r\n", buffer_hex);
-            TRACE_INFO("      Data CRC    %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->var_length.data_crc32, crc32(buffer, length));
+            TRACE_INFO("      Data CRC    %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->var_length.data_crc32, crc_data_calc);
             if (item->var_length.data_crc32 != crc_data_calc)
             {
                 TRACE_INFO("      * Updating CRC\r\n");
@@ -637,6 +629,15 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             osFreeMem(buffer_hex);
             break;
         }
+        }
+        
+        uint32_t crc_header_calc = crc32_header(item);
+        TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
+        if (item->crc32 != crc_header_calc)
+        {
+            TRACE_INFO("      * Updating CRC\r\n");
+            item->crc32 = crc_header_calc;
+            error = ERROR_BAD_CRC;
         }
     }
 
@@ -835,12 +836,14 @@ error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *na
 struct ESP32_nvs_item *esp32_nvs_create_uint8(const char *name, uint8_t value)
 {
     struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item));
-    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item));
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item));
 
     item[0].datatype = NVS_TYPE_U8;
+    item[0].nsIndex = 0;
     item[0].span = 1;
     item[0].chunkIndex = 0xFF;
     item[0].uint8 = value;
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
     osStrcpy(item[0].key, name);
 
     return item;
@@ -850,12 +853,14 @@ struct ESP32_nvs_item *esp32_nvs_create_string(const char *name, const char *val
 {
     int span = 2 + osStrlen(value) / sizeof(struct ESP32_nvs_item);
     struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * span);
-    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item) * span);
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item) * span);
 
     item[0].datatype = NVS_TYPE_STR;
+    item[0].nsIndex = 0;
     item[0].span = span;
     item[0].chunkIndex = 0xFF;
     item[0].uint16 = osStrlen(value);
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
     osStrcpy(item[0].key, name);
     osStrcpy((char *)&item[1], value);
 
@@ -866,19 +871,22 @@ struct ESP32_nvs_item *esp32_nvs_create_blob(const char *name, const char *value
 {
     int span = 2 + length / sizeof(struct ESP32_nvs_item);
     struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * (span + 1));
-    osMemset(item, 0x00, sizeof(struct ESP32_nvs_item) * (span + 1));
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item) * (span + 1));
 
     item[0].datatype = NVS_TYPE_BLOB;
+    item[0].nsIndex = 0;
     item[0].span = span;
     item[0].chunkIndex = 0;
     item[0].var_length.size = length;
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
     osStrcpy(item[0].key, name);
     osMemcpy((char *)&item[1], value, length);
 
     int idx = 2 + length / sizeof(struct ESP32_nvs_item);
     item[idx].datatype = NVS_TYPE_BLOB_IDX;
+    item[idx].nsIndex = 0;
     item[idx].span = 1;
-    item[idx].chunkIndex = 0xFF;
+    osMemset(item[idx].key, 0x00, sizeof(item[idx].key));
     osStrcpy(item[idx].key, name);
     item[idx].blob_index.size = length;
     item[idx].blob_index.chunk_count = 1;
