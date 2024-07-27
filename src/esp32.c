@@ -1600,7 +1600,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
         return ERROR_NOT_FOUND;
     }
 
-    esp32_fat_extract_folder(file, part_offset, part_size, "CERT", out_path);
+    esp32_fat_extract_folder(file, part_offset, part_size, fat_path, out_path);
     fsCloseFile(file);
 
     return NO_ERROR;
