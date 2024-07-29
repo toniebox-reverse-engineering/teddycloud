@@ -2300,7 +2300,8 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
     {
         contentJson_t contentJson;
         /* read TAF info - would create .json if not existing */
-        tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+        // tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfo(fullTagPath, false, client_ctx->settings);
         /* now update with updated model if found. */
         saveTonieInfo(tafInfo, true);
         contentJson = tafInfo->json;
