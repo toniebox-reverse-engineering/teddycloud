@@ -7,7 +7,7 @@
     "community": {
         "changelog": {
             "navigationTitle": "Changelog",
-            "title": "Changelog / Release notes"
+            "title": "Changelog/Release notes"
         },
         "contribution": {
             "navigationTitle": "Contribution",
@@ -33,55 +33,8 @@
         "navigationTitle": "Community",
         "title": "Community"
     },
-    "esp32flasher": {
-        "chipMAC": "Chip-MAC",
-        "chipType": "Chip-Typ",
-        "connected": "Verbunden",
-        "connectingReadFlash": "Verbinde zum Lesen des Flash...",
-        "connectingReadMac": "Verbinde zum Lesen der MAC-Adresse...",
-        "connectingTo": "Verbinde zu",
-        "connectingToESP": "Verbinde zum ESP...",
-        "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
-        "error": "Fehler",
-        "failedToCommunicate": "Kommunikation fehlgeschlagen:",
-        "failedToConnect": "Verbindung fehlgeschlagen:",
-        "flashDevice": "Flash-Gerät",
-        "flashEsp32": "ESP32 flashen",
-        "flashId": "Flash-ID",
-        "flashManuf": "Flash-Hersteller",
-        "flashSize": "Flash-Größe",
-        "flashSizeError": "Flash-Größenfehler",
-        "hintESP32FirmwareFlashed": "Das Patchen ist abgeschlossen. Trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte sich jetzt mit TeddyCloud verbinden können! Vergiss nicht, \"Webinterface HTTP only\" zu aktivieren, sobald du fertig bist.",
-        "hintFlashESP32": "Trenne die Stromversorgung deiner Toniebox noch einmal. Klicke auf \"ESP32 flashen\", wähle bei Bedarf den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
-        "hintPatchFlash": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein und klicke auf \"Patch\".",
-        "hintReadESP32ImportFlash": "Verbinde dein UART mit deinem PC und der Toniebox. Trenne die Stromversorgung deiner Toniebox. Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
-        "hostname": "TeddyCloud-Hostname:",
-        "hostnameToLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
-        "invalidSerialPort": "Ungültiger serieller Port",
-        "loadFile": "Datei laden",
-        "next": "Weiter",
-        "noPortAvailable": "Kein Port verfügbar oder Benutzer hat abgebrochen",
-        "patchImage": "Patch",
-        "patchingFailed": "Patchen fehlgeschlagen",
-        "patchingFlashImage": "Flash-Image wird gepatcht...",
-        "patchingSuccessful": "Patchen erfolgreich, bereit zum Flashen von {{size}} MiB",
-        "payloadReceived": "Payload empfangen",
-        "portOpenFailedInUse": "Port konnte nicht geöffnet werden. Bereits in Gebrauch?",
-        "preparingFlash": "Vorbereitung von {{size}} MiB Flash",
-        "previous": "Zurück",
-        "readFlash": "Flash lesen",
-        "readingFinished": "Lesen abgeschlossen",
-        "readingFlash": "Flash wird gelesen...",
-        "retrievingMac": "MAC-Adresse wird abgerufen...",
-        "titleESP32FirmwareFlashed": "ESP32 geflasht",
-        "titleFlashESP32": "ESP32 flashen",
-        "titlePatchFlash": "Flash patchen",
-        "titleReadESP32ImportFlash": "ESP32 lesen / Flash importieren",
-        "uploadFailed": "Upload fehlgeschlagen",
-        "uploading": "Upload läuft...",
-        "uploadSuccessful": "Upload erfolgreich, gespeichert als",
-        "writingFinished": "Schreiben abgeschlossen",
-        "writingFlash": "Schreibe {{size}}  MiB Flash"
+    "confirmDialog": {
+        "contentHintTitle": "Denk dran"
     },
     "faq": [
         {
@@ -158,6 +111,78 @@
         }
     },
     "home": {
+        "features": {
+            "currentlyImplementedFeatures": "Derzeit implementierte Features",
+            "description": "TeddyCloud ist ein alternativer Server für deine Toniebox, mit dem du die Cloud-Dienste lokal hosten kannst. Dies gibt dir die Kontrolle darüber, welche Daten an die Cloud des ursprünglichen Herstellers gesendet werden, und ermöglicht es dir, deine eigenen Figuren-Audiodateien z.B. auf deinem NAS oder einem anderen Server zu hosten.",
+            "features": {
+                "01contentProvision": {
+                    "items": {
+                        "01provideAudioContent": "Audioinhalte over-the-air bereitstellen",
+                        "02passtroughAudio": "Originale Tonie-Audiodateien durchleiten",
+                        "03provideCustomAudio": "Benutzerdefinierte Audiodateien bereitstellen",
+                        "04simulateLiveContent": "Live-Inhalte simulieren",
+                        "05convertAudio": "Audio-Streams über ffmpeg für Webradio und Streams on-the-fly konvertieren",
+                        "06definePlaylists": "Tonie-Audio-Playlists definieren (PoC im WebFrontend)",
+                        "07cacheAudio": "Originale Tonie-Audiodateien zwischenspeichern",
+                        "08filterTags": "Benutzerdefinierte Tags filtern, um Löschung zu verhindern"
+                    },
+                    "title": "Inhaltsbereitstellung für deine Toniebox"
+                },
+                "02webUI": "WebUI",
+                "03manageTonies": {
+                    "items": {
+                        "01assignContent": "Inhalte und andere Eigenschaften jedem Tag zuweisen",
+                        "02searchStreams": "Webradio-Streams suchen und jedem Tag zuweisen",
+                        "03defineMetaData": "Metadaten deiner benutzerdefinierten Tags definieren (PoC im WebFrontend)",
+                        "04filterTonies": "Tonies/Tags filtern",
+                        "05hideTonies": "Nicht verfügbare Tonies/Tags ausblenden",
+                        "06showLastPlayed": "Zuletzt gespielte Tonies/Tags anzeigen"
+                    },
+                    "title": "Verwalte alle deine Tonies/Tags"
+                },
+                "04manageLibrary": "Verwalte deine Inhaltsbibliothek",
+                "05managePlaylists": "Verwalte deine Tonie-Audio-Playlist-Bibliothek (PoC im WebFrontend)",
+                "06convertAudioFile": "Beliebige Audiodatei in eine Tonie-Audiodatei konvertieren",
+                "07manageTonieboxes": {
+                    "items": {
+                        "01singleBoxManagement": "Einzelbox-Management, alle als eine verwalten, Boxen nach Belieben gruppieren",
+                        "02cloudAccess": "Cloud-Zugriff und andere cloudbezogene Eigenschaften deaktivieren/aktivieren",
+                        "03maxVolume": "Maximale Lautstärke für Lautsprecher und Kopfhörer konfigurieren",
+                        "04configureLED": "LED konfigurieren",
+                        "05configureSlapping": "Klatschen konfigurieren",
+                        "06customizeSounds": "Originalbox-Sounds (z.B. Jingle) over-the-air anpassen"
+                    },
+                    "title": "Verwalte bis zu 16 Tonieboxen"
+                },
+                "08esp32Flashing": {
+                    "items": {
+                        "01certificates": "Zertifikate in einem ESP32-Firmware-Dump extrahieren/injizieren",
+                        "02newServerHost": "Neuen Server-Host festlegen",
+                        "03wifiCredentials": "WLAN-Zugangsdaten festlegen"
+                    },
+                    "title": "ESP32 Box Flashing"
+                },
+                "09decodeLogs": "RTNL-Protokolle decodieren",
+                "10mqttClient": {
+                    "items": {
+                        "01homeAssistantIntegration": "Home Assistant-Integration (MQTT)"
+                    },
+                    "title": "MQTT-Client"
+                }
+            },
+            "futureFeatures": {
+                "01firmwareUpdate": "Firmware-Update über TeddyCloud",
+                "02improvedFlashing": "Verbessertes ESP32 Box Flashing (vollständig über Web GUI, keine Backend-Schritte mehr)",
+                "03reportUnknownTonies": "Unbekannte Tonies melden",
+                "04completeTAPIntegration": "Abschluss der TAP-WebFrontend-Integration",
+                "05completeCustomToniesIntegration": "Abschluss der Integration benutzerdefinierter Tonies im JSON-WebFront (\"Metadaten benutzerdefinierter Tags\")",
+                "06moreStats": "Mehr Statistiken über deine gespielten Tonies/Tags",
+                "07securityImprovements": "Sicherheitsverbesserungen wie Zugriffskontrolle (Tonieboxen und Benutzer)"
+            },
+            "navigationTitle": "Features",
+            "title": "Features TeddyCloud",
+            "yetToCome": "Geplante Features"
+        },
         "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
         "forumIntroPart2": ". Vertief dich in Themen, teile deine Erfahrungen und vernetze dich mit unserer Community. Tritt noch heute in die Diskussion ein!",
         "helpfulLinks": "Hilfreiche Links",
@@ -289,11 +314,81 @@
             "disableHttpOnlyForFlashing": "Bitte deaktiviere \"Webinterface http only\" und öffne diese Seite mit HTTPS.",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" aktiv",
             "enabledWebHttpsClientCertAuth": "\"HTTPS client cert auth\" aktiv",
-            "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird. Wenn du deine ESP32 Toniebox flashen willst, dann deaktiviern bitte vorübergehend die Option \"Webinterface HTTP only\".",
+            "esp32flasher": {
+                "cancel": "Abbrechen",
+                "chipMAC": "Chip-MAC",
+                "chipType": "Chip-Typ",
+                "confirmFlashDialog": "Möchtest du deine Toniebox wirklich flashen? Bitte achte auf eine stabile Verbindung und unterbreche den Vorgang nicht!",
+                "confirmFlashDialogHint": "Für eine korrekte Funktionsweise deiner Toniebox ist die angegebene TeddyCloud-Instanz unbedingt notwendig. Falls deine TeddyCloud offline ist, kann deine Toniebox keine neuen Inhalte mehr abrufen!",
+                "confirmFlashModal": "Toniebox mit gepatchter Firmware flashen",
+                "connected": "Verbunden",
+                "connectingReadFlash": "Verbinde zum Lesen des Flash...",
+                "connectingReadMac": "Verbinde zum Lesen der MAC-Adresse...",
+                "connectingTo": "Verbinde zu",
+                "connectingToESP": "Verbinde zum ESP...",
+                "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
+                "downloadFlashFilesHint": "Die Firmware Images sind im Datenverzeichnis deines Servers gespeichert, falls du sie nochmal flashen möchtest. Wenn du deine Firmware Images woanders speichern willst, kannst du sie herunterladen und an einem sicheren Ort ablegen:",
+                "downloadFlashFilesHintP1": "Du kannst sie manuell ins Verzeichnis /certs/client/ extrahieren. Das kannst du entweder mit teddycloud Executable auf deinem Computer machen oder über die Docker-Shell.",
+                "downloadFlashFilesHintP2": "Bitte überprüfe den Dateinamen der extrahierten Zertifikate, besonders die Groß- und Kleinschreibung! Ändere sie in Kleinbuchstaben, wenn sie in Großbuchstaben sind.",
+                "downloadLink": "Download ungepachte Firmware",
+                "downloadLinkPatched": "Download gepachte Firmware",
+                "error": "Fehler",
+                "extractCertificates": "Zertifikate für TeddyCloud extrahieren",
+                "failedToCommunicate": "Kommunikation fehlgeschlagen:",
+                "failedToConnect": "Verbindung fehlgeschlagen:",
+                "flash": "Flashen",
+                "flashDevice": "Flash-Gerät",
+                "flashEsp32": "ESP32 flashen",
+                "flashId": "Flash-ID",
+                "flashManuf": "Flash-Hersteller",
+                "flashSize": "Flash-Größe",
+                "flashSizeError": "Flash-Größenfehler",
+                "hintESP32FirmwareFlashed": "Das Patchen ist abgeschlossen. Trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte sich jetzt mit TeddyCloud verbinden können! Vergiss nicht, \"Webinterface HTTP only\" zu aktivieren, sobald du fertig bist.",
+                "hintFlashESP32": "Trenne die Stromversorgung deiner Toniebox noch einmal. Klicke auf \"ESP32 flashen\", wähle bei Bedarf den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
+                "hintPatchFlash": "Um das ausgewählte / gelesene Flash mit dem dem CA-Zertifikat deiner TeddyCloud zu versehen und ggf. weitere Anpassungen wie Hostname der TeddyCloud und/oder der WiFi-Zugangsdaten vorzunehmen, klicke nach Eingabe auf \"Patch\" oder gehe ohne Patching direkt zum nächsten Schritt. ",
+                "hintPatchHost": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein.",
+                "hintPatchWifi": "Gib optional die WiFi Zugangsdaten für deine Toniebox ein.",
+                "hintReadESP32ImportFlash": "Verbinde dein UART mit deinem PC und der Toniebox. Trenne die Stromversorgung deiner Toniebox. Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
+                "hostname": "TeddyCloud-Hostname:",
+                "hostnameSettings": "Hostname Teddycloud",
+                "hostnameToLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
+                "infoTable": "ESP32 info",
+                "invalidSerialPort": "Ungültiger serieller Port",
+                "loadFile": "Datei laden",
+                "next": "Weiter",
+                "noPortAvailable": "Kein Port verfügbar oder Benutzer hat abgebrochen",
+                "patchImage": "Patch",
+                "patchingFailed": "Patchen fehlgeschlagen",
+                "patchingFlashImage": "Flash-Image wird gepatcht...",
+                "patchingSuccessful": "Patchen erfolgreich, bereit zum Flashen von {{size}} MiB",
+                "payloadReceived": "Payload empfangen",
+                "portOpenFailedInUse": "Port konnte nicht geöffnet werden. Bereits in Gebrauch?",
+                "preparingFlash": "Vorbereitung von {{size}} MiB Flash",
+                "previous": "Zurück",
+                "readFlash": "Flash lesen",
+                "readingFinished": "Lesen abgeschlossen",
+                "readingFlash": "Flash wird gelesen...",
+                "readyToProceed": ", bereit fortzufahren.",
+                "retrievingMac": "MAC-Adresse wird abgerufen...",
+                "titleESP32FirmwareFlashed": "ESP32 geflasht",
+                "titleFlashESP32": "ESP32 flashen",
+                "titlePatchFlash": "Flash patchen",
+                "titleReadESP32ImportFlash": "ESP32 lesen/Flash importieren",
+                "uploadFailed": "Upload fehlgeschlagen",
+                "uploading": "Upload läuft...",
+                "uploadSuccessful": "Upload erfolgreich, gespeichert als",
+                "wifiCredentialsIncomplete": "WiFi Zugangsdaten unvollständig! Bitte gib SSID UND Passwort ein oder lasse beide Felder leer!",
+                "wifiPassword": "WiFi Passwort",
+                "wifiSettings": "WiFi Daten (optional)",
+                "wifiSSID": "WiFi SSID:",
+                "writingFinished": "Schreiben abgeschlossen",
+                "writingFlash": "Schreibe {{size}} MiB Flash..."
+            },
+            "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird. Wenn du deine ESP32 Toniebox flashen willst, dann deaktiviere bitte vorübergehend die Optionen \"Webinterface HTTP only\" und \"HTTPS client cert auth\".",
             "httpsSettings": "HTTPS Settings",
             "navigationTitle": "ESP32 Box Flashing",
-            "redirectToHttpAfterActivation": "Bei Aktivierung \"Webinterface HTTP only\" wird nach Speichern auf HTTP Seite weitergeleitet (falls HTTPS aktiv).",
-            "redirectToHttpsAfterDeactivation": "Bei Deaktivierung \"Webinterface HTTP only\" wird nach Speichern auf HTTPS Seite weitergeleitet.",
+            "redirectToHttpAfterActivation": "Bei Aktivierung \"Webinterface HTTP only\" wird nach Speichern auf die HTTP Seite weitergeleitet (falls HTTPS aktiv).",
+            "redirectToHttpsAfterDeactivation": "Bei Deaktivierung \"Webinterface HTTP only\" und \"HTTPS client cert auth\" wird nach Speichern auf die HTTPS Seite weitergeleitet.",
             "save": "Settings speichern",
             "title": "ESP32 Box Flashing"
         },
@@ -444,6 +539,8 @@
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
+            "cancel": "Abbrechen",
+            "ok": "OK",
             "selectFile": "TAF/TAP-Datei auswählen"
         },
         "system-sounds": {
@@ -496,7 +593,7 @@
                 "valid": "Gültig Ja"
             },
             "navigationTitle": "Tonies",
-            "pageSelector": " Tonies / Seite",
+            "pageSelector": " Tonies/Seite",
             "showAll": "Zeige alle",
             "showPagination": "Paginierung einblenden",
             "title": "Tonies"
