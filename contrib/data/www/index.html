@@ -1956,6 +1956,8 @@
                     showDownload: false,
                     showFlash: false,
                     connected: false,
+                    wifi_ssid: '',
+                    wifi_pass: '',
                     hostname: window.location.hostname
                 };
                 this.fileInputRef = React.createRef();
@@ -1993,7 +1995,7 @@
                     } catch (err) {
                         this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
                         alert(err.message);
-                        await port.close();
+						this.state.port = null;
                         return;
                     }
 
@@ -2018,7 +2020,7 @@
                         this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
                         console.error(err);
                         alert(err.message);
-                        await port.close();
+						this.state.port = null;
                         return;
                     }
                 };
@@ -2079,7 +2081,7 @@
                 } catch (err) {
                     this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
                     alert(err.message);
-                    await port.close();
+				    this.state.port = null;
                     return;
                 }
 
@@ -2149,7 +2151,7 @@
                     this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
                     console.error(err);
                     alert(err.message);
-                    await port.close();
+					this.state.port = null;
                     return;
                 }
             }
@@ -2157,7 +2159,7 @@
             async patchFlash() {
                 this.setState({ showProgress: false, showFlash: false });
                 this.setState({ state: `Patching flash image...` });
-                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}`, {
+                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}&wifi_ssid=${this.state.wifi_ssid}&wifi_pass=${this.state.wifi_pass}`, {
                     method: 'GET'
                 });
                 this.setState({ state: `Payload received` });
@@ -2194,7 +2196,7 @@
                 } catch (err) {
                     this.setState({ state: `Failed to connect: ${err.message}`, connected: false });
                     alert(err.message);
-                    await port.close();
+				    this.state.port = null;
                     return;
                 }
 
@@ -2236,7 +2238,7 @@
                     this.setState({ state: `Failed to communicate: ${err.message}`, connected: false });
                     console.error(err);
                     alert(err.message);
-                    await port.close();
+					this.state.port = null;
                     return;
                 }
 
@@ -2311,6 +2313,7 @@
                                 <div className="center-content">
                                     {this.state.showDownload && (
                                         <div>
+                                        <div>
                                             <label>
                                                 TeddyCloud hostname:
                                                 <input
@@ -2333,7 +2336,39 @@
                                                     }}
                                                 />
                                             </label>
+                                        </div>
+                                        <div>
+                                            <label>
+                                                WiFi SSID:
+                                                <input
+                                                    type="text"
+                                                    defaultValue=""
+                                                    onChange={(e) => {
+                                                        let value = e.target.value;
+                                                        this.setState({
+                                                            wifi_ssid: value
+                                                        });
+                                                    }}
+                                                /> (leave empty to skip patching)
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <label>
+                                                WiFi Password:
+                                                <input
+                                                    type="text"
+                                                    defaultValue=""
+                                                    onChange={(e) => {
+                                                        let value = e.target.value;
+                                                        this.setState({
+                                                            wifi_pass: value
+                                                        });
+                                                    }}
+                                                />
+                                            </label>
+											
                                             {this.state.warningText && <p style={{ color: '#CC3010' }}>{this.state.warningText}</p>}
+                                        </div>
                                         </div>
                                     )}
 
