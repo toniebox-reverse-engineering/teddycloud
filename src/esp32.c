@@ -170,7 +170,7 @@ DSTATUS disk_initialize(BYTE pdrv)
     return RES_OK;
 }
 
-DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
+DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
@@ -180,7 +180,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        error_t error = fsWriteFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE);
+        error_t error = fsWriteFile(state->file, (void *)&buff[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE);
         if (error != NO_ERROR)
         {
             TRACE_ERROR("Failed to write sector\r\n");
@@ -190,7 +190,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
     return RES_OK;
 }
 
-DRESULT disk_read(BYTE pdrv, BYTE *buffer, LBA_t sector, UINT count)
+DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
@@ -201,7 +201,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buffer, LBA_t sector, UINT count)
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        error_t error = fsReadFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE, &read);
+        error_t error = fsReadFile(state->file, (void *)&buff[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE, &read);
         if (error != NO_ERROR || read != WL_SECTOR_SIZE)
         {
             TRACE_ERROR("Failed to read sector\r\n");
@@ -412,7 +412,7 @@ static error_t file_read_block(FsFile *file, size_t offset, void *buffer, size_t
     error = fsReadFile(file, buffer, length, &read);
     if (error != NO_ERROR)
     {
-        TRACE_ERROR("Failed to read input file: %u\r\n", error);
+        TRACE_ERROR("Failed to read input file: %i\r\n", error);
         return ERROR_FAILURE;
     }
 
@@ -502,7 +502,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
         case 0x00:
         case 0x10:
             char type_string[32] = {0};
-            osSprintf(type_string, "%sint%u_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
+            osSprintf(type_string, "%sint%i_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
             TRACE_INFO("      Type        %s (0x%08" PRIX32 ")\r\n", type_string, item->datatype);
             TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
             switch (item->datatype)
@@ -630,7 +630,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
             break;
         }
         }
-        
+
         uint32_t crc_header_calc = crc32_header(item);
         TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
         if (item->crc32 != crc_header_calc)
@@ -969,7 +969,7 @@ error_t esp32_nvs_add(FsFile *file, size_t offset, size_t length, const char *na
             }
             TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
             TRACE_INFO("    Entry #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", entry, (uint32_t)entry_offset);
-            TRACE_INFO("      %u empty slots found, writing there\r\n", entries);
+            TRACE_INFO("      %i empty slots found, writing there\r\n", entries);
 
             error = file_write_block(file, block_offset + entry_offset, item, sizeof(struct ESP32_nvs_item) * entries);
             if (error != NO_ERROR)
@@ -1088,7 +1088,7 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             pathCombine(outFileName, fileInfo.fname, FS_MAX_PATH_LEN);
             pathCanonicalize(outFileName);
 
-            TRACE_INFO("Write '%s to '%s' (%d bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
+            TRACE_INFO("Write '%s to '%s' (%u bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
 
             FsFile *outFile = fsOpenFile(outFileName, FS_FILE_MODE_WRITE);
             if (!outFile)
@@ -1220,7 +1220,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
 
             written_total += written;
         }
-        TRACE_INFO("  Wrote %d byte\r\n", written_total);
+        TRACE_INFO("  Wrote %u byte\r\n", written_total);
         f_sync(&fp);
         f_close(&fp);
         fsCloseFile(inFile);
@@ -1286,15 +1286,15 @@ error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
 error_t esp32_update_wifi_partitions(FsFile *file, size_t offset, const char *ssid, const char *password)
 {
     size_t offset_current = offset;
-    struct ESP32_part_entry entry;
+    struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error;
+    error_t error = NO_ERROR;
 
     while (true)
     {
-        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        size_t read = 0;
 
-        size_t read;
+        fsSeekFile(file, offset_current, FS_SEEK_SET);
         error = fsReadFile(file, &entry, sizeof(entry), &read);
 
         if (read != sizeof(entry))
@@ -1340,7 +1340,7 @@ error_t esp32_update_wifi_partitions(FsFile *file, size_t offset, const char *ss
 
 error_t esp32_patch_wifi(const char *path, const char *ssid, const char *pass)
 {
-    uint32_t length;
+    uint32_t length = 0;
 
     TRACE_INFO("Patching wifi settings in '%s'\r\n", path);
 
@@ -1364,9 +1364,9 @@ error_t esp32_patch_wifi(const char *path, const char *ssid, const char *pass)
 error_t esp32_get_partition(FsFile *file, size_t offset, const char *label, size_t *part_start, size_t *part_size)
 {
     size_t offset_current = offset;
-    struct ESP32_part_entry entry;
+    struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error;
+    error_t error = NO_ERROR;
     TRACE_INFO("Search for partition '%s'\r\n", label);
 
     while (true)
@@ -1416,7 +1416,7 @@ void esp32_chk_update(uint8_t *chk, void *buffer, size_t length)
 error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modify)
 {
     size_t offset_current = offset;
-    struct ESP32_header header;
+    struct ESP32_header header = {0};
 
     fsSeekFile(file, offset_current, FS_SEEK_SET);
 
@@ -1424,7 +1424,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
     Sha256Context ctx;
     sha256Init(&ctx);
 
-    size_t read;
+    size_t read = 0;
     error_t error = fsReadFile(file, &header, sizeof(header), &read);
 
     if (read != sizeof(header))
@@ -1444,7 +1444,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
     for (int seg = 0; seg < header.segments; seg++)
     {
-        struct ESP32_segment segment;
+        struct ESP32_segment segment = {0};
 
         fsSeekFile(file, offset_current, FS_SEEK_SET);
         error = fsReadFile(file, &segment, sizeof(segment), &read);
@@ -1561,7 +1561,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
 error_t esp32_fixup(const char *path, bool modify)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(path, &length);
 
     if (error || length < 0x9000)
@@ -1580,7 +1580,7 @@ error_t esp32_fixup(const char *path, bool modify)
 
 error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char *out_path)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(firmware, &length);
 
     if (error || length < 0x9000)
@@ -1591,8 +1591,8 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
 
     FsFile *file = fsOpenFileEx(firmware, "rb+");
 
-    size_t part_offset;
-    size_t part_size;
+    size_t part_offset = 0;
+    size_t part_size = 0;
     error = esp32_get_partition(file, 0x9000, "assets", &part_offset, &part_size);
     if (error != NO_ERROR)
     {
@@ -1608,7 +1608,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
 
 error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char *in_path)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(firmware, &length);
 
     if (error || length < 0x9000)
@@ -1619,8 +1619,8 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
 
     FsFile *file = fsOpenFileEx(firmware, "rb+");
 
-    size_t part_offset;
-    size_t part_size;
+    size_t part_offset = 0;
+    size_t part_size = 0;
     error = esp32_get_partition(file, 0x9000, "assets", &part_offset, &part_size);
     if (error != NO_ERROR)
     {

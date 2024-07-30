@@ -89,7 +89,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
     }
 
-    TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
+    TRACE_INFO(" >> OTA-Request for %d with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
     settings_internal_toniebox_firmware_t *toniebox_fw = &client_ctx->settings->internal.toniebox_firmware;
 
@@ -619,18 +619,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
             ffmpeg_ctx.sweep = false;
-            if (!ffmpeg_ctx.append)
+
+            osDelayTask(delay);
+            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            if (response_error)
             {
-                osDelayTask(delay);
-            }
-            else
-            {
-                osDelayTask(delay);
-            }
-            error_t error = httpSendResponseStream(connection, streamFileRel, true);
-            if (error)
-            {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }
         }
         stream_ctx->active = false;
@@ -667,10 +661,10 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
         if (stream_ctx->error == NO_ERROR)
         {
-            error_t error = httpSendResponseStream(connection, streamFileRel, true);
+            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }
         }
         else
@@ -679,7 +673,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
 
         stream_ctx->active = false;
-        ;
+        
         while (!stream_ctx->quit)
         {
             osDelayTask(100);

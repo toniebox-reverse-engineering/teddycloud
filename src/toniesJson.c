@@ -375,7 +375,7 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
     else
     {
         TRACE_INFO("Create empty json file\r\n");
-        FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
+        fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
         if (fsFile != NULL)
         {
             fsWriteFile(fsFile, "[]", 2);
@@ -528,12 +528,10 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
 {
 #if TONIES_JSON_CACHED == 1
     size_t count = *result_size;
-    size_t count_model = 0;
-    size_t count_series = 0;
-    size_t count_episode = 0;
 
     if (model != NULL && osStrlen(model) > 0)
     {
+        size_t count_model = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_model >= (max_slots - count) / 3)
@@ -561,6 +559,7 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     }
     if (series != NULL && osStrlen(series) > 0)
     {
+        size_t count_series = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_series >= (max_slots - count) / 2)
@@ -588,6 +587,7 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     }
     if (episode != NULL && osStrlen(episode) > 0)
     {
+        size_t count_episode = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_episode >= (max_slots - count) / 1)
@@ -650,15 +650,14 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         osFreeMem(item->picture);
         if (item->tracks_count > 0)
         {
-            for (size_t i = 0; i < item->tracks_count; i++)
+            for (size_t track = 0; track < item->tracks_count; track++)
             {
-                osFreeMem(item->tracks[i]);
+                osFreeMem(item->tracks[track]);
             }
             osFreeMem(item->tracks);
         }
     }
     osFreeMem(toniesCache);
-    toniesCache = NULL;
 #endif
 }
 

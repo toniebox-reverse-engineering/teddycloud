@@ -424,12 +424,21 @@ uint8_t get_overlay_id(const char *overlay_unique_id)
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
+    if(!resolvedPath || !*resolvedPath || !path)
+    {
+        return;
+    }
+
     if (path[0] == PATH_SEPARATOR_LINUX || (osStrlen(path) > 1 && path[1] == ':' && path[2] == PATH_SEPARATOR_WINDOWS))
     {
         snprintf(*resolvedPath, 255, "%s", path);
     }
     else
     {
+        if(!basePath)
+        {
+            return;
+        }
         if (path[0] == '\0')
         {
             snprintf(*resolvedPath, 255, "%s", basePath);
@@ -516,6 +525,11 @@ void settings_changed_id(uint8_t settingsId)
 
 static void settings_deinit_ovl(uint8_t overlayNumber)
 {
+    if(overlayNumber >= MAX_OVERLAYS)
+    {
+        return;
+    }
+
     if (!Settings_Overlay[overlayNumber].internal.config_init)
     {
         return;
@@ -1212,7 +1226,7 @@ bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settings
 
     if (value < opt->min.unsigned_value || value > opt->max.unsigned_value)
     {
-        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        TRACE_ERROR("  %s = %u out of bounds\r\n", opt->option_name, value);
         return false;
     }
 

@@ -32,6 +32,7 @@ char *custom_asprintf(const char *fmt, ...)
 
     if (length < 0)
     {
+        va_end(args);
         return NULL;
     }
 
@@ -39,6 +40,7 @@ char *custom_asprintf(const char *fmt, ...)
     char *new_str = osAllocMem(length + 1); // Add 1 for the null terminator
     if (new_str == NULL)
     {
+        va_end(args);
         return NULL;
     }
 
@@ -53,12 +55,14 @@ char *custom_asprintf(const char *fmt, ...)
 
 int urldecode(char *dest, size_t dest_max, const char *src)
 {
-    char a, b;
     size_t dest_idx = 0;
     size_t src_idx = 0;
 
     while (src[src_idx] && dest_idx < dest_max - 1)
     {
+        char a = 0;
+        char b = 0;
+        
         if ((src[src_idx] == '%') &&
             ((a = src[src_idx + 1]) && (b = src[src_idx + 2])) &&
             (isxdigit(a) && isxdigit(b)))

@@ -75,7 +75,7 @@ error_t der_get_length(FsFile *fp, size_t *outLength)
         uint32_t length = 0;
         for (uint8_t i = 0; i < num_bytes; i++)
         {
-            error_t err = fsReadFile(fp, &derLen, 1, &len);
+            err = fsReadFile(fp, &derLen, 1, &len);
             if (err != NO_ERROR || len != 1)
             {
                 *outLength = 0;
@@ -426,7 +426,7 @@ static void copyAsString(char *dst, size_t dstLen, size_t srcLen, const char_t *
 
 static void copyAsHex(char *dst, size_t dstLen, size_t payloadLen, const uint8_t *payloadData)
 {
-    if (payloadLen <= 0 || dstLen <= 0)
+    if (payloadLen == 0 || dstLen == 0)
     {
         return;
     }

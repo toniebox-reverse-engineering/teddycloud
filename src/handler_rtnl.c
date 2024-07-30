@@ -35,6 +35,8 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
     const size_t num_replacements = sizeof(replacements) / sizeof(replacements[0]);
 
     size_t input_length = size;
+
+    /* ToDo: this escaped_length code is not used - intentional through refacotring? */
     size_t escaped_length = 0;
 
     // First pass to count the number of additional characters required for escaping
@@ -151,16 +153,19 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
 int32_t read_little_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+    return (int32_t)(buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24));
 }
+
 int64_t read_little_endian64(const uint8_t *buf)
 {
     return ((int64_t)read_little_endian32(&buf[4])) | (((int64_t)read_little_endian32(buf)) << 32);
 }
+
 int32_t read_big_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
+    return (int32_t)(buf[3] | (buf[2] << 8) | (buf[1] << 16) | (buf[0] << 24));
 }
+
 int64_t read_big_endian64(const uint8_t *buf)
 {
     return ((int64_t)read_big_endian32(buf)) | (((int64_t)read_big_endian32(&buf[4])) << 32);
@@ -297,7 +302,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
 
     if (rpc->log2)
     {
-        char buffer[33];
+        char str_buf[33];
 
         if (rpc->log2->function_group == RTNL2_FUGR_TAG)
         {
@@ -314,10 +319,10 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         {
             uint32_t audioId = read_little_endian32(rpc->log2->field6.data);
             client_ctx->state->tag.audio_id = audioId;
-            osSprintf(buffer, "%d", audioId);
+            osSprintf(str_buf, "%d", audioId);
             toniesJson_item_t *item = tonies_byAudioId(audioId);
-            sse_sendEvent("ContentAudioId", buffer, true);
-            mqtt_sendBoxEvent("ContentAudioId", buffer, client_ctx);
+            sse_sendEvent("ContentAudioId", str_buf, true);
+            mqtt_sendBoxEvent("ContentAudioId", str_buf, client_ctx);
 
             if (item == NULL || audioId == SPECIAL_AUDIO_ID_ONE)
             {
@@ -361,16 +366,16 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             if (rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
             {
                 int32_t angle = read_little_endian32(rpc->log2->field6.data);
-                osSprintf(buffer, "%d", angle);
-                sse_sendEvent("BoxTilt-A", buffer, true);
-                mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+                osSprintf(str_buf, "%d", angle);
+                sse_sendEvent("BoxTilt-A", str_buf, true);
+                mqtt_sendBoxEvent("BoxTilt", str_buf, client_ctx);
             }
             else if (rpc->log2->function == RTNL2_FUNC_TILT_B_ESP32)
             {
                 int32_t angle = read_little_endian32(rpc->log2->field6.data);
-                osSprintf(buffer, "%d", angle);
-                sse_sendEvent("BoxTilt-B", buffer, true);
-                mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+                osSprintf(str_buf, "%d", angle);
+                sse_sendEvent("BoxTilt-B", str_buf, true);
+                mqtt_sendBoxEvent("BoxTilt", str_buf, client_ctx);
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME)
@@ -380,12 +385,12 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                 /* DE210000 DBFFFFFF 01000000 */ /* 963C0000 D8FFFFFF 00000000 */
                 int32_t volumedB = read_little_endian32(&rpc->log2->field6.data[4]);
                 int32_t volumeLevel = read_little_endian32(&rpc->log2->field6.data[8]);
-                osSprintf(buffer, "%d", volumeLevel);
-                sse_sendEvent("VolumeLevel", buffer, true);
-                mqtt_sendBoxEvent("VolumeLevel", buffer, client_ctx);
-                osSprintf(buffer, "%d", volumedB);
-                sse_sendEvent("VolumedB", buffer, true);
-                mqtt_sendBoxEvent("VolumedB", buffer, client_ctx);
+                osSprintf(str_buf, "%d", volumeLevel);
+                sse_sendEvent("VolumeLevel", str_buf, true);
+                mqtt_sendBoxEvent("VolumeLevel", str_buf, client_ctx);
+                osSprintf(str_buf, "%d", volumedB);
+                sse_sendEvent("VolumedB", str_buf, true);
+                mqtt_sendBoxEvent("VolumedB", str_buf, client_ctx);
 
                 settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
                 if (rpc->log2->uptime - rtnl_setting->lastEarpress < rtnl_setting->multipressTime)

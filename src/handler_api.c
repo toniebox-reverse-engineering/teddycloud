@@ -98,11 +98,11 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
 {
     char special[16];
 
-    osStrcpy(overlay, "");
     osStrcpy(special, "");
 
     if (overlay)
     {
+        osStrcpy(overlay, "");
         if (queryGet(queryString, "overlay", overlay, overlay_size))
         {
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -326,7 +326,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
-error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     cJSON *json = cJSON_CreateObject();
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "boxes");
@@ -431,7 +431,7 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
                 break;
             case TYPE_HEX:
             case TYPE_UNSIGNED:
-                osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
+                osSprintf(response, "%u", settings_get_unsigned_ovl(item, overlay));
                 break;
             case TYPE_SIGNED:
                 osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
@@ -566,7 +566,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
     return httpWriteResponseString(connection, response, false);
 }
-error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
     osSprintf(response, "ERROR");
@@ -1071,8 +1071,9 @@ error_t file_save_end_cert(void *in_ctx)
 error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
-    char message[128];
-    char overlay[16];
+    char message[128] = {0};
+    char overlay[16] = {0};
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -2550,9 +2551,9 @@ error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const 
     }
 
     char username[256];
-    char passwordHash[256];
     if (queryGet(post_data, "username", username, sizeof(username)))
     {
+        char passwordHash[256];
         if (queryGet(post_data, "passwordHash", passwordHash, sizeof(passwordHash)))
         {
             if (osStrcmp("admin", username) == 0) // && osStrcmp("admin", passwordHash) == 0)
