@@ -551,5 +551,5 @@ auto:
 # Run cppcheck for static code analysis
 cppcheck:
 	$(QUIET)$(ECHO)  "[ ${CYAN}CHK${NC} ] Running cppcheck"
-	cppcheck --enable=all --inconclusive --force --std=c99 --language=c --xml --output-file=cppcheck.xml $(SOURCES)
+	cppcheck -j6 --enable=all --inconclusive --std=c99 --language=c --platform=unspecified --report-progress --suppress=missingIncludeSystem --xml --output-file=cppcheck.xml $(wildcard $(SRC_DIR)/*.c) $(INCLUDES) -D GPL_LICENSE_TERMS_ACCEPTED -D TRACE_NOPATH_FILE
 	cppcheck-htmlreport --file=cppcheck.xml --report-dir=cppcheck
