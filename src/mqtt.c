@@ -291,7 +291,7 @@ bool mqtt_subscribe(const char *item_topic)
 
 error_t mqttConnect(MqttClientContext *mqtt_context)
 {
-    error_t error = 0;
+    error_t error = NO_ERROR;
 
     mqttClientInit(mqtt_context);
     mqttClientSetVersion(mqtt_context, MQTT_VERSION_3_1_1);
@@ -318,6 +318,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
             return ERROR_FAILURE;
         }
 
+        /* ToDo: this code seems to have gone through all IP addresses for that host, but doesn't do that anymore */
         int pos = 0;
         do
         {

@@ -159,8 +159,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
             {
                 continue;
             }
-            char *filename = strdup(entry.name);
-            char *biggest_timestamp_txt = strtok(filename, "-_");
+            char *tmpname = strdup(entry.name);
+            char *biggest_timestamp_txt = strtok(tmpname, "-_");
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
@@ -168,7 +168,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
                 osFreeMem(biggest_filename);
                 biggest_filename = strdup(entry.name);
             }
-            osFreeMem(filename);
+            osFreeMem(tmpname);
         }
     }
 
@@ -662,7 +662,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         if (stream_ctx->error == NO_ERROR)
         {
             error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
-            if (error)
+            if (response_error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }

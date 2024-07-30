@@ -963,7 +963,7 @@ error_t esp32_nvs_add(FsFile *file, size_t offset, size_t length, const char *na
                 }
             }
 
-            if (!candidate || item->nsIndex <= 0)
+            if (!candidate || item->nsIndex == 0)
             {
                 continue;
             }
@@ -1366,15 +1366,14 @@ error_t esp32_get_partition(FsFile *file, size_t offset, const char *label, size
     size_t offset_current = offset;
     struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error = NO_ERROR;
     TRACE_INFO("Search for partition '%s'\r\n", label);
 
     while (true)
     {
-        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        size_t read = 0;
 
-        size_t read;
-        error = fsReadFile(file, &entry, sizeof(entry), &read);
+        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        error_t error = fsReadFile(file, &entry, sizeof(entry), &read);
 
         if (error != NO_ERROR || read != sizeof(entry))
         {

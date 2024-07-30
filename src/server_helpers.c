@@ -610,7 +610,6 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
     error_t error;
     int_t i = 0;
     int_t j = -1;
-    int_t k = 0;
     int32_t value = -1;
 
     // Parse input string
@@ -713,13 +712,13 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
                 ipAddr->w[i++] = htons(value);
 
             // Move the part of the address that follows the "::" symbol
-            for (k = 0; k < (i - j); k++)
+            for (int k = 0; k < (i - j); k++)
             {
                 ipAddr->w[7 - k] = ipAddr->w[i - 1 - k];
             }
 
             // A sequence of zeroes can now be written in place of "::"
-            for (k = 0; k < (8 - i); k++)
+            for (int k = 0; k < (8 - i); k++)
             {
                 ipAddr->w[j + k] = 0;
             }

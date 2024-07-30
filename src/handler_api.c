@@ -188,7 +188,6 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = NULL;
-    error_t ret = NO_ERROR;
 
     TRACE_INFO("Query: '%s'\r\n", queryString);
 
@@ -207,18 +206,15 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
         TRACE_INFO("got path '%s'\r\n", path);
     }
 
-    if (ret == NO_ERROR)
-    {
-        /* important: first canonicalize path, then merge to prevent directory traversal attacks */
-        pathSafeCanonicalize(path);
-        char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
-        pathSafeCanonicalize(pathAbsolute);
+    /* important: first canonicalize path, then merge to prevent directory traversal attacks */
+    pathSafeCanonicalize(path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    pathSafeCanonicalize(pathAbsolute);
 
-        TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
+    TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-        settings_set_string("internal.assign_unknown", pathAbsolute);
-        osFreeMem(pathAbsolute);
-    }
+    settings_set_string("internal.assign_unknown", pathAbsolute);
+    osFreeMem(pathAbsolute);
 
     return httpOkResponse(connection);
 }
@@ -422,29 +418,26 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
 
     if (opt->level != LEVEL_SECRET)
     {
-        if (opt)
+        switch (opt->type)
         {
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
-                break;
-            case TYPE_HEX:
-            case TYPE_UNSIGNED:
-                osSprintf(response, "%u", settings_get_unsigned_ovl(item, overlay));
-                break;
-            case TYPE_SIGNED:
-                osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
-                break;
-            case TYPE_STRING:
-                response_ptr = settings_get_string_ovl(item, overlay);
-                break;
-            case TYPE_FLOAT:
-                osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
-                break;
-            default:
-                break;
-            }
+        case TYPE_BOOL:
+            osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
+            break;
+        case TYPE_HEX:
+        case TYPE_UNSIGNED:
+            osSprintf(response, "%u", settings_get_unsigned_ovl(item, overlay));
+            break;
+        case TYPE_SIGNED:
+            osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
+            break;
+        case TYPE_STRING:
+            response_ptr = settings_get_string_ovl(item, overlay);
+            break;
+        case TYPE_FLOAT:
+            osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
+            break;
+        default:
+            break;
         }
     }
 

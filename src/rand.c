@@ -65,7 +65,7 @@ error_t rand_init()
         {
             // Linux Kernel < 3.17
             TRACE_WARNING("Syscall getrandom not available, fallback to /dev/urandom (%d)\r\n", errno);
-            int ret = rand_get_bytes(seed, sizeof(seed));
+            ret = rand_get_bytes(seed, sizeof(seed));
             if (ret < 0)
             {
                 TRACE_ERROR("Error: Failed to generate random data (%d)\r\n", errno);
