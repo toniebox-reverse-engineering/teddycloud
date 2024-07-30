@@ -537,9 +537,10 @@ int_t main(int argc, char *argv[])
 
 #define SAMPLES 333333
         int sample_total = 0;
-        int16_t *sample_buffer = osAllocMem(2 * SAMPLES * sizeof(int16_t));
+        int sample_buffer_size = 2 * SAMPLES * sizeof(int16_t);
+        int16_t *sample_buffer = osAllocMem(sample_buffer_size);
 
-        osMemset(sample_buffer, 0x00, sizeof(2 * SAMPLES * sizeof(int16_t)));
+        osMemset(sample_buffer, 0x00, sample_buffer_size);
 
         for (int pos = 0; pos < 100; pos++)
         {
