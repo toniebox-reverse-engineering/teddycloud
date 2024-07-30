@@ -431,7 +431,7 @@ void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src);
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay_unique_id);
 settings_t *get_settings_id(uint8_t settingsId);
-settings_t *get_settings_cn(const char *cn);
+settings_t *get_settings_cn(const char *commonName);
 uint8_t get_overlay_id(const char *overlay_unique_id);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
@@ -443,7 +443,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(const char *cwd, const char *base_path);
+error_t settings_init(const char *cwd, const char *base_dir);
 
 /**
  * @brief Deinitializes the settings subsystem.

@@ -62,7 +62,7 @@ error_t toniefile_new_chapter(toniefile_t *ctx);
 FILE *ffmpeg_decode_audio_start(const char *input_source);
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds);
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error);
-error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *bytes_read);
+error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *blocks_read);
 error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream);
 error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds);
 void ffmpeg_stream_task(void *param);
