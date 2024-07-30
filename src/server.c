@@ -157,7 +157,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         TRACE_DEBUG("No certificate authentication\r\n");
         request_source = "unknown/web";
     }
-    TRACE_DEBUG("Started server request to %s, request %" PRIuSIZE ", by %s\r\n", uri, openRequests, request_source);
+    TRACE_DEBUG("Started server request to %s, request %zu, by %s\r\n", uri, openRequests, request_source);
 
     TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
@@ -391,7 +391,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         }
     } while (0);
 
-    TRACE_DEBUG("Stopped server request to %s, request %" PRIuSIZE "\r\n", uri, openRequests);
+    TRACE_DEBUG("Stopped server request to %s, request %zu\r\n", uri, openRequests);
     openRequestsLast--;
     return error;
 }
@@ -698,7 +698,7 @@ void server_init(bool test)
         if (openConnections != openConnectionsLast)
         {
             openConnectionsLast = openConnections;
-            TRACE_INFO("%" PRIuSIZE " open HTTPS connections\r\n", openConnections);
+            TRACE_INFO("%zu open HTTPS connections\r\n", openConnections);
         }
         for (size_t i = 0; i < MAX_OVERLAYS; i++)
         {

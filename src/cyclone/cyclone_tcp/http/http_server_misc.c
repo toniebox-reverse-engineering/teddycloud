@@ -949,7 +949,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    else if(connection->response.keepAlive)
    {
       //Set Content-Length field
-      p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
+      p += osSprintf(p, "Content-Length: %zu\r\n", connection->response.contentLength);
    }
 
    //Terminate the header with an empty line

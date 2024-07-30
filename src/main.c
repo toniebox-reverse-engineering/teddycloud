@@ -395,7 +395,7 @@ int_t main(int argc, char *argv[])
 #if !defined(FFMPEG_DECODING)
         TRACE_ERROR("Feature not available in your build.\r\n");
 #else
-        TRACE_WARNING("Encode %" PRIuSIZE " files to '%s'\r\n", options.multisource_size, options.encode);
+        TRACE_WARNING("Encode %zu files to '%s'\r\n", options.multisource_size, options.encode);
         size_t current_source = 0;
         int_t error = ffmpeg_convert(options.multisource, options.multisource_size, &current_source, options.encode, options.skip_seconds);
         exit(error);

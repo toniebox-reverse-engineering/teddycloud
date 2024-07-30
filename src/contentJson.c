@@ -101,8 +101,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                     }
                     else
                     {
-                        error_t error = tap_load(content_json->_source_resolved, &content_json->_tap);
-                        if (error == NO_ERROR && content_json->_tap._valid)
+                        error_t tap_error = tap_load(content_json->_source_resolved, &content_json->_tap);
+                        if (tap_error == NO_ERROR && content_json->_tap._valid)
                         {
                             if (content_json->_tap._cached)
                             {

@@ -30,7 +30,7 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
     size_t size;
     if (buffer_size <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size  %zu bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
         return ERROR_BUFFER_OVERFLOW;
     }
     error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
@@ -846,10 +846,10 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             if (tafInfo->valid)
             {
                 osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo->tafHeader->audio_id);
-                for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
+                for (int hash_pos = 0; hash_pos < tafInfo->tafHeader->sha1_hash.len; hash_pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
+                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
                     osStrcat(desc, tmp);
                 }
                 char extraDesc[1 + 64 + 1 + 64];

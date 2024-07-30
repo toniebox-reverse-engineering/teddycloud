@@ -240,7 +240,7 @@ error_t esp32_wl_init(struct wl_state *state, FsFile *file, size_t offset, size_
         uint8_t state_record[WL_STATE_RECORD_SIZE];
         error = fsReadFile(file, state_record, sizeof(state_record), &read);
 
-        if (read != sizeof(state_record))
+        if (error != NO_ERROR || read != sizeof(state_record))
         {
             TRACE_ERROR("Failed to read state_record\r\n");
             return ERROR_FAILURE;
@@ -1026,7 +1026,7 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 {
                     break;
                 }
-                TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
+                TRACE_INFO("  %-12s %-10" PRIu32 " %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
                            ((fileInfo.fdate >> 9) & 0x7F) + 1980,
                            (fileInfo.fdate >> 5) & 0x0F,
                            (fileInfo.fdate) & 0x1F,
@@ -1088,7 +1088,7 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             pathCombine(outFileName, fileInfo.fname, FS_MAX_PATH_LEN);
             pathCanonicalize(outFileName);
 
-            TRACE_INFO("Write '%s to '%s' (%u bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
+            TRACE_INFO("Write '%s to '%s' (%" PRIu32 " bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
 
             FsFile *outFile = fsOpenFile(outFileName, FS_FILE_MODE_WRITE);
             if (!outFile)
@@ -1209,7 +1209,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
                 TRACE_ERROR("Failed to read from input file\r\n");
                 return ERROR_FAILURE;
             }
-            TRACE_INFO("  Read %" PRIuSIZE " byte\r\n", read);
+            TRACE_INFO("  Read %zu byte\r\n", read);
 
             uint32_t written;
             if (f_write(&fp, buffer, read, &written) != FR_OK || read != written)
@@ -1237,9 +1237,9 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
 error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
 {
     size_t offset_current = offset;
-    struct ESP32_part_entry entry;
+    struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error;
+    error_t error = 0;
 
     while (true)
     {
@@ -1427,7 +1427,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
     size_t read = 0;
     error_t error = fsReadFile(file, &header, sizeof(header), &read);
 
-    if (read != sizeof(header))
+    if (error != NO_ERROR || read != sizeof(header))
     {
         TRACE_ERROR("Failed to read header\r\n");
         return ERROR_FAILURE;
@@ -1449,7 +1449,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
         fsSeekFile(file, offset_current, FS_SEEK_SET);
         error = fsReadFile(file, &segment, sizeof(segment), &read);
 
-        if (read != sizeof(segment))
+        if (error != NO_ERROR || read != sizeof(segment))
         {
             TRACE_ERROR("Failed to read segment\r\n");
             return ERROR_FAILURE;
@@ -1471,7 +1471,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
             fsSeekFile(file, offset_current, FS_SEEK_SET);
             error = fsReadFile(file, buffer, maxLen, &read);
-            if (read != maxLen)
+            if (error != NO_ERROR || read != maxLen)
             {
                 TRACE_ERROR("Failed to read data\r\n");
                 return ERROR_FAILURE;
@@ -1495,7 +1495,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
     uint8_t chk;
     error = fsReadFile(file, &chk, sizeof(chk), &read);
 
-    if (read != sizeof(chk))
+    if (error != NO_ERROR || read != sizeof(chk))
     {
         TRACE_ERROR("Failed to read chk\r\n");
         return ERROR_FAILURE;
@@ -1526,7 +1526,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
         uint8_t sha256[32];
         error = fsReadFile(file, &sha256, sizeof(sha256), &read);
 
-        if (read != sizeof(sha256))
+        if (error != NO_ERROR || read != sizeof(sha256))
         {
             TRACE_ERROR("Failed to read sha256\r\n");
             return ERROR_FAILURE;

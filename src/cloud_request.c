@@ -255,9 +255,9 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
                 osStrcpy(auth_line, "BD ");
 
-                for (int pos = 0; pos < TONIE_AUTH_TOKEN_LENGTH; pos++)
+                for (int token_pos = 0; token_pos < TONIE_AUTH_TOKEN_LENGTH; token_pos++)
                 {
-                    osSprintf(tmp, "%02X", hash[pos]);
+                    osSprintf(tmp, "%02X", hash[token_pos]);
                     osStrcat(auth_line, tmp);
                 }
                 httpClientAddHeaderField(&httpClientContext, "Authorization", auth_line);

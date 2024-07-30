@@ -276,7 +276,7 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
 
     size_t fileSize = 0;
     fsGetFileSize(source, (uint32_t *)(&fileSize));
-    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", source, fileSize);
+    TRACE_INFO("Trying to read %s with size %zu\r\n", source, fileSize);
 
     FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_READ);
     if (fsFile != NULL)
