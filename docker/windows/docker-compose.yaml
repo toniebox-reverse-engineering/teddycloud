@@ -1,0 +1,16 @@
+services:
+  teddycloud:
+    container_name: teddycloud
+    hostname: teddycloud
+    image: ghcr.io/toniebox-reverse-engineering/teddycloud:latest
+    ports:
+      - 80:80 #optional, needed for web administration could be mapped to another port
+      - 443:443 #port is needed for the connection for the box, must be 443
+    volumes:
+    # use subdirectorys beside this docker-compose file
+      - ./certs:/teddycloud/certs
+      - ./config:/teddycloud/config
+      - ./content:/teddycloud/data/content
+      - ./library:/teddycloud/data/library
+      - ./firmware:/teddycloud/data/firmware
+    restart: unless-stopped
