@@ -545,3 +545,11 @@ auto:
 		fi; \
 		sleep 1; \
 	done;
+
+.PHONY: cppcheck
+
+# Run cppcheck for static code analysis
+cppcheck:
+	$(QUIET)$(ECHO)  "[ ${CYAN}CHK${NC} ] Running cppcheck"
+	cppcheck --enable=all --inconclusive --force --std=c99 --language=c --xml --output-file=cppcheck.xml $(SOURCES)
+	cppcheck-htmlreport --file=cppcheck.xml --report-dir=cppcheck
