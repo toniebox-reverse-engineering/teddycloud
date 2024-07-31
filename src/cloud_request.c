@@ -1,34 +1,29 @@
 
-#ifdef WIN32
-#else
-#include <sys/random.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#endif
 
-#include <errno.h>
-#include <stdlib.h>
+#include <errno.h>             // for error_t
+#include <stdint.h>            // for uint8_t
+#include <stdio.h>             // for snprintf
+#include <stdlib.h>            // for NULL, size_t
+#include <string.h>            // for strlen, strcpy, strncpy, strchr, strncmp
 
-#include "tls.h"
-#include "pem_export.h"
-#include "tls_cipher_suites.h"
-#include "cloud_request.h"
-#include "http/http_client.h"
-#include "rand.h"
-#include "debug.h"
-#include "settings.h"
-
-#include "tls_adapter.h"
-#include "handler_api.h"
-#include "settings.h"
-#include "mqtt.h"
-#include "platform.h"
-
-#include "handler_cloud.h"
+#include "cloud_request.h"     // for req_cbr_t, cloud_request, cloud_reques...
+#include "compiler_port.h"     // for char_t, int_t, uint_t
+#include "core/net.h"          // for IpAddr, (anonymous struct)::(anonymous)
+#include "debug.h"             // for TRACE_INFO, TRACE_ERROR, TRACE_DEBUG
+#include "error.h"             // for error2text, NO_ERROR, ERROR_ADDRESS_NO...
+#include "handler.h"           // for cbr_ctx_t
+#include "handler_api.h"       // for stats_update
+#include "http/http_client.h"  // for httpClientAddHeaderField, httpClientDi...
+#include "http/http_common.h"  // for HTTP_VERSION_1_1
+#include "mqtt.h"              // for mqtt_sendEvent
+#include "net_config.h"        // for client_ctx_t, TONIE_AUTH_TOKEN_LENGTH
+#include "os_port.h"           // for osAllocMem, osFreeMem, FALSE, TRUE
+#include "platform.h"          // for resolve_free, resolve_get_ip, resolve_...
+#include "rand.h"              // for rand_get_algo, rand_get_context
+#include "settings.h"          // for settings_t, get_settings, settings_cert_t
+#include "stdbool.h"           // for bool, true, false
+#include "tls.h"               // for TlsContext, _TlsContext (ptr only)
+#include "tls_adapter.h"       // for tls_context_key_log_init
 
 #define MAX_REDIRECTS 5
 

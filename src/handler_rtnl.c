@@ -1,7 +1,3 @@
-#ifdef WIN32
-#else
-#include <unistd.h>
-#endif
 
 #include <sys/types.h>
 #include <time.h>

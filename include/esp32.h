@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "fs_port.h"
 #include "error.h"
 

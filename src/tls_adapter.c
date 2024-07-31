@@ -1,34 +1,30 @@
-#include <errno.h>
-#ifdef WIN32
-#else
-#include <sys/random.h>
-#include <fcntl.h>
-#include <unistd.h>
-#endif
 
-#include "pem_export.h"
-#include "rand.h"
-#include "tls_adapter.h"
-#include "error.h"
-#include "debug.h"
-#include "settings.h"
-#include "fs_port.h"
-#include "fs_ext.h"
+#include "tls_adapter.h"              // for load_cert, tls_adapter_deinit
 
-// tsl_certificate.c function Dependencies
-#include <string.h>
-#include <ctype.h>
-#include "tls.h"
-#include "tls_certificate.h"
-#include "tls_misc.h"
-#include "encoding/asn1.h"
-#include "encoding/oid.h"
-#include "pkix/pem_import.h"
-#include "pkix/x509_cert_parse.h"
-#include "pkix/x509_cert_validate.h"
-#include "pkix/x509_key_parse.h"
-#include "debug.h"
-#include "cert.h"
+#include <errno.h>                    // for error_t
+#include <stdint.h>                   // for uint8_t, uint32_t
+#include <stdio.h>                    // for sprintf
+#include <stdlib.h>                   // for free
+#include <string.h>                   // for NULL, size_t, memcpy, strlen
+
+#include "compiler_port.h"            // for char_t, uint_t
+#include "cpu_endian.h"               // for LOAD24BE
+#include "debug.h"                    // for TRACE_ERROR, TRACE_INFO, TRACE_...
+#include "encoding/asn1.h"            // for asn1DumpObject
+#include "error.h"                    // for NO_ERROR, ERROR_BAD_CERTIFICATE
+#include "fs_ext.h"                   // for fsOpenFileEx
+#include "fs_port.h"                  // for FS_FILE_MODE_READ
+#include "fs_port_posix.h"            // for fsReadFile, fsCloseFile, fsOpen...
+#include "os_port.h"                  // for osFreeMem, osAllocMem, osMemset
+#include "pem_common.h"               // for pemEncodeFile
+#include "pkix/x509_cert_parse.h"     // for x509ParseCertificate
+#include "pkix/x509_cert_validate.h"  // for x509CheckNameConstraints, x509C...
+#include "settings.h"                 // for settings_get_string_id, setting...
+#include "stdbool.h"                  // for false, bool, true
+#include "tls.h"                      // for _TlsContext, TLS_VERSION_1_3
+#include "tls_certificate.h"          // for tlsValidateCertificate, tlsChec...
+#include "tls_misc.h"                 // for tlsGetCurveInfo
+#include "x509_common.h"              // for X509CertInfo, X509TbsCertificate
 
 TlsCache *tlsCache;
 

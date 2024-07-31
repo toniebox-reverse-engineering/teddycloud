@@ -1,20 +1,29 @@
 
 #define TRACE_LEVEL TRACE_LEVEL_INFO
 
-#include <stdint.h>
-
-#include "hash/sha256.h"
-#include "fs_ext.h"
-#include "path.h"
-#include "debug.h"
-
 #include "esp32.h"
 
-#include "ff.h"
-#include "diskio.h"
-#include "server_helpers.h"
-#include "cert.h"
-#include "pem_import.h"
+#include <errno.h>          // for error_t
+#include <inttypes.h>       // for PRIX32, PRIu32, PRIX8, PRIX16, PRIX64
+#include <stdint.h>         // for uint8_t, uint32_t, uint16_t, int16_t, int...
+#include <stdbool.h>        // for bool, true, false
+#include <string.h>         // for size_t, strcmp, memcmp, memset, NULL
+#include <time.h>           // for time_t
+
+#include "cert.h"           // for cert_generate_mac
+#include "date_time.h"      // for DateTime, convertUnixTimeToDate, getCurre...
+#include "debug.h"          // for TRACE_INFO, TRACE_ERROR, TRACE_LEVEL_INFO
+#include "diskio.h"         // for RES_OK, DRESULT, DSTATUS, RES_ERROR, disk...
+#include "error.h"          // for NO_ERROR, ERROR_FAILURE, ERROR_NOT_FOUND
+#include "ff.h"             // for FILINFO, FR_OK, BYTE, f_mount, f_close
+#include "fs_ext.h"         // for fsOpenFileEx
+#include "fs_port.h"        // for FS_SEEK_SET, FsDirEntry, FS_FILE_MODE_WRITE
+#include "hash/sha256.h"    // for sha256Update, sha256Final, sha256Init
+#include "os_port.h"        // for osFreeMem, osAllocMem, osStrcpy, osStrlen
+#include "path.h"           // for pathAddSlash, pathCanonicalize, pathCombine
+#include "pem_import.h"     // for pemImportCertificate
+#include "settings.h"       // for settings_get_string
+#include "server_helpers.h" // for custom_asprintf
 
 #define ESP_PARTITION_TYPE_APP 0
 #define ESP_PARTITION_TYPE_DATA 1
@@ -501,6 +510,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
         {
         case 0x00:
         case 0x10:
+        {
             char type_string[32] = {0};
             osSprintf(type_string, "%sint%i_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
             TRACE_INFO("      Type        %s (0x%08" PRIX32 ")\r\n", type_string, item->datatype);
@@ -533,6 +543,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
                 break;
             }
             break;
+        }
         }
 
         switch (item->datatype)

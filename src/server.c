@@ -1,44 +1,41 @@
 
-#ifdef WIN32
-#else
-#include <sys/random.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#endif
 
-#include "core/net.h"
-#include "core/ethernet.h"
-#include "core/ip.h"
-#include "core/tcp.h"
-#include "http/http_server.h"
-#include "http/http_server_misc.h"
-#include "rand.h"
-#include "tls_adapter.h"
-#include "settings.h"
-#include "returncodes.h"
+#include <errno.h>                 // for error_t
+#include <stdint.h>                // for uint8_t
+#include <stdio.h>                 // for printf
+#include <stdlib.h>                // for atoi, exit, free
+#include <string.h>                // for NULL, strdup, strlen, strncmp, strcmp
+#include <sys/types.h>             // for time_t
+#include <time.h>                  // for time
 
-#include "server_helpers.h"
-#include "toniesJson.h"
-
-#include "path.h"
-#include "debug.h"
-#include "os_port.h"
-
-#include "mutex_manager.h"
-#include "cloud_request.h"
-#include "toniebox_state.h"
-#include "handler_cloud.h"
-#include "handler_reverse.h"
-#include "handler_rtnl.h"
-#include "handler_api.h"
-#include "handler_sse.h"
-#include "handler_security_mit.h"
-#include "proto/toniebox.pb.rtnl.pb-c.h"
-#include "pcaplog.h"
+#include "compiler_port.h"         // for char_t, PRIuTIME
+#include "core/net.h"              // for ipStringToAddr, IpAddr
+#include "core/socket.h"           // for _Socket
+#include "debug.h"                 // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
+#include "error.h"                 // for NO_ERROR, error2text, ERROR_FAILURE
+#include "fs_port_posix.h"         // for fsDirExists
+#include "handler_api.h"           // for handleApiAssignUnknown, handleApiA...
+#include "handler_cloud.h"         // for handleCloudClaim, handleCloudConte...
+#include "handler_reverse.h"       // for handleReverse
+#include "handler_rtnl.h"          // for handleRtnl
+#include "handler_security_mit.h"  // for handleSecMitRobotsTxt, checkSecMit...
+#include "handler_sse.h"           // for handleApiSse, sse_init
+#include "http/http_common.h"      // for HTTP_AUTH_MODE_DIGEST
+#include "http/http_server.h"      // for _HttpConnection, HttpServerSettings
+#include "mutex_manager.h"         // for mutex_unlock, mutex_lock, MUTEX_CL...
+#include "net_config.h"            // for client_ctx_t, http_connection_priv...
+#include "os_port.h"               // for osFreeMem, osStrlen, osStrstr, osG...
+#include "pcaplog.h"               // for pcaplog_close, pcaplog_open
+#include "rand.h"                  // for rand_get_algo, rand_get_context
+#include "returncodes.h"           // for RETURNCODE_INVALID_CONFIG
+#include "server_helpers.h"        // for httpServerUriNotFoundCallback, cus...
+#include "settings.h"              // for settings_t, settings_get_string
+#include "stdbool.h"               // for true, bool, false
+#include "tls.h"                   // for _TlsContext, tlsLoadCertificate
+#include "tls_adapter.h"           // for tls_context_key_log_init, tlsCache
+#include "toniebox_state.h"        // for get_toniebox_state, get_toniebox_s...
+#include "toniebox_state_type.h"   // for toniebox_state_box_t, toniebox_sta...
+#include "toniesJson.h"            // for tonieboxes_update, tonies_deinit
 
 #define APP_HTTP_MAX_CONNECTIONS 32
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];

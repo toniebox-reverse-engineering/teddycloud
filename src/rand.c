@@ -1,6 +1,6 @@
 #include <errno.h>
-#ifdef WIN32
-#else
+
+#ifndef WIN32
 #include <sys/random.h>
 #include <fcntl.h>
 #include <unistd.h>

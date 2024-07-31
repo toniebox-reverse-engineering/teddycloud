@@ -1,9 +1,10 @@
 #ifndef __TLS_ADAPTER_H__
 #define __TLS_ADAPTER_H__
 
+#include <stdint.h>      // for uint8_t
 #include "error.h"
-#include "tls.h"
-#include "rng/yarrow.h"
+#include "rng/yarrow.h"  // for YarrowContext
+#include "tls.h"         // for TlsCache, TlsContext, _TlsContext (ptr only)
 
 error_t tls_adapter_deinit();
 error_t tls_adapter_init();
