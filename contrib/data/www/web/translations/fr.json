@@ -83,8 +83,10 @@
         "cancel": "Annuler",
         "confirmDeleteDialog": "Êtes-vous sûr de vouloir supprimer {{fileToDelete}}?",
         "confirmDeleteModal": "Confirmer la suppression",
+        "confirmMultipleDeleteDialog": "Êtes-vous sûr de vouloir supprimer les lignes sélectionnées ?",
         "date": "Date",
         "delete": "Supprimer",
+        "deleteMultiple": "Supprimer les lignes sélectionnées",
         "episode": "Épisode",
         "filter": "Filtrer dans le dossier actuel",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
@@ -310,6 +312,7 @@
         },
         "esp32BoxFlashing": {
             "attention": "Attention",
+            "browserNotSupported": "Le flashage de la boîte ESP32 ne peut être utilisé qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur prenant en charge l'API Web Serial, comme Chrome ou Edge.",
             "disableHttpOnlyForFlashing": "Veuillez désactiver \"Interface web uniquement HTTP\" et ouvrir la page avec HTTPS.",
             "enabledWebHttpOnly": "\"Interface web uniquement HTTP\" activée",
             "enabledWebHttpsClientCertAuth": "\"Authentification du certificat client HTTPS\" activée",
@@ -347,7 +350,7 @@
                 "hintPatchFlash": "Pour appliquer le flash sélectionné/lu avec le certificat CA de votre TeddyCloud et éventuellement effectuer d'autres ajustements tels que le nom d'hôte de TeddyCloud et/ou les identifiants WiFi, cliquez sur 'Patch' après avoir entré les informations ou passez à l'étape suivante sans patch.",
                 "hintPatchHost": "Entrez le nom d'hôte souhaité pour votre instance TeddyCloud.",
                 "hintPatchWifi": "Entrez optionnellement les identifiants WiFi pour votre Toniebox.",
-                "hintReadESP32ImportFlash": "Connecte ton UART à ton PC et à la Toniebox. Déconnecte l'alimentation de ta Toniebox. Court-circuite les trous de broche J100. Clique sur \"Lire le Flash\" ou \"Charger le fichier\", puis choisis le port COM. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
+                "hintReadESP32ImportFlash": "Déconnecte l'alimentation de ta Toniebox. Connecte ton UART à ton PC et à la Toniebox. Court-circuite les trous de broche J100. Clique sur \"Lire le Flash\" ou \"Charger le fichier\", puis choisis le port COM. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
                 "hostnameToLong": "Le nom d'hôte doit être inférieur à 13 caractères.",
@@ -484,6 +487,7 @@
         "encoder": {
             "filename": "Nom du fichier",
             "navigationTitle": "Encodeur audio",
+            "processing": "Traitement...",
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
             "targetDirectory": "Choisir le répertoire cible",
@@ -491,8 +495,10 @@
             "upload": "Télécharger",
             "uploadFailed": "Le téléchargement a rencontré une erreur",
             "uploadFiles": "Sélectionner le(s) fichier(s)",
+            "uploadHint": "Faites glisser les fichiers audio ici !",
             "uploading": "Téléchargement...",
-            "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque"
+            "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque",
+            "uploadText": "Cliquez ou faites glisser les fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
         },
         "infoModal": {
             "exists": "Existe:",

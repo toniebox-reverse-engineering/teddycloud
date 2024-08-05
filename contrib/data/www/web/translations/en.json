@@ -83,8 +83,10 @@
         "cancel": "Cancel",
         "confirmDeleteDialog": "Are you sure you want to delete {{fileToDelete}}?",
         "confirmDeleteModal": "Confirm delete",
+        "confirmMultipleDeleteDialog": "Are you sure you want to delete the selected rows?",
         "date": "Date",
         "delete": "Delete",
+        "deleteMultiple": "Delete selected rows",
         "episode": "Episode",
         "filter": "Filter within current folder",
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
@@ -310,6 +312,7 @@
         },
         "esp32BoxFlashing": {
             "attention": "Attention",
+            "browserNotSupported": "ESP32 Box Flashing can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
             "disableHttpOnlyForFlashing": "Please disable \"Webinterface http only\" and open page with https.",
             "enabledWebHttpOnly": "\"Webinterface HTTP only\" enabled",
             "enabledWebHttpsClientCertAuth": "\"HTTPS client cert auth\" enabled",
@@ -347,7 +350,7 @@
                 "hintPatchFlash": "To apply the selected/read flash with your TeddyCloud CA certificate and possibly make other adjustments like the TeddyCloud hostname and/or WiFi credentials, click 'Patch' after entering the information or proceed to the next step without patching.",
                 "hintPatchHost": "Enter the desired hostname for your TeddyCloud instance.",
                 "hintPatchWifi": "Optionally enter the WiFi credentials for your Toniebox.",
-                "hintReadESP32ImportFlash": "Now connect your UART with your PC and Toniebox. Disconnect the Powersource of your Toniebox. Short cut the J100 pinholes. Click on \"Read Flash\" or \"Load File\", then choose the COM-Port. Then connect your Toniebox to power and wait till the step is done!",
+                "hintReadESP32ImportFlash": "Now disconnect the Powersource of your Toniebox. Connect your UART with your PC and Toniebox.  Short cut the J100 pinholes. Click on \"Read Flash\" or \"Load File\", then choose the COM-Port. Then connect your Toniebox to power and wait till the step is done!",
                 "hostname": "TeddyCloud Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
                 "hostnameToLong": "The hostname should be less than 13 characters long.",
@@ -483,6 +486,7 @@
         "encoder": {
             "filename": "Filename",
             "navigationTitle": "Audio Encoder",
+            "processing": "Processing...",
             "removeFile": "Remove file",
             "saveAs": "Save file as",
             "targetDirectory": "Choose target directory",
@@ -490,8 +494,10 @@
             "upload": "Upload",
             "uploadFailed": "The upload encountered an error",
             "uploadFiles": "Select File(s)",
+            "uploadHint": "Drag the audio files here!",
             "uploading": "Uploading...",
-            "uploadSuccessful": "The file was added successfully to the library"
+            "uploadSuccessful": "The file was added successfully to the library",
+            "uploadText": "Click or drag the audio files you want to convert to a taf file to upload them in this area"
         },
         "infoModal": {
             "exists": "Exists:",
