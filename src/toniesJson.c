@@ -413,7 +413,7 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                             }
                         }
                         char *cached_filename = custom_asprintf("%s/%s.%s", cachePath, sha256_calc_str, extension);
-                        char *cached_url = custom_asprintf("%s/cache/%s", settings_get_string("core.host_url"), sha256_calc_str);
+                        char *cached_url = custom_asprintf("%s/cache/%s.%s", settings_get_string("core.host_url"), sha256_calc_str, extension);
 
                         osFreeMem(extension);
 
