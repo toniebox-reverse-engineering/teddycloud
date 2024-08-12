@@ -8,6 +8,7 @@
 #include "cloud_request.h"
 #include "server_helpers.h"
 #include "mutex_manager.h"
+#include "hash/sha256.h" // for sha256Update, sha256Final, sha256Init
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
@@ -367,7 +368,87 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                 osFreeMem(releaseString);
                 item->language = tonies_jsonGetString(tonieJson, "language");
                 item->category = tonies_jsonGetString(tonieJson, "category");
-                item->picture = tonies_jsonGetString(tonieJson, "pic");
+
+                char *pic_link = tonies_jsonGetString(tonieJson, "pic");
+
+                if (osStrlen(pic_link) > 0 && settings_get_bool("tonie_json.cache_images"))
+                {
+                    const char *cachePath = get_settings()->internal.cachedirfull;
+                    if (cachePath == NULL || !fsDirExists(cachePath))
+                    {
+                        char message[128];
+                        osSnprintf(message, sizeof(message), "core.cachedirfull not set to a valid path: '%s'", cachePath);
+                        TRACE_ERROR("%s\r\n", message);
+                    }
+                    else
+                    {
+                        uint8_t sha256_calc[32];
+                        char sha256_calc_str[65];
+
+                        /* hash the image URL */
+                        Sha256Context ctx;
+                        sha256Init(&ctx);
+                        sha256Update(&ctx, pic_link, strlen(pic_link));
+                        sha256Final(&ctx, sha256_calc);
+
+                        for (int pos = 0; pos < 32; pos++)
+                        {
+                            osSprintf(&sha256_calc_str[2 * pos], "%02X", sha256_calc[pos]);
+                        }
+
+                        /* Find the file extension from the URL */
+                        const char *ext_pos = strrchr(pic_link, '.');
+                        char *extension = strdup("jpg");
+
+                        if (ext_pos && !osStrchr(ext_pos, '/'))
+                        {
+                            osFreeMem(extension);
+                            extension = strdup(&ext_pos[1]);
+
+                            /* Remove optional HTTP GET parameters */
+                            char *query_param = osStrchr(extension, '?');
+                            if (query_param)
+                            {
+                                *query_param = '\0';
+                            }
+                        }
+                        char *cached_filename = custom_asprintf("%s/%s.%s", cachePath, sha256_calc_str, extension);
+                        char *cached_url = custom_asprintf("%s/cache/%s", settings_get_string("core.host_url"), sha256_calc_str);
+
+                        osFreeMem(extension);
+
+                        TRACE_INFO("Original URL: '%s'\r\n", pic_link);
+                        TRACE_INFO("Cache filename would be: '%s'\r\n", cached_filename);
+                        TRACE_INFO("Cache URL would be: '%s'\r\n", cached_url);
+
+                        /* check if it is already cached */
+                        if (fsFileExists(cached_filename))
+                        {
+                            TRACE_INFO("File exists, not downloading\r\n");
+                            osFreeMem(pic_link);
+                            pic_link = strdup(cached_url);
+                        }
+                        else
+                        {
+                            /* if not, try to download and cache the file */
+                            TRACE_INFO("Download file from original URL -> not implemented yet\r\n");
+
+                            /*
+                            fsFile = fsOpenFile(cached_filename, FS_FILE_MODE_WRITE);
+                            if (fsFile != NULL)
+                            {
+                                fsWriteFile(fsFile, " ", 1);
+                                fsCloseFile(fsFile);
+                                osFreeMem(pic_link);
+                                pic_link = strdup(cached_url);
+                            }
+                            */
+                        }
+                        osFreeMem(cached_filename);
+                        osFreeMem(cached_url);
+                    }
+                }
+                item->picture = pic_link;
             }
             cJSON_Delete(toniesJson);
         }

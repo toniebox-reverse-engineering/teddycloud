@@ -75,9 +75,10 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir", LEVEL_EXPERT)
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content", LEVEL_DETAIL)
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library", LEVEL_DETAIL)
-    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
+    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir', 'cachedir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
     OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", LEVEL_NONE)
     OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
+    OPTION_STRING("core.cachedir", &settings->core.cachedir, "cache", "Cache dir", "Directory where to cache files downloaded from internet", LEVEL_DETAIL)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
@@ -151,6 +152,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.cachedirfull", &settings->internal.cachedirfull, "", "Directory where cached files are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag", LEVEL_NONE)
@@ -227,7 +229,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, FALSE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.", LEVEL_EXPERT)
     OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
-    OPTION_UNSIGNED("encode.stream_max_size", &settings->encode.stream_max_size, 1024 * 1024 * 40 * 6 -1, 1024 * 1024 - 1, INT32_MAX, "Max stream filesize", "The box may create an empty file this length for each stream. So if you have 10 streaming tonies you use, the box may block 10*240MB. The only downside is, that the box will stop after the file is full and you'll need to replace the tag onto the box. Must not be a multiply of 4096, Default: 251.658.239, so 240MB, which means around 6h.", LEVEL_EXPERT)
+    OPTION_UNSIGNED("encode.stream_max_size", &settings->encode.stream_max_size, 1024 * 1024 * 40 * 6 - 1, 1024 * 1024 - 1, INT32_MAX, "Max stream filesize", "The box may create an empty file this length for each stream. So if you have 10 streaming tonies you use, the box may block 10*240MB. The only downside is, that the box will stop after the file is full and you'll need to replace the tag onto the box. Must not be a multiply of 4096, Default: 251.658.239, so 240MB, which means around 6h.", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
@@ -261,6 +263,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("hass", "Home Assistant", LEVEL_DETAIL)
     OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name", LEVEL_DETAIL)
     OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device", LEVEL_DETAIL)
+
+    OPTION_TREE_DESC("tonie_json", "Tonie JSON", LEVEL_DETAIL)
+    OPTION_BOOL("tonie_json.cache_images", &settings->tonie_json.cache_images, FALSE, "Cache images", "Download and cache figurine images", LEVEL_DETAIL)
     OPTION_END()
 
     settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;
@@ -424,7 +429,7 @@ uint8_t get_overlay_id(const char *overlay_unique_id)
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
-    if(!resolvedPath || !*resolvedPath || !path)
+    if (!resolvedPath || !*resolvedPath || !path)
     {
         return;
     }
@@ -435,7 +440,7 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     }
     else
     {
-        if(!basePath)
+        if (!basePath)
         {
             return;
         }
@@ -462,6 +467,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
     free(settings->internal.firmwaredirfull);
+    free(settings->internal.cachedirfull);
 
     settings->internal.basedirfull = osAllocMem(256);
     settings->internal.certdirfull = osAllocMem(256);
@@ -472,6 +478,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
     settings->internal.firmwaredirfull = osAllocMem(256);
+    settings->internal.cachedirfull = osAllocMem(256);
 
     char *tmpPath = osAllocMem(256);
     settings_resolve_dir(&settings->internal.basedirfull, settings->internal.basedir, settings->internal.cwd);
@@ -482,6 +489,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
     settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
@@ -525,7 +533,7 @@ void settings_changed_id(uint8_t settingsId)
 
 static void settings_deinit_ovl(uint8_t overlayNumber)
 {
-    if(overlayNumber >= MAX_OVERLAYS)
+    if (overlayNumber >= MAX_OVERLAYS)
     {
         return;
     }

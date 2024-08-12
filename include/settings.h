@@ -214,6 +214,7 @@ typedef struct
     char *datadirfull;
     char *wwwdirfull;
     char *firmwaredirfull;
+    char *cachedirfull;
 
     char *overlayUniqueId;
     uint8_t overlayNumber;
@@ -248,6 +249,7 @@ typedef struct
     char *configdir;
     char *contentdir;
     char *firmwaredir;
+    char *cachedir;
     char *librarydir;
     char *datadir;
     char *wwwdir;
@@ -302,6 +304,11 @@ typedef struct
 
 typedef struct
 {
+    bool cache_images;
+} settings_tonie_json_t;
+
+typedef struct
+{
     uint32_t configVersion;
     char *commonName;
     char *boxName;
@@ -318,6 +325,7 @@ typedef struct
     settings_log_t log;
     settings_rtnl_t rtnl;
     settings_pcap_t pcap;
+    settings_tonie_json_t tonie_json;
 } settings_t;
 
 typedef enum
