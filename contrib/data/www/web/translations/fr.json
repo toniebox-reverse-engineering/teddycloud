@@ -42,7 +42,7 @@
             "question": "Comment forcer une mise à jour d'un Tonie après avoir attribué du nouveau contenu dans TeddyCloud ?"
         },
         {
-            "answer": "Utilise l'outil Audioencoder et ajoute plusieurs fichiers audio. Chaque fichier sera assigné à une piste distincte dans le fichier TAF créé.",
+            "answer": "Utilisez l'outil Audioencoder et ajoutez jusqu'à 99 fichiers audio. Chaque fichier se verra attribuer sa propre piste dans le fichier TAF créé.",
             "question": "Comment créer un fichier TAF multi-pistes ?"
         },
         {
@@ -291,6 +291,22 @@
         "boxWithoutAPIAccessGoToTonieboxes": "Si vous souhaitez changer cela, activez l'accès à l'API pour la boîte mentionnée ",
         "boxWithoutAPIAccessText": "Les Tonieboxes suivantes n'ont pas accès à l'API activé:",
         "cancel": "Annuler",
+        "cc3200BoxFlashing": {
+            "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3200 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
+            "hint2": "Veuillez suivre ensuite le chemin CC3200 :",
+            "linkGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
+            "linkSpecific": "Configuration spécifique CC3200",
+            "navigationTitle": "CC3200 Flashage de la boîte",
+            "title": "CC3200 Flashage de la boîte"
+        },
+        "cc3235BoxFlashing": {
+            "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3235 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
+            "hint2": "Veuillez suivre ensuite le chemin CC3235 :",
+            "linkGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
+            "linkSpecific": "Configuration spécifique CC3235",
+            "navigationTitle": "CC3235 Flashage de la boîte",
+            "title": "CC3235 Flashage de la boîte"
+        },
         "confirmDeleteDialog": "Voulez-vous vraiment supprimer {{tonieboxToDelete}}?",
         "confirmDeleteModal": "Confirmer la suppression",
         "delete": "Supprimer",
@@ -350,7 +366,7 @@
                 "hintPatchFlash": "Pour appliquer le flash sélectionné/lu avec le certificat CA de votre TeddyCloud et éventuellement effectuer d'autres ajustements tels que le nom d'hôte de TeddyCloud et/ou les identifiants WiFi, cliquez sur 'Patch' après avoir entré les informations ou passez à l'étape suivante sans patch.",
                 "hintPatchHost": "Entrez le nom d'hôte souhaité pour votre instance TeddyCloud.",
                 "hintPatchWifi": "Entrez optionnellement les identifiants WiFi pour votre Toniebox.",
-                "hintReadESP32ImportFlash": "Déconnecte l'alimentation de ta Toniebox. Connecte ton UART à ton PC et à la Toniebox. Court-circuite les trous de broche J100. Clique sur \"Lire le Flash\" ou \"Charger le fichier\", puis choisis le port COM. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
+                "hintReadESP32ImportFlash": "Déconnecte l'alimentation de ta Toniebox. Assure-toi que l'UART fonctionne en mode 3.3V. Connecte ton UART à ton PC et à la Toniebox (Toniebox J103 [TxD | RxD | GND] -> UART: TxD -> RxD, RxD -> TxD, GND -> GND). Court-circuite les trous de broche J100. Clique sur \"Lire le Flash\" ou \"Charger le fichier\", puis choisis le port COM. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
                 "hostnameToLong": "Le nom d'hôte doit être inférieur à 13 caractères.",
@@ -389,11 +405,11 @@
             },
             "hint": "Cette section est uniquement disponible si HTTPS est utilisé. Si vous souhaitez flasher votre ESP32 Toniebox, veuillez temporairement désactiver les options \"Webinterface HTTP only\" et \"HTTPS client cert auth\".",
             "httpsSettings": "Paramètres HTTPS",
-            "navigationTitle": "Flashage de la boîte ESP32",
+            "navigationTitle": "ESP32 Flashage de la boîte",
             "redirectToHttpAfterActivation": "Après avoir activé \"Interface web uniquement HTTP\" et sauvegardé, vous serez redirigé vers la page HTTP (si HTTPS est actif).",
             "redirectToHttpsAfterDeactivation": "Après avoir désactivé \"Webinterface HTTP only\" et \"HTTPS client cert auth\" et enregistré, vous serez redirigé vers la page HTTPS.",
             "save": "Enregistrer les paramètres",
-            "title": "Flashage de la boîte ESP32"
+            "title": "ESP32 Flashage de la boîte"
         },
         "lastOnline": "dernière connexion",
         "lastPlayedTonie": "Dernier Tonie joué: ",
@@ -472,6 +488,7 @@
             "create": "Créer",
             "createDirectory": "Créer un nouveau dossier",
             "directoryCreated": "Le nouveau dossier a été créé !",
+            "inDirectory": "dans le dossier ",
             "modalTitle": "Créer un nouveau dossier",
             "placeholder": "Entrez le nom du dossier"
         },
@@ -485,11 +502,14 @@
             "title": "Modifier le modèle"
         },
         "encoder": {
+            "clearList": "Vider la liste",
             "filename": "Nom du fichier",
+            "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
             "processing": "Traitement...",
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
+            "sortAlphabetically": "Trier les fichiers par ordre alphabétique",
             "targetDirectory": "Choisir le répertoire cible",
             "title": "Encodeur audio",
             "upload": "Télécharger",
@@ -498,7 +518,7 @@
             "uploadHint": "Faites glisser les fichiers audio ici !",
             "uploading": "Téléchargement...",
             "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque",
-            "uploadText": "Cliquez ou faites glisser les fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
+            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
         },
         "infoModal": {
             "exists": "Existe:",

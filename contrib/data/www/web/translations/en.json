@@ -42,7 +42,7 @@
             "question": "How can I force an update of a Tonie after assigning new content in TeddyCloud?"
         },
         {
-            "answer": "Use the Audioencoder tool and add multiple audio files. Each file will be assigned its own track in the created TAF file.",
+            "answer": "Use the Audioencoder tool and add up to 99 audio files. Each file will be assigned its own track in the created TAF file.",
             "question": "How can I create a multi-track TAF file?"
         },
         {
@@ -291,6 +291,22 @@
         "boxWithoutAPIAccessGoToTonieboxes": "If you want to change that, enable API access for the mentioned ",
         "boxWithoutAPIAccessText": "The following Tonieboxes do not have API access enabled:",
         "cancel": "Cancel",
+        "cc3200BoxFlashing": {
+            "hint": "There is currently no direct support of flashing your CC3200 Toniebox with TeddyCloud, but you will find a step by step guidance here:",
+            "hint2": "Please follow then the CC3200 path:",
+            "linkGeneral": "Patching your Toniebox for using with TeddyCloud",
+            "linkSpecific": "CC3200 specific setup",
+            "navigationTitle": "CC3200 Box Flashing",
+            "title": "CC3200 Box Flashing"
+        },
+        "cc3235BoxFlashing": {
+            "hint": "There is currently no direct support of flashing your CC3235 Toniebox with TeddyCloud, but you will find a step by step guidance here:",
+            "hint2": "Please follow then the CC3235 path:",
+            "linkGeneral": "Patching your Toniebox for using with TeddyCloud",
+            "linkSpecific": "CC3235 specific setup",
+            "navigationTitle": "CC3235 Box Flashing",
+            "title": "CC3235 Box Flashing"
+        },
         "confirmDeleteDialog": "Do you really want to delete {{tonieboxToDelete}}?",
         "confirmDeleteModal": "Confirm delete",
         "delete": "Delete",
@@ -350,7 +366,7 @@
                 "hintPatchFlash": "To apply the selected/read flash with your TeddyCloud CA certificate and possibly make other adjustments like the TeddyCloud hostname and/or WiFi credentials, click 'Patch' after entering the information or proceed to the next step without patching.",
                 "hintPatchHost": "Enter the desired hostname for your TeddyCloud instance.",
                 "hintPatchWifi": "Optionally enter the WiFi credentials for your Toniebox.",
-                "hintReadESP32ImportFlash": "Now disconnect the Powersource of your Toniebox. Connect your UART with your PC and Toniebox.  Short cut the J100 pinholes. Click on \"Read Flash\" or \"Load File\", then choose the COM-Port. Then connect your Toniebox to power and wait till the step is done!",
+                "hintReadESP32ImportFlash": "Now disconnect the Powersource of your Toniebox. Make sure that the UART operates in 3.3V mode. Connect your UART with your PC and Toniebox (Toniebox J103 [TxD | RxD | GND] -> UART: TxD -> RxD, RxD -> TxD, GND -> GND). Short cut the J100 pinholes. Click on \"Read Flash\" or \"Load File\", then choose the COM-Port. Then connect your Toniebox to power and wait till the step is done!",
                 "hostname": "TeddyCloud Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
                 "hostnameToLong": "The hostname should be less than 13 characters long.",
@@ -471,6 +487,7 @@
             "create": "Create",
             "createDirectory": "Create New Directory",
             "directoryCreated": "New directory has been created!",
+            "inDirectory": "in directory ",
             "modalTitle": "Create New Directory",
             "placeholder": "Enter the folder name"
         },
@@ -484,11 +501,14 @@
             "title": "Edit model"
         },
         "encoder": {
+            "clearList": "Clear list",
             "filename": "Filename",
+            "maxFiles": "You can only add up to {{maxFiles}} files.",
             "navigationTitle": "Audio Encoder",
             "processing": "Processing...",
             "removeFile": "Remove file",
             "saveAs": "Save file as",
+            "sortAlphabetically": "Sort files alphabetically",
             "targetDirectory": "Choose target directory",
             "title": "Audio Encoder",
             "upload": "Upload",
@@ -497,7 +517,7 @@
             "uploadHint": "Drag the audio files here!",
             "uploading": "Uploading...",
             "uploadSuccessful": "The file was added successfully to the library",
-            "uploadText": "Click or drag the audio files you want to convert to a taf file to upload them in this area"
+            "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area"
         },
         "infoModal": {
             "exists": "Exists:",

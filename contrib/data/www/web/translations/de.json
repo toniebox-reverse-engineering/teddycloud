@@ -42,7 +42,7 @@
             "question": "Wie kann ich ein Update eines Tonies nach der Zuweisung neuer Inhalte in TeddyCloud erzwingen?"
         },
         {
-            "answer": "Verwende das Audioencoder-Tool und füge mehrere Audiodateien hinzu. Jede Datei wird in der erstellten TAF-Datei einem eigenen Track zugewiesen.",
+            "answer": "Verwende das Audioencoder-Tool und füge bis zu 99 Audiodateien hinzu. Jede Datei wird in der erstellten TAF-Datei einem eigenen Track zugewiesen.",
             "question": "Wie kann ich eine Multi-Track-TAF-Datei erstellen?"
         },
         {
@@ -292,6 +292,22 @@
         "boxWithoutAPIAccessGoToTonieboxes": "Falls du das ändern möchtest, aktiviere den API-Zugang bei den genannten ",
         "boxWithoutAPIAccessText": "Folgende Tonieboxen haben keinen aktivierten API-Zugang:",
         "cancel": "Abbrechen",
+        "cc3200BoxFlashing": {
+            "hint": "Es gibt derzeit keine direkte Unterstützung, um deine CC3200 Toniebox mit TeddyCloud zu flashen, aber hier findest du eine Schritt-für-Schritt-Anleitung:",
+            "hint2": "Bitte folge dann dem CC3200-Pfad:",
+            "linkGeneral": "Patching deiner Toniebox zur Nutzung mit TeddyCloud",
+            "linkSpecific": "CC3200 spezifische Einrichtung",
+            "navigationTitle": "CC3200 Box Flashing",
+            "title": "CC3200 Box Flashing"
+        },
+        "cc3235BoxFlashing": {
+            "hint": "Es gibt derzeit keine direkte Unterstützung, um deine CC3235 Toniebox mit TeddyCloud zu flashen, aber hier findest du eine Schritt-für-Schritt-Anleitung:",
+            "hint2": "Bitte folge dann dem CC3235-Pfad:",
+            "linkGeneral": "Patching deiner Toniebox zur Nutzung mit TeddyCloud",
+            "linkSpecific": "CC3235 spezifische Einrichtung",
+            "navigationTitle": "CC3235 Box Flashing",
+            "title": "CC3235 Box Flashing"
+        },
         "confirmDeleteDialog": "Möchtest du die Toniebox {{tonieboxToDelete}} wirklich löschen?",
         "confirmDeleteModal": "Bestätige Löschvorgang",
         "delete": "Löschen",
@@ -351,7 +367,7 @@
                 "hintPatchFlash": "Um das ausgewählte / gelesene Flash mit dem dem CA-Zertifikat deiner TeddyCloud zu versehen und ggf. weitere Anpassungen wie Hostname der TeddyCloud und/oder der WiFi-Zugangsdaten vorzunehmen, klicke nach Eingabe auf \"Patch\" oder gehe ohne Patching direkt zum nächsten Schritt. ",
                 "hintPatchHost": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein.",
                 "hintPatchWifi": "Gib optional die WiFi Zugangsdaten für deine Toniebox ein.",
-                "hintReadESP32ImportFlash": "Trenne die Stromversorgung deiner Toniebox. Verbinde dein UART mit deinem PC und der Toniebox. Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
+                "hintReadESP32ImportFlash": "Trenne die Stromversorgung deiner Toniebox. Stelle sicher, dass der UART im 3.3V Modus arbeitet. Verbinde dein UART mit deinem PC und der Toniebox (Toniebox J103 [TxD | RxD | GND] -> UART: TxD -> RxD, RxD -> TxD, GND -> GND). Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
                 "hostname": "TeddyCloud-Hostname:",
                 "hostnameSettings": "Hostname Teddycloud",
                 "hostnameToLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
@@ -472,6 +488,7 @@
             "create": "Anlegen",
             "createDirectory": "Neuen Ordner anlegen",
             "directoryCreated": "Neuer Ordner wurde angelegt!",
+            "inDirectory": "im Pfad ",
             "modalTitle": "Neuen Ordner anlegen",
             "placeholder": "Gib den Ordnernamen an"
         },
@@ -485,11 +502,14 @@
             "title": "Modell bearbeiten"
         },
         "encoder": {
+            "clearList": "Liste leeren",
             "filename": "Dateiname",
+            "maxFiles": "Du kannst nur maximal {{maxFiles}} Dateien hinzufügen.",
             "navigationTitle": "Audio Encoder",
             "processing": "Verarbeitung läuft...",
             "removeFile": "Datei entfernen",
             "saveAs": "Datei speichern unter",
+            "sortAlphabetically": "Dateien alphabetisch sortieren",
             "targetDirectory": "Zielpfad auswählen",
             "title": "Audio Encoder",
             "upload": "Hochladen",
@@ -498,7 +518,7 @@
             "uploadHint": "Ziehe die Audiodateien hier her!",
             "uploading": "Lädt hoch...",
             "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt",
-            "uploadText": "Klicke oder ziehe die Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich"
+            "uploadText": "Klicke oder ziehe bis zu {{maxFiles}} Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich"
         },
         "infoModal": {
             "exists": "Existiert:",
