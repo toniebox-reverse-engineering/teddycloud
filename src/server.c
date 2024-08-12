@@ -1,41 +1,42 @@
 
 
-#include <errno.h>                 // for error_t
-#include <stdint.h>                // for uint8_t
-#include <stdio.h>                 // for printf
-#include <stdlib.h>                // for atoi, exit, free
-#include <string.h>                // for NULL, strdup, strlen, strncmp, strcmp
-#include <sys/types.h>             // for time_t
-#include <time.h>                  // for time
+#include <errno.h>     // for error_t
+#include <stdint.h>    // for uint8_t
+#include <stdio.h>     // for printf
+#include <stdlib.h>    // for atoi, exit, free
+#include <string.h>    // for NULL, strdup, strlen, strncmp, strcmp
+#include <sys/types.h> // for time_t
+#include <time.h>      // for time
 
-#include "compiler_port.h"         // for char_t, PRIuTIME
-#include "core/net.h"              // for ipStringToAddr, IpAddr
-#include "core/socket.h"           // for _Socket
-#include "debug.h"                 // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
-#include "error.h"                 // for NO_ERROR, error2text, ERROR_FAILURE
-#include "fs_port_posix.h"         // for fsDirExists
-#include "handler_api.h"           // for handleApiAssignUnknown, handleApiA...
-#include "handler_cloud.h"         // for handleCloudClaim, handleCloudConte...
-#include "handler_reverse.h"       // for handleReverse
-#include "handler_rtnl.h"          // for handleRtnl
-#include "handler_security_mit.h"  // for handleSecMitRobotsTxt, checkSecMit...
-#include "handler_sse.h"           // for handleApiSse, sse_init
-#include "http/http_common.h"      // for HTTP_AUTH_MODE_DIGEST
-#include "http/http_server.h"      // for _HttpConnection, HttpServerSettings
-#include "mutex_manager.h"         // for mutex_unlock, mutex_lock, MUTEX_CL...
-#include "net_config.h"            // for client_ctx_t, http_connection_priv...
-#include "os_port.h"               // for osFreeMem, osStrlen, osStrstr, osG...
-#include "pcaplog.h"               // for pcaplog_close, pcaplog_open
-#include "rand.h"                  // for rand_get_algo, rand_get_context
-#include "returncodes.h"           // for RETURNCODE_INVALID_CONFIG
-#include "server_helpers.h"        // for httpServerUriNotFoundCallback, cus...
-#include "settings.h"              // for settings_t, settings_get_string
-#include "stdbool.h"               // for true, bool, false
-#include "tls.h"                   // for _TlsContext, tlsLoadCertificate
-#include "tls_adapter.h"           // for tls_context_key_log_init, tlsCache
-#include "toniebox_state.h"        // for get_toniebox_state, get_toniebox_s...
-#include "toniebox_state_type.h"   // for toniebox_state_box_t, toniebox_sta...
-#include "toniesJson.h"            // for tonieboxes_update, tonies_deinit
+#include "compiler_port.h"        // for char_t, PRIuTIME
+#include "core/net.h"             // for ipStringToAddr, IpAddr
+#include "core/socket.h"          // for _Socket
+#include "web.h"                  // for web_download
+#include "debug.h"                // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
+#include "error.h"                // for NO_ERROR, error2text, ERROR_FAILURE
+#include "fs_port_posix.h"        // for fsDirExists
+#include "handler_api.h"          // for handleApiAssignUnknown, handleApiA...
+#include "handler_cloud.h"        // for handleCloudClaim, handleCloudConte...
+#include "handler_reverse.h"      // for handleReverse
+#include "handler_rtnl.h"         // for handleRtnl
+#include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
+#include "handler_sse.h"          // for handleApiSse, sse_init
+#include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
+#include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
+#include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
+#include "net_config.h"           // for client_ctx_t, http_connection_priv...
+#include "os_port.h"              // for osFreeMem, osStrlen, osStrstr, osG...
+#include "pcaplog.h"              // for pcaplog_close, pcaplog_open
+#include "rand.h"                 // for rand_get_algo, rand_get_context
+#include "returncodes.h"          // for RETURNCODE_INVALID_CONFIG
+#include "server_helpers.h"       // for httpServerUriNotFoundCallback, cus...
+#include "settings.h"             // for settings_t, settings_get_string
+#include "stdbool.h"              // for true, bool, false
+#include "tls.h"                  // for _TlsContext, tlsLoadCertificate
+#include "tls_adapter.h"          // for tls_context_key_log_init, tlsCache
+#include "toniebox_state.h"       // for get_toniebox_state, get_toniebox_s...
+#include "toniebox_state_type.h"  // for toniebox_state_box_t, toniebox_sta...
+#include "toniesJson.h"           // for tonieboxes_update, tonies_deinit
 
 #define APP_HTTP_MAX_CONNECTIONS 32
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
@@ -66,12 +67,16 @@ typedef struct
     error_t (*handler)(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 } request_type_t;
 
+error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
+
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
     /*binary handler (rtnl)*/
     {REQ_ANY, "*binary", SERTY_BOTH, &handleRtnl},
     /* reverse proxy handler */
     {REQ_ANY, "/reverse", SERTY_HTTP, &handleReverse},
+    /* cached files */
+    {REQ_GET, "/cache/", SERTY_HTTP, &handleCacheDownload},
     /* web interface directory */
     {REQ_GET, "/content/download/", SERTY_HTTP, &handleApiContentDownload},
     {REQ_GET, "/content/json/get/", SERTY_HTTP, &handleApiContentJsonGet},
@@ -122,6 +127,67 @@ request_type_t request_paths[] = {
     {REQ_POST, "/v1/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheck},
     {REQ_POST, "/v1/log", SERTY_BOTH, &handleCloudLog},
     {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset}};
+
+error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    const char *cachePath = get_settings()->internal.cachedirfull;
+    if (cachePath == NULL || !fsDirExists(cachePath))
+    {
+        char message[128];
+        osSnprintf(message, sizeof(message), "core.cachedirfull not set to a valid path: '%s'", cachePath);
+        TRACE_ERROR("%s\r\n", message);
+
+        return ERROR_NOT_FOUND;
+    }
+    const char *fileName = strrchr(uri, '/');
+
+    if (!fileName)
+    {
+        char message[128];
+        osSnprintf(message, sizeof(message), "file not found in: '%s'", uri);
+        TRACE_ERROR("%s\r\n", message);
+
+        return ERROR_NOT_FOUND;
+    }
+
+    char *filePath = custom_asprintf("%s%c%s", cachePath, PATH_SEPARATOR, fileName);
+
+    /* when the file requested does not exist, check for the .url file with the original URL */
+    if (!fsFileExists(filePath))
+    {
+        char destUrl[256] = {0};
+        size_t destUrlLen = 0;
+
+        /* if it exists, download the file */
+        char *urlFilename = custom_asprintf("%s%c%s.url", cachePath, PATH_SEPARATOR, fileName);
+        FsFile *urlFile = fsOpenFile(urlFilename, FS_FILE_MODE_READ);
+        if (!urlFile)
+        {
+            TRACE_ERROR("failed to open URL file '%s'\r\n", urlFilename);
+            osFreeMem(urlFilename);
+            return ERROR_NOT_FOUND;
+        }
+        fsReadFile(urlFile, (void *)destUrl, sizeof(destUrl) - 1, &destUrlLen);
+        destUrl[destUrlLen] = 0;
+        fsCloseFile(urlFile);
+        osFreeMem(urlFilename);
+
+        TRACE_INFO("Download image on-demand from '%s'\r\n", destUrl);
+        error_t err = web_download(destUrl, filePath);
+
+        if (err != NO_ERROR)
+        {
+            TRACE_INFO("Failed, redirecting instead\r\n");
+            return httpSendRedirectResponse(connection, 301, destUrl);
+        }
+    }
+
+    /* either that file existed or was downloaded. return it. */
+
+    error_t err = httpSendResponseUnsafe(connection, uri, filePath);
+    osFreeMem(filePath);
+    return err;
+}
 
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 {

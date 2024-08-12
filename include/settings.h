@@ -305,6 +305,7 @@ typedef struct
 typedef struct
 {
     bool cache_images;
+    bool cache_preload;
 } settings_tonie_json_t;
 
 typedef struct

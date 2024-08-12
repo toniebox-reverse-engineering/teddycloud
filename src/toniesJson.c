@@ -1,4 +1,5 @@
 #include "toniesJson.h"
+#include "web.h"
 #include "fs_port.h"
 #include "os_port.h"
 #include "settings.h"
@@ -412,37 +413,52 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                                 *query_param = '\0';
                             }
                         }
-                        char *cached_filename = custom_asprintf("%s/%s.%s", cachePath, sha256_calc_str, extension);
-                        char *cached_url = custom_asprintf("%s/cache/%s.%s", settings_get_string("core.host_url"), sha256_calc_str, extension);
+                        char *cached_filename = custom_asprintf("%s%c%s.%s", cachePath, PATH_SEPARATOR, sha256_calc_str, extension);
+                        char *cached_url = custom_asprintf("%s%ccache%c%s.%s", settings_get_string("core.host_url"), PATH_SEPARATOR, PATH_SEPARATOR, sha256_calc_str, extension);
 
                         osFreeMem(extension);
 
-                        TRACE_INFO("Original URL: '%s'\r\n", pic_link);
-                        TRACE_INFO("Cache filename would be: '%s'\r\n", cached_filename);
+                        // TRACE_INFO("Original URL: '%s'\r\n", pic_link);
+                        // TRACE_INFO("Cache filename would be: '%s'\r\n", cached_filename);
                         TRACE_INFO("Cache URL would be: '%s'\r\n", cached_url);
 
                         /* check if it is already cached */
                         if (fsFileExists(cached_filename))
                         {
-                            TRACE_INFO("File exists, not downloading\r\n");
+                            // TRACE_INFO("File exists, not downloading\r\n");
                             osFreeMem(pic_link);
                             pic_link = strdup(cached_url);
                         }
                         else
                         {
-                            /* if not, try to download and cache the file */
-                            TRACE_INFO("Download file from original URL -> not implemented yet\r\n");
-
-                            /*
-                            fsFile = fsOpenFile(cached_filename, FS_FILE_MODE_WRITE);
-                            if (fsFile != NULL)
+                            if (settings_get_bool("tonie_json.cache_preload"))
                             {
-                                fsWriteFile(fsFile, " ", 1);
-                                fsCloseFile(fsFile);
-                                osFreeMem(pic_link);
-                                pic_link = strdup(cached_url);
+                                /* try to download and cache the file */
+                                // TRACE_INFO("Download file from original URL\r\n");
+
+                                error_t err = web_download(pic_link, cached_filename);
+                                if (err == NO_ERROR)
+                                {
+                                    osFreeMem(pic_link);
+                                    pic_link = strdup(cached_url);
+                                }
                             }
-                            */
+                            else
+                            {
+                                // TRACE_INFO("Link to original URL\r\n");
+                                char *url_filename = custom_asprintf("%s.url", cached_filename);
+                                FsFile *url_file = fsOpenFile(url_filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+                                if (!url_file)
+                                {
+                                    TRACE_ERROR("Failed to open file for writing %s\r\n", url_filename);
+                                }
+                                else
+                                {
+                                    fsWriteFile(url_file, (void *)pic_link, osStrlen(pic_link));
+                                    fsCloseFile(url_file);
+                                }
+                                osFreeMem(url_filename);
+                            }
                         }
                         osFreeMem(cached_filename);
                         osFreeMem(cached_url);
