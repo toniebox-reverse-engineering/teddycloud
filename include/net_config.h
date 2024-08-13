@@ -57,6 +57,7 @@ typedef struct
     client_ctx_t client_ctx;
     bool_t authenticated;
     pcaplog_t pcap_data;
+    bool api_access_only;
 } http_connection_private_t;
 
 #define CONTENT_LENGTH_MAX (INT32_MAX)

@@ -1,45 +1,46 @@
 
 
-#include <errno.h>                 // for error_t
-#include <stdint.h>                // for uint8_t
-#include <stdio.h>                 // for printf
-#include <stdlib.h>                // for atoi, exit, free
-#include <string.h>                // for NULL, strdup, strlen, strncmp, strcmp
-#include <sys/types.h>             // for time_t
-#include <time.h>                  // for time
+#include <errno.h>     // for error_t
+#include <stdint.h>    // for uint8_t
+#include <stdio.h>     // for printf
+#include <stdlib.h>    // for atoi, exit, free
+#include <string.h>    // for NULL, strdup, strlen, strncmp, strcmp
+#include <sys/types.h> // for time_t
+#include <time.h>      // for time
 
-#include "compiler_port.h"         // for char_t, PRIuTIME
-#include "core/net.h"              // for ipStringToAddr, IpAddr
-#include "core/socket.h"           // for _Socket
-#include "debug.h"                 // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
-#include "error.h"                 // for NO_ERROR, error2text, ERROR_FAILURE
-#include "fs_port_posix.h"         // for fsDirExists
-#include "handler_api.h"           // for handleApiAssignUnknown, handleApiA...
-#include "handler_cloud.h"         // for handleCloudClaim, handleCloudConte...
-#include "handler_reverse.h"       // for handleReverse
-#include "handler_rtnl.h"          // for handleRtnl
-#include "handler_security_mit.h"  // for handleSecMitRobotsTxt, checkSecMit...
-#include "handler_sse.h"           // for handleApiSse, sse_init
-#include "http/http_common.h"      // for HTTP_AUTH_MODE_DIGEST
-#include "http/http_server.h"      // for _HttpConnection, HttpServerSettings
-#include "mutex_manager.h"         // for mutex_unlock, mutex_lock, MUTEX_CL...
-#include "net_config.h"            // for client_ctx_t, http_connection_priv...
-#include "os_port.h"               // for osFreeMem, osStrlen, osStrstr, osG...
-#include "pcaplog.h"               // for pcaplog_close, pcaplog_open
-#include "rand.h"                  // for rand_get_algo, rand_get_context
-#include "returncodes.h"           // for RETURNCODE_INVALID_CONFIG
-#include "server_helpers.h"        // for httpServerUriNotFoundCallback, cus...
-#include "settings.h"              // for settings_t, settings_get_string
-#include "stdbool.h"               // for true, bool, false
-#include "tls.h"                   // for _TlsContext, tlsLoadCertificate
-#include "tls_adapter.h"           // for tls_context_key_log_init, tlsCache
-#include "toniebox_state.h"        // for get_toniebox_state, get_toniebox_s...
-#include "toniebox_state_type.h"   // for toniebox_state_box_t, toniebox_sta...
-#include "toniesJson.h"            // for tonieboxes_update, tonies_deinit
+#include "compiler_port.h"        // for char_t, PRIuTIME
+#include "core/net.h"             // for ipStringToAddr, IpAddr
+#include "core/socket.h"          // for _Socket
+#include "debug.h"                // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
+#include "error.h"                // for NO_ERROR, error2text, ERROR_FAILURE
+#include "fs_port_posix.h"        // for fsDirExists
+#include "handler_api.h"          // for handleApiAssignUnknown, handleApiA...
+#include "handler_cloud.h"        // for handleCloudClaim, handleCloudConte...
+#include "handler_reverse.h"      // for handleReverse
+#include "handler_rtnl.h"         // for handleRtnl
+#include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
+#include "handler_sse.h"          // for handleApiSse, sse_init
+#include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
+#include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
+#include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
+#include "net_config.h"           // for client_ctx_t, http_connection_priv...
+#include "os_port.h"              // for osFreeMem, osStrlen, osStrstr, osG...
+#include "pcaplog.h"              // for pcaplog_close, pcaplog_open
+#include "rand.h"                 // for rand_get_algo, rand_get_context
+#include "returncodes.h"          // for RETURNCODE_INVALID_CONFIG
+#include "server_helpers.h"       // for httpServerUriNotFoundCallback, cus...
+#include "settings.h"             // for settings_t, settings_get_string
+#include "stdbool.h"              // for true, bool, false
+#include "tls.h"                  // for _TlsContext, tlsLoadCertificate
+#include "tls_adapter.h"          // for tls_context_key_log_init, tlsCache
+#include "toniebox_state.h"       // for get_toniebox_state, get_toniebox_s...
+#include "toniebox_state_type.h"  // for toniebox_state_box_t, toniebox_sta...
+#include "toniesJson.h"           // for tonieboxes_update, tonies_deinit
 
 #define APP_HTTP_MAX_CONNECTIONS 32
 HttpConnection httpConnections[APP_HTTP_MAX_CONNECTIONS];
-HttpConnection httpsConnections[APP_HTTP_MAX_CONNECTIONS];
+HttpConnection httpsWebConnections[APP_HTTP_MAX_CONNECTIONS];
+HttpConnection httpsApiConnections[APP_HTTP_MAX_CONNECTIONS];
 
 size_t openRequestsLast = 0;
 
@@ -53,8 +54,8 @@ enum eRequestMethod
 typedef enum
 {
     SERTY_NONE = 0,
-    SERTY_HTTP = 1,
-    SERTY_HTTPS = 2,
+    SERTY_WEB = 1,
+    SERTY_API = 2,
     SERTY_BOTH = 3,
 } server_type_t;
 
@@ -71,48 +72,48 @@ request_type_t request_paths[] = {
     /*binary handler (rtnl)*/
     {REQ_ANY, "*binary", SERTY_BOTH, &handleRtnl},
     /* reverse proxy handler */
-    {REQ_ANY, "/reverse", SERTY_HTTP, &handleReverse},
+    {REQ_ANY, "/reverse", SERTY_WEB, &handleReverse},
     /* web interface directory */
-    {REQ_GET, "/content/download/", SERTY_HTTP, &handleApiContentDownload},
-    {REQ_GET, "/content/json/get/", SERTY_HTTP, &handleApiContentJsonGet},
-    {REQ_POST, "/content/json/set/", SERTY_HTTP, &handleApiContentJsonSet},
-    {REQ_GET, "/content/json/", SERTY_HTTP, &handleApiContentJson},
-    {REQ_GET, "/content/", SERTY_HTTP, &handleApiContent},
+    {REQ_GET, "/content/download/", SERTY_WEB, &handleApiContentDownload},
+    {REQ_GET, "/content/json/get/", SERTY_WEB, &handleApiContentJsonGet},
+    {REQ_POST, "/content/json/set/", SERTY_WEB, &handleApiContentJsonSet},
+    {REQ_GET, "/content/json/", SERTY_WEB, &handleApiContentJson},
+    {REQ_GET, "/content/", SERTY_WEB, &handleApiContent},
     /* auth API */
-    {REQ_POST, "/api/auth/login", SERTY_HTTP, &handleApiAuthLogin},
-    {REQ_GET, "/api/auth/logout", SERTY_HTTP, &handleApiAuthLogout},
-    {REQ_POST, "/api/auth/refresh-token", SERTY_HTTP, &handleApiAuthRefreshToken},
+    {REQ_POST, "/api/auth/login", SERTY_WEB, &handleApiAuthLogin},
+    {REQ_GET, "/api/auth/logout", SERTY_WEB, &handleApiAuthLogout},
+    {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
     /* custom API */
-    {REQ_POST, "/api/fileDelete", SERTY_HTTP, &handleApiFileDelete},
-    {REQ_POST, "/api/dirDelete", SERTY_HTTP, &handleApiDirectoryDelete},
-    {REQ_POST, "/api/dirCreate", SERTY_HTTP, &handleApiDirectoryCreate},
-    {REQ_POST, "/api/uploadCert", SERTY_HTTP, &handleApiUploadCert},
-    {REQ_POST, "/api/uploadFirmware", SERTY_HTTP, &handleApiUploadFirmware},
-    {REQ_GET, "/api/patchFirmware", SERTY_HTTP, &handleApiPatchFirmware},
-    {REQ_POST, "/api/fileUpload", SERTY_HTTP, &handleApiFileUpload},
-    {REQ_POST, "/api/pcmUpload", SERTY_HTTP, &handleApiPcmUpload},
-    {REQ_GET, "/api/fileIndexV2", SERTY_HTTP, &handleApiFileIndexV2},
-    {REQ_GET, "/api/fileIndex", SERTY_HTTP, &handleApiFileIndex},
-    {REQ_GET, "/api/stats", SERTY_HTTP, &handleApiStats},
-    {REQ_GET, "/api/toniesJsonSearch", SERTY_HTTP, &handleApiToniesJsonSearch},
-    {REQ_GET, "/api/toniesJsonUpdate", SERTY_HTTP, &handleApiToniesJsonUpdate},
-    {REQ_GET, "/api/toniesJson", SERTY_HTTP, &handleApiToniesJson},
-    {REQ_GET, "/api/toniesCustomJson", SERTY_HTTP, &handleApiToniesCustomJson},
-    {REQ_GET, "/api/tonieboxesJson", SERTY_HTTP, &handleApiTonieboxJson},
-    {REQ_GET, "/api/tonieboxesCustomJson", SERTY_HTTP, &handleApiTonieboxCustomJson},
-    {REQ_GET, "/api/trigger", SERTY_HTTP, &handleApiTrigger},
-    {REQ_GET, "/api/getTagIndex", SERTY_HTTP, &handleApiTagIndex},
-    {REQ_GET, "/api/getTagInfo", SERTY_HTTP, &handleApiTagInfo},
-    {REQ_GET, "/api/getBoxes", SERTY_HTTP, &handleApiGetBoxes},
-    {REQ_POST, "/api/assignUnknown", SERTY_HTTP, &handleApiAssignUnknown},
-    {REQ_GET, "/api/settings/getIndex", SERTY_HTTP, &handleApiGetIndex},
-    {REQ_GET, "/api/settings/get/", SERTY_HTTP, &handleApiSettingsGet},
-    {REQ_POST, "/api/settings/set/", SERTY_HTTP, &handleApiSettingsSet},
-    {REQ_POST, "/api/settings/reset/", SERTY_HTTP, &handleApiSettingsReset},
-    {REQ_POST, "/api/settings/removeOverlay", SERTY_HTTP, &handleDeleteOverlay},
-    {REQ_POST, "/api/migrateContent2Lib", SERTY_HTTP, &handleApiMigrateContent2Lib},
-    {REQ_GET, "/api/sse", SERTY_HTTP, &handleApiSse},
-    {REQ_GET, "/robots.txt", SERTY_BOTH, &handleSecMitRobotsTxt},
+    {REQ_POST, "/api/fileDelete", SERTY_WEB, &handleApiFileDelete},
+    {REQ_POST, "/api/dirDelete", SERTY_WEB, &handleApiDirectoryDelete},
+    {REQ_POST, "/api/dirCreate", SERTY_WEB, &handleApiDirectoryCreate},
+    {REQ_POST, "/api/uploadCert", SERTY_WEB, &handleApiUploadCert},
+    {REQ_POST, "/api/uploadFirmware", SERTY_WEB, &handleApiUploadFirmware},
+    {REQ_GET, "/api/patchFirmware", SERTY_WEB, &handleApiPatchFirmware},
+    {REQ_POST, "/api/fileUpload", SERTY_WEB, &handleApiFileUpload},
+    {REQ_POST, "/api/pcmUpload", SERTY_WEB, &handleApiPcmUpload},
+    {REQ_GET, "/api/fileIndexV2", SERTY_WEB, &handleApiFileIndexV2},
+    {REQ_GET, "/api/fileIndex", SERTY_WEB, &handleApiFileIndex},
+    {REQ_GET, "/api/stats", SERTY_WEB, &handleApiStats},
+    {REQ_GET, "/api/toniesJsonSearch", SERTY_WEB, &handleApiToniesJsonSearch},
+    {REQ_GET, "/api/toniesJsonUpdate", SERTY_WEB, &handleApiToniesJsonUpdate},
+    {REQ_GET, "/api/toniesJson", SERTY_WEB, &handleApiToniesJson},
+    {REQ_GET, "/api/toniesCustomJson", SERTY_WEB, &handleApiToniesCustomJson},
+    {REQ_GET, "/api/tonieboxesJson", SERTY_WEB, &handleApiTonieboxJson},
+    {REQ_GET, "/api/tonieboxesCustomJson", SERTY_WEB, &handleApiTonieboxCustomJson},
+    {REQ_GET, "/api/trigger", SERTY_WEB, &handleApiTrigger},
+    {REQ_GET, "/api/getTagIndex", SERTY_WEB, &handleApiTagIndex},
+    {REQ_GET, "/api/getTagInfo", SERTY_WEB, &handleApiTagInfo},
+    {REQ_GET, "/api/getBoxes", SERTY_WEB, &handleApiGetBoxes},
+    {REQ_POST, "/api/assignUnknown", SERTY_WEB, &handleApiAssignUnknown},
+    {REQ_GET, "/api/settings/getIndex", SERTY_WEB, &handleApiGetIndex},
+    {REQ_GET, "/api/settings/get/", SERTY_WEB, &handleApiSettingsGet},
+    {REQ_POST, "/api/settings/set/", SERTY_WEB, &handleApiSettingsSet},
+    {REQ_POST, "/api/settings/reset/", SERTY_WEB, &handleApiSettingsReset},
+    {REQ_POST, "/api/settings/removeOverlay", SERTY_WEB, &handleDeleteOverlay},
+    {REQ_POST, "/api/migrateContent2Lib", SERTY_WEB, &handleApiMigrateContent2Lib},
+    {REQ_GET, "/api/sse", SERTY_WEB, &handleApiSse},
+    {REQ_GET, "/robots.txt", SERTY_WEB, &handleSecMitRobotsTxt},
     /* official tonies API */
     {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
     {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
@@ -133,10 +134,11 @@ error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
     return NO_ERROR;
 }
 
-error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
+error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri, bool is_api_only)
 {
     size_t openRequests = ++openRequestsLast;
     error_t error = NO_ERROR;
+    connection->private.api_access_only = is_api_only;
 
     stats_update("connections", 1);
 
@@ -164,7 +166,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     client_ctx->settings = get_settings();
     client_ctx->state = get_toniebox_state();
 
-    if (connection->tlsContext)
+    if (connection->tlsContext && connection->private.api_access_only)
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
         char_t *issuer = connection->tlsContext->client_cert_issuer;
@@ -335,7 +337,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             break;
         }
 
-        if (connection->settings->isHttps && client_ctx->settings->core.webHttpsCertAuth && !connection->private.authenticated)
+        if (connection->settings->isHttps && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
         {
             error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
@@ -346,7 +348,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
             size_t pathLen = osStrlen(request_paths[i].path);
             if (!osStrncmp(request_paths[i].path, uri, pathLen) && ((request_paths[i].method == REQ_ANY) || (request_paths[i].method == REQ_GET && !osStrcasecmp(connection->request.method, "GET")) || (request_paths[i].method == REQ_POST && !osStrcasecmp(connection->request.method, "POST"))))
             {
-                if (!client_ctx->settings->core.webHttpOnly || (connection->settings->isHttps && (request_paths[i].server_type & SERTY_HTTPS) == SERTY_HTTPS) || (!connection->settings->isHttps && (request_paths[i].server_type & SERTY_HTTP) == SERTY_HTTP))
+                if ((!connection->private.api_access_only && (request_paths[i].server_type & SERTY_WEB) == SERTY_WEB) || (connection->private.api_access_only && (request_paths[i].server_type & SERTY_API) == SERTY_API))
                 {
                     error = (*request_paths[i].handler)(connection, uri, connection->request.queryString, client_ctx);
                     if (error == ERROR_NOT_FOUND || error == ERROR_FILE_NOT_FOUND)
@@ -365,7 +367,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
         if (handled)
             break;
 
-        if (!client_ctx->settings->core.webHttpOnly || !connection->settings->isHttps)
+        if (!connection->private.api_access_only)
         {
             if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
             {
@@ -391,6 +393,15 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri)
     TRACE_DEBUG("Stopped server request to %s, request %zu\r\n", uri, openRequests);
     openRequestsLast--;
     return error;
+}
+
+error_t httpServerWebRequestCallback(HttpConnection *connection, const char_t *uri)
+{
+    return httpServerRequestCallback(connection, uri, false);
+}
+error_t httpServerAPIRequestCallback(HttpConnection *connection, const char_t *uri)
+{
+    return httpServerRequestCallback(connection, uri, true);
 }
 
 void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
@@ -580,9 +591,11 @@ void server_init(bool test)
     sse_init();
 
     HttpServerSettings http_settings;
-    HttpServerSettings https_settings;
+    HttpServerSettings https_web_settings;
+    HttpServerSettings https_api_settings;
     HttpServerContext http_context;
-    HttpServerContext https_context;
+    HttpServerContext https_web_context;
+    HttpServerContext https_api_context;
     IpAddr listenIpAddr;
 
     /* setup settings for HTTP */
@@ -603,7 +616,7 @@ void server_init(bool test)
     osStrcpy(http_settings.defaultDocument, "index.shtm");
 
     http_settings.cgiCallback = httpServerCgiCallback;
-    http_settings.requestCallback = httpServerRequestCallback;
+    http_settings.requestCallback = httpServerWebRequestCallback;
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
@@ -611,12 +624,18 @@ void server_init(bool test)
     http_settings.isHttps = false;
 
     /* use them for HTTPS */
-    https_settings = http_settings;
-    https_settings.connections = httpsConnections;
-    https_settings.port = settings_get_unsigned("core.server.https_port");
-    https_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    https_settings.isHttps = true;
+    https_web_settings = http_settings;
+    https_web_settings.connections = httpsWebConnections;
+    https_web_settings.port = settings_get_unsigned("core.server.https_web_port");
+    https_web_settings.tlsInitCallback = httpServerTlsInitCallback;
+    https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
+    https_web_settings.isHttps = true;
+
+    /* use them for HTTPS */
+    https_api_settings = https_web_settings;
+    https_api_settings.requestCallback = httpServerAPIRequestCallback;
+    https_api_settings.connections = httpsApiConnections;
+    https_api_settings.port = settings_get_unsigned("core.server.https_api_port");
 
     error_t err = httpServerInit(&http_context, &http_settings);
     if (err != NO_ERROR)
@@ -624,10 +643,16 @@ void server_init(bool test)
         TRACE_ERROR("httpServerInit() for HTTP failed with code %d\r\n", err);
         return;
     }
-    err = httpServerInit(&https_context, &https_settings);
+    err = httpServerInit(&https_web_context, &https_web_settings);
     if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS failed with code %d\r\n", err);
+        TRACE_ERROR("httpServerInit() for HTTPS Webfailed with code %d\r\n", err);
+        return;
+    }
+    err = httpServerInit(&https_api_context, &https_api_settings);
+    if (err != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerInit() for HTTPS API failed with code %d\r\n", err);
         return;
     }
 
@@ -639,7 +664,13 @@ void server_init(bool test)
         TRACE_ERROR("httpServerStart() for HTTP failed with code %d\r\n", err);
         return;
     }
-    err = httpServerStart(&https_context);
+    err = httpServerStart(&https_web_context);
+    if (err != NO_ERROR)
+    {
+        TRACE_ERROR("httpServerStart() for HTTPS failed with code %d\r\n", err);
+        return;
+    }
+    err = httpServerStart(&https_api_context);
     if (err != NO_ERROR)
     {
         TRACE_ERROR("httpServerStart() for HTTPS failed with code %d\r\n", err);
@@ -654,7 +685,8 @@ void server_init(bool test)
     }
 
     systime_t last = osGetSystemTime();
-    size_t openConnectionsLast = 0;
+    size_t openWebConnectionsLast = 0;
+    size_t openAPIConnectionsLast = 0;
     while (!settings_get_bool("internal.exit"))
     {
         osDelayTask(250);
@@ -670,7 +702,7 @@ void server_init(bool test)
         size_t openConnections = 0;
         for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
         {
-            HttpConnection *conn = &httpsConnections[i];
+            HttpConnection *conn = &httpsWebConnections[i];
             if (!conn->running)
             {
                 continue;
@@ -692,10 +724,40 @@ void server_init(bool test)
             }
             mutex_unlock(MUTEX_CLIENT_CTX);
         }
-        if (openConnections != openConnectionsLast)
+        if (openConnections != openWebConnectionsLast)
         {
-            openConnectionsLast = openConnections;
-            TRACE_INFO("%zu open HTTPS connections\r\n", openConnections);
+            openWebConnectionsLast = openConnections;
+            TRACE_INFO("%zu open HTTPS Web connections\r\n", openConnections);
+        }
+        openConnections = 0;
+        for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
+        {
+            HttpConnection *conn = &httpsApiConnections[i];
+            if (!conn->running)
+            {
+                continue;
+            }
+            openConnections++;
+            mutex_lock(MUTEX_CLIENT_CTX);
+            client_ctx_t *client_ctx = &conn->private.client_ctx;
+            if (client_ctx->settings == NULL)
+            {
+                mutex_unlock(MUTEX_CLIENT_CTX);
+                continue;
+            }
+            settings_internal_t *internal = &client_ctx->settings->internal;
+            if (internal->config_used)
+            {
+                time_t curr_time = time(NULL);
+                internal->online = true;
+                internal->last_connection = curr_time;
+            }
+            mutex_unlock(MUTEX_CLIENT_CTX);
+        }
+        if (openConnections != openAPIConnectionsLast)
+        {
+            openAPIConnectionsLast = openConnections;
+            TRACE_INFO("%zu open HTTPS Web connections\r\n", openConnections);
         }
         for (size_t i = 0; i < MAX_OVERLAYS; i++)
         {

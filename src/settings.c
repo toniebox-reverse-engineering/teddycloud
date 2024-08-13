@@ -65,8 +65,9 @@ static void option_map_init(uint8_t settingsId)
 
     /* settings for HTTPS server */
     OPTION_TREE_DESC("core.server", "Server ports", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP portfor the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.https_web_port", &settings->core.https_web_port, 8443, 1, 65535, "HTTPS Web port", "HTTPS port for the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.https_api_port", &settings->core.https_api_port, 443, 1, 65535, "HTTPS API port", "HTTPS portfor the Toniebox API", LEVEL_EXPERT)
     OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server", "HTTP server", LEVEL_BASIC)
@@ -106,8 +107,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data", LEVEL_EXPERT)
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
-    OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)", LEVEL_DETAIL)
-    OPTION_BOOL("core.webHttpsCertAuth", &settings->core.webHttpsCertAuth, TRUE, "HTTPS client cert auth", "Client certificates are required for access to the HTTPS webinterface", LEVEL_EXPERT)
+    OPTION_BOOL("core.boxCertAuth", &settings->core.boxCertAuth, TRUE, "HTTPS box cert auth", "Client certificates are required for access to the HTTPS API for the boxes", LEVEL_EXPERT)
     OPTION_BOOL("core.allowNewBox", &settings->core.allowNewBox, TRUE, "Allow new boxes", "Allow new boxes to be added, if they try to connect", LEVEL_BASIC)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)

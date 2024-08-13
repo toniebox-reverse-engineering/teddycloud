@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 12
+#define CONFIG_VERSION 13
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -243,7 +243,8 @@ typedef struct
 typedef struct
 {
     uint32_t http_port;
-    uint32_t https_port;
+    uint32_t https_web_port;
+    uint32_t https_api_port;
     char *host_url;
     char *certdir;
     char *configdir;
@@ -257,8 +258,7 @@ typedef struct
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
-    bool webHttpOnly;
-    bool webHttpsCertAuth;
+    bool boxCertAuth;
     bool allowNewBox;
 
     bool flex_enabled;
