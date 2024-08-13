@@ -266,7 +266,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("tonie_json", "Tonie JSON", LEVEL_DETAIL)
-    OPTION_BOOL("tonie_json.cache_images", &settings->tonie_json.cache_images, FALSE, "Cache images", "Download and cache figurine images", LEVEL_DETAIL)
+    OPTION_BOOL("tonie_json.cache_images", &settings->tonie_json.cache_images, FALSE, "Cache images", "Cache figurine images locally", LEVEL_DETAIL)
+    OPTION_BOOL("tonie_json.cache_preload", &settings->tonie_json.cache_preload, FALSE, "Preload all images", "Download all figurine images on startup", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("debug", "Debug", LEVEL_EXPERT)
     OPTION_BOOL("debug.web.pcm_encode_console_url", &settings->debug.web.pcm_encode_console_url, FALSE, "PCM Console URL", "Caches the PCM of the browser-side encoding and prints a download link to the browser console.", LEVEL_EXPERT)
