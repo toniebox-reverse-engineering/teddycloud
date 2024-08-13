@@ -329,9 +329,6 @@
         "esp32BoxFlashing": {
             "attention": "Attention",
             "browserNotSupported": "ESP32 Box Flashing can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
-            "disableHttpOnlyForFlashing": "Please disable \"Webinterface http only\" and open page with https.",
-            "enabledWebHttpOnly": "\"Webinterface HTTP only\" enabled",
-            "enabledWebHttpsClientCertAuth": "\"HTTPS client cert auth\" enabled",
             "esp32flasher": {
                 "cancel": "Cancel",
                 "chipMAC": "Chip MAC",
@@ -402,16 +399,14 @@
                 "writingFinished": "Writing finished",
                 "writingFlash": "Writing {{size}} MiB flash..."
             },
-            "hint": "This section is only available if HTTPS is used and you are using a browser that supports the Web Serial API, such as Chrome or Edge. If you want to flash your ESP32 Toniebox, then please temporarily disable the \"Webinterface HTTP only\" and \"HTTPS client cert auth\" options.",
+            "hint": "This section is only available when using HTTPS and a browser that supports the Web Serial API, such as Chrome or Edge. If you want to flash your ESP32 Toniebox, please click on \"Proceed to HTTPS\", and you will be automatically redirected to the HTTPS version. Your browser might warn that the connection is not secure. This is okay; confirm it and proceed to open the page anyway. You may need to display more details in the warning.",
             "hintWiki": "If you prefer not to use a browser that supports WebSerial, you can find step-by-step guidance here:",
             "hintWiki2": "Please follow then the ESP32 path:",
             "linkWikiGeneral": "Patching your Toniebox for using with TeddyCloud",
             "linkWikiSpecific": "ESP32 specific setup",
             "httpsSettings": "HTTPS Settings",
             "navigationTitle": "ESP32 Box Flashing",
-            "redirectToHttpAfterActivation": "After enabling \"Webinterface HTTP only\" and saving, you will be redirected to HTTP page (if HTTPS is active).",
-            "redirectToHttpsAfterDeactivation": "After disabling \"Webinterface HTTP only\" and \"HTTPS client cert auth\" and saving, you will be redirected to HTTPS page.",
-            "save": "Save settings",
+            "redirect": "Proceed to HTTPS",
             "title": "ESP32 Box Flashing"
         },
         "lastOnline": "last online",
