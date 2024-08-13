@@ -266,6 +266,9 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_TREE_DESC("tonie_json", "Tonie JSON", LEVEL_DETAIL)
     OPTION_BOOL("tonie_json.cache_images", &settings->tonie_json.cache_images, FALSE, "Cache images", "Download and cache figurine images", LEVEL_DETAIL)
+
+    OPTION_TREE_DESC("debug", "Debug", LEVEL_EXPERT)
+    OPTION_BOOL("debug.web.pcm_encode_console_url", &settings->debug.web.pcm_encode_console_url, FALSE, "PCM Console URL", "Caches the PCM of the browser-side encoding and prints a download link to the browser console.", LEVEL_EXPERT)
     OPTION_END()
 
     settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;

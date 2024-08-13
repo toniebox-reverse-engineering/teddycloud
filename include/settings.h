@@ -309,6 +309,15 @@ typedef struct
 
 typedef struct
 {
+    bool pcm_encode_console_url;
+} settings_web_debug_t;
+typedef struct
+{
+    settings_web_debug_t web;
+} settings_debug_t;
+
+typedef struct
+{
     uint32_t configVersion;
     char *commonName;
     char *boxName;
@@ -326,6 +335,7 @@ typedef struct
     settings_rtnl_t rtnl;
     settings_pcap_t pcap;
     settings_tonie_json_t tonie_json;
+    settings_debug_t debug;
 } settings_t;
 
 typedef enum
