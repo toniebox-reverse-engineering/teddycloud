@@ -81,6 +81,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
     OPTION_STRING("core.cachedir", &settings->core.cachedir, "cache", "Cache dir", "Directory where to cache files downloaded from internet", LEVEL_DETAIL)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
+    OPTION_BOOL("core.new_webgui_as_default", &settings->core.new_webgui_as_default, TRUE, "New WebGUI", "Use new WebGUI as default", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
     OPTION_TREE_DESC("core.client_cert.file", "File certificates", LEVEL_EXPERT)

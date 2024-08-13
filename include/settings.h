@@ -265,6 +265,8 @@ typedef struct
     char *flex_uid;
     char *bind_ip;
 
+    bool new_webgui_as_default;
+
     settings_level settings_level;
 
     bool tonies_json_auto_update;
