@@ -28,7 +28,7 @@ jobs:
           workflows=$(find .github/workflows -name 'publish_docker_matrix_*.yml' -exec basename {} \;)
           echo "Found workflows: $workflows"
           # Convert to JSON array
-          matrix_json=$(echo "[\"$(echo $workflows | tr ' ' '\n' | sed 's/$/\",/' | tr -d '\n' | sed 's/,$//')\"]")
+          matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed -e 's/^/"/' -e 's/$/"/' -e 's/\n/","/g' -e 's/","$//' -e 's/^/[/;s/$/]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
 
       - name: Trigger Workflows
