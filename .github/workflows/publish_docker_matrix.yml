@@ -44,4 +44,4 @@ jobs:
         uses: ./.github/workflows/${{ matrix.workflow }}
         with:
           branch: ${{ github.ref_name }}  # Passing the current branch name
-        secrets: inherit  # Inherit secrets from the calling workflow
+          secrets: inherit  # Inherit secrets from the calling workflow
