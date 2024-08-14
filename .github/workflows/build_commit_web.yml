@@ -13,12 +13,13 @@ jobs:
         with:
           submodules: recursive
 
-      # - name: Update teddycloud_web submodule
-      #   run: git submodule update --remote teddycloud_web
+      - name: Update teddycloud_web submodule
+        run: git submodule update --remote teddycloud_web
 
       - name: Git status
         run: |
           git status
+          git submodule status
           cd teddycloud_web
           git status
           cd ..
