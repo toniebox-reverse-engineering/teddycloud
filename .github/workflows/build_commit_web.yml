@@ -13,8 +13,15 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Update teddycloud_web submodule
-        run: git submodule update --remote teddycloud_web
+      # - name: Update teddycloud_web submodule
+      #   run: git submodule update --remote teddycloud_web
+
+      - name: Git status
+        run: |
+          git status
+          cd teddycloud_web
+          git status
+          cd ..
 
       - uses: actions/setup-node@v4
         with:
@@ -33,9 +40,6 @@ jobs:
           git config --global user.email "scilor@users.noreply.github.com"
           git config --global user.name "SciLor"
 
-      - name: Git status
-        run: |
-          git status
       - name: Commit and push if changed
         run: |
           if [[ -n $(git status --porcelain) ]]; then
