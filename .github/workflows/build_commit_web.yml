@@ -12,6 +12,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Checkout the same branch for teddycloud_web
+        run: |
+          # Get the current branch of the parent project
+          PARENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+          # Checkout the same branch in the submodule
+          cd teddycloud_web
+          git checkout $PARENT_BRANCH || git checkout -b $PARENT_BRANCH
+          cd ..
 
       - name: Update teddycloud_web submodule
         run: git submodule update --remote teddycloud_web
