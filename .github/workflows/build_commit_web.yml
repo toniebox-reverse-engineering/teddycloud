@@ -42,6 +42,7 @@ jobs:
           git add .
           git commit -m "Update frontend (make web)"
           git pull --rebase
+          git push
           else
           echo "No changes to commit and push."
           fi
