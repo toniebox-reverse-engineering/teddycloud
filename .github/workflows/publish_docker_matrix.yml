@@ -33,6 +33,8 @@ jobs:
 
       - name: Trigger Workflows
         uses: actions/github-script@v6
+        env:
+          MATRIX_JSON: ${{ env.matrix_json }}
         with:
           script: |
             const matrix = JSON.parse(process.env.MATRIX_JSON);
