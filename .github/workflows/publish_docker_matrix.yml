@@ -3,6 +3,10 @@ name: Docker Image Publish Matrix (All)
 on:
   workflow_dispatch:
   workflow_call:
+  workflow_run:
+    workflows: ["Make web and commit"]
+    types: 
+      - completed
 
   push:
     branches:
@@ -20,9 +24,6 @@ jobs:
     outputs:
       matrix_json: ${{ steps.discover_workflows.outputs.matrix_json }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Discover Workflows
         id: discover_workflows
         run: |
@@ -32,26 +33,3 @@ jobs:
           # Convert to JSON array
           matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
-
-  trigger-workflows:
-    needs: generate-workflows-list
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        workflow: ${{ fromJson(needs.generate-workflows-list.outputs.matrix_json) }}
-
-    steps:
-      - name: Trigger Workflows
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          workflow_file="${{ matrix.workflow }}"
-          echo "Triggering workflow $workflow_file"
-
-          curl -X POST \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/$REPO/actions/workflows/$workflow_file/dispatches \
-            -d "{\"ref\":\"$BRANCH\"}"
