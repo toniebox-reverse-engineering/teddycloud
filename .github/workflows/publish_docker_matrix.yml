@@ -23,6 +23,12 @@ jobs:
           matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
 
+      - name: List files
+        run: |
+          ls -l ./
+          ls -l ./.github/
+          ls -l ./.github/workflows/
+
       - name: Trigger Workflow Debian
         uses: ./.github/workflows/publish_docker_matrix_debian.yml
 
