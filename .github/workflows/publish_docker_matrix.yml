@@ -17,6 +17,8 @@ on:
 jobs:
   generate-workflows-list:
     runs-on: ubuntu-latest
+    outputs:
+      matrix_json: ${{ steps.discover_workflows.outputs.matrix_json }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        workflow: [wf1.yml, wf2.yml]  # List of workflows to trigger
+        workflow: ${{ fromJson(needs.generate-workflows-list.outputs.matrix_json) }}
 
     steps:
       - name: Trigger Workflow
