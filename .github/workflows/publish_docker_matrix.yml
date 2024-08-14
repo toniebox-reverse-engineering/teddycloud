@@ -33,18 +33,14 @@ jobs:
 
       - name: Trigger Workflows
         uses: actions/github-script@v6
-        env:
-          MATRIX_JSON: ${{ env.matrix_json }}
         with:
           script: |
-            const { github, context } = require('@actions/github');
-            const { MATRIX_JSON } = process.env;
-            const matrix = JSON.parse(MATRIX_JSON);
+            const matrix = JSON.parse(process.env.MATRIX_JSON);
             console.log("Triggering workflows: ", matrix);
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const event_type = 'trigger-workflow'; // Make sure this matches your repository_dispatch trigger
+            const event_type = 'trigger-workflow'; // Ensure this matches your repository_dispatch trigger
 
             for (const workflow of matrix) {
               try {
