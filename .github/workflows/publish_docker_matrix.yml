@@ -1,0 +1,57 @@
+name: Docker Image Publish Matrix (All)
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [trigger-workflow]
+  push:
+    branches:
+    - master
+    - develop
+    tags:
+    - tc_nightly*
+    - tc_v*.*.*
+  pull_request:
+    branches: [ "master", "develop" ]
+
+jobs:
+  discover-and-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discover Workflows
+        id: discover_workflows
+        run: |
+          # Find all YAML files in the .github/workflows directory that start with "publish_docker_matrix_"
+          workflows=$(find .github/workflows -name 'publish_docker_matrix_*.yml' -exec basename {} \;)
+          echo "workflows=$workflows" >> $GITHUB_ENV
+
+      - name: Set Matrix
+        id: set_matrix
+        run: |
+          # Convert the workflows list into a JSON array format for matrix inclusion
+          matrix_json=$(echo "[\"$(echo $workflows | sed 's/ /\",\"/g')\"]")
+          echo "matrix_json=$matrix_json" >> $GITHUB_ENV
+
+      - name: Trigger Workflows
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const matrix = JSON.parse(process.env.matrix_json);
+            console.log("Triggering workflows: ", matrix);
+            for (const workflow of matrix) {
+              const owner = context.repo.owner;
+              const repo = context.repo.repo;
+              const event_type = 'trigger-workflow'; // Matches the repository_dispatch trigger
+              const client_payload = { "branch": process.env.branch };
+
+              await github.repos.createDispatchEvent({
+                owner,
+                repo,
+                event_type,
+                client_payload,
+                workflow
+              });
+            }

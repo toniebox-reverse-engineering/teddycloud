@@ -2,15 +2,8 @@ name: Docker Image Publish Matrix (Ubuntu)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-      - develop
-    tags:
-      - tc_nightly*
-      - tc_v*.*.*
-  pull_request:
-    branches: [ "master", "develop" ]
+  repository_dispatch:
+    types: [trigger-workflow]
 
 # permissions are needed if pushing to ghcr.io
 permissions: 
