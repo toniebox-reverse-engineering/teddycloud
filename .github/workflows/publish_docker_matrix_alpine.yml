@@ -2,15 +2,10 @@ name: Docker Image Publish Matrix (Alpine)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-      - develop
-    tags:
-      - tc_nightly*
-      - tc_v*.*.*
-  pull_request:
-    branches: [ "master", "develop" ]
+  workflow_run:
+    workflows: ["Docker Image Publish Matrix (All)"]
+    types: 
+      - completed
 
 # permissions are needed if pushing to ghcr.io
 permissions: 
