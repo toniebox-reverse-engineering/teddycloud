@@ -1,235 +1,228 @@
 {
-    "404": {
-        "description": "Hups - Seite nicht gefunden",
-        "navigationTitle": "404 - Seite nicht gefunden",
-        "title": "404"
+    "home": {
+        "navigationTitle": "Home",
+        "title": "Willkommen auf der TeddyCloud!",
+        "intro": "TeddyCloud ist eine alternative Serverlösung für deine Toniebox, die es dir ermöglicht, Cloud-Dienste lokal zu hosten. Dadurch behältst du die Kontrolle darüber, welche Daten an die Cloud des Originalherstellers gesendet werden, und kannst deine eigenen Hörspiel-Dateien für die Figuren selbst hosten.",
+        "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
+        "forumIntroPart2": ". Vertief dich in Themen, teile deine Erfahrungen und vernetze dich mit unserer Community. Tritt noch heute in die Diskussion ein!",
+        "yourTonies": "Deine Tonies",
+        "yourCustomTonies": "Deine Custom Tonies",
+        "toAllYourTonies": "Zu allen Tonies",
+        "helpfulLinks": "Hilfreiche Links",
+        "stats": {
+            "navigationTitle": "Statistiken",
+            "title": "Statistiken",
+            "connections": "Verbindungen zu diesem Server",
+            "reverse_requests": "Reverse Proxy-Aufrufe von Clients",
+            "cloud_requests": "Cloudanfragen ausgeführt",
+            "cloud_blocked": "Cloudanfragen blockiert",
+            "cloud_failed": "Fehlgeschlagene Cloudanfragen"
+        }
+    },
+    "settings": {
+        "navigationTitle": "Einstellungen",
+        "title": "Einstellungen",
+        "information": "Information",
+        "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
+        "warning": "Achtung! Speicherbutton + Settings level",
+        "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'.",
+        "tonieboxes": "Tonieboxen",
+        "overlayed": "überschrieben",
+        "saved": "Einstellung gespeichert!",
+        "overlayDisabled": "Overlayed deaktiviert!",
+        "overlayEnabled": "Overlayed aktiviert!",
+        "general": {
+            "navigationTitle": "Allgemein",
+            "title": "Allgemeine Einstellungen"
+        },
+        "certificates": {
+            "navigationTitle": "Zertifikate",
+            "title": "Zertifikate",
+            "information": "Information",
+            "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der Teddycloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
+            "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich",
+            "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
+            "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
+            "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!"
+        }
+    },
+    "tonies": {
+        "navigationTitle": "Tonies",
+        "title": "Tonies",
+        "unsetTonie": "Tonie/Tag",
+        "tonies": {
+            "navigationTitle": "Tonies",
+            "pageSelector": " Tonies / Seite",
+            "title": "Tonies",
+            "showPagination": "Pagination einblenden",
+            "showAll": "Zeige alle",
+            "filterBar": {
+                "showFilters": "Filter einblenden",
+                "hideFilters": "Filter ausblenden",
+                "searchLabel": "Suche",
+                "searchPlaceholder": "Suchkriterium eingeben",
+                "filterLabel": "Filter",
+                "seriesFilterPlaceholder": "Serie",
+                "episodeFilterPlaceholder": "Episode",
+                "valid": "Gültig",
+                "invalid": "Ungültig",
+                "live": "Live",
+                "unsetLive": "Live nicht gesetzt",
+                "exists": "Existiert",
+                "notExists": "Existiert nicht",
+                "noCloud": "Cloud deaktiviert",
+                "unsetNoCloud": "Cloud aktiviert",
+                "lastPlayed": "Zuletzt gespielt",
+                "applyFilters": "Filter anwenden",
+                "resetFilters": "Filter zurücksetzen"
+            }
+        },
+        "system-sounds": {
+            "navigationTitle": "System Sounds",
+            "title": "System Sounds"
+        },
+        "content": {
+            "navigationTitle": "Content",
+            "title": "Content",
+            "toniePicture": "Tonie Bild",
+            "showToniesOfBoxes": "Inhalte der folgenden Tonieboxen anzeigen"
+        },
+        "library": {
+            "navigationTitle": "Library",
+            "title": "Library"
+        },
+        "encoder": {
+            "navigationTitle": "Audio Encoder",
+            "title": "Audio Encoder",
+            "uploadFiles": "Datei(en) auswählen",
+            "uploading": "Lädt hoch",
+            "upload": "Hochladen",
+            "filename": "Dateiname",
+            "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt",
+            "uploadFailed": "Das Hochladen ist fehlgeschlagen",
+            "targetDirectory": "Zielpfad auswählen",
+            "saveAs": "Datei speichern unter",
+            "removeFile": "Datei entfernen"
+        },
+        "messages": {
+            "couldNotEmptySource": "Konnte Quelle nicht leeren!",
+            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!",
+            "couldNotSetSource": "Konnte Quelle nicht setzen! ",
+            "liveEnabled": "Live aktiviert!",
+            "liveDisabled": "Live deaktiviert!",
+            "couldNotChangeLiveFlag": "Konnte Live-Flag nicht ändern! ",
+            "cloudAccessBlocked": "Cloud-Zugang blockiert!",
+            "cloudAccessEnabled": "Cloud-Zugang aktiviert!",
+            "couldNotChangeCloudFlag": "Konnte Cloud-Zugriff (nocloud) Flag nicht ändern! ",
+            "downloading": "Herunterladen...",
+            "downloadedFile": "Datei heruntergeladen",
+            "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
+            "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
+            "setTonieToModelFailed": "Konnte das Tonie-Modell nicht ändern!",
+            "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
+            "setTonieToSourceFailed": "Konnte die Tonie-Quelle nicht ändern!",
+            "setToEmptyValue": "leer"
+        },
+        "infoModal": {
+            "model": "Modell:",
+            "valid": "Gültig:",
+            "exists": "Existiert:",
+            "yes": "Ja",
+            "no": "Nein",
+            "tracklist": "Trackliste:"
+        },
+        "lastPlayedOnModal": {
+            "title": "Dieser Tonie wurde zuletzt gespielt!",
+            "lastPlayedOn": "Zuletzt gepielter Tonie",
+            "lastPlayedOnMessage": "Dieser Tonie ist der zuletzt gespielte Tonie auf"
+        },
+        "editModal": {
+            "title": "Modell bearbeiten",
+            "placeholderSearchForAModel": "Nach einem Modell suchen",
+            "source": "Quelle",
+            "model": "Modell",
+            "save": "Speichern"
+        },
+        "selectFileModal": {
+            "selectFile": "TAF-Datei auswählen"
+        },
+        "informationModal": {
+            "unknownModel": "Unbekanntes Model",
+            "ok": "OK"
+        }
+    },
+    "tonieboxes": {
+        "navigationTitle": "Tonieboxen",
+        "title": "Deine Tonieboxen",
+        "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
+        "online": "online",
+        "offline": "offline",
+        "lastOnline": "zuletzt online",
+        "editModelModal": {
+            "editModel": "Toniebox \"{{name}}\" bearbeiten",
+            "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
+            "name": "Bezeichnung",
+            "model": "Modell",
+            "unsetBoxName": "Modell unbekannt/ungesetzt",
+            "errorOnNameChange": "Fehler beim Speichern des Namens: {{error}}",
+            "successOnNameChange": "Der Name der Toniebox wurde geändert",
+            "errorOnModelChange": "Fehler beim Speichern des Models: {{error}}",
+            "successOnModelChange": "Das Model der Toniebox wurde geändert",
+            "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen"
+        },
+        "editTonieboxSettingsModal": {
+            "editTonieboxSettingsLabel": "Einstellungen",
+            "editTonieboxSettings": "Einstellungen der Toniebox \"{{name}}\" bearbeiten"
+        },
+        "uploadTonieboxCertificatesModal": {
+            "Label": "Zertifikate",
+            "uploadTonieboxCertificates": "Zertifikate für Toniebox \"{{name}}\" hochladen",
+            "uploadPath": "Upload Pfad (certDir):",
+            "boxSpecific": " (Toniebox spezifisch hinterlegt)",
+            "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)"
+        }
     },
     "community": {
-        "changelog": {
-            "navigationTitle": "Changelog",
-            "title": "Changelog/Release notes"
-        },
+        "navigationTitle": "Community",
+        "title": "Community",
         "contribution": {
             "navigationTitle": "Contribution",
             "title": "Contribution",
             "toniesJson": {
                 "navigationTitle": "tonies.json",
-                "text": "Ihr könnt uns gerne unterstützen, indem ihr uns die fehlenden Daten der unten aufgeführten Tonies zukommen lasst. Perspektivisch wird dies in TeddyCloud direkt möglich sein, momentan könnt ihr dazu TeddyBench nutzen. Wir danken euch schon einmal!",
-                "title": "Contribute tonies.json"
+                "title": "Contribute tonies.json",
+                "text": "Ihr könnt uns gerne unterstützen, indem ihr uns die fehlenden Daten der unten aufgeführten Tonies zukommen lasst. Perspektivisch wird dies in TeddyCloud direkt möglich sein, momentan könnt ihr dazu TeddyBench nutzen. Wir danken euch schon einmal!"
             }
         },
         "contributors": {
             "navigationTitle": "Contributors",
             "title": "Contributors"
         },
-        "faq": {
-            "intro": "Hier findest du einige Antworten zu oft gestellten Fragen. Sollte deine Frage hier nicht beantwortet werden, so gehe ins Forum oder nutze die Telegram-Gruppe um Hilfe zu erhalten.",
-            "navigationTitle": "FAQ",
-            "title": "FAQ"
+        "changelog": {
+            "navigationTitle": "Changelog",
+            "title": "Changelog / Release notes"
         },
         "forum": {
             "navigationTitle": "Forum"
-        },
-        "navigationTitle": "Community",
-        "title": "Community"
-    },
-    "confirmDialog": {
-        "contentHintTitle": "Denk dran"
-    },
-    "faq": [
-        {
-            "answer": "Um ein Update zu erzwingen, mach einen Freshness-Check auf deinem Toniebox. Drücke ein Ohr für ca. 3 Sekunden, bis du einen Ton hörst. Warte, bis ein zweiter Ton die Fertigstellung des Updates bestätigt.",
-            "question": "Wie kann ich ein Update eines Tonies nach der Zuweisung neuer Inhalte in TeddyCloud erzwingen?"
-        },
-        {
-            "answer": "Verwende das Audioencoder-Tool und füge bis zu 99 Audiodateien hinzu. Jede Datei wird in der erstellten TAF-Datei einem eigenen Track zugewiesen.",
-            "question": "Wie kann ich eine Multi-Track-TAF-Datei erstellen?"
-        },
-        {
-            "answer": "Du kannst bis zu 16 Tonieboxen zu einer einzigen TeddyCloud-Instanz hinzufügen.",
-            "question": "Wie viele Tonieboxen kann ich zu einer TeddyCloud-Instanz hinzufügen?"
-        },
-        {
-            "answer": "Platziere den Tag auf einer verbundenen Toniebox. Er wird automatisch zu deinen Tonies in TeddyCloud hinzugefügt. Wenn du viele unbekannte Tags hast, kannst du nach zuletzt gespielten Tags filtern oder die Toniebox-Verwaltungsseite öffnen und auf den zuletzt gespielten Tag klicken.",
-            "question": "Wie kann ich einen neuen Tag zu TeddyCloud hinzufügen?"
-        },
-        {
-            "answer": "Der einfachste Weg, einen Tag zu entfernen, ist, ihn zu verstecken. Öffne das Informationsmodal des Tags, den du entfernen möchtest, und klicke auf die Schaltfläche 'Verstecken'. Der Tag bleibt versteckt, bis er erneut auf einer Toniebox platziert wird. Alternativ, wenn du Zugang zu den SD-Karten aller verbundenen Tonieboxen hast, kannst du den Tag physisch löschen, indem du den entsprechenden Inhaltsordner dieses Tags auf jeder Box entfernst und ihn dann in der TeddyCloud-Content-Ansicht löschst.",
-            "question": "Wie kann ich einen Tag aus meiner TeddyCloud entfernen?"
-        },
-        {
-            "answer": "Richte ein separates Inhaltsverzeichnis für jede Toniebox in den Toniebox-Verwaltungseinstellungen ein. Danach gibt es in der Tonies-Übersicht ein Dropdown-Menü in der oberen rechten Ecke, in dem du zwischen den Verzeichnissen wählen kannst. Du musst nicht jeder Box ein eigenes Verzeichnis zuweisen; Boxen mit demselben Verzeichnis werden in der Tonies-Übersicht gruppiert.",
-            "question": "Wie kann ich unterschiedliche Inhalte für einen Tag auf verschiedenen Tonieboxen verwalten?"
-        },
-        {
-            "answer": "Mach einfach einen Freshness-Check auf der Toniebox. Dadurch werden alle Tags, die jemals auf der Box platziert wurden (und nicht gelöscht sind), wieder zu TeddyCloud hinzugefügt. Original-Tonies müssen mindestens einmal platziert werden, um die Cloud-Authentifizierung zu erhalten und ihren verknüpften Inhalt zu TeddyCloud herunterzuladen.",
-            "question": "Warum ist die Tonies-Übersicht leer, nachdem ich ein neues Inhaltsverzeichnis zu einer Box hinzugefügt habe?"
-        },
-        {
-            "answer": "Stelle sicher, dass das 'nocloud'-Flag auf 'true' gesetzt ist und niemand heimlich einen anderen Tag auf die Box gelegt hat.",
-            "question": "Warum startet mein Tag mit benutzerdefinierten Inhalten immer von vorne und nicht an der zuletzt gespielten Position?"
-        },
-        {
-            "answer": "Stelle sicher, dass die folgenden Einstellungen aktiviert sind: 'Cache Content' und 'Dump rUID/auth'. Wir empfehlen auch, 'Cache to library' zu aktivieren.",
-            "question": "Warum wird der Inhalt meiner Tags nicht in TeddyCloud zwischengespeichert?"
-        },
-        {
-            "answer": "Stelle sicher, dass du den richtigen Typ verwendest. Nur originale NSP SLIX-L-Tags funktionieren im Allgemeinen. Mehr dazu findest du im Forum. Wenn du die CC3200-Version der Toniebox hast, kannst du auch andere RFID-Tags aktivieren. Schau dir die Details im Wiki dazu an. Achte auch darauf, dass ein gewisser Abstand zwischen dem Tag und der Toniebox besteht (mindestens 2-3mm), da ein direkt platzierter RFID-Tag normalerweise nicht richtig funktioniert.",
-            "question": "Warum funktioniert mein RFID-Tag nicht?"
         }
-    ],
-    "fileBrowser": {
-        "actions": "Aktionen",
-        "cancel": "Cancel",
-        "confirmDeleteDialog": "Möchtest du die Datei {{fileToDelete}} wirklich löschen?",
-        "confirmDeleteModal": "Bestätige Löschvorgang",
-        "confirmMultipleDeleteDialog": "Möchtest du die markierten Zeilen wirklich löschen?",
-        "date": "Datum",
-        "delete": "Löschen",
-        "deleteMultiple": "Markierte Zeilen löschen",
-        "episode": "Episode",
-        "filter": "Filter im aktuellen Ordner",
-        "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
-        "messages": {
-            "deleteFailed": "Löschvorgang fehlgeschlagen",
-            "deleteSuccessful": "Löschvorgang erfolgreich!",
-            "deleting": "Wird gelöscht...",
-            "migrationFailed": "Migration fehlgeschlagen",
-            "migrationOngoing": "migriere...",
-            "migrationSuccessful": "Migration erfolgreich!"
-        },
-        "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
-        "migrateContentToLibRoot": "TAF-Datei in Library (root) migrieren",
-        "model": "Modell",
-        "name": "Name",
-        "playFile": "Abspielen",
-        "root": "Stammverzeichnis",
-        "selectTafOrTapOnly": "Du kannst nur TAF oder TAP Dateien auswählen!",
-        "series": "Serie",
-        "size": "Größe",
-        "tap": {
-            "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren",
-            "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
-        }
-    },
-    "home": {
-        "features": {
-            "currentlyImplementedFeatures": "Derzeit implementierte Features",
-            "description": "TeddyCloud ist ein alternativer Server für deine Toniebox, mit dem du die Cloud-Dienste lokal hosten kannst. Dies gibt dir die Kontrolle darüber, welche Daten an die Cloud des ursprünglichen Herstellers gesendet werden, und ermöglicht es dir, deine eigenen Figuren-Audiodateien z.B. auf deinem NAS oder einem anderen Server zu hosten.",
-            "features": {
-                "01contentProvision": {
-                    "items": {
-                        "01provideAudioContent": "Audioinhalte over-the-air bereitstellen",
-                        "02passtroughAudio": "Originale Tonie-Audiodateien durchleiten",
-                        "03provideCustomAudio": "Benutzerdefinierte Audiodateien bereitstellen",
-                        "04simulateLiveContent": "Live-Inhalte simulieren",
-                        "05convertAudio": "Audio-Streams über ffmpeg für Webradio und Streams on-the-fly konvertieren",
-                        "06definePlaylists": "Tonie-Audio-Playlists definieren (PoC im WebFrontend)",
-                        "07cacheAudio": "Originale Tonie-Audiodateien zwischenspeichern",
-                        "08filterTags": "Benutzerdefinierte Tags filtern, um Löschung zu verhindern"
-                    },
-                    "title": "Inhaltsbereitstellung für deine Toniebox"
-                },
-                "02webUI": "WebUI",
-                "03manageTonies": {
-                    "items": {
-                        "01assignContent": "Inhalte und andere Eigenschaften jedem Tag zuweisen",
-                        "02searchStreams": "Webradio-Streams suchen und jedem Tag zuweisen",
-                        "03defineMetaData": "Metadaten deiner benutzerdefinierten Tags definieren (PoC im WebFrontend)",
-                        "04filterTonies": "Tonies/Tags filtern",
-                        "05hideTonies": "Nicht verfügbare Tonies/Tags ausblenden",
-                        "06showLastPlayed": "Zuletzt gespielte Tonies/Tags anzeigen"
-                    },
-                    "title": "Verwalte alle deine Tonies/Tags"
-                },
-                "04manageLibrary": "Verwalte deine Inhaltsbibliothek",
-                "05managePlaylists": "Verwalte deine Tonie-Audio-Playlist-Bibliothek (PoC im WebFrontend)",
-                "06convertAudioFile": "Beliebige Audiodatei in eine Tonie-Audiodatei konvertieren",
-                "07manageTonieboxes": {
-                    "items": {
-                        "01singleBoxManagement": "Einzelbox-Management, alle als eine verwalten, Boxen nach Belieben gruppieren",
-                        "02cloudAccess": "Cloud-Zugriff und andere cloudbezogene Eigenschaften deaktivieren/aktivieren",
-                        "03maxVolume": "Maximale Lautstärke für Lautsprecher und Kopfhörer konfigurieren",
-                        "04configureLED": "LED konfigurieren",
-                        "05configureSlapping": "Klatschen konfigurieren",
-                        "06customizeSounds": "Originalbox-Sounds (z.B. Jingle) over-the-air anpassen"
-                    },
-                    "title": "Verwalte bis zu 16 Tonieboxen"
-                },
-                "08esp32Flashing": {
-                    "items": {
-                        "01certificates": "Zertifikate in einem ESP32-Firmware-Dump extrahieren/injizieren",
-                        "02newServerHost": "Neuen Server-Host festlegen",
-                        "03wifiCredentials": "WLAN-Zugangsdaten festlegen"
-                    },
-                    "title": "ESP32 Box Flashing"
-                },
-                "09decodeLogs": "RTNL-Protokolle decodieren",
-                "10mqttClient": {
-                    "items": {
-                        "01homeAssistantIntegration": "Home Assistant-Integration (MQTT)"
-                    },
-                    "title": "MQTT-Client"
-                }
-            },
-            "futureFeatures": {
-                "01firmwareUpdate": "Firmware-Update über TeddyCloud",
-                "02improvedFlashing": "Verbessertes ESP32 Box Flashing (vollständig über Web GUI, keine Backend-Schritte mehr)",
-                "03reportUnknownTonies": "Unbekannte Tonies melden",
-                "04completeTAPIntegration": "Abschluss der TAP-WebFrontend-Integration",
-                "05completeCustomToniesIntegration": "Abschluss der Integration benutzerdefinierter Tonies im JSON-WebFront (\"Metadaten benutzerdefinierter Tags\")",
-                "06moreStats": "Mehr Statistiken über deine gespielten Tonies/Tags",
-                "07securityImprovements": "Sicherheitsverbesserungen wie Zugriffskontrolle (Tonieboxen und Benutzer)"
-            },
-            "navigationTitle": "Features",
-            "title": "Features TeddyCloud",
-            "yetToCome": "Geplante Features"
-        },
-        "forumIntroPart1": "Entdecke mehr Erkenntnisse, tausch dich mit Gleichgesinnten aus und bleib über die neuesten Diskussionen in unserem Forum informiert: ",
-        "forumIntroPart2": ". Vertief dich in Themen, teile deine Erfahrungen und vernetze dich mit unserer Community. Tritt noch heute in die Diskussion ein!",
-        "helpfulLinks": "Hilfreiche Links",
-        "intro": "TeddyCloud ist eine alternative Serverlösung für deine Toniebox, die es dir ermöglicht, Cloud-Dienste lokal zu hosten. Dadurch behältst du die Kontrolle darüber, welche Daten an die Cloud des Originalherstellers gesendet werden, und kannst deine eigenen Hörspiel-Dateien für die Figuren selbst hosten.",
-        "navigationTitle": "Home",
-        "stats": {
-            "cloud_blocked": "Cloudanfragen blockiert",
-            "cloud_failed": "Fehlgeschlagene Cloudanfragen",
-            "cloud_requests": "Cloudanfragen ausgeführt",
-            "connections": "Verbindungen zu diesem Server",
-            "navigationTitle": "Statistiken",
-            "reverse_requests": "Reverse Proxy-Aufrufe von Clients",
-            "title": "Statistiken"
-        },
-        "title": "Willkommen auf der TeddyCloud!",
-        "toAllYourTonies": "Zu allen Tonies",
-        "tonieMeeting": {
-            "navigationTitle": "Tonie Meeting"
-        },
-        "yourCustomTonies": "Deine Custom Tonies",
-        "yourTonies": "Deine Tonies"
     },
     "language": {
         "change": "Sprache ändern",
         "english": "EN",
-        "french": "FR",
         "german": "DE"
     },
-    "languageUtil": {
-        "de-de": "Deutsch",
-        "en-gb": "Englisch (GB)",
-        "en-us": "Englisch (US)",
-        "es-es": "Spanisch",
-        "fr-fr": "Französisch",
-        "it-it": "Italienisch",
-        "nl-be": "Niederländisch (Belgien)",
-        "nl-nl": "Niederländisch (Niederlande)",
-        "pl-pl": "Polnisch",
-        "pt-pt": "Portugiesisch",
-        "tr-tr": "Türkisch",
-        "undefined": "Andere/undefiniert"
+    "fileBrowser": {
+        "selectTafOnly": "Du kannst nur TAF Dateien auswählen!",
+        "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
+        "name": "Name",
+        "size": "Größe",
+        "model": "Modell",
+        "series": "Serie",
+        "episode": "Episode",
+        "date": "Datum"
     },
-    "radioStreamSearch": {
-        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: ",
-        "searchLabel": "[optional] Radio stream suchen"
+    "tonieArticleSearch": {
+        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
     },
     "security": {
         "alert": "ALARM, ALAAARM!",
@@ -238,392 +231,7 @@
     "server": {
         "boxineStatusOffline": "Nicht mit Boxine/Toniecloud verbunden",
         "boxineStatusOnline": "Mit Boxine/Toniecloud verbunden",
-        "teddycloudStatusOffline": "Teddycloud Server offline",
-        "teddycloudStatusOnline": "Teddycloud Server online"
-    },
-    "settings": {
-        "certificates": {
-            "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der Teddycloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
-            "information": "Information",
-            "navigationTitle": "Zertifikate",
-            "title": "Zertifikate",
-            "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!",
-            "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
-            "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
-            "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich"
-        },
-        "general": {
-            "navigationTitle": "Allgemein",
-            "title": "Allgemeine Einstellungen"
-        },
-        "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
-        "information": "Information",
-        "legacyGui": "Alte Admin-GUI",
-        "levelLabel": "Settings level",
-        "navigationTitle": "Einstellungen",
-        "overlayDisabled": "Overlayed deaktiviert!",
-        "overlayed": "überschrieben",
-        "overlayEnabled": "Overlayed aktiviert!",
-        "restartComplete": "Neustart TeddyCloud Server erfolgreich!",
-        "restartFailed": "Neustart TeddyCloud Server fehlgeschlagen!",
-        "restartInProgress": "TeddyCloud wird gestartet...",
-        "restartServer": "Server neustarten",
-        "rtnl": {
-            "clear": "RTNL Log leeren",
-            "enableRtnl": "Logging aktivieren",
-            "navigationTitle": "RTNL log",
-            "title": "RTNL Log"
-        },
-        "saved": "Einstellung gespeichert!",
-        "title": "Einstellungen",
-        "tonieboxes": "Tonieboxen",
-        "tonieJsonUpdateFailed": "Tonies.json Aktualisierung fehlgeschlagen!",
-        "tonieJsonUpdateTriggered": "Tonies.json Aktualisierung angetriggert!",
-        "updateToniesJson": "Update Tonies.json",
-        "warning": "Achtung! Speicherbutton + Settings level",
-        "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
-    },
-    "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
-    },
-    "tonieboxes": {
-        "accessApiDisabled": "Zugriff auf TeddyCloud APIs deaktiviert.",
-        "accessApiEnabled": "Zugriff auf TeddyCloud APIs aktiviert.",
-        "boxWithoutAPIAccess": "Toniebox ohne TeddyCloud API Zugang!",
-        "boxWithoutAPIAccessGoToTonieboxes": "Falls du das ändern möchtest, aktiviere den API-Zugang bei den genannten ",
-        "boxWithoutAPIAccessText": "Folgende Tonieboxen haben keinen aktivierten API-Zugang:",
-        "cancel": "Abbrechen",
-        "cc3200BoxFlashing": {
-            "hint": "Es gibt derzeit keine direkte Unterstützung, um deine CC3200 Toniebox mit TeddyCloud zu flashen, aber hier findest du eine Schritt-für-Schritt-Anleitung:",
-            "hint2": "Bitte folge dann dem CC3200-Pfad:",
-            "linkGeneral": "Patching deiner Toniebox zur Nutzung mit TeddyCloud",
-            "linkSpecific": "CC3200 spezifische Einrichtung",
-            "navigationTitle": "CC3200 Box Flashing",
-            "title": "CC3200 Box Flashing"
-        },
-        "cc3235BoxFlashing": {
-            "hint": "Es gibt derzeit keine direkte Unterstützung, um deine CC3235 Toniebox mit TeddyCloud zu flashen, aber hier findest du eine Schritt-für-Schritt-Anleitung:",
-            "hint2": "Bitte folge dann dem CC3235-Pfad:",
-            "linkGeneral": "Patching deiner Toniebox zur Nutzung mit TeddyCloud",
-            "linkSpecific": "CC3235 spezifische Einrichtung",
-            "navigationTitle": "CC3235 Box Flashing",
-            "title": "CC3235 Box Flashing"
-        },
-        "confirmDeleteDialog": "Möchtest du die Toniebox {{tonieboxToDelete}} wirklich löschen?",
-        "confirmDeleteModal": "Bestätige Löschvorgang",
-        "delete": "Löschen",
-        "editModelModal": {
-            "editModel": "Toniebox \"{{name}}\" bearbeiten",
-            "errorOnModelChange": "Fehler beim Speichern des Models: {{error}}",
-            "errorOnNameChange": "Fehler beim Speichern des Namens: {{error}}",
-            "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen",
-            "model": "Modell",
-            "name": "Bezeichnung",
-            "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
-            "successOnModelChange": "Das Model der Toniebox wurde geändert",
-            "successOnNameChange": "Der Name der Toniebox wurde geändert",
-            "unsetBoxName": "Modell unbekannt/ungesetzt"
-        },
-        "editTonieboxSettingsModal": {
-            "editTonieboxSettings": "Einstellungen der Toniebox \"{{name}}\" bearbeiten",
-            "editTonieboxSettingsLabel": "Einstellungen"
-        },
-        "esp32BoxFlashing": {
-            "attention": "Achtung",
-            "browserNotSupported": "ESP32 Box Flashing kann nur mit Browsern genutzt werden, die die Web Serial API unterstützen. Dein genutzter Browser unterstützt diese Funktion leider nicht. Bitte verwende einen Browser, der die Web Serial API unterstützt, wie z.B. Chrome oder Edge.",
-            "esp32flasher": {
-                "cancel": "Abbrechen",
-                "chipMAC": "Chip-MAC",
-                "chipType": "Chip-Typ",
-                "confirmFlashDialog": "Möchtest du deine Toniebox wirklich flashen? Bitte achte auf eine stabile Verbindung und unterbreche den Vorgang nicht!",
-                "confirmFlashDialogHint": "Für eine korrekte Funktionsweise deiner Toniebox ist die angegebene TeddyCloud-Instanz unbedingt notwendig. Falls deine TeddyCloud offline ist, kann deine Toniebox keine neuen Inhalte mehr abrufen!",
-                "confirmFlashModal": "Toniebox mit gepatchter Firmware flashen",
-                "connected": "Verbunden",
-                "connectingReadFlash": "Verbinde zum Lesen des Flash...",
-                "connectingReadMac": "Verbinde zum Lesen der MAC-Adresse...",
-                "connectingTo": "Verbinde zu",
-                "connectingToESP": "Verbinde zum ESP...",
-                "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
-                "downloadFlashFilesHint": "Die Firmware Images sind im Datenverzeichnis deines Servers gespeichert, falls du sie nochmal flashen möchtest. Wenn du deine Firmware Images woanders speichern willst, kannst du sie herunterladen und an einem sicheren Ort ablegen:",
-                "downloadFlashFilesHintP1": "Du kannst sie manuell ins Verzeichnis /certs/client/ extrahieren. Das kannst du entweder mit teddycloud Executable auf deinem Computer machen oder über die Docker-Shell.",
-                "downloadFlashFilesHintP2": "Bitte überprüfe den Dateinamen der extrahierten Zertifikate, besonders die Groß- und Kleinschreibung! Ändere sie in Kleinbuchstaben, wenn sie in Großbuchstaben sind.",
-                "downloadLink": "Download ungepachte Firmware",
-                "downloadLinkPatched": "Download gepachte Firmware",
-                "error": "Fehler",
-                "extractCertificates": "Zertifikate für TeddyCloud extrahieren",
-                "failedToCommunicate": "Kommunikation fehlgeschlagen:",
-                "failedToConnect": "Verbindung fehlgeschlagen:",
-                "flash": "Flashen",
-                "flashDevice": "Flash-Gerät",
-                "flashEsp32": "ESP32 flashen",
-                "flashId": "Flash-ID",
-                "flashManuf": "Flash-Hersteller",
-                "flashSize": "Flash-Größe",
-                "flashSizeError": "Flash-Größenfehler",
-                "hintESP32FirmwareFlashed": "Das Patchen ist abgeschlossen. Trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte sich jetzt mit TeddyCloud verbinden können!",
-                "hintFlashESP32": "Trenne die Stromversorgung deiner Toniebox noch einmal. Klicke auf \"ESP32 flashen\", wähle bei Bedarf den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
-                "hintPatchFlash": "Um das ausgewählte / gelesene Flash mit dem dem CA-Zertifikat deiner TeddyCloud zu versehen und ggf. weitere Anpassungen wie Hostname der TeddyCloud und/oder der WiFi-Zugangsdaten vorzunehmen, klicke nach Eingabe auf \"Patch\" oder gehe ohne Patching direkt zum nächsten Schritt. ",
-                "hintPatchHost": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein.",
-                "hintPatchWifi": "Gib optional die WiFi Zugangsdaten für deine Toniebox ein.",
-                "hintReadESP32ImportFlash": "Trenne die Stromversorgung deiner Toniebox. Stelle sicher, dass der UART im 3.3V Modus arbeitet. Verbinde dein UART mit deinem PC und der Toniebox (Toniebox J103 [TxD | RxD | GND] -> UART: TxD -> RxD, RxD -> TxD, GND -> GND). Schliesse die J100-Pinlöcher kurz. Klicke auf \"Flash lesen\" oder \"Datei laden\" und wähle dann den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
-                "hostname": "TeddyCloud-Hostname:",
-                "hostnameSettings": "Hostname Teddycloud",
-                "hostnameToLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
-                "infoTable": "ESP32 info",
-                "invalidSerialPort": "Ungültiger serieller Port",
-                "loadFile": "Datei laden",
-                "next": "Weiter",
-                "noPortAvailable": "Kein Port verfügbar oder Benutzer hat abgebrochen",
-                "patchImage": "Patch",
-                "patchingFailed": "Patchen fehlgeschlagen",
-                "patchingFlashImage": "Flash-Image wird gepatcht...",
-                "patchingSuccessful": "Patchen erfolgreich, bereit zum Flashen von {{size}} MiB",
-                "payloadReceived": "Payload empfangen",
-                "portOpenFailedInUse": "Port konnte nicht geöffnet werden. Bereits in Gebrauch?",
-                "preparingFlash": "Vorbereitung von {{size}} MiB Flash",
-                "previous": "Zurück",
-                "readFlash": "Flash lesen",
-                "readingFinished": "Lesen abgeschlossen",
-                "readingFlash": "Flash wird gelesen...",
-                "readyToProceed": ", bereit fortzufahren.",
-                "retrievingMac": "MAC-Adresse wird abgerufen...",
-                "titleESP32FirmwareFlashed": "ESP32 geflasht",
-                "titleFlashESP32": "ESP32 flashen",
-                "titlePatchFlash": "Flash patchen",
-                "titleReadESP32ImportFlash": "ESP32 lesen/Flash importieren",
-                "uploadFailed": "Upload fehlgeschlagen",
-                "uploading": "Upload läuft...",
-                "uploadSuccessful": "Upload erfolgreich, gespeichert als",
-                "wifiCredentialsIncomplete": "WiFi Zugangsdaten unvollständig! Bitte gib SSID UND Passwort ein oder lasse beide Felder leer!",
-                "wifiPassword": "WiFi Passwort",
-                "wifiSettings": "WiFi Daten (optional)",
-                "wifiSSID": "WiFi SSID:",
-                "writingFinished": "Schreiben abgeschlossen",
-                "writingFlash": "Schreibe {{size}} MiB Flash..."
-            },
-            "hint": "Dieser Abschnitt ist nur verfügbar, wenn HTTPS verwendet wird und du einen Browser nutzt, der die Web Serial API unterstützt, wie z.B. Chrome oder Edge. Wenn du deine ESP32 Toniebox flashen willst, dann klicke bitte auf \"Weiter zu HTTPS\", du wirst dann automatisch auf die HTTPS Version weitergeleitet. Es kann sein, dass dein Browser meldet, dass die Verbindung nicht sicher ist. Dies ist ok, bestätige es und öffne die Seite dennoch. Eventuell musst du dafür weitere Details bei der Meldung anzeigen.",
-            "hintWiki": "Falls du keinen WebSerial fähigen Browser nutzen möchtest, hier findest du eine Schritt-für-Schritt-Anleitung:",
-            "hintWiki2": "Bitte folge dann dem ESP32-Pfad:",
-            "linkWikiGeneral": "Patching deiner Toniebox zur Nutzung mit TeddyCloud",
-            "linkWikiSpecific": "ESP32 spezifische Einrichtung",
-            "httpsSettings": "HTTPS Settings",
-            "navigationTitle": "ESP32 Box Flashing",
-            "redirect": "Weiter zu HTTPS",
-            "title": "ESP32 Box Flashing"
-        },
-        "lastOnline": "zuletzt online",
-        "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
-        "linkToBoxCFW": "Öffne Web Frontend deiner Toniebox",
-        "messages": {
-            "apiAccessDisabled": "Zugriff auf TeddyCloud APIs deaktiviert!",
-            "apiAccessEnabled": "Zugriff auf TeddyCloud APIs aktiviert!",
-            "apiAccessNotChangedError": "Konnte TeddyCloud API Zugriff nicht ändern: ",
-            "deleteFailed": "Löschvorgang fehlgeschlagen: ",
-            "deleteSuccessful": "Löschvorgang erfolgreich!",
-            "deleting": "Wird gelöscht..."
-        },
-        "navigationTitle": "Tonieboxen",
-        "newBoxesAllowed": "Neue Tonieboxen erlaubt",
-        "newBoxesAllowedText": "Du kannst neue Tonieboxen mit TeddyCloud verbinden. Wenn du alle deine Boxen verbunden hast, deaktiviere aus Sicherheitsgründen bitte die Einstellung \"Allow new boxes\".",
-        "offline": "offline",
-        "online": "online",
-        "title": "Deine Tonieboxen",
-        "uploadTonieboxCertificatesModal": {
-            "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)",
-            "boxSpecific": " (Toniebox spezifisch hinterlegt)",
-            "Label": "Zertifikate",
-            "uploadPath": "Upload Pfad (certDir):",
-            "uploadTonieboxCertificates": "Zertifikate für Toniebox \"{{name}}\" hochladen"
-        }
-    },
-    "tonies": {
-        "addNewCustomTonie": "Neues Modell anlegen",
-        "addNewCustomTonieHint": "Lege ein neues Modell an und weise es dem aktuellen Tag zu",
-        "addNewCustomTonieModal": {
-            "addAudioIdHash": "Audio ID und Hash hinzufügen",
-            "addTrack": "Track hinzufügen",
-            "audioId": "Audio ID",
-            "category": "Kategorie",
-            "episode": "Episode",
-            "episodeHint": "Die Episode wird innerhalb der Toniecard angezeigt",
-            "failedToCreate": "Modellerstellung fehlgeschlagen: ",
-            "formfieldTitle": "Titel",
-            "formfieldTitleHint": "Aktuell keine Ausgabe auf Toniecard",
-            "hash": "Hash",
-            "language": "Sprache",
-            "languageHint": "Format: de-de",
-            "model": "Modell",
-            "modelRequired": "Das Modell muss ausgefüllt werden.",
-            "no": "No",
-            "pic": "Url zum Bild",
-            "release": "Release",
-            "remove": "entfernen",
-            "save": "Speichern",
-            "series": "Serie",
-            "seriesHint": "Die Serie wird als Titel der Toniecard angezeigt",
-            "seriesRequired": "Die Serie muss ausgefüllt werden.",
-            "successfullyCreated": "Modell erfolgreich erstellt",
-            "title": "Neuen Custom Tonie/Tag anlegen",
-            "track": "Track"
-        },
-        "addToniesCustomJsonEntry": "WIP: Modell anlegen",
-        "alternativeSource": "Der Toniefigur {{originalTonie}} ist der Inhalt {{assignedContent}} zugeordnet!",
-        "cancel": "Abbrechen",
-        "closeAudioPlayer": "Player schließen",
-        "closeAudioPlayerPopover": "Schließen stoppt die Wiedergabe!",
-        "confirmHideModal": {
-            "cancel": "Abbrechen",
-            "confirmHideDialog": "Möchtest du den Tonie/Tag \"{{tonieToHide}}\" wirklich aus der Toniesübersicht ausblenden? Um ihn wieder einzublenden musst du den Tonie/Tag auf eine deiner Tonieboxen platzieren.",
-            "hide": "Ausblenden",
-            "title": "Tonie/Tag ausblenden"
-        },
-        "content": {
-            "navigationTitle": "Content",
-            "showToniesOfBoxes": "Inhalte der folgenden Tonieboxen anzeigen",
-            "title": "Content",
-            "toniePicture": "Tonie Bild"
-        },
-        "createDirectory": {
-            "cancel": "Abbrechen",
-            "create": "Anlegen",
-            "createDirectory": "Neuen Ordner anlegen",
-            "directoryCreated": "Neuer Ordner wurde angelegt!",
-            "inDirectory": "im Pfad ",
-            "modalTitle": "Neuen Ordner anlegen",
-            "placeholder": "Gib den Ordnernamen an"
-        },
-        "currentPath": "Aktueller Pfad: ",
-        "editModal": {
-            "model": "Modell",
-            "placeholderSearchForAModel": "Nach einem Modell suchen",
-            "placeholderSearchForARadioStream": "Suche nach einem Radiostream",
-            "save": "Speichern",
-            "source": "Quelle",
-            "title": "Modell bearbeiten"
-        },
-        "encoder": {
-            "clearList": "Liste leeren",
-            "filename": "Dateiname",
-            "maxFiles": "Du kannst nur maximal {{maxFiles}} Dateien hinzufügen.",
-            "navigationTitle": "Audio Encoder",
-            "processing": "Verarbeitung läuft...",
-            "removeFile": "Datei entfernen",
-            "saveAs": "Datei speichern unter",
-            "sortAlphabetically": "Dateien alphabetisch sortieren",
-            "targetDirectory": "Zielpfad auswählen",
-            "title": "Audio Encoder",
-            "upload": "Hochladen",
-            "uploadFailed": "Das Hochladen ist fehlgeschlagen",
-            "uploadFiles": "Datei(en) auswählen",
-            "uploadHint": "Ziehe die Audiodateien hier her!",
-            "uploading": "Lädt hoch...",
-            "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt",
-            "uploadText": "Klicke oder ziehe bis zu {{maxFiles}} Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich"
-        },
-        "infoModal": {
-            "exists": "Existiert:",
-            "model": "Modell:",
-            "no": "Nein",
-            "tracklist": "Trackliste:",
-            "valid": "Gültig:",
-            "yes": "Ja"
-        },
-        "informationModal": {
-            "hideTag": "Tonie/Tag ausblenden",
-            "ok": "OK",
-            "unknownModel": "Unbekanntes Model"
-        },
-        "lastPlayedOnModal": {
-            "lastPlayedOn": "Zuletzt gepielter Tonie",
-            "lastPlayedOnMessage": "Dieser Tonie ist der zuletzt gespielte Tonie auf",
-            "title": "Dieser Tonie wurde zuletzt gespielt!"
-        },
-        "library": {
-            "navigationTitle": "Library",
-            "title": "Library"
-        },
-        "messages": {
-            "cloudAccessBlocked": "Cloud-Zugang blockiert!",
-            "cloudAccessEnabled": "Cloud-Zugang aktiviert!",
-            "couldNotChangeCloudFlag": "Konnte Cloud-Zugriff (nocloud) Flag nicht ändern! ",
-            "couldNotChangeLiveFlag": "Konnte Live-Flag nicht ändern! ",
-            "couldNotEmptySource": "Konnte Quelle nicht leeren!",
-            "couldNotSetSource": "Konnte Quelle nicht setzen! ",
-            "downloadedFile": "Datei heruntergeladen",
-            "downloading": "Herunterladen...",
-            "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund: ",
-            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen: ",
-            "hideTonieSuccessful": "Tonie/Tag erfolgreich als ausgeblendet markiert!",
-            "liveDisabled": "Live deaktiviert!",
-            "liveEnabled": "Live aktiviert!",
-            "setToEmptyValue": "leer",
-            "setTonieToModelFailed": "Konnte das Tonie-Modell nicht ändern!",
-            "setTonieToModelSuccessful": "Setze Tonie-Modell auf {{selectedModel}}!",
-            "setTonieToSourceFailed": "Konnte die Tonie-Quelle nicht ändern!",
-            "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
-            "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!"
-        },
-        "navigationTitle": "Tonies",
-        "selectFileModal": {
-            "cancel": "Abbrechen",
-            "ok": "OK",
-            "selectFile": "TAF/TAP-Datei auswählen"
-        },
-        "system-sounds": {
-            "navigationTitle": "System Sounds",
-            "title": "System Sounds"
-        },
-        "tafHeaderOf": "TAF-Header von ",
-        "tap": {
-            "navigationTitle": "WIP: Audio Playlists",
-            "title": "WIP: Tonie Audio Playlists"
-        },
-        "tapEditor": {
-            "addFile": "Datei hinzufügen",
-            "cancel": "Abbrechen",
-            "create": "Anlegen",
-            "fileNameContentFile": "Beschreibung",
-            "filePath": "Dateipfad Playlist",
-            "filePathContentFile": "Dateipfad",
-            "filePathContentFileRequired": "Der Dateipfad muss ausgefüllt werden",
-            "filePathRequired": "Der Dateipfad Playlist muss ausgefüllt werden",
-            "name": "TAP Name",
-            "nameRequired": "Der TAP Name muss ausgefüllt werden",
-            "save": "Speichern",
-            "titleCreate": "Neue TAP erstellen",
-            "titleEdit": "TAP bearbeiten"
-        },
-        "title": "Tonies",
-        "tonies": {
-            "filterBar": {
-                "applyFilters": "Filter anwenden",
-                "episodeFilterPlaceholder": "Episode",
-                "exists": "Existiert Ja",
-                "filterLabel": "Filter",
-                "hasCloudAuth": "Cloud auth gesetzt",
-                "hideFilters": "Filter ausblenden",
-                "invalid": "Gültig Nein",
-                "languagePlaceholder": "Sprachen auswählen",
-                "lastPlayed": "Zuletzt gespielt",
-                "live": "Live aktiviert",
-                "noCloud": "Cloud deaktiviert",
-                "notExists": "Existiert Nein",
-                "resetFilters": "Filter zurücksetzen",
-                "searchLabel": "Suche",
-                "searchPlaceholder": "Suchkriterium eingeben",
-                "seriesFilterPlaceholder": "Serie",
-                "showFilters": "Filter einblenden",
-                "unsetHasCloudAuth": "Cloud auth leer",
-                "unsetLive": "Live deaktiviert",
-                "unsetNoCloud": "Cloud aktiviert",
-                "valid": "Gültig Ja"
-            },
-            "navigationTitle": "Tonies",
-            "pageSelector": " Tonies/Seite",
-            "showAll": "Zeige alle",
-            "showPagination": "Paginierung einblenden",
-            "title": "Tonies"
-        },
-        "unsetTonie": "Tonie/Tag"
+        "teddycloudStatusOnline": "Teddycloud Server online",
+        "teddycloudStatusOffline": "Teddycloud Server offline"
     }
 }
