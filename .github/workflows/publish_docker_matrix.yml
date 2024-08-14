@@ -15,21 +15,6 @@ on:
     branches: [ "master", "develop" ]
 
 jobs:
-  generate-workflows-list:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix_json: ${{ steps.discover_workflows.outputs.matrix_json }}
-    steps:
-      - name: Discover Workflows
-        id: discover_workflows
-        run: |
-          # Find all YAML files in the .github/workflows directory that start with "publish_docker_matrix_"
-          workflows=$(find .github/workflows -name 'publish_docker_matrix_*.yml' -exec basename {} \;)
-          echo "Found workflows: $workflows"
-          # Convert to JSON array
-          matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
-          echo "matrix_json=$matrix_json" >> $GITHUB_ENV
-
   debian:
     uses: ./.github/workflows/publish_docker_matrix_debian.yml
   ubuntu:
