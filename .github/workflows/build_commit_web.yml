@@ -109,3 +109,6 @@ jobs:
               event_type,
               client_payload
             });
+
+  build_docker:
+    uses: ./.github/workflows/publish_docker_matrix.yml

@@ -2,16 +2,6 @@ name: Docker Image Publish Matrix (Debian)
 
 on:
   workflow_dispatch:
-  workflow_call:
-  push:
-    branches:
-    - master
-    - develop
-    tags:
-    - tc_nightly*
-    - tc_v*.*.*
-  pull_request:
-    branches: [ "master", "develop" ]
 
 # permissions are needed if pushing to ghcr.io
 permissions: 

@@ -4,6 +4,16 @@ on:
   workflow_dispatch:
   workflow_call:
 
+  push:
+    branches:
+    - master
+    - develop
+    tags:
+    - tc_nightly*
+    - tc_v*.*.*
+  pull_request:
+    branches: [ "master", "develop" ]
+
 jobs:
   generate-workflows-list:
     runs-on: ubuntu-latest
@@ -20,9 +30,9 @@ jobs:
           matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
 
-  trigger_workflow_debian:
+  debian:
     uses: ./.github/workflows/publish_docker_matrix_debian.yml
-  trigger_workflow_ubuntu:
+  ubuntu:
     uses: ./.github/workflows/publish_docker_matrix_ubuntu.yml
-  trigger_workflow_alpine:
+  alpine:
     uses: ./.github/workflows/publish_docker_matrix_alpine.yml
