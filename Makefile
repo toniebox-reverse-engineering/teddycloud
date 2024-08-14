@@ -7,7 +7,7 @@ CONTRIB_DIR    = contrib
 INSTALL_DIR    = install
 PREINSTALL_DIR = $(INSTALL_DIR)/pre
 WEB_SRC_DIR    = teddycloud_web
-WEB_BUILD_DIR  = build
+WEB_BUILD_DIR  = dist
 WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
 
