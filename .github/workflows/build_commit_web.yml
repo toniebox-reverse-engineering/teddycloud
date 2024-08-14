@@ -13,6 +13,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Debug - List all branches in parent and submodule
+        run: |
+          echo "Listing branches in parent repository:"
+          git branch -a
+
+          echo "Listing branches in teddycloud_web submodule:"
+          cd teddycloud_web
+          git branch -a
+          cd ..
+
       - name: Checkout the same branch for teddycloud_web
         run: |
           # Get the current branch of the parent project
@@ -23,6 +33,9 @@ jobs:
 
           # Fetch all branches from the remote in case it's not already available
           git fetch origin
+
+          echo "Listing branches in teddycloud_web submodule:"
+          git branch -a
 
           # Check if the branch exists locally or on the remote
           if git show-ref --verify --quiet refs/heads/$PARENT_BRANCH; then
