@@ -3,20 +3,6 @@ name: Docker Image Publish Matrix (All)
 on:
   workflow_dispatch:
   workflow_call:
-  workflow_run:
-    workflows: ["Make web and commit"]
-    types: 
-      - completed
-
-  push:
-    branches:
-    - master
-    - develop
-    tags:
-    - tc_nightly*
-    - tc_v*.*.*
-  pull_request:
-    branches: [ "master", "develop" ]
 
 jobs:
   generate-workflows-list:
