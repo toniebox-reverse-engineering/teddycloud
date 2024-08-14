@@ -13,8 +13,46 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Update teddycloud_web submodule
-        run: git submodule update --remote teddycloud_web
+      - name: Debug - List all branches in parent and submodule
+        run: |
+          echo "Listing branches in parent repository:"
+          git branch -a
+
+          echo "Listing branches in teddycloud_web submodule:"
+          cd teddycloud_web
+          git branch -a
+          cd ..
+
+      - name: Checkout the same branch for teddycloud_web
+        run: |
+          # Get the current branch of the parent project
+          PARENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+          # Navigate into the submodule directory
+          cd teddycloud_web
+
+          # Fetch all branches from the remote in case it's not already available
+          git fetch origin
+
+          echo "Listing branches in teddycloud_web submodule:"
+          git branch -a
+
+          # Fetch the specific branch from the remote if it doesn't exist locally
+          if git show-ref --verify --quiet refs/heads/$PARENT_BRANCH; then
+            git checkout $PARENT_BRANCH
+          else
+            # Check if the branch exists on the remote and fetch it
+            if git ls-remote --heads origin $PARENT_BRANCH | grep -q $PARENT_BRANCH; then
+              git fetch origin $PARENT_BRANCH:$PARENT_BRANCH
+              git checkout $PARENT_BRANCH
+            else
+              echo "Branch '$PARENT_BRANCH' does not exist in the submodule. Exiting."
+              exit 1
+            fi
+          fi
+
+          # Navigate back to the parent directory
+          cd ..
 
       - name: Git status
         run: |
@@ -51,3 +89,23 @@ jobs:
           else
           echo "No changes to commit and push."
           fi
+
+      - name: Get current branch for next step
+        id: get_branch
+        run: echo "branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+  
+      - name: Trigger publish_docker_matrix.yml
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const event_type = 'trigger-publish-docker'; // Matches the repository_dispatch trigger
+            const client_payload = { "branch": process.env.branch };
+
+            await github.repos.createDispatchEvent({
+              owner,
+              repo,
+              event_type,
+              client_payload
+            });
