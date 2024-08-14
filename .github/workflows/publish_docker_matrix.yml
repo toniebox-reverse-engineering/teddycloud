@@ -2,8 +2,10 @@ name: Docker Image Publish Matrix (All)
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [trigger-workflow]
+  workflow_run:
+    workflows: ["Make web and commit"]
+    types: 
+      - completed
   push:
     branches:
     - master
@@ -15,7 +17,7 @@ on:
     branches: [ "master", "develop" ]
 
 jobs:
-  discover-and-trigger:
+  pseodo_trigger:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -30,33 +32,3 @@ jobs:
           # Convert to JSON array
           matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
-
-      - name: Trigger Workflows
-        uses: actions/github-script@v6
-        env:
-          MATRIX_JSON: ${{ env.matrix_json }}
-        with:
-          script: |
-            const matrix = JSON.parse(process.env.MATRIX_JSON);
-            console.log("Triggering workflows: ", matrix);
-
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const event_type = 'trigger-workflow'; // Ensure this matches your repository_dispatch trigger
-
-            for (const workflow of matrix) {
-              try {
-                await github.rest.repos.createDispatchEvent({
-                  owner,
-                  repo,
-                  event_type,
-                  client_payload: {
-                    workflow: workflow,
-                    branch: process.env.GITHUB_REF_NAME
-                  }
-                });
-                console.log(`Triggered ${workflow}`);
-              } catch (error) {
-                console.error(`Failed to trigger ${workflow}:`, error);
-              }
-            }

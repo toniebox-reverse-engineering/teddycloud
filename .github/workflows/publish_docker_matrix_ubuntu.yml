@@ -2,8 +2,10 @@ name: Docker Image Publish Matrix (Ubuntu)
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [trigger-workflow]
+  workflow_run:
+    workflows: ["Docker Image Publish Matrix (All)"]
+    types: 
+      - completed
 
 # permissions are needed if pushing to ghcr.io
 permissions: 
