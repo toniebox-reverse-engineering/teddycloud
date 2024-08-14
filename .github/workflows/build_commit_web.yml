@@ -37,14 +37,18 @@ jobs:
           echo "Listing branches in teddycloud_web submodule:"
           git branch -a
 
-          # Check if the branch exists locally or on the remote
+          # Fetch the specific branch from the remote if it doesn't exist locally
           if git show-ref --verify --quiet refs/heads/$PARENT_BRANCH; then
             git checkout $PARENT_BRANCH
-          elif git show-ref --verify --quiet refs/remotes/origin/$PARENT_BRANCH; then
-            git checkout $PARENT_BRANCH
           else
-            echo "Branch '$PARENT_BRANCH' does not exist in the submodule. Exiting."
-            exit 1
+            # Check if the branch exists on the remote and fetch it
+            if git ls-remote --heads origin $PARENT_BRANCH | grep -q $PARENT_BRANCH; then
+              git fetch origin $PARENT_BRANCH:$PARENT_BRANCH
+              git checkout $PARENT_BRANCH
+            else
+              echo "Branch '$PARENT_BRANCH' does not exist in the submodule. Exiting."
+              exit 1
+            fi
           fi
 
           # Navigate back to the parent directory
