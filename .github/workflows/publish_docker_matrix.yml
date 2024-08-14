@@ -37,19 +37,28 @@ jobs:
           MATRIX_JSON: ${{ env.matrix_json }}
         with:
           script: |
-            const matrix = JSON.parse(process.env.MATRIX_JSON);
+            const { github, context } = require('@actions/github');
+            const { MATRIX_JSON } = process.env;
+            const matrix = JSON.parse(MATRIX_JSON);
             console.log("Triggering workflows: ", matrix);
-            for (const workflow of matrix) {
-              const owner = context.repo.owner;
-              const repo = context.repo.repo;
-              const event_type = 'trigger-workflow'; // Matches the repository_dispatch trigger
-              const client_payload = { "branch": process.env.GITHUB_REF_NAME };
 
-              await github.repos.createDispatchEvent({
-                owner,
-                repo,
-                event_type,
-                client_payload,
-                workflow
-              });
-            };
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const event_type = 'trigger-workflow'; // Make sure this matches your repository_dispatch trigger
+
+            for (const workflow of matrix) {
+              try {
+                await github.rest.repos.createDispatchEvent({
+                  owner,
+                  repo,
+                  event_type,
+                  client_payload: {
+                    workflow: workflow,
+                    branch: process.env.GITHUB_REF_NAME
+                  }
+                });
+                console.log(`Triggered ${workflow}`);
+              } catch (error) {
+                console.error(`Failed to trigger ${workflow}:`, error);
+              }
+            }
