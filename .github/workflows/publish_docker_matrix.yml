@@ -10,9 +10,6 @@ jobs:
     outputs:
       matrix_json: ${{ steps.discover_workflows.outputs.matrix_json }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Discover Workflows
         id: discover_workflows
         run: |
@@ -23,17 +20,9 @@ jobs:
           matrix_json=$(echo "$workflows" | tr ' ' '\n' | sed 's/^/"/;s/$/"/' | paste -sd, - | sed 's/^/[ /;s/$/ ]/')
           echo "matrix_json=$matrix_json" >> $GITHUB_ENV
 
-      - name: List files
-        run: |
-          ls -l ./
-          ls -l ./.github/
-          ls -l ./.github/workflows/
-
-      - name: Trigger Workflow Debian
-        uses: ./.github/workflows/publish_docker_matrix_debian.yml
-
-      - name: Trigger Workflow Ubuntu
-        uses: ./.github/workflows/publish_docker_matrix_ubuntu.yml
-
-      - name: Trigger Workflow Alpine
-        uses: ./.github/workflows/publish_docker_matrix_alpine.yml
+  trigger_workflow_debian:
+    uses: ./.github/workflows/publish_docker_matrix_debian.yml
+  trigger_workflow_ubuntu:
+    uses: ./.github/workflows/publish_docker_matrix_ubuntu.yml
+  trigger_workflow_alpine:
+    uses: ./.github/workflows/publish_docker_matrix_alpine.yml
