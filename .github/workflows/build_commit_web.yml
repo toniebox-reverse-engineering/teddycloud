@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: "20.11.1"
       - name: Install NPM version
-        run: npm install -g npm@10.2.4
+        run: npm install -g npm@10.8.2
 
       - name: Disable CI checks
         run: echo "CI=false" >> $GITHUB_ENV
