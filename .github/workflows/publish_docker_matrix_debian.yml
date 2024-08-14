@@ -3,6 +3,10 @@ name: Docker Image Publish Matrix (Debian)
 on:
   workflow_dispatch:
   workflow_call:
+  workflow_run:
+    workflows: ["Docker Image Publish Matrix (All)"]
+    types: 
+      - completed
 
 # permissions are needed if pushing to ghcr.io
 permissions: 
