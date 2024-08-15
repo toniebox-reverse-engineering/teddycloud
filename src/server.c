@@ -40,6 +40,7 @@
 #include "core/net.h"             // for ipStringToAddr, IpAddr
 #include "core/socket.h"          // for _Socket
 #include "web.h"                  // for web_download
+#include "cache.h"                // for image cache functions
 #include "debug.h"                // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
 #include "error.h"                // for NO_ERROR, error2text, ERROR_FAILURE
 #include "fs_port_posix.h"        // for fsDirExists
@@ -159,62 +160,20 @@ request_type_t request_paths[] = {
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    const char *cachePath = get_settings()->internal.cachedirfull;
-    if (cachePath == NULL || !fsDirExists(cachePath))
+    cache_entry_t *entry = cache_fetch_by_uri(uri);
+    if (!entry)
     {
-        char message[128];
-        osSnprintf(message, sizeof(message), "core.cachedirfull not set to a valid path: '%s'", cachePath);
-        TRACE_ERROR("%s\r\n", message);
-
-        return ERROR_NOT_FOUND;
-    }
-    const char *fileName = strrchr(uri, '/');
-
-    if (!fileName)
-    {
-        char message[128];
-        osSnprintf(message, sizeof(message), "file not found in: '%s'", uri);
-        TRACE_ERROR("%s\r\n", message);
-
+        TRACE_ERROR("Failed to find cache entry\r\n");
         return ERROR_NOT_FOUND;
     }
 
-    char *filePath = custom_asprintf("%s%c%s", cachePath, PATH_SEPARATOR, fileName);
-
-    /* when the file requested does not exist, check for the .url file with the original URL */
-    if (!fsFileExists(filePath))
+    if (!entry->exists)
     {
-        char destUrl[256] = {0};
-        size_t destUrlLen = 0;
-
-        /* if it exists, download the file */
-        char *urlFilename = custom_asprintf("%s%c%s.url", cachePath, PATH_SEPARATOR, fileName);
-        FsFile *urlFile = fsOpenFile(urlFilename, FS_FILE_MODE_READ);
-        if (!urlFile)
-        {
-            TRACE_ERROR("failed to open URL file '%s'\r\n", urlFilename);
-            osFreeMem(urlFilename);
-            return ERROR_NOT_FOUND;
-        }
-        fsReadFile(urlFile, (void *)destUrl, sizeof(destUrl) - 1, &destUrlLen);
-        destUrl[destUrlLen] = 0;
-        fsCloseFile(urlFile);
-        osFreeMem(urlFilename);
-
-        TRACE_INFO("Download image on-demand from '%s'\r\n", destUrl);
-        error_t err = web_download(destUrl, filePath);
-
-        if (err != NO_ERROR)
-        {
-            TRACE_INFO("Failed, redirecting instead\r\n");
-            return httpSendRedirectResponse(connection, 301, destUrl);
-        }
+        TRACE_INFO("Failed, redirecting instead\r\n");
+        return httpSendRedirectResponse(connection, 301, entry->original_url);
     }
 
-    /* either that file existed or was downloaded. return it. */
-
-    error_t err = httpSendResponseUnsafe(connection, uri, filePath);
-    osFreeMem(filePath);
+    error_t err = httpSendResponseUnsafe(connection, uri, entry->file_path);
     return err;
 }
 
