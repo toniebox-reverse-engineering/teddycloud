@@ -141,38 +141,34 @@ void osSwitchTask(void)
 }
 
 static pthread_mutex_t mutex;
-static bool isMutexInitialized = false;
+static pthread_once_t init_once = PTHREAD_ONCE_INIT;
+
+void osMutexInit(void)
+{
+   pthread_mutexattr_t attr;
+   pthread_mutexattr_init(&attr);
+   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+   pthread_mutex_init(&mutex, &attr);
+   pthread_mutexattr_destroy(&attr);
+}
 
 /**
  * @brief Suspend scheduler activity
  **/
-
 void osSuspendAllTasks(void)
 {
-   if (!isMutexInitialized)
-   {
-      pthread_mutex_init(&mutex, NULL);
-      isMutexInitialized = true;
-   }
-
+   pthread_once(&init_once, osMutexInit);
    pthread_mutex_lock(&mutex);
 }
 
 /**
  * @brief Resume scheduler activity
  **/
-
 void osResumeAllTasks(void)
 {
-   if (!isMutexInitialized)
-   {
-      pthread_mutex_init(&mutex, NULL);
-      isMutexInitialized = true;
-      return;
-   }
-
    pthread_mutex_unlock(&mutex);
 }
+
 
 /**
  * @brief Create an event object
