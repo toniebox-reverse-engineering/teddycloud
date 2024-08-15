@@ -1330,7 +1330,7 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     {
         if (esp32_patch_wifi(patched_path, wifi_ssid, wifi_pass) != NO_ERROR)
         {
-            TRACE_ERROR("Failed to patch hostnames\r\n");
+            TRACE_ERROR("Failed to patch WiFi credentials\r\n");
             return ERROR_NOT_FOUND;
         }
     }
