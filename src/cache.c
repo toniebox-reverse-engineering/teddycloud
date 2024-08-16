@@ -68,18 +68,16 @@ void cache_stats(cache_stats_t *stats)
         {
             stats->memory_used += strlen(pos->file_path) + 1; // Add length of file_path string
         }
-
         if (pos->exists)
         {
             stats->exists_entries++;
-
-            if (fsFileExists(pos->file_path))
-            {
-                stats->total_files++;
-                uint32_t size = 0;
-                fsGetFileSize(pos->file_path, &size);
-                stats->total_size += size;
-            }
+        }
+        if (fsFileExists(pos->file_path))
+        {
+            stats->total_files++;
+            uint32_t size = 0;
+            fsGetFileSize(pos->file_path, &size);
+            stats->total_size += size;
         }
         pos = pos->next;
     }
