@@ -3,6 +3,16 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h> // for size_t
+
+typedef struct
+{
+    size_t total_entries;  /**< Total number of cache entries. */
+    size_t exists_entries; /**< Number of cache entries where the file exists. */
+    size_t total_files;    /**< Number of files in the cache. */
+    size_t total_size;     /**< Total size of all files in the cache (in bytes). */
+    size_t memory_used;    /**< Total memory used for cache infos (in bytes). */
+} cache_stats_t;
 
 /**
  * @brief Structure representing a cache entry.
@@ -18,6 +28,26 @@ struct cache_entry_s
     const char *cached_url;   /**< URL generated and used when adding to index. */
     const char *file_path;    /**< Path of the local cached file. */
 };
+
+/**
+ * @brief Flushes the cache by deleting local cached files and updating cache entries.
+ *
+ * This function iterates through all cache entries, deletes the associated local files if they exist,
+ * and sets the `exists` flag to `false` for each entry. It does not remove the cache entries themselves,
+ * only the cached files on disk.
+ *
+ * The function also logs the outcome of each file deletion attempt.
+ *
+ * @note This operation does not remove cache entries from memory; it only deletes the files from the file system.
+ */
+void cache_flush();
+
+/**
+ * @brief Gathers statistics about the current cache.
+ *
+ * @param stats Pointer to a structure where the statistics will be stored.
+ */
+void cache_stats(cache_stats_t *stats);
 
 /**
  * @brief Adds a new cache entry for the given URL.

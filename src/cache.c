@@ -10,6 +10,81 @@
 cache_entry_t cache_table = {.next = NULL, .hash = 0, .original_url = NULL, .cached_url = NULL, .file_path = NULL};
 uint32_t cache_entries = 0;
 
+void cache_flush()
+{
+    cache_entry_t *pos = &cache_table;
+
+    while (pos != NULL)
+    {
+        if (pos->exists)
+        {
+            // Attempt to delete the local file
+            if (pos->file_path && remove(pos->file_path) == 0)
+            {
+                TRACE_INFO("Deleted cached file: %s\n", pos->file_path);
+            }
+            else
+            {
+                TRACE_WARNING("Failed to delete cached file: %s\n", pos->file_path ? pos->file_path : "Unknown path");
+            }
+
+            // Set the exists flag to false
+            pos->exists = false;
+        }
+
+        pos = pos->next;
+    }
+}
+
+/**
+ * @brief Gathers statistics about the current cache.
+ *
+ * @param stats Pointer to a structure where the statistics will be stored.
+ */
+void cache_stats(cache_stats_t *stats)
+{
+    if (stats == NULL)
+    {
+        return;
+    }
+
+    cache_entry_t *pos = &cache_table;
+    memset(stats, 0, sizeof(cache_stats_t)); // Initialize all stats to zero
+
+    while (pos != NULL)
+    {
+        stats->total_entries++;
+        stats->memory_used += sizeof(*pos); // Add size of the cache entry structure
+
+        if (pos->original_url)
+        {
+            stats->memory_used += strlen(pos->original_url) + 1; // Add length of original_url string
+        }
+        if (pos->cached_url)
+        {
+            stats->memory_used += strlen(pos->cached_url) + 1; // Add length of cached_url string
+        }
+        if (pos->file_path)
+        {
+            stats->memory_used += strlen(pos->file_path) + 1; // Add length of file_path string
+        }
+
+        if (pos->exists)
+        {
+            stats->exists_entries++;
+
+            if (fsFileExists(pos->file_path))
+            {
+                stats->total_files++;
+                uint32_t size = 0;
+                fsGetFileSize(pos->file_path, &size);
+                stats->total_size += size;
+            }
+        }
+        pos = pos->next;
+    }
+}
+
 /**
  * @brief Caches and returns a modified base URL with trailing slashes removed.
  *

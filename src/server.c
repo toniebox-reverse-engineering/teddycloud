@@ -160,6 +160,63 @@ request_type_t request_paths[] = {
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    if (strcmp(uri, "/cache/flush") == 0)
+    {
+        cache_flush();
+
+        char *resp = "<html><body><h1>Cache Flushed</h1><p>The cache has been successfully flushed.</p><a href=\"/cache/stats.html\">Return to Cache Stats</a></body></html>";
+        httpPrepareHeader(connection, "text/html; charset=utf-8", osStrlen(resp));
+        return httpWriteResponseString(connection, resp, false);
+    }
+
+    if (strcmp(uri, "/cache/stats.html") == 0)
+    {
+        cache_stats_t stats;
+        cache_stats(&stats);
+
+        char stats_page[4096]; // Buffer for the HTML page
+        snprintf(stats_page, sizeof(stats_page),
+                 "<!DOCTYPE html>"
+                 "<html lang=\"en\">"
+                 "<head>"
+                 "<meta charset=\"UTF-8\">"
+                 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                 "<meta http-equiv=\"refresh\" content=\"5\">"
+                 "<title>Cache Statistics</title>"
+                 "<style>"
+                 "body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; }"
+                 "h1 { color: #444; text-align: center; }"
+                 ".container { max-width: 800px; margin: 50px auto; padding: 20px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }"
+                 "table { width: 100%%; border-collapse: collapse; margin-top: 20px; }"
+                 "th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }"
+                 "th { background-color: #f2f2f2; }"
+                 ".btn { display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007bff; border: none; border-radius: 5px; text-decoration: none; margin-top: 20px; }"
+                 "</style>"
+                 "</head>"
+                 "<body>"
+                 "<div class=\"container\">"
+                 "<h1>Cache Statistics</h1>"
+                 "<table>"
+                 "<tr><th>Total Entries</th><td>%zu</td></tr>"
+                 "<tr><th>Entries with Existing Files</th><td>%zu</td></tr>"
+                 "<tr><th>Total Cached Files</th><td>%zu</td></tr>"
+                 "<tr><th>Total Cache Size</th><td>%zu bytes</td></tr>"
+                 "<tr><th>Memory Used</th><td>%zu bytes</td></tr>"
+                 "</table>"
+                 "<a href=\"/cache/flush\" class=\"btn\">Flush Cache</a>"
+                 "</div>"
+                 "</body>"
+                 "</html>",
+                 stats.total_entries,
+                 stats.exists_entries,
+                 stats.total_files,
+                 stats.total_size,
+                 stats.memory_used);
+
+        httpPrepareHeader(connection, "text/html; charset=utf-8", osStrlen(stats_page));
+        return httpWriteResponseString(connection, stats_page, false);
+    }
+
     cache_entry_t *entry = cache_fetch_by_path(uri);
     if (!entry)
     {
