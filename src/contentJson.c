@@ -279,6 +279,11 @@ void free_content_json(contentJson_t *content_json)
         osFreeMem(content_json->tonie_model);
         content_json->tonie_model = NULL;
     }
+    if (content_json->_source_model)
+    {
+        osFreeMem(content_json->_source_model);
+        content_json->_source_model = NULL;
+    }
     if (content_json->_streamFile)
     {
         osFreeMem(content_json->_streamFile);
