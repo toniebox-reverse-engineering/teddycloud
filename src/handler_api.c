@@ -2378,6 +2378,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
             addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
 
+            cJSON *jsonSourceInfo = cJSON_CreateObject();
+            toniesJson_item_t *item2 = tonies_byModel(contentJson._source_model);
+            addToniesJsonInfoJson(item2, contentJson._source_model, jsonSourceInfo);
+            cJSON *tonieInfoCopy = cJSON_DetachItemFromObject(jsonSourceInfo, "tonieInfo");
+            cJSON_AddItemToObject(jsonEntry, "sourceInfo", tonieInfoCopy);
+
             if (cJSON_IsArray(jsonTarget))
             {
                 cJSON_AddItemToArray(jsonTarget, jsonEntry);

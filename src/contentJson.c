@@ -28,6 +28,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
     content_json->cloud_override = false;
     content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
+    content_json->_source_model = NULL;
     content_json->hide = false;
     content_json->claimed = false;
     content_json->_valid = false;
@@ -232,17 +233,21 @@ void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, u
     if (content_json->_valid)
     {
         toniesJson_item_t *toniesJson = tonies_byAudioIdHash(audio_id, hash);
-        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
+        if (toniesJson != NULL)
         {
-            if (audio_id == SPECIAL_AUDIO_ID_ONE && hash == NULL)
-            { // don't update special tonies without hash
-            }
-            else
+            if (osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
             {
-                osFreeMem(content_json->tonie_model);
-                content_json->tonie_model = strdup(toniesJson->model);
-                content_json->_updated = true;
+                if (audio_id == SPECIAL_AUDIO_ID_ONE && hash == NULL)
+                { // don't update special tonies without hash
+                }
+                else
+                {
+                    osFreeMem(content_json->tonie_model);
+                    content_json->tonie_model = strdup(toniesJson->model);
+                    content_json->_updated = true;
+                }
             }
+            content_json->_source_model = strdup(toniesJson->model);
         }
         else
         {
