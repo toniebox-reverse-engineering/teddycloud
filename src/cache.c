@@ -10,8 +10,9 @@
 cache_entry_t cache_table = {.next = NULL, .hash = 0, .original_url = NULL, .cached_url = NULL, .file_path = NULL};
 uint32_t cache_entries = 0;
 
-void cache_flush()
+uint32_t cache_flush()
 {
+    uint32_t deleted = 0;
     cache_entry_t *pos = &cache_table;
 
     while (pos != NULL)
@@ -19,8 +20,9 @@ void cache_flush()
         if (pos->exists)
         {
             // Attempt to delete the local file
-            if (pos->file_path && remove(pos->file_path) == 0)
+            if (pos->file_path && fsDeleteFile(pos->file_path) == NO_ERROR)
             {
+                deleted++;
                 TRACE_INFO("Deleted cached file: %s\n", pos->file_path);
             }
             else
@@ -34,6 +36,8 @@ void cache_flush()
 
         pos = pos->next;
     }
+
+    return deleted;
 }
 
 /**

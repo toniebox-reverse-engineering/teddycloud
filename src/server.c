@@ -146,6 +146,8 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/settings/reset/", SERTY_WEB, &handleApiSettingsReset},
     {REQ_POST, "/api/settings/removeOverlay", SERTY_WEB, &handleDeleteOverlay},
     {REQ_POST, "/api/migrateContent2Lib", SERTY_WEB, &handleApiMigrateContent2Lib},
+    {REQ_POST, "/api/cacheFlush", SERTY_WEB, &handleApiCacheFlush},
+    {REQ_GET, "/api/cacheStats", SERTY_WEB, &handleApiCacheStats},
     {REQ_GET, "/api/sse", SERTY_WEB, &handleApiSse},
     {REQ_GET, "/robots.txt", SERTY_WEB, &handleSecMitRobotsTxt},
     /* official tonies API */
@@ -160,28 +162,20 @@ request_type_t request_paths[] = {
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    if (strcmp(uri, "/cache/flush") == 0)
-    {
-        cache_flush();
-
-        char *resp = "<html><body><h1>Cache Flushed</h1><p>The cache has been successfully flushed.</p><a href=\"/cache/stats.html\">Return to Cache Stats</a></body></html>";
-        httpPrepareHeader(connection, "text/html; charset=utf-8", osStrlen(resp));
-        return httpWriteResponseString(connection, resp, false);
-    }
-
-    if (strcmp(uri, "/cache/stats.html") == 0)
+    /* guerilla-style stats page for internal tests, to be removed when web ui is finished */
+    if (osStrcmp(uri, "/cache/stats.html") == 0)
     {
         cache_stats_t stats;
         cache_stats(&stats);
 
-        char stats_page[4096]; // Buffer for the HTML page
+        char stats_page[4096];
         snprintf(stats_page, sizeof(stats_page),
                  "<!DOCTYPE html>"
                  "<html lang=\"en\">"
                  "<head>"
                  "<meta charset=\"UTF-8\">"
                  "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-                 "<meta http-equiv=\"refresh\" content=\"5\">"
+                 "<meta http-equiv=\"refresh\" content=\"1\">"
                  "<title>Cache Statistics</title>"
                  "<style>"
                  "body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; }"
@@ -192,6 +186,21 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
                  "th { background-color: #f2f2f2; }"
                  ".btn { display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #007bff; border: none; border-radius: 5px; text-decoration: none; margin-top: 20px; }"
                  "</style>"
+                 "<script>"
+                 "function flushCache() {"
+                 "  fetch('/api/cacheFlush', { method: 'POST' })"
+                 "    .then(response => response.json())"
+                 "    .then(data => {"
+                 "      alert(data.message + ' Number of files deleted: ' + data.deleted_files);"
+                 "      location.reload();"
+                 "    })"
+                 "    .catch(error => {"
+                 "      console.error('Error flushing cache:', error);"
+                 "      alert('Failed to flush cache.');"
+                 "    });"
+                 "}"
+
+                 "</script>"
                  "</head>"
                  "<body>"
                  "<div class=\"container\">"
@@ -203,7 +212,7 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
                  "<tr><th>Total Cache Size</th><td>%zu bytes</td></tr>"
                  "<tr><th>Memory Used</th><td>%zu bytes</td></tr>"
                  "</table>"
-                 "<a href=\"/cache/flush\" class=\"btn\">Flush Cache</a>"
+                 "<button class=\"btn\" onclick=\"flushCache()\">Flush Cache</button>"
                  "</div>"
                  "</body>"
                  "</html>",

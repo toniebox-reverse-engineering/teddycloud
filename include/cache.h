@@ -39,8 +39,10 @@ struct cache_entry_s
  * The function also logs the outcome of each file deletion attempt.
  *
  * @note This operation does not remove cache entries from memory; it only deletes the files from the file system.
+ *
+ * @return The number of files that were successfully deleted.
  */
-void cache_flush();
+uint32_t cache_flush();
 
 /**
  * @brief Gathers statistics about the current cache.

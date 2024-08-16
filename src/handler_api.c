@@ -22,6 +22,7 @@
 #include "fs_ext.h"
 #include "cert.h"
 #include "esp32.h"
+#include "cache.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -2667,4 +2668,40 @@ error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const
     TRACE_INFO("Removed overlay %s\n", overlay);
 
     return httpOkResponse(connection);
+}
+
+error_t handleApiCacheFlush(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    /* RESTful API-based cache flush request */
+    uint32_t deleted = cache_flush();
+
+    char json_resp[128];
+    snprintf(json_resp, sizeof(json_resp), "{\"message\": \"Cache successfully flushed.\", \"deleted_files\": %u}", deleted);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", strlen(json_resp));
+    return httpWriteResponseString(connection, json_resp, false);
+}
+
+error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    cache_stats_t stats;
+    cache_stats(&stats);
+
+    char stats_json[512];
+    snprintf(stats_json, sizeof(stats_json),
+             "{"
+             "\"total_entries\": %zu,"
+             "\"exists_entries\": %zu,"
+             "\"total_files\": %zu,"
+             "\"total_size\": %zu,"
+             "\"memory_used\": %zu"
+             "}",
+             stats.total_entries,
+             stats.exists_entries,
+             stats.total_files,
+             stats.total_size,
+             stats.memory_used);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(stats_json));
+    return httpWriteResponseString(connection, stats_json, false);
 }
