@@ -160,7 +160,7 @@ request_type_t request_paths[] = {
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    cache_entry_t *entry = cache_fetch_by_uri(uri);
+    cache_entry_t *entry = cache_fetch_by_path(uri);
     if (!entry)
     {
         TRACE_ERROR("Failed to find cache entry\r\n");

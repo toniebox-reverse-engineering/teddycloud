@@ -257,7 +257,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
     return NULL;
 }
 
-cache_entry_t *cache_fetch_by_uri(const char *uri)
+cache_entry_t *cache_fetch_by_path(const char *uri)
 {
     if (uri == NULL)
     {
