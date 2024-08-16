@@ -1,5 +1,4 @@
 #include "toniesJson.h"
-#include "web.h"
 #include "fs_port.h"
 #include "os_port.h"
 #include "settings.h"
@@ -10,7 +9,6 @@
 #include "cloud_request.h"
 #include "server_helpers.h"
 #include "mutex_manager.h"
-#include "hash/sha256.h" // for sha256Update, sha256Final, sha256Init
 
 #define TONIES_JSON_CACHED 1
 #if TONIES_JSON_CACHED == 1
