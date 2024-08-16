@@ -87,54 +87,6 @@ void cache_stats(cache_stats_t *stats)
     }
 }
 
-/**
- * @brief Caches and returns a modified base URL with trailing slashes removed.
- *
- * This static function retrieves the base URL from the settings, removes any trailing slashes,
- * and caches the modified URL for future use. If the base URL has not changed since the last call,
- * the cached version is returned. If the base URL has changed, the cache is updated with the new URL.
- *
- * @return The modified base URL with trailing slashes removed, or an empty string if the base URL is NULL or empty.
- */
-static const char *cache_hosturl()
-{
-    static char *hosturl = NULL;
-    const char *base_url = settings_get_string("core.host_url");
-
-    if (!base_url || osStrlen(base_url) < 1)
-    {
-        return "";
-    }
-
-    /* Duplicate the base URL */
-    char *url = strdup(base_url);
-    if (!url)
-    {
-        return "";
-    }
-
-    /* Remove trailing slashes */
-    char *end = url + strlen(url) - 1;
-    while (end > url && *end == '/')
-    {
-        *end-- = '\0';
-    }
-
-    /* if it was already set, check if it changed */
-    if (hosturl && !osStrcmp(hosturl, url))
-    {
-        osFreeMem(url);
-        return hosturl;
-    }
-
-    /* seems different, so free old and set new one */
-    char *tmp = hosturl;
-    hosturl = url;
-    osFreeMem(tmp);
-
-    return hosturl;
-}
-
 void cache_entry_add(cache_entry_t *entry)
 {
     if (!entry)
@@ -242,7 +194,7 @@ cache_entry_t *cache_add(const char *url)
     entry->hash = (sha256_calc[0] << 24) | (sha256_calc[1] << 16) | (sha256_calc[2] << 8) | (sha256_calc[3] << 0);
     entry->original_url = strdup(url);
     entry->file_path = custom_asprintf("%s%c%s.%s", cachePath, PATH_SEPARATOR, sha256_calc_str, extension);
-    entry->cached_url = custom_asprintf("%s/cache/%s.%s", cache_hosturl(), sha256_calc_str, extension);
+    entry->cached_url = custom_asprintf("/cache/%s.%s", sha256_calc_str, extension);
     entry->exists = fsFileExists(entry->file_path);
 
     cache_entry_add(entry);

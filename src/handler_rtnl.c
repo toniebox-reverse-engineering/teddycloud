@@ -167,6 +167,39 @@ int64_t read_big_endian64(const uint8_t *buf)
     return ((int64_t)read_big_endian32(buf)) | (((int64_t)read_big_endian32(&buf[4])) << 32);
 }
 
+char *absolute_url(const char *url_or_path)
+{
+    char *url = strdup(url_or_path);
+
+    /* modify relative URLs to be absolute using host_url */
+    if (osStrncmp(url, "http", 4))
+    {
+        char *host_url = strdup(settings_get_string("core.host_url"));
+
+        /* Remove trailing slashes */
+        char *end = host_url + strlen(host_url) - 1;
+        while (end > host_url && *end == '/')
+        {
+            *end-- = '\0';
+        }
+
+        /* Remove leading slashes */
+        char *path = url;
+        while (*path == '/')
+        {
+            path++;
+        }
+        char *absolute_url = custom_asprintf("%s/%s", host_url, path);
+
+        osFreeMem(url);
+        osFreeMem(host_url);
+
+        url = absolute_url;
+    }
+
+    return url;
+}
+
 void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *client_ctx)
 {
     char_t buffer[4096];
@@ -351,10 +384,14 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             }
             else
             {
+                char *url = absolute_url(item->picture);
+
                 sse_sendEvent("ContentTitle", item->title, true);
                 mqtt_sendBoxEvent("ContentTitle", item->title, client_ctx);
                 sse_sendEvent("ContentPicture", item->picture, true);
-                mqtt_sendBoxEvent("ContentPicture", item->picture, client_ctx);
+                mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+
+                osFreeMem(url);
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_TILT)
