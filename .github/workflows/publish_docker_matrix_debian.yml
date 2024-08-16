@@ -125,8 +125,8 @@ jobs:
       - name: Upload release file
         uses: actions/upload-artifact@v3
         with:
-          name: release-${{ steps.platform_strip.outputs.platform }}
-          path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
+          name: release-${{ steps.platform_strip.outputs.platform }}-debian
+          path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.debian.release.zip
           if-no-files-found: error
 
   merge-images:
