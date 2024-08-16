@@ -247,7 +247,6 @@ void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, u
                     content_json->_updated = true;
                 }
             }
-            content_json->_source_model = strdup(toniesJson->model);
         }
         else
         {
