@@ -10,7 +10,16 @@
 cache_entry_t cache_table = {.next = NULL, .hash = 0, .original_url = NULL, .cached_url = NULL, .file_path = NULL};
 uint32_t cache_entries = 0;
 
-const char *cache_hosturl()
+/**
+ * @brief Caches and returns a modified base URL with trailing slashes removed.
+ *
+ * This static function retrieves the base URL from the settings, removes any trailing slashes,
+ * and caches the modified URL for future use. If the base URL has not changed since the last call,
+ * the cached version is returned. If the base URL has changed, the cache is updated with the new URL.
+ *
+ * @return The modified base URL with trailing slashes removed, or an empty string if the base URL is NULL or empty.
+ */
+static const char *cache_hosturl()
 {
     static char *hosturl = NULL;
     const char *base_url = settings_get_string("core.host_url");
@@ -20,25 +29,28 @@ const char *cache_hosturl()
         return "";
     }
 
+    /* Duplicate the base URL */
     char *url = strdup(base_url);
-    char *end = &url[osStrlen(url) - 1];
-    while (end != url)
+    if (!url)
     {
-        if (*end != '/')
-        {
-            break;
-        }
-
-        *end = '\0';
-        end--;
+        return "";
     }
 
+    /* Remove trailing slashes */
+    char *end = url + strlen(url) - 1;
+    while (end > url && *end == '/')
+    {
+        *end-- = '\0';
+    }
+
+    /* if it was already set, check if it changed */
     if (hosturl && !osStrcmp(hosturl, url))
     {
         osFreeMem(url);
         return hosturl;
     }
 
+    /* seems different, so free old and set new one */
     char *tmp = hosturl;
     hosturl = url;
     osFreeMem(tmp);
@@ -50,7 +62,7 @@ void cache_entry_add(cache_entry_t *entry)
 {
     if (!entry)
     {
-        TRACE_ERROR("Error: entry is NULL\r\n");
+        TRACE_ERROR("entry is NULL\r\n");
         return;
     }
 
@@ -58,7 +70,7 @@ void cache_entry_add(cache_entry_t *entry)
 
     if (!pos)
     {
-        TRACE_ERROR("Error: cache_table is NULL\r\n");
+        TRACE_ERROR("cache_table is NULL\r\n");
         return;
     }
 
@@ -117,8 +129,8 @@ cache_entry_t *cache_add(const char *url)
         return NULL;
     }
 
-    uint8_t sha256_calc[32];
-    char sha256_calc_str[65];
+    uint8_t sha256_calc[SHA256_DIGEST_SIZE];
+    char sha256_calc_str[2 * SHA256_DIGEST_SIZE + 1];
 
     /* hash the image URL */
     Sha256Context ctx;
@@ -126,7 +138,7 @@ cache_entry_t *cache_add(const char *url)
     sha256Update(&ctx, url, strlen(url));
     sha256Final(&ctx, sha256_calc);
 
-    for (int pos = 0; pos < 32; pos++)
+    for (int pos = 0; pos < SHA256_DIGEST_SIZE; pos++)
     {
         osSprintf(&sha256_calc_str[2 * pos], "%02X", sha256_calc[pos]);
     }
@@ -180,7 +192,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
 {
     if (url == NULL)
     {
-        TRACE_ERROR("Error: URL is NULL\r\n");
+        TRACE_ERROR("URL is NULL\r\n");
         return NULL;
     }
 
@@ -206,7 +218,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 {
     if (cached_url == NULL)
     {
-        TRACE_ERROR("Error: cached_url is NULL\r\n");
+        TRACE_ERROR("cached_url is NULL\r\n");
         return NULL;
     }
 
@@ -214,7 +226,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
     const char *cache_pos = osStrstr(cached_url, "/cache/");
     if (!cache_pos)
     {
-        TRACE_ERROR("Error: '/cache/' not found in cached URL: %s\r\n", cached_url);
+        TRACE_ERROR("'/cache/' not found in cached URL: %s\r\n", cached_url);
         return NULL;
     }
 
@@ -222,7 +234,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 
     if (osStrlen(cache_pos) < 8)
     {
-        TRACE_ERROR("Error: cached URL hash is too short in URL: %s\r\n", cached_url);
+        TRACE_ERROR("Cached URL hash is too short in URL: %s\r\n", cached_url);
         return NULL;
     }
 
@@ -257,19 +269,19 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
     return NULL;
 }
 
-cache_entry_t *cache_fetch_by_path(const char *uri)
+cache_entry_t *cache_fetch_by_path(const char *path)
 {
-    if (uri == NULL)
+    if (path == NULL)
     {
-        TRACE_ERROR("Error: URI is NULL\r\n");
+        TRACE_ERROR("URI is NULL\r\n");
         return NULL;
     }
 
     // Find the position of "/cache/" in the URI
-    const char *cache_pos = strstr(uri, "/cache/");
+    const char *cache_pos = strstr(path, "/cache/");
     if (!cache_pos)
     {
-        TRACE_ERROR("Error: '/cache/' not found in URI: %s\r\n", uri);
+        TRACE_ERROR("'/cache/' not found in URI: %s\r\n", path);
         return NULL;
     }
 
@@ -279,7 +291,7 @@ cache_entry_t *cache_fetch_by_path(const char *uri)
     // Ensure that the hash part exists and has enough characters
     if (osStrlen(cache_pos) < 8) // 4 bytes of hash = 8 hex characters
     {
-        TRACE_ERROR("Error: URI hash is too short in URI: %s\r\n", uri);
+        TRACE_ERROR("URI hash is too short in URI: %s\r\n", path);
         return NULL;
     }
 
@@ -301,7 +313,7 @@ cache_entry_t *cache_fetch_by_path(const char *uri)
             // Compare the path "/cache/[hash].[ext]" in the URI
             if (osStrstr(pos->cached_url, cache_pos) != NULL)
             {
-                TRACE_DEBUG("Full URI match found for URI: %s\r\n", uri);
+                TRACE_DEBUG("Full URI match found for URI: %s\r\n", path);
                 cache_fetch_entry(pos);
                 return pos;
             }
@@ -310,6 +322,6 @@ cache_entry_t *cache_fetch_by_path(const char *uri)
         pos = pos->next;
     }
 
-    TRACE_ERROR("No cache entry found for URI: %s\r\n", uri);
+    TRACE_ERROR("No cache entry found for URI: %s\r\n", path);
     return NULL;
 }
