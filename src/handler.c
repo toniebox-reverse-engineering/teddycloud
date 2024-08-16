@@ -568,7 +568,10 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
                                 toniesJson_item_t *toniesJson = tonies_byAudioIdHash(tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
-                                tonieInfo->json._source_model = strdup(toniesJson->model);
+                                if (toniesJson != NULL)
+                                {
+                                    tonieInfo->json._source_model = strdup(toniesJson->model);
+                                }
                             }
                             else
                             {
