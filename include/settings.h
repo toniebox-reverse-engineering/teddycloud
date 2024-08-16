@@ -99,6 +99,11 @@ typedef struct
 
 typedef struct
 {
+    bool split_model_content;
+} settings_frontend_t;
+
+typedef struct
+{
     bool enabled;
     char *hostname;
     uint32_t port;
@@ -329,6 +334,7 @@ typedef struct
     settings_core_t core;
     settings_cloud_t cloud;
     settings_encode_t encode;
+    settings_frontend_t frontend;
     settings_mqtt_t mqtt;
     settings_hass_t hass;
     settings_security_mit_t security_mit;
