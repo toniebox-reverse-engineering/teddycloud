@@ -116,7 +116,7 @@ void web_dl_cbr(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload
     {
         if (ctx->file == NULL)
         {
-            TRACE_INFO("Opening file %s\r\n", filename);
+            TRACE_DEBUG("Opening file %s\r\n", filename);
             ctx->file = fsOpenFile(filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
             if (!ctx->file)
             {
@@ -147,7 +147,7 @@ void web_dl_cbr(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload
     }
 }
 
-error_t web_download(const char *url, const char *filename)
+error_t web_download(const char *url, const char *filename, uint32_t *statusCode)
 {
     TRACE_INFO("Downloading file from '%s' into local file '%s'\r\n", url, filename);
 
@@ -172,20 +172,26 @@ error_t web_download(const char *url, const char *filename)
     };
 
     bool is_secure = (protocol == PROT_HTTPS);
-    error_t error = web_request(hostname, port, is_secure, uri, NULL, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(hostname, port, is_secure, uri, NULL, "GET", NULL, 0, NULL, &cbr, false, false, statusCode);
 
-    if (error == NO_ERROR && fsFileExists(filename))
-    {
-        TRACE_INFO("download successful\r\n");
-    }
-    else
-    {
-        TRACE_ERROR("download failed, error=%s\r\n", error2text(error));
-    }
-
-    // Free allocated memory
     free(hostname);
     free(uri);
 
-    return error;
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("download failed, error=%s\r\n", error2text(error));
+        return error;
+    }
+
+    if (fsFileExists(filename))
+    {
+        return NO_ERROR;
+    }
+
+    if (*statusCode == 404)
+    {
+        return ERROR_NOT_FOUND;
+    }
+
+    return ERROR_FAILURE;
 }

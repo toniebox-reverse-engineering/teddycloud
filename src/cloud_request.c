@@ -1,29 +1,29 @@
 
 
-#include <errno.h>             // for error_t
-#include <stdint.h>            // for uint8_t
-#include <stdio.h>             // for snprintf
-#include <stdlib.h>            // for NULL, size_t
-#include <string.h>            // for strlen, strcpy, strncpy, strchr, strncmp
+#include <errno.h>  // for error_t
+#include <stdint.h> // for uint8_t
+#include <stdio.h>  // for snprintf
+#include <stdlib.h> // for NULL, size_t
+#include <string.h> // for strlen, strcpy, strncpy, strchr, strncmp
 
-#include "cloud_request.h"     // for req_cbr_t, cloud_request, cloud_reques...
-#include "compiler_port.h"     // for char_t, int_t, uint_t
-#include "core/net.h"          // for IpAddr, (anonymous struct)::(anonymous)
-#include "debug.h"             // for TRACE_INFO, TRACE_ERROR, TRACE_DEBUG
-#include "error.h"             // for error2text, NO_ERROR, ERROR_ADDRESS_NO...
-#include "handler.h"           // for cbr_ctx_t
-#include "handler_api.h"       // for stats_update
-#include "http/http_client.h"  // for httpClientAddHeaderField, httpClientDi...
-#include "http/http_common.h"  // for HTTP_VERSION_1_1
-#include "mqtt.h"              // for mqtt_sendEvent
-#include "net_config.h"        // for client_ctx_t, TONIE_AUTH_TOKEN_LENGTH
-#include "os_port.h"           // for osAllocMem, osFreeMem, FALSE, TRUE
-#include "platform.h"          // for resolve_free, resolve_get_ip, resolve_...
-#include "rand.h"              // for rand_get_algo, rand_get_context
-#include "settings.h"          // for settings_t, get_settings, settings_cert_t
-#include "stdbool.h"           // for bool, true, false
-#include "tls.h"               // for TlsContext, _TlsContext (ptr only)
-#include "tls_adapter.h"       // for tls_context_key_log_init
+#include "cloud_request.h"    // for req_cbr_t, cloud_request, cloud_reques...
+#include "compiler_port.h"    // for char_t, int_t, uint_t
+#include "core/net.h"         // for IpAddr, (anonymous struct)::(anonymous)
+#include "debug.h"            // for TRACE_INFO, TRACE_ERROR, TRACE_DEBUG
+#include "error.h"            // for error2text, NO_ERROR, ERROR_ADDRESS_NO...
+#include "handler.h"          // for cbr_ctx_t
+#include "handler_api.h"      // for stats_update
+#include "http/http_client.h" // for httpClientAddHeaderField, httpClientDi...
+#include "http/http_common.h" // for HTTP_VERSION_1_1
+#include "mqtt.h"             // for mqtt_sendEvent
+#include "net_config.h"       // for client_ctx_t, TONIE_AUTH_TOKEN_LENGTH
+#include "os_port.h"          // for osAllocMem, osFreeMem, FALSE, TRUE
+#include "platform.h"         // for resolve_free, resolve_get_ip, resolve_...
+#include "rand.h"             // for rand_get_algo, rand_get_context
+#include "settings.h"         // for settings_t, get_settings, settings_cert_t
+#include "stdbool.h"          // for bool, true, false
+#include "tls.h"              // for TlsContext, _TlsContext (ptr only)
+#include "tls_adapter.h"      // for tls_context_key_log_init
 
 #define MAX_REDIRECTS 5
 
@@ -64,6 +64,8 @@ error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
     }
 
     tls_context_key_log_init(tlsContext);
+
+    tlsContext->serverName = (char *)strdup(context->serverName);
 
     TRACE_INFO("Initializing TLS done\r\n");
 
@@ -109,9 +111,9 @@ char_t *ipv4AddrToString(Ipv4Addr ipAddr, char_t *str);
 
 int_t cloud_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr)
 {
-    return web_request(server, port, https, uri, queryString, method, body, bodyLen, hash, cbr, true, true);
+    return web_request(server, port, https, uri, queryString, method, body, bodyLen, hash, cbr, true, true, NULL);
 }
-error_t web_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr, bool isCloud, bool printTextData)
+error_t web_request(const char *server, int port, bool https, const char *uri, const char *queryString, const char *method, const uint8_t *body, size_t bodyLen, const uint8_t *hash, req_cbr_t *cbr, bool isCloud, bool printTextData, uint32_t *statusCode)
 {
     cbr_ctx_t *cbr_ctx = (cbr_ctx_t *)cbr->ctx;
     client_ctx_t *client_ctx = cbr_ctx->client_ctx;
@@ -159,6 +161,8 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
     httpClientInit(&httpClientContext);
     httpClientContext.sourceCtx = cbr;
+    httpClientContext.serverName = server;
+
     if (https)
     {
         HttpClientTlsInitCallback callback = httpClientTlsInitCallbackNoCA;
@@ -311,6 +315,11 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             {
                 TRACE_INFO("HTTP code: %u\r\n", status);
 
+                if (statusCode)
+                {
+                    *statusCode = status;
+                }
+
                 if (status == 302 && redirect_counter < MAX_REDIRECTS)
                 {
                     // Extract location from response header
@@ -337,7 +346,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                     TRACE_DEBUG("URI Path: %s\r\n", uri_path);
                     TRACE_DEBUG("Query String: %s\r\n", query_string);
 
-                    error = web_request(uri_base, 443, true, uri_path, query_string, "GET", NULL, 0, NULL, cbr, false, false);
+                    error = web_request(uri_base, 443, true, uri_path, query_string, "GET", NULL, 0, NULL, cbr, false, false, NULL);
                     break;
                 }
             }

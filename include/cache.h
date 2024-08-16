@@ -9,6 +9,7 @@ struct cache_entry_s
 {
     cache_entry_t *next;
     uint32_t hash;
+    uint32_t statusCode;
     bool exists;
     const char *original_url;
     const char *cached_url;

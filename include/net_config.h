@@ -65,6 +65,7 @@ typedef struct
 #define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - TONIE_HEADER_LENGTH)
 
 #define HTTP_CLIENT_PRIVATE_CONTEXT \
+    const char *serverName;         \
     http_client_private_t private;  \
     void *sourceCtx;
 

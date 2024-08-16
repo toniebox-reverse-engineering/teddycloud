@@ -50,7 +50,7 @@ void cache_entry_add(cache_entry_t *entry)
 {
     if (!entry)
     {
-        TRACE_ERROR("Error: entry is NULL\n");
+        TRACE_ERROR("Error: entry is NULL\r\n");
         return;
     }
 
@@ -58,15 +58,15 @@ void cache_entry_add(cache_entry_t *entry)
 
     if (!pos)
     {
-        TRACE_ERROR("Error: cache_table is NULL\n");
+        TRACE_ERROR("Error: cache_table is NULL\r\n");
         return;
     }
 
-    TRACE_DEBUG("Starting to add cache entry with the following details:\n");
-    TRACE_DEBUG("  Hash: %08X\n", entry->hash);
-    TRACE_DEBUG("  Original URL: %s\n", entry->original_url ? entry->original_url : "NULL");
-    TRACE_DEBUG("  Cached URL: %s\n", entry->cached_url ? entry->cached_url : "NULL");
-    TRACE_DEBUG("  File Path: %s\n", entry->file_path ? entry->file_path : "NULL");
+    TRACE_DEBUG("Starting to add cache entry with the following details:\r\n");
+    TRACE_DEBUG("  Hash: %08X\r\n", entry->hash);
+    TRACE_DEBUG("  Original URL: %s\r\n", entry->original_url ? entry->original_url : "NULL");
+    TRACE_DEBUG("  Cached URL: %s\r\n", entry->cached_url ? entry->cached_url : "NULL");
+    TRACE_DEBUG("  File Path: %s\r\n", entry->file_path ? entry->file_path : "NULL");
 
     while (pos)
     {
@@ -74,7 +74,7 @@ void cache_entry_add(cache_entry_t *entry)
 
         if (!next)
         {
-            TRACE_DEBUG("End of list reached, adding entry with hash: %08X at the end\n", entry->hash);
+            TRACE_DEBUG("End of list reached, adding entry with hash: %08X at the end\r\n", entry->hash);
             pos->next = entry;
             entry->next = NULL;
             return;
@@ -82,7 +82,7 @@ void cache_entry_add(cache_entry_t *entry)
 
         if (entry->hash < next->hash)
         {
-            TRACE_DEBUG("Inserting entry with hash: %08X before entry with hash: %08X\n", entry->hash, next->hash);
+            TRACE_DEBUG("Inserting entry with hash: %08X before entry with hash: %08X\r\n", entry->hash, next->hash);
             pos->next = entry;
             entry->next = next;
             return;
@@ -92,10 +92,10 @@ void cache_entry_add(cache_entry_t *entry)
         {
             if (!osStrcmp(entry->original_url, next->original_url))
             {
-                TRACE_DEBUG("Already added: %08X\n", entry->hash);
+                TRACE_DEBUG("Already added: %08X\r\n", entry->hash);
                 return;
             }
-            TRACE_DEBUG("Inserting (duplicate short hash) entry with hash: %08X before entry with hash: %08X\n", entry->hash, next->hash);
+            TRACE_DEBUG("Inserting (duplicate short hash) entry with hash: %08X before entry with hash: %08X\r\n", entry->hash, next->hash);
             pos->next = entry;
             entry->next = next;
             return;
@@ -104,7 +104,7 @@ void cache_entry_add(cache_entry_t *entry)
         pos = next;
     }
 
-    TRACE_DEBUG("Finished adding cache entry with hash: %08X\n", entry->hash);
+    TRACE_DEBUG("Finished adding cache entry with hash: %08X\r\n", entry->hash);
 }
 
 cache_entry_t *cache_add(const char *url)
@@ -165,13 +165,13 @@ cache_entry_t *cache_add(const char *url)
 
 bool cache_fetch_entry(cache_entry_t *entry)
 {
-    if (entry->exists)
+    if (entry->exists && fsFileExists(entry->file_path))
     {
         return true;
     }
 
-    error_t err = web_download(entry->original_url, entry->file_path);
-    entry->exists = err == NO_ERROR;
+    error_t err = web_download(entry->original_url, entry->file_path, &entry->statusCode);
+    entry->exists = (err == NO_ERROR);
 
     return entry->exists;
 }
@@ -180,7 +180,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
 {
     if (url == NULL)
     {
-        TRACE_ERROR("Error: URL is NULL\n");
+        TRACE_ERROR("Error: URL is NULL\r\n");
         return NULL;
     }
 
@@ -190,7 +190,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
     {
         if (pos->original_url && osStrcmp(pos->original_url, url) == 0)
         {
-            TRACE_ERROR("Cache entry found for URL: %s\n", url);
+            TRACE_ERROR("Cache entry found for URL: %s\r\n", url);
             cache_fetch_entry(pos);
             return pos;
         }
@@ -198,7 +198,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
         pos = pos->next;
     }
 
-    TRACE_ERROR("No cache entry found for URL: %s\n", url);
+    TRACE_ERROR("No cache entry found for URL: %s\r\n", url);
     return NULL;
 }
 
@@ -206,7 +206,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 {
     if (cached_url == NULL)
     {
-        TRACE_ERROR("Error: cached_url is NULL\n");
+        TRACE_ERROR("Error: cached_url is NULL\r\n");
         return NULL;
     }
 
@@ -214,7 +214,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
     const char *cache_pos = osStrstr(cached_url, "/cache/");
     if (!cache_pos)
     {
-        TRACE_ERROR("Error: '/cache/' not found in cached URL: %s\n", cached_url);
+        TRACE_ERROR("Error: '/cache/' not found in cached URL: %s\r\n", cached_url);
         return NULL;
     }
 
@@ -222,7 +222,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 
     if (osStrlen(cache_pos) < 8)
     {
-        TRACE_ERROR("Error: cached URL hash is too short in URL: %s\n", cached_url);
+        TRACE_ERROR("Error: cached URL hash is too short in URL: %s\r\n", cached_url);
         return NULL;
     }
 
@@ -239,12 +239,12 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
     {
         if (pos->hash == hash_from_url)
         {
-            TRACE_INFO("Hash match found for hash: %08X. Checking full cached URL...\n", hash_from_url);
+            TRACE_INFO("Hash match found for hash: %08X. Checking full cached URL...\r\n", hash_from_url);
 
             /* Compare the full cached URL */
             if (strcmp(pos->cached_url, cached_url) == 0)
             {
-                TRACE_INFO("Full cached URL match found for URL: %s\n", cached_url);
+                TRACE_INFO("Full cached URL match found for URL: %s\r\n", cached_url);
                 cache_fetch_entry(pos);
                 return pos;
             }
@@ -253,7 +253,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
         pos = pos->next;
     }
 
-    TRACE_INFO("No cache entry found for hash: %08X in cached URL: %s\n", hash_from_url, cached_url);
+    TRACE_INFO("No cache entry found for hash: %08X in cached URL: %s\r\n", hash_from_url, cached_url);
     return NULL;
 }
 
@@ -261,7 +261,7 @@ cache_entry_t *cache_fetch_by_uri(const char *uri)
 {
     if (uri == NULL)
     {
-        TRACE_ERROR("Error: URI is NULL\n");
+        TRACE_ERROR("Error: URI is NULL\r\n");
         return NULL;
     }
 
@@ -269,7 +269,7 @@ cache_entry_t *cache_fetch_by_uri(const char *uri)
     const char *cache_pos = strstr(uri, "/cache/");
     if (!cache_pos)
     {
-        TRACE_ERROR("Error: '/cache/' not found in URI: %s\n", uri);
+        TRACE_ERROR("Error: '/cache/' not found in URI: %s\r\n", uri);
         return NULL;
     }
 
@@ -279,7 +279,7 @@ cache_entry_t *cache_fetch_by_uri(const char *uri)
     // Ensure that the hash part exists and has enough characters
     if (osStrlen(cache_pos) < 8) // 4 bytes of hash = 8 hex characters
     {
-        TRACE_ERROR("Error: URI hash is too short in URI: %s\n", uri);
+        TRACE_ERROR("Error: URI hash is too short in URI: %s\r\n", uri);
         return NULL;
     }
 
@@ -296,12 +296,12 @@ cache_entry_t *cache_fetch_by_uri(const char *uri)
     {
         if (pos->hash == hash_from_uri)
         {
-            TRACE_DEBUG("Hash match found for hash: %08X. Checking full URI...\n", hash_from_uri);
+            TRACE_DEBUG("Hash match found for hash: %08X. Checking full URI...\r\n", hash_from_uri);
 
             // Compare the path "/cache/[hash].[ext]" in the URI
             if (osStrstr(pos->cached_url, cache_pos) != NULL)
             {
-                TRACE_DEBUG("Full URI match found for URI: %s\n", uri);
+                TRACE_DEBUG("Full URI match found for URI: %s\r\n", uri);
                 cache_fetch_entry(pos);
                 return pos;
             }
@@ -310,6 +310,6 @@ cache_entry_t *cache_fetch_by_uri(const char *uri)
         pos = pos->next;
     }
 
-    TRACE_ERROR("No cache entry found for URI: %s\n", uri);
+    TRACE_ERROR("No cache entry found for URI: %s\r\n", uri);
     return NULL;
 }

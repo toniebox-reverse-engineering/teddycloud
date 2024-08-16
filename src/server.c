@@ -169,7 +169,12 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
 
     if (!entry->exists)
     {
-        TRACE_INFO("Failed, redirecting instead\r\n");
+        if (entry->statusCode == 404)
+        {
+            TRACE_WARNING("Failed, server reported 404 for '%s' cached: '%s'\r\n", entry->original_url, entry->cached_url);
+            return ERROR_NOT_FOUND;
+        }
+        TRACE_INFO("Failed to fetch, redirecting instead: '%s' cached: '%s'\r\n", entry->original_url, entry->cached_url);
         return httpSendRedirectResponse(connection, 301, entry->original_url);
     }
 

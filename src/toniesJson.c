@@ -117,7 +117,7 @@ error_t tonies_update()
     ctx.file = NULL;
     fsDeleteFile(tonies_json_tmp_path);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
     {
@@ -154,7 +154,7 @@ error_t toniesV2_update()
     ctx.file = NULL;
     fsDeleteFile(tonies_json_tmp_path);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
     {
@@ -231,7 +231,7 @@ error_t tonieboxes_update()
     ctx.file = NULL;
     fsDeleteFile(target_tmp);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(target_tmp))
     {
