@@ -167,7 +167,7 @@ int64_t read_big_endian64(const uint8_t *buf)
     return ((int64_t)read_big_endian32(buf)) | (((int64_t)read_big_endian32(&buf[4])) << 32);
 }
 
-char *absolute_url(const char *url_or_path)
+static char *absolute_url(const char *url_or_path)
 {
     char *url = strdup(url_or_path);
 
