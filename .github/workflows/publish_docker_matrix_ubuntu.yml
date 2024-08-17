@@ -128,7 +128,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-ubuntu-${{ matrix.platform }}
+          name: digests-ubuntu-${{ steps.platform_strip.outputs.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
