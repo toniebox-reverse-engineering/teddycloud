@@ -95,7 +95,7 @@ jobs:
         continue-on-error: ${{ matrix.platform == 'x' }}
       - name: Extract release zip
         run: |
-          docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.release.zip
+          docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.alpine.release.zip
           docker rm teddyCloud-test
         continue-on-error: ${{ matrix.platform == 'x' }}
 
