@@ -117,9 +117,9 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
 
       - name: Upload digest
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: digests-debian
+          name: digests-debian--${{ matrix.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
@@ -135,9 +135,10 @@ jobs:
       - build
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: digests-debian
+          pattern: digests-debian-*
+          merge-multiple: true
           path: /tmp/digests/${{ github.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
