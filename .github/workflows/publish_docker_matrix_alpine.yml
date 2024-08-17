@@ -118,12 +118,11 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: digests-alpine
           path: /tmp/digests/alpine/${{ github.sha }}/*
           if-no-files-found: error
-          overwrite: true
       - name: Upload release file
         uses: actions/upload-artifact@v4
         with:
