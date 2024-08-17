@@ -108,10 +108,10 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests/ubuntu/${{ github.sha }}
+          mkdir -p /tmp/digests/${{ github.sha }}
           digest="${{ steps.build.outputs.digest }}"
           commit_sha="${{ github.sha }}"
-          touch "/tmp/digests/ubuntu/${commit_sha}/${digest#sha256:}"
+          touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
 
       - name: Push docker tags ${{ matrix.platform }}
         id: push_tags
@@ -129,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: digests-ubuntu
-          path: /tmp/digests/ubuntu/${{ github.sha }}/*
+          path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
         uses: actions/upload-artifact@v4
@@ -146,8 +146,8 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v3
         with:
-          name: digests-debian
-          path: /tmp/digests/debian/${{ github.sha }}
+          name: digests-ubuntu
+          path: /tmp/digests/${{ github.sha }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR
@@ -184,7 +184,7 @@ jobs:
 
       - name: Create manifest list and push
         if: ${{ github.event_name != 'pull_request' }}
-        working-directory: /tmp/digests/ubuntu/${{ github.sha }}
+        working-directory: /tmp/digests/${{ github.sha }}
         run: |
           # Extract original tags
           original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
