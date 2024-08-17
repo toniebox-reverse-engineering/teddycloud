@@ -122,6 +122,7 @@ jobs:
           name: digests-debian
           path: /tmp/digests/debian/${{ github.sha }}/*
           if-no-files-found: error
+          overwrite: true
       - name: Upload release file
         uses: actions/upload-artifact@v4
         with:

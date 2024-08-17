@@ -131,6 +131,7 @@ jobs:
           name: digests-ubuntu
           path: /tmp/digests/ubuntu/${{ github.sha }}/*
           if-no-files-found: error
+          overwrite: true
       - name: Upload release file
         uses: actions/upload-artifact@v4
         with:
