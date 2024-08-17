@@ -2379,7 +2379,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
 
             toniesJson_item_t *item2 = tonies_byModel(contentJson._source_model);
-            if (item != item2)
+            if (tafInfo->exists && item != item2)
             {
                 cJSON *jsonSourceInfo = cJSON_CreateObject();
                 addToniesJsonInfoJson(item2, contentJson._source_model, jsonSourceInfo);
