@@ -22,3 +22,4 @@ volumes:
   content:
   library:
   firmware:
+  cache:
