@@ -8,6 +8,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    outputs:
+      tcw_commit_hash: ${{ steps.get_commit_hash.outputs.commit_hash }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -91,6 +94,15 @@ jobs:
           echo "No changes to commit and push."
           fi
 
+      - name: Get Last Commit Hash
+        id: get_commit_hash
+        run: echo "commit_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Wait for a few seconds # to avoid missing commit in followup steps
+        run: sleep 10
+
   build_docker:
     needs: build
     uses: ./.github/workflows/publish_docker_matrix.yml
+    with:
+      tcw_commit_hash: ${{ needs.build.outputs.tcw_commit_hash }}
