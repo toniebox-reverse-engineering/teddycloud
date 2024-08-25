@@ -1,4 +1,7 @@
+#define TRACE_LEVEL TRACE_LEVEL_VERBOSE
+
 #include "mutex_manager.h"
+#include "server_helpers.h"
 #include "debug.h"
 
 typedef struct
@@ -8,6 +11,7 @@ typedef struct
     bool_t locked;
     bool_t warned;
     bool_t errored;
+    char *id;
 } mutex_info_t;
 
 static mutex_info_t mutex_list[MUTEX_LAST];
@@ -20,9 +24,11 @@ void mutex_manager_init()
     for (size_t i = 0; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
-        mutex_info->locked = FALSE;
-        mutex_info->warned = FALSE;
-        mutex_info->errored = FALSE;
+        osMemset(mutex_info, 0, sizeof(mutex_info_t));
+        if (i < MUTEX_ID_START)
+        {
+            mutex_info->id = custom_asprintf("%" PRIu8, i);
+        }
         osCreateMutex(&mutex_info->mutex);
     }
 }
@@ -32,38 +38,97 @@ void mutex_manager_deinit()
     for (size_t i = 0; i < MUTEX_LAST; i++)
     {
         mutex_info_t *mutex_info = &mutex_list[i];
+        osFreeMem(mutex_info->id);
         osDeleteMutex(&mutex_info->mutex);
     }
+}
+
+void mutex_lock_id(char *id)
+{
+    if (true)
+        return; // TODO Find deadlock in combination with TagIndex
+    while (true)
+    {
+        mutex_lock(MUTEX_ID);
+        for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
+        {
+            mutex_info_t *mutex_info = &mutex_list[i];
+            if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
+            {
+                TRACE_WARNING("LOCK EXISTING %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+                mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
+                return;
+            }
+        }
+        for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
+        {
+            mutex_info_t *mutex_info = &mutex_list[i];
+            if (mutex_info->id == NULL)
+            {
+                mutex_info->id = strdup(id);
+                TRACE_WARNING("LOCK NEW %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+                mutex_unlock(MUTEX_ID);
+                mutex_lock(i);
+                return;
+            }
+        }
+        mutex_unlock(MUTEX_ID);
+        TRACE_WARNING("Too many mutexes by id, waiting for %s!\r\n", id);
+    }
+}
+void mutex_unlock_id(char *id)
+{
+    if (true)
+        return; // TODO Find deadlock in combination with TagIndex
+    mutex_lock(MUTEX_ID);
+    for (uint8_t i = MUTEX_ID_START; i < MUTEX_LAST; i++)
+    {
+        mutex_info_t *mutex_info = &mutex_list[i];
+        if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
+        {
+            TRACE_WARNING("UNLOCK %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+            osFreeMem(mutex_info->id);
+            mutex_info->id = NULL;
+            mutex_unlock(i);
+            break;
+        }
+    }
+    mutex_unlock(MUTEX_ID);
 }
 
 void mutex_lock(mutex_id_t mutex_id)
 {
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
-    TRACE_VERBOSE(">locking mutex %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE(">locking mutex %s\r\n", mutex_info->id);
     osAcquireMutex(&mutex_info->mutex);
-    mutex_info->last_lock = osGetSystemTime();
     mutex_info->locked = TRUE;
-    TRACE_VERBOSE(">mutex locked %" PRIu8 "\r\n", mutex_id);
+    mutex_info->last_lock = osGetSystemTime();
+    TRACE_VERBOSE(">mutex locked %s\r\n", mutex_info->id);
 }
 void mutex_unlock(mutex_id_t mutex_id)
 {
     mutex_info_t *mutex_info = &mutex_list[mutex_id];
 
-    TRACE_VERBOSE("<unlocking mutex %" PRIu8 "\r\n", mutex_id);
-    osReleaseMutex(&mutex_info->mutex);
+    TRACE_VERBOSE("<unlocking mutex %s\r\n", mutex_info->id);
+    if (!mutex_info->locked)
+    {
+        TRACE_WARNING("<unlocking mutex %s, which is not locked?!\r\n", mutex_info->id);
+    }
     mutex_info->locked = FALSE;
+    osReleaseMutex(&mutex_info->mutex);
     if (mutex_info->warned)
     {
-        TRACE_WARNING("<mutex %" PRIu8 " had a warning\r\n", mutex_id);
+        TRACE_WARNING("<mutex %s had a warning\r\n", mutex_info->id);
         mutex_info->warned = FALSE;
     }
     if (mutex_info->errored)
     {
-        TRACE_ERROR("<mutex %" PRIu8 " had an error\r\n", mutex_id);
+        TRACE_ERROR("<mutex %s had an error\r\n", mutex_info->id);
         mutex_info->errored = FALSE;
     }
-    TRACE_VERBOSE("<mutex unlocked %" PRIu8 "\r\n", mutex_id);
+    TRACE_VERBOSE("<mutex unlocked %s\r\n", mutex_info->id);
 }
 
 void mutex_manager_loop()
@@ -85,7 +150,7 @@ void mutex_manager_check()
         {
             if (!mutex_info->warned)
             {
-                TRACE_WARNING("Mutex %" PRIuSIZE " locked for %" PRIuTIME "\r\n", i, locked_time);
+                TRACE_WARNING("Mutex %s locked for %" PRIuTIME "\r\n", mutex_info->id, locked_time);
                 mutex_info->warned = true;
             }
         }
@@ -93,7 +158,7 @@ void mutex_manager_check()
         {
             if (!mutex_info->errored)
             {
-                TRACE_ERROR("Mutex %" PRIuSIZE " locked for %" PRIuTIME "\r\n", i, locked_time);
+                TRACE_ERROR("Mutex %s locked for %" PRIuTIME "\r\n", mutex_info->id, locked_time);
                 mutex_info->errored = true;
             }
         }

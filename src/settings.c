@@ -18,7 +18,6 @@
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
 static void settings_deinit_ovl(uint8_t overlayNumber);
-static uint8_t get_overlay_id(const char *overlay_unique_id);
 static void overlay_settings_init();
 static void settings_generate_internal_dirs(settings_t *settings);
 static void settings_changed();
@@ -66,8 +65,9 @@ static void option_map_init(uint8_t settingsId)
 
     /* settings for HTTPS server */
     OPTION_TREE_DESC("core.server", "Server ports", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.https_port", &settings->core.https_port, 443, 1, 65535, "HTTPS port", "HTTPS port", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP portfor the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.https_web_port", &settings->core.https_web_port, 8443, 1, 65535, "HTTPS Web port", "HTTPS port for the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.https_api_port", &settings->core.https_api_port, 443, 1, 65535, "HTTPS API port", "HTTPS port for the Toniebox API", LEVEL_EXPERT)
     OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server", "HTTP server", LEVEL_BASIC)
@@ -76,10 +76,12 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir", LEVEL_EXPERT)
     OPTION_STRING("core.contentdir", &settings->core.contentdir, "default", "Content dir", "Directory for placing cloud content", LEVEL_DETAIL)
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library", LEVEL_DETAIL)
-    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
+    OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir', 'cachedir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
     OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", LEVEL_NONE)
     OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
+    OPTION_STRING("core.cachedir", &settings->core.cachedir, "cache", "Cache dir", "Directory where to cache files downloaded from internet", LEVEL_DETAIL)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
+    OPTION_BOOL("core.new_webgui_as_default", &settings->core.new_webgui_as_default, TRUE, "New WebGUI", "Use new WebGUI as default", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
     OPTION_TREE_DESC("core.client_cert.file", "File certificates", LEVEL_EXPERT)
@@ -106,7 +108,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.client_cert.data.key", &settings->core.client_cert.data.key, "", "Client key data", LEVEL_EXPERT)
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
-    OPTION_BOOL("core.webHttpOnly", &settings->core.webHttpOnly, TRUE, "Webinterface HTTP only", "Allows access to the webinterface via HTTP only (so HTTPS can be exposed for the Toniebox without webinterface access)", LEVEL_DETAIL)
+    OPTION_BOOL("core.boxCertAuth", &settings->core.boxCertAuth, TRUE, "HTTPS box cert auth", "Client certificates are required for access to the HTTPS API for the boxes", LEVEL_EXPERT)
+    OPTION_BOOL("core.allowNewBox", &settings->core.allowNewBox, TRUE, "Allow new boxes", "Allow new boxes to be added, if they try to connect", LEVEL_BASIC)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned", LEVEL_DETAIL)
@@ -150,6 +153,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.cachedirfull", &settings->internal.cachedirfull, "", "Directory where cached files are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.overlayNumber", &settings->internal.overlayNumber, 0, 0, MAX_OVERLAYS, "Id of the overlay", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.assign_unknown", &settings->internal.assign_unknown, "", "TAF file to assign to the next unknown tag", LEVEL_NONE)
@@ -171,33 +175,34 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details", LEVEL_NONE)
 
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, 0, "Box IC from User Agent", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, 0, "Firmware version from User Agent", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, 0, "Service Pack version from User Agent", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionHardware", &settings->internal.toniebox_firmware.uaVersionHardware, 0, 0, 0, "Hardware version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, UINT64_MAX, "Box IC from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, UINT64_MAX, "Firmware version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, UINT64_MAX, "Service Pack version from User Agent", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionHardware", &settings->internal.toniebox_firmware.uaVersionHardware, 0, 0, UINT64_MAX, "Hardware version from User Agent", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.toniebox_firmware.uaEsp32Firmware", &settings->internal.toniebox_firmware.uaEsp32Firmware, "", "Firmware version from User Agent (esp32)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlVersion", &settings->internal.toniebox_firmware.rtnlVersion, "", "Firmware version from RTNL", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlFullVersion", &settings->internal.toniebox_firmware.rtnlFullVersion, "", "Firmware full version from RTNL", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlDetail", &settings->internal.toniebox_firmware.rtnlDetail, "", "Firmware detail information", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.toniebox_firmware.rtnlRegion", &settings->internal.toniebox_firmware.rtnlRegion, "", "Firmware region", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionSfx", &settings->internal.toniebox_firmware.otaVersionSfx, 0, 0, 0, " ota version", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionServicePack", &settings->internal.toniebox_firmware.otaVersionServicePack, 0, 0, 0, " ota version", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionHtml", &settings->internal.toniebox_firmware.otaVersionHtml, 0, 0, 0, "Html ota version", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, 0, "Firmware EU ota version", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, 0, "Firmware PD ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionSfx", &settings->internal.toniebox_firmware.otaVersionSfx, 0, 0, UINT64_MAX, " ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionServicePack", &settings->internal.toniebox_firmware.otaVersionServicePack, 0, 0, UINT64_MAX, " ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionHtml", &settings->internal.toniebox_firmware.otaVersionHtml, 0, 0, UINT64_MAX, "Html ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionEu", &settings->internal.toniebox_firmware.otaVersionEu, 0, 0, UINT64_MAX, "Firmware EU ota version", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.otaVersionPd", &settings->internal.toniebox_firmware.otaVersionPd, 0, 0, UINT64_MAX, "Firmware PD ota version", LEVEL_NONE)
 
     OPTION_INTERNAL_U64_ARRAY("internal.freshnessCache", &settings->internal.freshnessCache, 0, "Cache for freshnessCheck", LEVEL_NONE)
 
-    OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, 0, "Last connection timestamp", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.last_connection", &settings->internal.last_connection, 0, 0, UINT64_MAX, "Last connection timestamp", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.last_ruid", &settings->internal.last_ruid, "ffffffffffffffff", "Last rUID", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.last_ruid_time", &settings->internal.last_ruid_time, 0, 0, UINT64_MAX, "Last rUID (unixtime)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.ip", &settings->internal.ip, "", "IP", LEVEL_NONE)
     OPTION_INTERNAL_BOOL("internal.online", &settings->internal.online, FALSE, "Check if box is online", LEVEL_NONE)
 
     OPTION_INTERNAL_BOOL("internal.security_mit.incident", &settings->internal.security_mit.incident, FALSE, "We had a security incident", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.security_mit.blacklisted_domain_access", &settings->internal.security_mit.blacklisted_domain_access, 0, 0, 0, "Check accessed via blacklisted domain", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.crawler_access", &settings->internal.security_mit.crawler_access, 0, 0, 0, "Last access via crawler", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.external_access", &settings->internal.security_mit.external_access, 0, 0, 0, "Last external access", LEVEL_NONE)
-    OPTION_INTERNAL_UNSIGNED("internal.security_mit.robots_txt_access", &settings->internal.security_mit.robots_txt_access, 0, 0, 0, "Last access onto the robots.txt", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.crawler_access", &settings->internal.security_mit.crawler_access, 0, 0, UINT64_MAX, "Last access via crawler", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.external_access", &settings->internal.security_mit.external_access, 0, 0, UINT64_MAX, "Last external access", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("internal.security_mit.robots_txt_access", &settings->internal.security_mit.robots_txt_access, 0, 0, UINT64_MAX, "Last access onto the robots.txt", LEVEL_NONE)
 
     OPTION_TREE_DESC("cloud", "Cloud", LEVEL_BASIC)
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation", LEVEL_BASIC)
@@ -225,8 +230,13 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("encode.ffmpeg_stream_restart", &settings->encode.ffmpeg_stream_restart, FALSE, "Stream force restart", "If a stream is continued by the box, a new file is forced. This has the cost of a slower restart, but does not play the old buffered content and deletes the previous stream data on the box.", LEVEL_EXPERT)
     OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
+    OPTION_UNSIGNED("encode.stream_max_size", &settings->encode.stream_max_size, 1024 * 1024 * 40 * 6 - 1, 1024 * 1024 - 1, INT32_MAX, "Max stream filesize", "The box may create an empty file this length for each stream. So if you have 10 streaming tonies you use, the box may block 10*240MB. The only downside is, that the box will stop after the file is full and you'll need to replace the tag onto the box. Must not be a multiply of 4096, Default: 251.658.239, so 240MB, which means around 6h.", LEVEL_EXPERT)
+
+    OPTION_TREE_DESC("frontend", "Frontend", LEVEL_BASIC)
+    OPTION_BOOL("frontend.split_model_content", &settings->frontend.split_model_content, TRUE, "Split content / model", "If enabled, the content of the TAF will be shown beside the model of the figurine", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
+    OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
     OPTION_BOOL("toniebox.overrideCloud", &settings->toniebox.overrideCloud, TRUE, "Override cloud settings", "Override tonies cloud settings for the toniebox with those set here", LEVEL_BASIC)
     OPTION_UNSIGNED("toniebox.max_vol_spk", &settings->toniebox.max_vol_spk, 3, 0, 3, "Limit speaker volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
     OPTION_UNSIGNED("toniebox.max_vol_hdp", &settings->toniebox.max_vol_hdp, 3, 0, 3, "Limit headphone volume", "0=25%, 1=50%, 2=75%, 3=100%", LEVEL_BASIC)
@@ -257,6 +267,13 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("hass", "Home Assistant", LEVEL_DETAIL)
     OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name", LEVEL_DETAIL)
     OPTION_STRING("hass.id", &settings->hass.id, "teddyCloud_Server", "Unique ID", "Unique ID to identify this device", LEVEL_DETAIL)
+
+    OPTION_TREE_DESC("tonie_json", "Tonie JSON", LEVEL_DETAIL)
+    OPTION_BOOL("tonie_json.cache_images", &settings->tonie_json.cache_images, FALSE, "Cache images", "Cache figurine images locally", LEVEL_DETAIL)
+    OPTION_BOOL("tonie_json.cache_preload", &settings->tonie_json.cache_preload, FALSE, "Preload all images", "Download all figurine images on startup. This will take several minutes the first time you start TeddyCloud.", LEVEL_DETAIL)
+
+    OPTION_TREE_DESC("debug", "Debug", LEVEL_EXPERT)
+    OPTION_BOOL("debug.web.pcm_encode_console_url", &settings->debug.web.pcm_encode_console_url, FALSE, "PCM Console URL", "Caches the PCM of the browser-side encoding and prints a download link to the browser console.", LEVEL_EXPERT)
     OPTION_END()
 
     settings_size = sizeof(option_map_array) / sizeof(option_map_array[0]) - 1;
@@ -382,6 +399,7 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("internal.overlayUniqueId", boxId, i);
                 settings_set_string_id("boxName", boxName, i);
                 settings_set_string_id("boxModel", "", i);
+                settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
                 Settings_Overlay[i].internal.config_used = true;
@@ -400,7 +418,7 @@ settings_t *get_settings_cn(const char *commonName)
     return get_settings();
 }
 
-static uint8_t get_overlay_id(const char *overlay_unique_id)
+uint8_t get_overlay_id(const char *overlay_unique_id)
 {
     if (overlay_unique_id == NULL || osStrlen(overlay_unique_id) == 0)
     {
@@ -419,12 +437,21 @@ static uint8_t get_overlay_id(const char *overlay_unique_id)
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 {
+    if (!resolvedPath || !*resolvedPath || !path)
+    {
+        return;
+    }
+
     if (path[0] == PATH_SEPARATOR_LINUX || (osStrlen(path) > 1 && path[1] == ':' && path[2] == PATH_SEPARATOR_WINDOWS))
     {
         snprintf(*resolvedPath, 255, "%s", path);
     }
     else
     {
+        if (!basePath)
+        {
+            return;
+        }
         if (path[0] == '\0')
         {
             snprintf(*resolvedPath, 255, "%s", basePath);
@@ -448,6 +475,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     free(settings->internal.datadirfull);
     free(settings->internal.wwwdirfull);
     free(settings->internal.firmwaredirfull);
+    free(settings->internal.cachedirfull);
 
     settings->internal.basedirfull = osAllocMem(256);
     settings->internal.certdirfull = osAllocMem(256);
@@ -458,6 +486,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
     settings->internal.firmwaredirfull = osAllocMem(256);
+    settings->internal.cachedirfull = osAllocMem(256);
 
     char *tmpPath = osAllocMem(256);
     settings_resolve_dir(&settings->internal.basedirfull, settings->internal.basedir, settings->internal.cwd);
@@ -468,6 +497,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
     settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
@@ -511,6 +541,11 @@ void settings_changed_id(uint8_t settingsId)
 
 static void settings_deinit_ovl(uint8_t overlayNumber)
 {
+    if (overlayNumber >= MAX_OVERLAYS)
+    {
+        return;
+    }
+
     if (!Settings_Overlay[overlayNumber].internal.config_init)
     {
         return;
@@ -596,7 +631,7 @@ static void settings_init_opt(setting_item_t *opt)
         *((char **)opt->ptr) = strdup(opt->init.string_value);
         break;
     case TYPE_U64_ARRAY:
-        TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
+        TRACE_DEBUG("  %s = size(%zu)\r\n", opt->option_name, opt->size);
         if (opt->size > 0)
         {
             *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
@@ -687,6 +722,10 @@ static error_t settings_save_ovl(bool overlay)
         else if (i > 0 && !overlay)
         {
             break;
+        }
+        if (!Settings_Overlay[i].internal.config_used)
+        {
+            continue;
         }
         Settings_Overlay[i].configVersion = CONFIG_VERSION;
 
@@ -962,7 +1001,19 @@ static error_t settings_load_ovl(bool overlay)
 
         if (Settings_Overlay[0].configVersion < CONFIG_VERSION)
         {
+            for (size_t i = 0; i < MAX_OVERLAYS; i++)
+            {
+                if (!Settings_Overlay[i].internal.config_used)
+                    continue;
+                if (Settings_Overlay[i].configVersion < 12)
+                {
+                    Settings_Overlay[i].toniebox.api_access = true;
+                    settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
+                }
+            }
+            mutex_unlock(MUTEX_SETTINGS);
             settings_save();
+            mutex_lock(MUTEX_SETTINGS);
         }
         Settings_Overlay[0].internal.config_changed = false;
     }
@@ -1191,7 +1242,7 @@ bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settings
 
     if (value < opt->min.unsigned_value || value > opt->max.unsigned_value)
     {
-        TRACE_ERROR("  %s = %d out of bounds\r\n", opt->option_name, value);
+        TRACE_ERROR("  %s = %u out of bounds\r\n", opt->option_name, value);
         return false;
     }
 

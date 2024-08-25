@@ -7,7 +7,7 @@ CONTRIB_DIR    = contrib
 INSTALL_DIR    = install
 PREINSTALL_DIR = $(INSTALL_DIR)/pre
 WEB_SRC_DIR    = teddycloud_web
-WEB_BUILD_DIR  = build
+WEB_BUILD_DIR  = dist
 WEB_DIR        = data/www/web
 ZIP_DIR        = install/zip
 
@@ -460,7 +460,7 @@ endif
 $(LINK_LO_FILE): $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
-workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/ data/firmware/
+workdirs: certs/server/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/ data/firmware/ data/cache/
 	$(QUIET)$(ECHO) '[ ${YELLOW}DIRS${NC}  ] ${CYAN}$@${NC}'
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/data/www/*) $(subst /,$(SEP),data/www/) 
 
@@ -545,3 +545,11 @@ auto:
 		fi; \
 		sleep 1; \
 	done;
+
+.PHONY: cppcheck
+
+# Run cppcheck for static code analysis
+cppcheck:
+	$(QUIET)$(ECHO)  "[ ${CYAN}CHK${NC} ] Running cppcheck"
+	cppcheck -j6 --enable=all --inconclusive --std=c99 --language=c --platform=unspecified --report-progress --suppress=missingIncludeSystem --xml --output-file=cppcheck.xml $(wildcard $(SRC_DIR)/*.c) $(INCLUDES) -D GPL_LICENSE_TERMS_ACCEPTED -D TRACE_NOPATH_FILE
+	cppcheck-htmlreport --file=cppcheck.xml --report-dir=cppcheck

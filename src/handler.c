@@ -1,6 +1,8 @@
 #include "handler.h"
+#include "toniesJson.h"
 #include "server_helpers.h"
 #include "fs_ext.h"
+#include "mutex_manager.h"
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
@@ -152,7 +154,7 @@ void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *pa
             }
             else
             {
-                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
+                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %zu\r\n", local_filename, fileSize, ctx->customDataLen);
             }
             osFreeMem(local_filename_tmp);
         }
@@ -182,7 +184,7 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
     const char *statusText = httpStatusCodeText(cloud_ctx->statusCode);
 
-    osSprintf(line, "HTTP/%u.%u %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
+    osSprintf(line, "HTTP/%d.%d %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
@@ -288,9 +290,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             }
             if (length > 0 && ctx->file != NULL)
             {
-                error_t error = fsWriteFile(ctx->file, (void *)payload, length);
+                error = fsWriteFile(ctx->file, (void *)payload, length);
                 if (error)
+                {
                     TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(error));
+                }
             }
             if (error == ERROR_END_OF_STREAM)
             {
@@ -305,7 +309,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                     if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                     {
-                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, ctx->client_ctx->settings);
+                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, true, ctx->client_ctx->settings);
                         moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
                         freeTonieInfo(tonieInfo);
                     }
@@ -378,7 +382,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             settings_set_u64_array_id("internal.freshnessCache", freshResp->tonie_marked, freshResp->n_tonie_marked, ctx->client_ctx->settings->internal.overlayNumber);
 
             char line[128];
-            osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
+            osSnprintf(line, 128, "Content-Length: %zu\r\n\r\n", ctx->bufferLen);
             httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
 
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
@@ -478,23 +482,23 @@ bool_t isValidTaf(const char *contentPath)
     return valid;
 }
 
-tonie_info_t *getTonieInfoFromUid(uint64_t uid, settings_t *settings)
+tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings)
 {
     char *contentPath;
     getContentPathFromUID(uid, &contentPath, settings);
-    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, lock, settings);
     osFreeMem(contentPath);
     return tonieInfo;
 }
-tonie_info_t *getTonieInfoFromRuid(char ruid[17], settings_t *settings)
+tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings)
 {
     char *contentPath;
     getContentPathFromCharRUID(ruid, &contentPath, settings);
-    tonie_info_t *tonieInfo = getTonieInfo(contentPath, settings);
+    tonie_info_t *tonieInfo = getTonieInfo(contentPath, lock, settings);
     osFreeMem(contentPath);
     return tonieInfo;
 }
-tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
+tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings)
 {
     tonie_info_t *tonieInfo;
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
@@ -505,10 +509,16 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     tonieInfo->contentPath = strdup(contentPath);
     tonieInfo->jsonPath = custom_asprintf("%s.json", contentPath);
     tonieInfo->exists = false;
+    tonieInfo->locked = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
+        if (lock)
+        {
+            tonieInfo->locked = true;
+            mutex_lock_id(tonieInfo->jsonPath);
+        }
         if (osStrstr(contentPath, settings->internal.contentdirfull) == contentPath &&
             (contentPath[osStrlen(settings->internal.contentdirfull)] == '/' || contentPath[osStrlen(settings->internal.contentdirfull)] == '\\') &&
             osStrlen(contentPath) - 18 == osStrlen(settings->internal.contentdirfull))
@@ -549,7 +559,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
                                 tonieInfo->valid = true;
-                                if (tonieInfo->tafHeader->num_bytes == TONIE_LENGTH_MAX)
+                                if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                                 }
@@ -557,16 +567,21 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
                                 {
                                     content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
                                 }
+                                toniesJson_item_t *toniesJson = tonies_byAudioIdHash(tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
+                                if (toniesJson != NULL)
+                                {
+                                    tonieInfo->json._source_model = strdup(toniesJson->model);
+                                }
                             }
                             else
                             {
-                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
+                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%zu != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
                             }
                         }
                     }
                     else
                     {
-                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
+                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%zu != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
                     }
                 }
                 else
@@ -581,7 +596,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", tonieInfo->contentPath, read_length);
+                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%zu\r\n", tonieInfo->contentPath, read_length);
             }
             fsCloseFile(file);
         }
@@ -589,13 +604,21 @@ tonie_info_t *getTonieInfo(const char *contentPath, settings_t *settings)
     return tonieInfo;
 }
 
-void freeTonieInfo(tonie_info_t *tonieInfo)
+void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock)
 {
     if (tonieInfo->json._updated && tonieInfo->json._create_if_missing)
     {
         save_content_json(tonieInfo->jsonPath, &tonieInfo->json);
     }
-
+    if (tonieInfo->locked && unlock)
+    {
+        mutex_unlock_id(tonieInfo->jsonPath);
+        tonieInfo->locked = false;
+    }
+}
+void freeTonieInfo(tonie_info_t *tonieInfo)
+{
+    saveTonieInfo(tonieInfo, true);
     if (tonieInfo->tafHeader)
     {
         toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
@@ -612,10 +635,7 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
         tonieInfo->jsonPath = NULL;
     }
 
-    if (tonieInfo->valid)
-    {
-        free_content_json(&tonieInfo->json);
-    }
+    free_content_json(&tonieInfo->json);
     free(tonieInfo);
 }
 
@@ -674,6 +694,13 @@ error_t httpFlushStream(HttpConnection *connection)
     return httpCloseStream(connection);
 }
 
+error_t httpOkResponse(HttpConnection *connection)
+{
+    httpInitResponseHeader(connection);
+    connection->response.contentLength = 2;
+    return httpWriteResponse(connection, "OK", connection->response.contentLength, false);
+}
+
 void setLastUid(uint64_t uid, settings_t *settings)
 {
     uint16_t cuid[9];
@@ -698,6 +725,7 @@ void setLastRuid(char ruid[17], settings_t *settings)
                 ruid[i] = tolower(ruid[i]);
             }
             settings_set_string_id("internal.last_ruid", ruid, settings->internal.overlayNumber);
+            settings_set_unsigned_id("internal.last_ruid_time", time(NULL), settings->internal.overlayNumber);
         }
     }
 }
@@ -754,7 +782,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
         }
         if (libraryPath)
         {
-            tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, settings);
+            tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, false, settings);
             bool moveToLibrary = true;
             bool skipMove = false;
             if (tonieInfoLib->valid)

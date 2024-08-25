@@ -192,12 +192,12 @@ void mqttTestPublishCallback(MqttClientContext *context,
 {
     // Debug message
     TRACE_INFO("packet received...\r\n");
-    TRACE_INFO("  Dup: %u\r\n", dup);
-    TRACE_INFO("  QoS: %u\r\n", qos);
-    TRACE_INFO("  Retain: %u\r\n", retain);
+    TRACE_INFO("  Dup: %d\r\n", dup ? 1 : 0);
+    TRACE_INFO("  QoS: %d\r\n", qos ? 1 : 0);
+    TRACE_INFO("  Retain: %d\r\n", retain ? 1 : 0);
     TRACE_INFO("  Packet Identifier: %u\r\n", packetId);
     TRACE_INFO("  Topic: %s\r\n", topic);
-    TRACE_INFO("  Message (%" PRIuSIZE " bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
+    TRACE_INFO("  Message (%zu bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
 
     char *payload = osAllocMem(length + 1);
     osMemcpy(payload, message, length);
@@ -291,7 +291,7 @@ bool mqtt_subscribe(const char *item_topic)
 
 error_t mqttConnect(MqttClientContext *mqtt_context)
 {
-    error_t error;
+    error_t error = NO_ERROR;
 
     mqttClientInit(mqtt_context);
     mqttClientSetVersion(mqtt_context, MQTT_VERSION_3_1_1);
@@ -318,6 +318,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
             return ERROR_FAILURE;
         }
 
+        /* ToDo: this code seems to have gone through all IP addresses for that host, but doesn't do that anymore */
         int pos = 0;
         do
         {
@@ -524,7 +525,7 @@ void mqtt_publish_int(const char *name, uint32_t value)
         return;
     }
     sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
-    sprintf(buffer, "%d", value);
+    sprintf(buffer, "%u", value);
 
     if (!mqtt_publish(path_buffer, buffer))
     {

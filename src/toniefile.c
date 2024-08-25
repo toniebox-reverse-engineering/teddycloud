@@ -75,11 +75,11 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
 
     if (dataLength != proto_frame_size && dataLength != proto_frame_size - 1)
     {
-        TRACE_ERROR("TAF header size %" PRIuSIZE " not equal to frame size %" PRIu16 "\r\n", dataLength, proto_frame_size);
+        TRACE_ERROR("TAF header size %zu not equal to frame size %" PRIu16 "\r\n", dataLength, proto_frame_size);
     }
     else if (dataLength > length)
     {
-        TRACE_ERROR("TAF header size %" PRIuSIZE " bigger than buffer %" PRIu16 "\r\n", dataLength, proto_frame_size);
+        TRACE_ERROR("TAF header size %zu bigger than buffer %" PRIu16 "\r\n", dataLength, proto_frame_size);
     }
     else
     {
@@ -91,7 +91,7 @@ static size_t toniefile_header(uint8_t *buffer, size_t length, TonieboxAudioFile
     return size;
 }
 
-toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append)
+toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool append, int32_t size)
 {
     int err;
     TonieboxAudioFileHeader *tafHeader = NULL;
@@ -99,10 +99,15 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     toniefile_t *ctx = osAllocMem(sizeof(toniefile_t));
     osMemset(ctx, 0x00, sizeof(toniefile_t));
 
+    int32_t tonie_audio_size = TONIE_LENGTH_MAX;
+    if (size > 0) {
+        tonie_audio_size = size;
+    }
+
     /* init TAF header */
     toniebox_audio_file_header__init(&ctx->taf);
     ctx->taf.audio_id = audio_id;
-    ctx->taf.num_bytes = TONIE_LENGTH_MAX;
+    ctx->taf.num_bytes = tonie_audio_size; //TONIE_LENGTH_MAX;
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
@@ -282,7 +287,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         size_t block_rest = (ctx->file_pos % TONIEFILE_FRAME_SIZE);
         if (block_rest != 0)
         {
-            TRACE_WARNING("Seeking back paddings to block size %" PRIuSIZE "\r\n", block_rest);
+            TRACE_WARNING("Seeking back paddings to block size %zu\r\n", block_rest);
         }
         ctx->file_pos -= block_rest;
         ctx->audio_length -= block_rest;
@@ -294,7 +299,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         ctx->os.pageno = tafHeader->pageno;
         toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
         // fsSeekFile(ctx->file, ctx->file_pos, SEEK_SET);
-        //  TRACE_WARNING("Seek file to %" PRIuSIZE ", blockrest=%" PRIuSIZE "\r\n", ctx->file_pos, block_rest);
+        //  TRACE_WARNING("Seek file to %zu, blockrest=%zu\r\n", ctx->file_pos, block_rest);
     }
 
     toniefile_new_chapter(ctx);
@@ -379,7 +384,7 @@ error_t toniefile_new_chapter(toniefile_t *ctx)
         return ERROR_FAILURE;
     }
     ctx->taf.track_page_nums[ctx->taf.n_track_page_nums++] = ctx->taf_block_num;
-    TRACE_INFO("new chapter at 0x%08" PRIXSIZE "\r\n", ctx->taf_block_num);
+    TRACE_INFO("new chapter at 0x%08" PRIX32 "\r\n", (uint32_t)ctx->taf_block_num);
 
     return NO_ERROR;
 }
@@ -389,7 +394,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
     int samples_processed = 0;
     uint8_t output_frame[TONIEFILE_FRAME_SIZE];
 
-    // TRACE_INFO("samples_available: %" PRIuSIZE "\n", samples_available);
+    // TRACE_INFO("samples_available: %zu\n", samples_available);
     while (samples_processed < samples_available)
     {
         /* get the maximum copyable number of samples */
@@ -399,7 +404,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
         {
             samples = samples_remaining;
         }
-        // TRACE_INFO("  samples: %lu (%u/%" PRIuSIZE ")\n", samples, samples_processed, samples_available);
+        // TRACE_INFO("  samples: %lu (%u/%zu)\n", samples, samples_processed, samples_available);
 
         toniefile_samples_copy(ctx->audio_frame, &ctx->audio_frame_used, sample_buffer, &samples_processed, samples);
 
@@ -476,7 +481,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             page_used = (ctx->file_pos % TONIEFILE_FRAME_SIZE) + OGG_HEADER_LENGTH + ctx->os.lacing_fill + ctx->os.body_fill;
             page_remain = TONIEFILE_FRAME_SIZE - page_used;
 
-            // TRACE_INFO("(%" PRIuSIZE " MOD 4096) + 27 + %li + %li;\r\n", ctx->file_pos, ctx->os.lacing_fill, ctx->os.body_fill)
+            // TRACE_INFO("(%zu MOD 4096) + 27 + %li + %li;\r\n", ctx->file_pos, ctx->os.lacing_fill, ctx->os.body_fill)
 
             if (page_remain < TONIEFILE_PAD_END)
             {
@@ -500,7 +505,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                     size_t prev = ctx->file_pos;
                     ctx->file_pos += og.header_len + og.body_len;
                     ctx->audio_length += og.header_len + og.body_len;
-                    // TRACE_INFO("Header_len %" PRIuSIZE " Body_len %" PRIuSIZE " prev %" PRIuSIZE " File_pos %" PRIuSIZE "\r\n", og.header_len, og.body_len, prev, ctx->file_pos);
+                    // TRACE_INFO("Header_len %zu Body_len %zu prev %zu File_pos %zu\r\n", og.header_len, og.body_len, prev, ctx->file_pos);
 
                     sha1Update(&ctx->sha1, og.header, og.header_len);
                     sha1Update(&ctx->sha1, og.body, og.body_len);
@@ -510,7 +515,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                         ctx->taf_block_num++;
                         if (ctx->file_pos % TONIEFILE_FRAME_SIZE)
                         {
-                            TRACE_ERROR("Block alignment mismatch 0x%08" PRIXSIZE "\r\n", ctx->file_pos)
+                            TRACE_ERROR("Block alignment mismatch 0x%08" PRIX32 "\r\n", (uint32_t)ctx->file_pos)
                             return ERROR_FAILURE;
                         }
                     }
@@ -537,7 +542,7 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
 
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
-    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", input_source, skip_seconds);
+    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -", input_source, skip_seconds);
 
     FILE *ffmpeg_pipe = NULL;
 
@@ -635,12 +640,12 @@ error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *cur
 {
     bool_t active = true;
     bool_t sweep = false;
-    return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false);
+    return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append)
+error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream)
 {
-    TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
+    TRACE_INFO("Encode %zu sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
     {
         TRACE_INFO(" %s\r\n", source[i]);
@@ -648,7 +653,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
     TRACE_INFO("as TAF to %s\r\n", target_taf);
     if (skip_seconds > 0)
     {
-        TRACE_INFO(" and skip %" PRIuSIZE " seconds\r\n", skip_seconds);
+        TRACE_INFO(" and skip %zu seconds\r\n", skip_seconds);
     }
 
     FILE *ffmpeg_pipe = NULL;
@@ -665,7 +670,12 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         return ERROR_ABORTED;
     }
 
-    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append);
+    int32_t size = 0;
+    if (isStream)
+    {
+        size = get_settings()->encode.stream_max_size - TONIE_HEADER_LENGTH;
+    }
+    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append, size);
     if (!taf)
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
@@ -683,7 +693,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         error = ffmpeg_decode_audio(ffmpeg_pipe, sample_buffer, samples, &blocks_read);
         if (error != NO_ERROR && error != ERROR_END_OF_STREAM)
         {
-            TRACE_ERROR("Could not decode sample error=%s read=%" PRIuSIZE "\r\n", error2text(error), blocks_read);
+            TRACE_ERROR("Could not decode sample error=%s read=%zu\r\n", error2text(error), blocks_read);
             break;
         }
         else if (error == ERROR_END_OF_STREAM)
@@ -743,7 +753,7 @@ void ffmpeg_stream_task(void *param)
 
     char source[99][PATH_LEN]; // waste memory, but warning otherwise
     strncpy(source[0], ffmpeg_ctx->source, PATH_LEN - 1);
-    stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append);
+    stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append, true);
     stream_ctx->quit = true;
     osDeleteTask(OS_SELF_TASK_ID);
 }

@@ -18,3 +18,5 @@ contrib/certs/client/teddy-key.csr
 contrib/certs/client/teddy-key.pem
 .vs/
 SSLKEYLOGFILE
+data_stream.http.log
+data_stream.rtnl.log

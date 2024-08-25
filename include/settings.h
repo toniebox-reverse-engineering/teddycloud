@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 10
+#define CONFIG_VERSION 13
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -93,8 +93,14 @@ typedef struct
     bool ffmpeg_stream_restart;
     bool ffmpeg_sweep_startup_buffer;
     uint32_t ffmpeg_sweep_delay_ms;
+    uint32_t stream_max_size;
 
 } settings_encode_t;
+
+typedef struct
+{
+    bool split_model_content;
+} settings_frontend_t;
 
 typedef struct
 {
@@ -116,6 +122,7 @@ typedef struct
 
 typedef struct
 {
+    bool api_access;
     bool overrideCloud;
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;
@@ -212,6 +219,7 @@ typedef struct
     char *datadirfull;
     char *wwwdirfull;
     char *firmwaredirfull;
+    char *cachedirfull;
 
     char *overlayUniqueId;
     uint8_t overlayNumber;
@@ -226,6 +234,7 @@ typedef struct
 
     time_t last_connection;
     char *last_ruid;
+    time_t *last_ruid_time;
     char *ip;
     bool online;
 } settings_internal_t;
@@ -239,12 +248,14 @@ typedef struct
 typedef struct
 {
     uint32_t http_port;
-    uint32_t https_port;
+    uint32_t https_web_port;
+    uint32_t https_api_port;
     char *host_url;
     char *certdir;
     char *configdir;
     char *contentdir;
     char *firmwaredir;
+    char *cachedir;
     char *librarydir;
     char *datadir;
     char *wwwdir;
@@ -252,11 +263,14 @@ typedef struct
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
     char *allowOrigin;
-    bool webHttpOnly;
+    bool boxCertAuth;
+    bool allowNewBox;
 
     bool flex_enabled;
     char *flex_uid;
     char *bind_ip;
+
+    bool new_webgui_as_default;
 
     settings_level settings_level;
 
@@ -297,6 +311,21 @@ typedef struct
 
 typedef struct
 {
+    bool cache_images;
+    bool cache_preload;
+} settings_tonie_json_t;
+
+typedef struct
+{
+    bool pcm_encode_console_url;
+} settings_web_debug_t;
+typedef struct
+{
+    settings_web_debug_t web;
+} settings_debug_t;
+
+typedef struct
+{
     uint32_t configVersion;
     char *commonName;
     char *boxName;
@@ -305,6 +334,7 @@ typedef struct
     settings_core_t core;
     settings_cloud_t cloud;
     settings_encode_t encode;
+    settings_frontend_t frontend;
     settings_mqtt_t mqtt;
     settings_hass_t hass;
     settings_security_mit_t security_mit;
@@ -313,6 +343,8 @@ typedef struct
     settings_log_t log;
     settings_rtnl_t rtnl;
     settings_pcap_t pcap;
+    settings_tonie_json_t tonie_json;
+    settings_debug_t debug;
 } settings_t;
 
 typedef enum
@@ -426,7 +458,8 @@ void overlay_settings_init_opt(setting_item_t *opt, setting_item_t *opt_src);
 settings_t *get_settings();
 settings_t *get_settings_ovl(const char *overlay_unique_id);
 settings_t *get_settings_id(uint8_t settingsId);
-settings_t *get_settings_cn(const char *cn);
+settings_t *get_settings_cn(const char *commonName);
+uint8_t get_overlay_id(const char *overlay_unique_id);
 
 void settings_resolve_dir(char **resolvedPath, char *path, char *basePath);
 void settings_changed_id(uint8_t settingsId);
@@ -437,7 +470,7 @@ void settings_loop();
  *
  * This function should be called once, before any other settings functions are used.
  */
-error_t settings_init(const char *cwd, const char *base_path);
+error_t settings_init(const char *cwd, const char *base_dir);
 
 /**
  * @brief Deinitializes the settings subsystem.

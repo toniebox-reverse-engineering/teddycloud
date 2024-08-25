@@ -89,7 +89,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
         strftime(date_buffer, sizeof(date_buffer), "%Y-%m-%d %H:%M:%S", &tm_info);
     }
 
-    TRACE_INFO(" >> OTA-Request for %u with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
+    TRACE_INFO(" >> OTA-Request for %d with timestamp %" PRIuTIME " (%s)\r\n", fileId, timestamp, date_buffer);
 
     settings_internal_toniebox_firmware_t *toniebox_fw = &client_ctx->settings->internal.toniebox_firmware;
 
@@ -159,8 +159,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
             {
                 continue;
             }
-            char *filename = strdup(entry.name);
-            char *biggest_timestamp_txt = strtok(filename, "-_");
+            char *tmpname = strdup(entry.name);
+            char *biggest_timestamp_txt = strtok(tmpname, "-_");
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
@@ -168,7 +168,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
                 osFreeMem(biggest_filename);
                 biggest_filename = strdup(entry.name);
             }
-            osFreeMem(filename);
+            osFreeMem(tmpname);
         }
     }
 
@@ -351,7 +351,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     setLastRuid(ruid, client_ctx->settingsNoOverlay);
 
     tonie_info_t *tonieInfo;
-    tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
     /* allow to override HTTP status code if needed */
     bool served = false;
@@ -362,6 +362,13 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
     }
+    if (tonieInfo->json.hide || !tonieInfo->json.claimed)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json.claimed = true;
+        tonieInfo->json._updated = true;
+    }
+    saveTonieInfo(tonieInfo, true);
 
     if (!tonieInfo->json.nocloud || tonieInfo->json.cloud_override)
     {
@@ -464,7 +471,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     }
 
     tonie_info_t *tonieInfo;
-    tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
     if (!tonieInfo->json.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override && connection->request.auth.found)
     {
@@ -477,6 +484,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     if (client_ctx->settings->cloud.dumpRuidAuthContentJson && connection->request.auth.found)
     {
         dumpRuidAuth(&tonieInfo->json, ruid, token);
+    }
+    if (tonieInfo->json.hide)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json._updated = true;
     }
 
     bool setLive = false;
@@ -519,7 +531,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             }
 
             /* check assignFile for validity */
-            tonie_info_t *tonieInfoAssign = getTonieInfo(assignFile, client_ctx->settings);
+            tonie_info_t *tonieInfoAssign = getTonieInfo(assignFile, true, client_ctx->settings);
             if (!tonieInfoAssign->valid)
             {
                 freeTonieInfo(tonieInfoAssign);
@@ -546,7 +558,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             char *oldFile = strdup(tonieInfo->contentPath);
             freeTonieInfo(tonieInfo);
 
-            tonieInfo = getTonieInfo(oldFile, client_ctx->settings);
+            tonieInfo = getTonieInfo(oldFile, true, client_ctx->settings);
             free(oldFile);
 
             if (!tonieInfo->valid)
@@ -568,6 +580,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         settings_set_string("internal.assign_unknown", "");
         error = NO_ERROR;
     }
+
+    saveTonieInfo(tonieInfo, true);
 
     bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
     if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
@@ -605,18 +619,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
             ffmpeg_ctx.sweep = false;
-            if (!ffmpeg_ctx.append)
+
+            osDelayTask(delay);
+            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            if (response_error)
             {
-                osDelayTask(delay);
-            }
-            else
-            {
-                osDelayTask(delay);
-            }
-            error_t error = httpSendResponseStream(connection, streamFileRel, true);
-            if (error)
-            {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }
         }
         stream_ctx->active = false;
@@ -653,10 +661,10 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
         if (stream_ctx->error == NO_ERROR)
         {
-            error_t error = httpSendResponseStream(connection, streamFileRel, true);
-            if (error)
+            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            if (response_error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }
         }
         else
@@ -665,7 +673,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
 
         stream_ctx->active = false;
-        ;
+        
         while (!stream_ctx->quit)
         {
             osDelayTask(100);
@@ -826,7 +834,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
                 tonie_info_t *tonieInfo;
-                tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, client_ctx->settings);
+                tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, false, client_ctx->settings);
 
                 char date_buffer_box[32];
                 bool_t custom_box;

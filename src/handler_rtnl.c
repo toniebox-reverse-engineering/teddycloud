@@ -1,7 +1,3 @@
-#ifdef WIN32
-#else
-#include <unistd.h>
-#endif
 
 #include <sys/types.h>
 #include <time.h>
@@ -35,6 +31,8 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
     const size_t num_replacements = sizeof(replacements) / sizeof(replacements[0]);
 
     size_t input_length = size;
+
+    /* ToDo: this escaped_length code is not used - intentional through refacotring? */
     size_t escaped_length = 0;
 
     // First pass to count the number of additional characters required for escaping
@@ -112,7 +110,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
            do some safety checks */
         if (protoLength == 0 || buffer[pos] != 0 || buffer[pos + 1] != 0)
         {
-            TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
+            TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%zu\r\n", protoLength, pos);
             return ERROR_FAILURE;
         }
 
@@ -151,19 +149,55 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
 int32_t read_little_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[0] | buf[1] << 8 | buf[2] << 16 | buf[3] << 24);
+    return (int32_t)(buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24));
 }
+
 int64_t read_little_endian64(const uint8_t *buf)
 {
     return ((int64_t)read_little_endian32(&buf[4])) | (((int64_t)read_little_endian32(buf)) << 32);
 }
+
 int32_t read_big_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[3] | buf[2] << 8 | buf[1] << 16 | buf[0] << 24);
+    return (int32_t)(buf[3] | (buf[2] << 8) | (buf[1] << 16) | (buf[0] << 24));
 }
+
 int64_t read_big_endian64(const uint8_t *buf)
 {
     return ((int64_t)read_big_endian32(buf)) | (((int64_t)read_big_endian32(&buf[4])) << 32);
+}
+
+static char *absolute_url(const char *url_or_path)
+{
+    char *url = strdup(url_or_path);
+
+    /* modify relative URLs to be absolute using host_url */
+    if (osStrncmp(url, "http", 4))
+    {
+        char *host_url = strdup(settings_get_string("core.host_url"));
+
+        /* Remove trailing slashes */
+        char *end = host_url + strlen(host_url) - 1;
+        while (end > host_url && *end == '/')
+        {
+            *end-- = '\0';
+        }
+
+        /* Remove leading slashes */
+        char *path = url;
+        while (*path == '/')
+        {
+            path++;
+        }
+        char *absolute_url = custom_asprintf("%s/%s", host_url, path);
+
+        osFreeMem(url);
+        osFreeMem(host_url);
+
+        url = absolute_url;
+    }
+
+    return url;
 }
 
 void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *client_ctx)
@@ -290,14 +324,14 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             tbs_playback(client_ctx, TBS_PLAYBACK_STOPPED);
             break;
         default:
-            TRACE_WARNING("Not-yet-known log3 type: %d\r\n", rpc->log3->field2);
+            TRACE_WARNING("Not-yet-known log3 type: %u\r\n", rpc->log3->field2);
             break;
         }
     }
 
     if (rpc->log2)
     {
-        char buffer[33];
+        char str_buf[33];
 
         if (rpc->log2->function_group == RTNL2_FUGR_TAG)
         {
@@ -314,14 +348,14 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         {
             uint32_t audioId = read_little_endian32(rpc->log2->field6.data);
             client_ctx->state->tag.audio_id = audioId;
-            osSprintf(buffer, "%d", audioId);
+            osSprintf(str_buf, "%u", audioId);
             toniesJson_item_t *item = tonies_byAudioId(audioId);
-            sse_sendEvent("ContentAudioId", buffer, true);
-            mqtt_sendBoxEvent("ContentAudioId", buffer, client_ctx);
+            sse_sendEvent("ContentAudioId", str_buf, true);
+            mqtt_sendBoxEvent("ContentAudioId", str_buf, client_ctx);
 
             if (item == NULL || audioId == SPECIAL_AUDIO_ID_ONE)
             {
-                tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, client_ctx->settings);
+                tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, false, client_ctx->settings);
                 if (tonieInfo->valid)
                 {
                     item = tonies_byModel(tonieInfo->json.tonie_model);
@@ -350,10 +384,14 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             }
             else
             {
+                char *url = absolute_url(item->picture);
+
                 sse_sendEvent("ContentTitle", item->title, true);
                 mqtt_sendBoxEvent("ContentTitle", item->title, client_ctx);
                 sse_sendEvent("ContentPicture", item->picture, true);
-                mqtt_sendBoxEvent("ContentPicture", item->picture, client_ctx);
+                mqtt_sendBoxEvent("ContentPicture", url, client_ctx);
+
+                osFreeMem(url);
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_TILT)
@@ -361,16 +399,16 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             if (rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
             {
                 int32_t angle = read_little_endian32(rpc->log2->field6.data);
-                osSprintf(buffer, "%d", angle);
-                sse_sendEvent("BoxTilt-A", buffer, true);
-                mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+                osSprintf(str_buf, "%d", angle);
+                sse_sendEvent("BoxTilt-A", str_buf, true);
+                mqtt_sendBoxEvent("BoxTilt", str_buf, client_ctx);
             }
             else if (rpc->log2->function == RTNL2_FUNC_TILT_B_ESP32)
             {
                 int32_t angle = read_little_endian32(rpc->log2->field6.data);
-                osSprintf(buffer, "%d", angle);
-                sse_sendEvent("BoxTilt-B", buffer, true);
-                mqtt_sendBoxEvent("BoxTilt", buffer, client_ctx);
+                osSprintf(str_buf, "%d", angle);
+                sse_sendEvent("BoxTilt-B", str_buf, true);
+                mqtt_sendBoxEvent("BoxTilt", str_buf, client_ctx);
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME)
@@ -380,12 +418,12 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                 /* DE210000 DBFFFFFF 01000000 */ /* 963C0000 D8FFFFFF 00000000 */
                 int32_t volumedB = read_little_endian32(&rpc->log2->field6.data[4]);
                 int32_t volumeLevel = read_little_endian32(&rpc->log2->field6.data[8]);
-                osSprintf(buffer, "%d", volumeLevel);
-                sse_sendEvent("VolumeLevel", buffer, true);
-                mqtt_sendBoxEvent("VolumeLevel", buffer, client_ctx);
-                osSprintf(buffer, "%d", volumedB);
-                sse_sendEvent("VolumedB", buffer, true);
-                mqtt_sendBoxEvent("VolumedB", buffer, client_ctx);
+                osSprintf(str_buf, "%d", volumeLevel);
+                sse_sendEvent("VolumeLevel", str_buf, true);
+                mqtt_sendBoxEvent("VolumeLevel", str_buf, client_ctx);
+                osSprintf(str_buf, "%d", volumedB);
+                sse_sendEvent("VolumedB", str_buf, true);
+                mqtt_sendBoxEvent("VolumedB", str_buf, client_ctx);
 
                 settings_internal_rtnl_t *rtnl_setting = &client_ctx->settings->internal.rtnl;
                 if (rpc->log2->uptime - rtnl_setting->lastEarpress < rtnl_setting->multipressTime)
@@ -446,7 +484,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
         TRACE_DEBUG("  3=%" PRIu32 "\r\n", rpc->log2->field3);
         TRACE_DEBUG("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
         TRACE_DEBUG("  function=%" PRIu32 "\r\n", rpc->log2->function);
-        TRACE_DEBUG("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
+        TRACE_DEBUG("  6=len(data)=%zu, data=", rpc->log2->field6.len);
         for (size_t i = 0; i < rpc->log2->field6.len; i++)
         {
             TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
@@ -456,7 +494,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
             TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
         if (rpc->log2->has_field9)
         {
-            TRACE_DEBUG("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
+            TRACE_DEBUG("  9=len(data)=%zu, data=", rpc->log2->field9.len);
             for (size_t i = 0; i < rpc->log2->field9.len; i++)
             {
                 TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
@@ -489,7 +527,7 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
 
         if (rpc->log2)
         {
-            osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIuSIZE ";",
+            osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%zu;",
                       rpc->log2->uptime,
                       rpc->log2->sequence,
                       rpc->log2->field3,
@@ -511,7 +549,7 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
             escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
             fsWriteFile(file, buffer, osStrlen(buffer));
 
-            osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
+            osSprintf(buffer, "\";%" PRIu32 ";%zu;",
                       rpc->log2->field8, // TODO hasfield
                       rpc->log2->field9.len);
             fsWriteFile(file, buffer, osStrlen(buffer));

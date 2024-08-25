@@ -29,6 +29,9 @@ typedef struct
     size_t cloud_auth_len;
     bool_t cloud_override;
     char *tonie_model;
+    char *_source_model;
+    bool_t hide;
+    bool_t claimed;
 
     bool_t _has_cloud_auth;
     ct_source_t _source_type;
@@ -50,6 +53,7 @@ typedef struct
     bool_t exists;
     bool_t valid;
     bool_t updated;
+    bool_t locked;
     contentJson_t json;
     TonieboxAudioFileHeader *tafHeader;
 } tonie_info_t;

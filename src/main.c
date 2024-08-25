@@ -395,7 +395,7 @@ int_t main(int argc, char *argv[])
 #if !defined(FFMPEG_DECODING)
         TRACE_ERROR("Feature not available in your build.\r\n");
 #else
-        TRACE_WARNING("Encode %" PRIuSIZE " files to '%s'\r\n", options.multisource_size, options.encode);
+        TRACE_WARNING("Encode %zu files to '%s'\r\n", options.multisource_size, options.encode);
         size_t current_source = 0;
         int_t error = ffmpeg_convert(options.multisource, options.multisource_size, &current_source, options.encode, options.skip_seconds);
         exit(error);
@@ -527,7 +527,7 @@ int_t main(int argc, char *argv[])
         TRACE_WARNING("**********************************\r\n");
         TRACE_WARNING("File: %s\r\n", options.encode_test);
 
-        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF, false);
+        toniefile_t *taf = toniefile_create(options.encode_test, 0xDEAFBEEF, false, 0);
 
         if (!taf)
         {
@@ -537,9 +537,10 @@ int_t main(int argc, char *argv[])
 
 #define SAMPLES 333333
         int sample_total = 0;
-        int16_t *sample_buffer = osAllocMem(2 * SAMPLES * sizeof(int16_t));
+        int sample_buffer_size = 2 * SAMPLES * sizeof(int16_t);
+        int16_t *sample_buffer = osAllocMem(sample_buffer_size);
 
-        osMemset(sample_buffer, 0x00, sizeof(2 * SAMPLES * sizeof(int16_t)));
+        osMemset(sample_buffer, 0x00, sample_buffer_size);
 
         for (int pos = 0; pos < 100; pos++)
         {

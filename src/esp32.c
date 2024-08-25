@@ -1,20 +1,29 @@
 
 #define TRACE_LEVEL TRACE_LEVEL_INFO
 
-#include <stdint.h>
-
-#include "hash/sha256.h"
-#include "fs_ext.h"
-#include "path.h"
-#include "debug.h"
-
 #include "esp32.h"
 
-#include "ff.h"
-#include "diskio.h"
-#include "server_helpers.h"
-#include "cert.h"
-#include "pem_import.h"
+#include <errno.h>          // for error_t
+#include <inttypes.h>       // for PRIX32, PRIu32, PRIX8, PRIX16, PRIX64
+#include <stdint.h>         // for uint8_t, uint32_t, uint16_t, int16_t, int...
+#include <stdbool.h>        // for bool, true, false
+#include <string.h>         // for size_t, strcmp, memcmp, memset, NULL
+#include <time.h>           // for time_t
+
+#include "cert.h"           // for cert_generate_mac
+#include "date_time.h"      // for DateTime, convertUnixTimeToDate, getCurre...
+#include "debug.h"          // for TRACE_INFO, TRACE_ERROR, TRACE_LEVEL_INFO
+#include "diskio.h"         // for RES_OK, DRESULT, DSTATUS, RES_ERROR, disk...
+#include "error.h"          // for NO_ERROR, ERROR_FAILURE, ERROR_NOT_FOUND
+#include "ff.h"             // for FILINFO, FR_OK, BYTE, f_mount, f_close
+#include "fs_ext.h"         // for fsOpenFileEx
+#include "fs_port.h"        // for FS_SEEK_SET, FsDirEntry, FS_FILE_MODE_WRITE
+#include "hash/sha256.h"    // for sha256Update, sha256Final, sha256Init
+#include "os_port.h"        // for osFreeMem, osAllocMem, osStrcpy, osStrlen
+#include "path.h"           // for pathAddSlash, pathCanonicalize, pathCombine
+#include "pem_import.h"     // for pemImportCertificate
+#include "settings.h"       // for settings_get_string
+#include "server_helpers.h" // for custom_asprintf
 
 #define ESP_PARTITION_TYPE_APP 0
 #define ESP_PARTITION_TYPE_DATA 1
@@ -170,7 +179,7 @@ DSTATUS disk_initialize(BYTE pdrv)
     return RES_OK;
 }
 
-DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
+DRESULT disk_write(BYTE pdrv, const BYTE *buff, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
@@ -180,7 +189,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        error_t error = fsWriteFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE);
+        error_t error = fsWriteFile(state->file, (void *)&buff[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE);
         if (error != NO_ERROR)
         {
             TRACE_ERROR("Failed to write sector\r\n");
@@ -190,7 +199,7 @@ DRESULT disk_write(BYTE pdrv, const BYTE *buffer, LBA_t sector, UINT count)
     return RES_OK;
 }
 
-DRESULT disk_read(BYTE pdrv, BYTE *buffer, LBA_t sector, UINT count)
+DRESULT disk_read(BYTE pdrv, BYTE *buff, LBA_t sector, UINT count)
 {
     struct wl_state *state = (struct wl_state *)&esp32_wl_state;
 
@@ -201,7 +210,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buffer, LBA_t sector, UINT count)
 
         fsSeekFile(state->file, state->fs_offset + trans_sec * WL_SECTOR_SIZE, FS_SEEK_SET);
 
-        error_t error = fsReadFile(state->file, (void *)&buffer[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE, &read);
+        error_t error = fsReadFile(state->file, (void *)&buff[sec * WL_SECTOR_SIZE], WL_SECTOR_SIZE, &read);
         if (error != NO_ERROR || read != WL_SECTOR_SIZE)
         {
             TRACE_ERROR("Failed to read sector\r\n");
@@ -240,7 +249,7 @@ error_t esp32_wl_init(struct wl_state *state, FsFile *file, size_t offset, size_
         uint8_t state_record[WL_STATE_RECORD_SIZE];
         error = fsReadFile(file, state_record, sizeof(state_record), &read);
 
-        if (read != sizeof(state_record))
+        if (error != NO_ERROR || read != sizeof(state_record))
         {
             TRACE_ERROR("Failed to read state_record\r\n");
             return ERROR_FAILURE;
@@ -250,6 +259,749 @@ error_t esp32_wl_init(struct wl_state *state, FsFile *file, size_t offset, size_
             break;
         }
         state->total_records++;
+    }
+
+    return NO_ERROR;
+}
+
+/* according to https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html */
+#define NVS_SECTOR_SIZE 4096
+
+#define NVS_PAGE_BIT_INIT 1
+#define NVS_PAGE_BIT_FULL 2
+#define NVS_PAGE_BIT_FREEING 4
+#define NVS_PAGE_BIT_CORRUPT 8
+
+#define NVS_PAGE_STATE_UNINIT 0xFFFFFFFF
+#define NVS_PAGE_STATE_ACTIVE (NVS_PAGE_STATE_UNINIT & ~NVS_PAGE_BIT_INIT)
+#define NVS_PAGE_STATE_FULL (NVS_PAGE_STATE_ACTIVE & ~NVS_PAGE_BIT_FULL)
+#define NVS_PAGE_STATE_FREEING (NVS_PAGE_STATE_FULL & ~NVS_PAGE_BIT_FREEING)
+#define NVS_PAGE_STATE_CORRUPT (NVS_PAGE_STATE_FREEING & ~NVS_PAGE_BIT_CORRUPT)
+
+#define MAX_NAMESPACE_COUNT 8
+#define MAX_KEY_SIZE 16
+#define MAX_ENTRY_COUNT 126
+#define MAX_STRING_LENGTH 64
+#define BUFFER_HEX_SIZE(length) ((length) * 3 + 3)
+
+enum ESP32_nvs_type
+{
+    NVS_TYPE_U8 = 0x01,
+    NVS_TYPE_U16 = 0x02,
+    NVS_TYPE_U32 = 0x04,
+    NVS_TYPE_U64 = 0x08,
+    NVS_TYPE_I8 = 0x11,
+    NVS_TYPE_I16 = 0x12,
+    NVS_TYPE_I32 = 0x14,
+    NVS_TYPE_I64 = 0x18,
+    NVS_TYPE_STR = 0x21,
+    NVS_TYPE_BLOB = 0x42,
+    NVS_TYPE_BLOB_IDX = 0x48,
+    NVS_TYPE_ANY = 0xff
+};
+
+enum ESP32_nvs_item_state
+{
+    NVS_STATE_ERASED = 0x00,
+    NVS_STATE_WRITTEN = 0x02,
+    NVS_STATE_EMPTY = 0x03
+};
+
+struct ESP32_nvs_page_header
+{
+    uint32_t state;
+    uint32_t seq;
+    uint8_t version;
+    uint8_t unused[19];
+    uint32_t crc32;
+    uint8_t state_bitmap[32];
+};
+
+struct ESP32_nvs_item
+{
+    uint8_t nsIndex;
+    uint8_t datatype;
+    uint8_t span;
+    uint8_t chunkIndex;
+    uint32_t crc32;
+    char key[16];
+    union
+    {
+        struct
+        {
+            uint16_t size;
+            uint16_t reserved;
+            uint32_t data_crc32;
+        } var_length;
+        struct
+        {
+            uint32_t size;
+            uint8_t chunk_count;
+            uint8_t chunk_start;
+            uint16_t reserved;
+        } blob_index;
+        uint8_t data[8];
+        uint8_t uint8;
+        uint16_t uint16;
+        uint32_t uint32;
+        uint64_t uint64;
+        int8_t int8;
+        int16_t int16;
+        int32_t int32;
+        int64_t int64;
+    };
+};
+
+uint8_t esp32_nvs_state_get(struct ESP32_nvs_page_header *page_header, uint8_t index)
+{
+    int bmp_idx = index / 4;
+    int bmp_bit = (index % 4) * 2;
+    uint8_t bmp = (page_header->state_bitmap[bmp_idx] >> (bmp_bit)) & 3;
+
+    return bmp;
+}
+
+void esp32_nvs_state_set(struct ESP32_nvs_page_header *page_header, uint8_t index, uint8_t state)
+{
+    int bmp_idx = index / 4;
+    int bmp_bit = (index % 4) * 2;
+
+    page_header->state_bitmap[bmp_idx] &= ~(3 << bmp_bit);
+    page_header->state_bitmap[bmp_idx] |= (state << bmp_bit);
+}
+
+static uint32_t crc32_byte(uint32_t crc, uint8_t d)
+{
+    uint8_t b;
+
+    for (b = 1; b; b <<= 1)
+    {
+        crc ^= (d & b) ? 1 : 0;
+        crc = (crc & 1) ? crc >> 1 ^ 0xEDB88320 : crc >> 1;
+    }
+    return crc;
+}
+
+static uint32_t crc32(void *ptr, int length)
+{
+    uint32_t crc = 0;
+    uint8_t *data = (uint8_t *)ptr;
+
+    while (length--)
+    {
+        crc = crc32_byte(crc, *data);
+        data++;
+    }
+
+    return ~crc;
+}
+
+static uint32_t crc32_header(void *header)
+{
+    uint8_t *ptr = (uint8_t *)header;
+    uint8_t buf[0x20 - 4];
+
+    osMemcpy(&buf[0], &ptr[0], 0x04);
+    osMemcpy(&buf[4], &ptr[8], 0x18);
+
+    return crc32(buf, 0x1C);
+}
+
+static error_t file_read_block(FsFile *file, size_t offset, void *buffer, size_t length)
+{
+    size_t read;
+
+    error_t error = fsSeekFile(file, offset, FS_SEEK_SET);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to seek input file\r\n");
+        return ERROR_FAILURE;
+    }
+
+    error = fsReadFile(file, buffer, length, &read);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to read input file: %i\r\n", error);
+        return ERROR_FAILURE;
+    }
+
+    if (length != read)
+    {
+        TRACE_ERROR("Failed to read enough data\r\n");
+        return ERROR_FAILURE;
+    }
+
+    return NO_ERROR;
+}
+
+static error_t file_write_block(FsFile *file, size_t offset, void *buffer, size_t length)
+{
+    error_t error = fsSeekFile(file, offset, FS_SEEK_SET);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to seek input file\r\n");
+        return ERROR_FAILURE;
+    }
+
+    error = fsWriteFile(file, buffer, length);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("Failed to write file\r\n");
+        return ERROR_FAILURE;
+    }
+
+    return NO_ERROR;
+}
+
+/**
+ * @brief Processes a single NVS item.
+ *
+ * This function processes a single NVS item, updates its CRC if necessary, and
+ * logs relevant information about the item. If the CRC check fails, the function
+ * updates the CRC and returns an error code indicating the CRC mismatch.
+ *
+ * @param file Pointer to the file to read/write.
+ * @param offset Offset within the file.
+ * @param part_offset Offset of the specific NVS item within the file.
+ * @param item Pointer to the NVS item structure.
+ * @param namespaces Array of namespace strings, passed by reference.
+ * @return
+ *         - NO_ERROR if successful.
+ *         - ERROR_BAD_CRC if the CRC check fails and the CRC is updated.
+ *         - ERROR_FAILURE for other errors.
+ */
+static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset, struct ESP32_nvs_item *item, char (*namespaces)[MAX_NAMESPACE_COUNT][MAX_KEY_SIZE])
+{
+    error_t error = NO_ERROR;
+
+    if (item->nsIndex == 0)
+    {
+        TRACE_INFO("      Namespace   %s\r\n", item->key);
+        if (item->uint8 > MAX_NAMESPACE_COUNT)
+        {
+            TRACE_ERROR("namespace index is %" PRIu32 ", which seems invalid", item->uint8);
+            return ERROR_FAILURE;
+        }
+        osStrcpy((*namespaces)[item->uint8], item->key);
+
+        uint32_t crc_header_calc = crc32_header(item);
+        TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
+        if (item->crc32 != crc_header_calc)
+        {
+            TRACE_INFO("      * Updating CRC\r\n");
+            item->crc32 = crc_header_calc;
+            error = ERROR_BAD_CRC;
+        }
+    }
+    else
+    {
+        if (item->nsIndex > MAX_NAMESPACE_COUNT)
+        {
+            TRACE_ERROR("      Namespace   index is %" PRIu32 ", which seems invalid", item->nsIndex);
+        }
+        else
+        {
+            TRACE_INFO("      Namespace   %s\r\n", (*namespaces)[item->nsIndex]);
+        }
+
+        TRACE_INFO("      Key         %s\r\n", item->key);
+
+        switch (item->datatype & 0xF0)
+        {
+        case 0x00:
+        case 0x10:
+        {
+            char type_string[32] = {0};
+            osSprintf(type_string, "%sint%i_t", (item->datatype & 0xF0) ? "" : "u", (item->datatype & 0x0F) * 8);
+            TRACE_INFO("      Type        %s (0x%08" PRIX32 ")\r\n", type_string, item->datatype);
+            TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
+            switch (item->datatype)
+            {
+            case NVS_TYPE_U8:
+                TRACE_INFO("      Value       %" PRIu8 " (0x%02" PRIX8 ")\r\n", item->uint8, item->uint8);
+                break;
+            case NVS_TYPE_U16:
+                TRACE_INFO("      Value       %" PRIu16 " (0x%04" PRIX16 ")\r\n", item->uint16, item->uint16);
+                break;
+            case NVS_TYPE_U32:
+                TRACE_INFO("      Value       %" PRIu32 " (0x%08" PRIX32 ")\r\n", item->uint32, item->uint32);
+                break;
+            case NVS_TYPE_U64:
+                TRACE_INFO("      Value       %" PRIu64 " (0x%016" PRIX64 ")\r\n", item->uint64, item->uint64);
+                break;
+            case NVS_TYPE_I8:
+                TRACE_INFO("      Value       %" PRId8 " (0x%02" PRIX8 ")\r\n", item->int8, item->int8);
+                break;
+            case NVS_TYPE_I16:
+                TRACE_INFO("      Value       %" PRId16 " (0x%04" PRIX16 ")\r\n", item->int16, item->int16);
+                break;
+            case NVS_TYPE_I32:
+                TRACE_INFO("      Value       %" PRId32 " (0x%08" PRIX32 ")\r\n", item->int32, item->int32);
+                break;
+            case NVS_TYPE_I64:
+                TRACE_INFO("      Value       %" PRId64 " (0x%016" PRIX64 ")\r\n", item->int64, item->int64);
+                break;
+            }
+            break;
+        }
+        }
+
+        switch (item->datatype)
+        {
+        case NVS_TYPE_STR:
+        {
+            TRACE_INFO("      Type        string (0x%02" PRIX8 ")\r\n", item->datatype);
+            TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
+            uint16_t length = item->uint16;
+            if (length > MAX_STRING_LENGTH)
+            {
+                TRACE_ERROR("length is %" PRIu32 ", which seems invalid", length);
+                return ERROR_FAILURE;
+            }
+            char *buffer = osAllocMem(length);
+            if (!buffer)
+            {
+                TRACE_ERROR("Failed to allocate memory\r\n");
+                return ERROR_FAILURE;
+            }
+
+            error = file_read_block(file, offset + part_offset + sizeof(struct ESP32_nvs_item), buffer, length);
+            if (error != NO_ERROR)
+            {
+                osFreeMem(buffer);
+                return ERROR_FAILURE;
+            }
+
+            uint32_t crc_data_calc = crc32(buffer, length);
+            TRACE_INFO("      Size        %" PRIu32 "\r\n", item->var_length.size);
+            TRACE_INFO("      Data        %s\r\n", buffer);
+            TRACE_INFO("      Data CRC    %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->var_length.data_crc32, crc_data_calc);
+            if (item->var_length.data_crc32 != crc_data_calc)
+            {
+                TRACE_INFO("      * Updating CRC\r\n");
+                item->var_length.data_crc32 = crc_data_calc;
+                error = ERROR_BAD_CRC;
+            }
+            osFreeMem(buffer);
+            break;
+        }
+
+        case NVS_TYPE_BLOB_IDX:
+            TRACE_INFO("      Type        blob index (0x%02" PRIX8 ")\r\n", item->datatype);
+            TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
+            TRACE_INFO("      Total size  %" PRIu32 "\r\n", item->blob_index.size);
+            TRACE_INFO("      Chunk count %" PRIu32 "\r\n", item->blob_index.chunk_count);
+            TRACE_INFO("      Chunk start %" PRIu32 "\r\n", item->blob_index.chunk_start);
+            break;
+
+        case NVS_TYPE_BLOB:
+        {
+            TRACE_INFO("      Type        blob (0x%" PRIX8 ")\r\n", item->datatype);
+            TRACE_INFO("      Chunk Index 0x%02" PRIX8 "\r\n", item->chunkIndex);
+            uint16_t length = item->uint16;
+            if (length > MAX_STRING_LENGTH)
+            {
+                TRACE_ERROR("length is %" PRIu32 ", which seems invalid", length);
+                return ERROR_FAILURE;
+            }
+            uint8_t *buffer = osAllocMem(length);
+            char *buffer_hex = osAllocMem(BUFFER_HEX_SIZE(length));
+            if (!buffer || !buffer_hex)
+            {
+                TRACE_ERROR("Failed to allocate memory\r\n");
+                osFreeMem(buffer);
+                osFreeMem(buffer_hex);
+                return ERROR_FAILURE;
+            }
+
+            error = file_read_block(file, offset + part_offset + sizeof(struct ESP32_nvs_item), buffer, length);
+            if (error != NO_ERROR)
+            {
+                osFreeMem(buffer);
+                osFreeMem(buffer_hex);
+                return ERROR_FAILURE;
+            }
+
+            for (int hex_pos = 0; hex_pos < length; hex_pos++)
+            {
+                osSprintf(&buffer_hex[3 * hex_pos], "%02" PRIX8 " ", buffer[hex_pos]);
+            }
+            uint32_t crc_data_calc = crc32(buffer, length);
+            TRACE_INFO("      Size        %" PRIu32 "\r\n", item->var_length.size);
+            TRACE_INFO("      Data        %s\r\n", buffer_hex);
+            TRACE_INFO("      Data CRC    %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->var_length.data_crc32, crc_data_calc);
+            if (item->var_length.data_crc32 != crc_data_calc)
+            {
+                TRACE_INFO("      * Updating CRC\r\n");
+                item->var_length.data_crc32 = crc_data_calc;
+                error = ERROR_BAD_CRC;
+            }
+            osFreeMem(buffer);
+            osFreeMem(buffer_hex);
+            break;
+        }
+        }
+
+        uint32_t crc_header_calc = crc32_header(item);
+        TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
+        if (item->crc32 != crc_header_calc)
+        {
+            TRACE_INFO("      * Updating CRC\r\n");
+            item->crc32 = crc_header_calc;
+            error = ERROR_BAD_CRC;
+        }
+    }
+
+    return error;
+}
+
+/**
+ * @brief Fixes up the NVS data.
+ *
+ * This function scans through the NVS data in the specified file, updates CRCs,
+ * and logs relevant information about the NVS pages and items.
+ *
+ * @param file Pointer to the file to read/write.
+ * @param offset Offset within the file.
+ * @param length Length of the data to process.
+ * @param modify Flag indicating whether to modify the file.
+ * @return Error code indicating success or failure.
+ */
+error_t esp32_fixup_nvs(FsFile *file, size_t offset, size_t length, bool modify)
+{
+    char namespaces[MAX_NAMESPACE_COUNT][MAX_KEY_SIZE] = {0};
+
+    for (size_t sector_offset = 0; sector_offset < length; sector_offset += NVS_SECTOR_SIZE)
+    {
+        error_t error;
+        struct ESP32_nvs_page_header page_header;
+        size_t block_offset = offset + sector_offset;
+
+        error = file_read_block(file, block_offset, &page_header, sizeof(page_header));
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to read input file\r\n");
+            return ERROR_FAILURE;
+        }
+
+        switch (page_header.state)
+        {
+        case NVS_PAGE_STATE_UNINIT:
+            TRACE_INFO("NVS Block --, offset 0x%08" PRIX32 "\r\n", (uint32_t)block_offset);
+            TRACE_INFO("  State: %s\r\n", "Uninitialized");
+            continue;
+        case NVS_PAGE_STATE_CORRUPT:
+            TRACE_INFO("NVS Block --, offset 0x%08" PRIX32 "\r\n", (uint32_t)block_offset);
+            TRACE_INFO("  State: %s\r\n", "Corrupt");
+            continue;
+
+        case NVS_PAGE_STATE_ACTIVE:
+            TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
+            TRACE_INFO("  State: %s\r\n", "Active");
+            break;
+        case NVS_PAGE_STATE_FULL:
+            TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
+            TRACE_INFO("  State: %s\r\n", "Full");
+            break;
+        case NVS_PAGE_STATE_FREEING:
+            TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
+            TRACE_INFO("  State: %s\r\n", "Freeing");
+            break;
+        }
+
+        TRACE_INFO("  Header CRC  %08" PRIX32 "\r\n", page_header.crc32);
+
+        for (int entry = 0; entry < MAX_ENTRY_COUNT; entry++)
+        {
+            uint8_t bmp = esp32_nvs_state_get(&page_header, entry);
+            size_t entry_offset = sizeof(struct ESP32_nvs_page_header) + entry * sizeof(struct ESP32_nvs_item);
+
+            if (bmp == NVS_STATE_WRITTEN)
+            {
+                TRACE_INFO("    Entry #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", entry, (uint32_t)entry_offset);
+
+                struct ESP32_nvs_item nvs_item;
+                error = file_read_block(file, block_offset + entry_offset, &nvs_item, sizeof(nvs_item));
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to read input file\r\n");
+                    return ERROR_FAILURE;
+                }
+
+                error = process_nvs_item(file, offset, sector_offset + entry_offset, &nvs_item, &namespaces);
+                if (error == ERROR_BAD_CRC)
+                {
+                    TRACE_INFO("    CRC updated -> Writing entry\r\n");
+                    file_write_block(file, block_offset + entry_offset, &nvs_item, sizeof(nvs_item));
+                }
+                else if (error != NO_ERROR)
+                {
+                    return error;
+                }
+
+                entry += nvs_item.span - 1;
+            }
+        }
+    }
+
+    return NO_ERROR;
+}
+
+error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *namespace, const char *key)
+{
+    int ns_index = -1;
+
+    for (size_t sector_offset = 0; sector_offset < length; sector_offset += NVS_SECTOR_SIZE)
+    {
+        error_t error;
+        struct ESP32_nvs_page_header page_header;
+        size_t block_offset = offset + sector_offset;
+
+        error = file_read_block(file, block_offset, &page_header, sizeof(page_header));
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to read input file\r\n");
+            return ERROR_FAILURE;
+        }
+
+        switch (page_header.state)
+        {
+        case NVS_PAGE_STATE_UNINIT:
+            continue;
+        case NVS_PAGE_STATE_CORRUPT:
+            continue;
+
+        case NVS_PAGE_STATE_ACTIVE:
+            break;
+        case NVS_PAGE_STATE_FULL:
+            break;
+        case NVS_PAGE_STATE_FREEING:
+            break;
+        }
+
+        for (int entry = 0; entry < MAX_ENTRY_COUNT; entry++)
+        {
+            uint8_t bmp = esp32_nvs_state_get(&page_header, entry);
+
+            /* nothing there, so nothing to delete */
+            if (bmp != NVS_STATE_WRITTEN)
+            {
+                continue;
+            }
+            size_t entry_offset = sizeof(struct ESP32_nvs_page_header) + entry * sizeof(struct ESP32_nvs_item);
+
+            struct ESP32_nvs_item nvs_item;
+            error = file_read_block(file, block_offset + entry_offset, &nvs_item, sizeof(nvs_item));
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to read input file\r\n");
+                return ERROR_FAILURE;
+            }
+
+            if (nvs_item.nsIndex == 0)
+            {
+                if (nvs_item.uint8 > MAX_NAMESPACE_COUNT)
+                {
+                    TRACE_ERROR("namespace index is %" PRIu32 ", which seems invalid", nvs_item.uint8);
+                    return ERROR_FAILURE;
+                }
+                if (!strcmp(namespace, nvs_item.key))
+                {
+                    ns_index = nvs_item.uint8;
+                }
+            }
+            else
+            {
+                if (ns_index == nvs_item.nsIndex && !strcmp(nvs_item.key, key))
+                {
+                    TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
+                    TRACE_INFO("    Entry #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", entry, (uint32_t)entry_offset);
+                    TRACE_INFO("      Found NVS entry %s.%s, deleting\r\n", namespace, key);
+
+                    /* now clear all item entries */
+                    struct ESP32_nvs_item nvs_item_erased;
+                    memset(&nvs_item_erased, 0xFF, sizeof(nvs_item_erased));
+
+                    for (int slice = 0; slice < nvs_item.span; slice++)
+                    {
+                        esp32_nvs_state_set(&page_header, entry + slice, NVS_STATE_EMPTY);
+                        file_write_block(file, block_offset + entry_offset + slice * sizeof(struct ESP32_nvs_item), &nvs_item_erased, sizeof(nvs_item_erased));
+                    }
+                }
+            }
+
+            entry += nvs_item.span - 1;
+        }
+
+        error = file_write_block(file, block_offset, &page_header, sizeof(page_header));
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to write back file\r\n");
+            return ERROR_FAILURE;
+        }
+    }
+
+    return NO_ERROR;
+}
+
+struct ESP32_nvs_item *esp32_nvs_create_uint8(const char *name, uint8_t value)
+{
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item));
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item));
+
+    item[0].datatype = NVS_TYPE_U8;
+    item[0].nsIndex = 0;
+    item[0].span = 1;
+    item[0].chunkIndex = 0xFF;
+    item[0].uint8 = value;
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
+    osStrcpy(item[0].key, name);
+
+    return item;
+}
+
+struct ESP32_nvs_item *esp32_nvs_create_string(const char *name, const char *value)
+{
+    int span = 2 + osStrlen(value) / sizeof(struct ESP32_nvs_item);
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * span);
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item) * span);
+
+    item[0].datatype = NVS_TYPE_STR;
+    item[0].nsIndex = 0;
+    item[0].span = span;
+    item[0].chunkIndex = 0xFF;
+    item[0].uint16 = osStrlen(value);
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
+    osStrcpy(item[0].key, name);
+    osStrcpy((char *)&item[1], value);
+
+    return item;
+}
+
+struct ESP32_nvs_item *esp32_nvs_create_blob(const char *name, const char *value, size_t length)
+{
+    int span = 2 + length / sizeof(struct ESP32_nvs_item);
+    struct ESP32_nvs_item *item = osAllocMem(sizeof(struct ESP32_nvs_item) * (span + 1));
+    osMemset(item, 0xFF, sizeof(struct ESP32_nvs_item) * (span + 1));
+
+    item[0].datatype = NVS_TYPE_BLOB;
+    item[0].nsIndex = 0;
+    item[0].span = span;
+    item[0].chunkIndex = 0;
+    item[0].var_length.size = length;
+    osMemset(item[0].key, 0x00, sizeof(item[0].key));
+    osStrcpy(item[0].key, name);
+    osMemcpy((char *)&item[1], value, length);
+
+    int idx = 2 + length / sizeof(struct ESP32_nvs_item);
+    item[idx].datatype = NVS_TYPE_BLOB_IDX;
+    item[idx].nsIndex = 0;
+    item[idx].span = 1;
+    osMemset(item[idx].key, 0x00, sizeof(item[idx].key));
+    osStrcpy(item[idx].key, name);
+    item[idx].blob_index.size = length;
+    item[idx].blob_index.chunk_count = 1;
+    item[idx].blob_index.chunk_start = 0;
+
+    return item;
+}
+
+error_t esp32_nvs_add(FsFile *file, size_t offset, size_t length, const char *namespace, struct ESP32_nvs_item *item, int entries)
+{
+    for (size_t sector_offset = 0; sector_offset < length; sector_offset += NVS_SECTOR_SIZE)
+    {
+        error_t error;
+        struct ESP32_nvs_page_header page_header;
+        size_t block_offset = offset + sector_offset;
+
+        error = file_read_block(file, block_offset, &page_header, sizeof(page_header));
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to read input file\r\n");
+            return ERROR_FAILURE;
+        }
+
+        switch (page_header.state)
+        {
+        case NVS_PAGE_STATE_UNINIT:
+            continue;
+        case NVS_PAGE_STATE_CORRUPT:
+            continue;
+
+        case NVS_PAGE_STATE_ACTIVE:
+            break;
+        case NVS_PAGE_STATE_FULL:
+            break;
+        case NVS_PAGE_STATE_FREEING:
+            break;
+        }
+
+        for (int entry = 0; entry < MAX_ENTRY_COUNT && (entry + item->span - 1 < MAX_ENTRY_COUNT); entry++)
+        {
+            size_t entry_offset = sizeof(struct ESP32_nvs_page_header) + entry * sizeof(struct ESP32_nvs_item);
+            uint8_t bmp = esp32_nvs_state_get(&page_header, entry);
+
+            /* parse namespace entries */
+            if (bmp == NVS_STATE_WRITTEN)
+            {
+                struct ESP32_nvs_item nvs_item;
+                error = file_read_block(file, block_offset + entry_offset, &nvs_item, sizeof(nvs_item));
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Failed to read input file\r\n");
+                    return ERROR_FAILURE;
+                }
+
+                if (nvs_item.nsIndex == 0 && !strcmp(namespace, nvs_item.key))
+                {
+                    TRACE_INFO("Namespace %s found: %u\r\n", namespace, nvs_item.uint8);
+
+                    /* set namespace for all headers in the passed block */
+                    for (int slice = 0; slice < entries; slice += item[slice].span)
+                    {
+                        item[slice].nsIndex = nvs_item.uint8;
+                    }
+                }
+                continue;
+            }
+
+            bool candidate = true;
+            for (int slice = 0; slice < entries; slice++)
+            {
+                if (esp32_nvs_state_get(&page_header, entry + slice) == NVS_STATE_WRITTEN)
+                {
+                    candidate = false;
+                }
+            }
+
+            if (!candidate || item->nsIndex == 0)
+            {
+                continue;
+            }
+            TRACE_INFO("NVS Block #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", page_header.seq, (uint32_t)block_offset);
+            TRACE_INFO("    Entry #%" PRIu32 ", offset 0x%08" PRIX32 "\r\n", entry, (uint32_t)entry_offset);
+            TRACE_INFO("      %i empty slots found, writing there\r\n", entries);
+
+            error = file_write_block(file, block_offset + entry_offset, item, sizeof(struct ESP32_nvs_item) * entries);
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to write file\r\n");
+                return ERROR_FAILURE;
+            }
+
+            for (int slice = 0; slice < entries; slice++)
+            {
+                esp32_nvs_state_set(&page_header, entry + slice, NVS_STATE_WRITTEN);
+            }
+
+            error = file_write_block(file, block_offset, &page_header, sizeof(page_header));
+            if (error != NO_ERROR)
+            {
+                TRACE_ERROR("Failed to write back file\r\n");
+                return ERROR_FAILURE;
+            }
+            return NO_ERROR;
+        }
     }
 
     return NO_ERROR;
@@ -285,7 +1037,7 @@ error_t esp32_fixup_fatfs(FsFile *file, size_t offset, size_t length, bool modif
                 {
                     break;
                 }
-                TRACE_INFO("  %-12s %-10u %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
+                TRACE_INFO("  %-12s %-10" PRIu32 " %04d-%02d-%02d %02d:%02d:%02d\r\n", fileInfo.fname, fileInfo.fsize,
                            ((fileInfo.fdate >> 9) & 0x7F) + 1980,
                            (fileInfo.fdate >> 5) & 0x0F,
                            (fileInfo.fdate) & 0x1F,
@@ -347,7 +1099,7 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             pathCombine(outFileName, fileInfo.fname, FS_MAX_PATH_LEN);
             pathCanonicalize(outFileName);
 
-            TRACE_INFO("Write '%s to '%s' (%d bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
+            TRACE_INFO("Write '%s to '%s' (%" PRIu32 " bytes)\r\n", fatFileName, outFileName, fileInfo.fsize);
 
             FsFile *outFile = fsOpenFile(outFileName, FS_FILE_MODE_WRITE);
             if (!outFile)
@@ -468,7 +1220,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
                 TRACE_ERROR("Failed to read from input file\r\n");
                 return ERROR_FAILURE;
             }
-            TRACE_INFO("  Read %" PRIuSIZE " byte\r\n", read);
+            TRACE_INFO("  Read %zu byte\r\n", read);
 
             uint32_t written;
             if (f_write(&fp, buffer, read, &written) != FR_OK || read != written)
@@ -479,7 +1231,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
 
             written_total += written;
         }
-        TRACE_INFO("  Wrote %d byte\r\n", written_total);
+        TRACE_INFO("  Wrote %u byte\r\n", written_total);
         f_sync(&fp);
         f_close(&fp);
         fsCloseFile(inFile);
@@ -496,9 +1248,9 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
 error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
 {
     size_t offset_current = offset;
-    struct ESP32_part_entry entry;
+    struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error;
+    error_t error = 0;
 
     while (true)
     {
@@ -525,6 +1277,10 @@ error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
             {
                 esp32_fixup_fatfs(file, entry.fileOffset, entry.length, modify);
             }
+            if (entry.partType == ESP_PARTITION_TYPE_DATA && entry.partSubType == 0x02)
+            {
+                esp32_fixup_nvs(file, entry.fileOffset, entry.length, modify);
+            }
         }
         else
         {
@@ -538,20 +1294,97 @@ error_t esp32_fixup_partitions(FsFile *file, size_t offset, bool modify)
     return error;
 }
 
+error_t esp32_update_wifi_partitions(FsFile *file, size_t offset, const char *ssid, const char *password)
+{
+    size_t offset_current = offset;
+    struct ESP32_part_entry entry = {0};
+    int num = 0;
+    error_t error = NO_ERROR;
+
+    while (true)
+    {
+        size_t read = 0;
+
+        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        error = fsReadFile(file, &entry, sizeof(entry), &read);
+
+        if (read != sizeof(entry))
+        {
+            TRACE_ERROR("Failed to read entry\r\n");
+            return ERROR_FAILURE;
+        }
+
+        if (entry.magic == 0x50AA)
+        {
+            TRACE_INFO("#%d  Type: %d, SubType: %02X, Offset: 0x%06X, Length: 0x%06X, Label: '%s'\r\n", num, entry.partType, entry.partSubType, entry.fileOffset, entry.length, entry.label);
+
+            if (entry.partType == ESP_PARTITION_TYPE_DATA && entry.partSubType == 0x02)
+            {
+                esp32_nvs_del(file, entry.fileOffset, entry.length, "TB_WIFI", "SSID0");
+                esp32_nvs_del(file, entry.fileOffset, entry.length, "TB_WIFI", "PW0");
+                esp32_nvs_del(file, entry.fileOffset, entry.length, "TB_WIFI", "INDEX");
+
+                struct ESP32_nvs_item *ssid_item = esp32_nvs_create_blob("SSID0", ssid, osStrlen(ssid));
+                struct ESP32_nvs_item *pass_item = esp32_nvs_create_blob("PW0", password, osStrlen(password));
+                struct ESP32_nvs_item *index_item = esp32_nvs_create_uint8("INDEX", 1);
+
+                esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", ssid_item, ssid_item->span + 1);
+                esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", pass_item, pass_item->span + 1);
+                esp32_nvs_add(file, entry.fileOffset, entry.length, "TB_WIFI", index_item, index_item->span);
+
+                osFreeMem(ssid_item);
+                osFreeMem(pass_item);
+                osFreeMem(index_item);
+            }
+        }
+        else
+        {
+            break;
+        }
+
+        offset_current += sizeof(entry);
+        num++;
+    }
+
+    return error;
+}
+
+error_t esp32_patch_wifi(const char *path, const char *ssid, const char *pass)
+{
+    uint32_t length = 0;
+
+    TRACE_INFO("Patching wifi settings in '%s'\r\n", path);
+
+    error_t error = fsGetFileSize(path, &length);
+
+    if (error || length < 0x9000)
+    {
+        TRACE_ERROR("File does not exist or is too small '%s'\r\n", path);
+        return ERROR_NOT_FOUND;
+    }
+
+    FsFile *file = fsOpenFileEx(path, "rb+");
+
+    esp32_update_wifi_partitions(file, 0x9000, ssid, pass);
+
+    fsCloseFile(file);
+
+    return NO_ERROR;
+}
+
 error_t esp32_get_partition(FsFile *file, size_t offset, const char *label, size_t *part_start, size_t *part_size)
 {
     size_t offset_current = offset;
-    struct ESP32_part_entry entry;
+    struct ESP32_part_entry entry = {0};
     int num = 0;
-    error_t error;
     TRACE_INFO("Search for partition '%s'\r\n", label);
 
     while (true)
     {
-        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        size_t read = 0;
 
-        size_t read;
-        error = fsReadFile(file, &entry, sizeof(entry), &read);
+        fsSeekFile(file, offset_current, FS_SEEK_SET);
+        error_t error = fsReadFile(file, &entry, sizeof(entry), &read);
 
         if (error != NO_ERROR || read != sizeof(entry))
         {
@@ -563,7 +1396,7 @@ error_t esp32_get_partition(FsFile *file, size_t offset, const char *label, size
         {
             if (!osStrcmp((const char *)entry.label, label))
             {
-                TRACE_INFO("Found partition '%s' at 0x%06" PRIx32 "\r\n", label, entry.fileOffset);
+                TRACE_INFO("Found partition '%s' at 0x%06" PRIX32 "\r\n", label, entry.fileOffset);
                 *part_start = entry.fileOffset;
                 *part_size = entry.length;
                 return NO_ERROR;
@@ -593,7 +1426,7 @@ void esp32_chk_update(uint8_t *chk, void *buffer, size_t length)
 error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modify)
 {
     size_t offset_current = offset;
-    struct ESP32_header header;
+    struct ESP32_header header = {0};
 
     fsSeekFile(file, offset_current, FS_SEEK_SET);
 
@@ -601,10 +1434,10 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
     Sha256Context ctx;
     sha256Init(&ctx);
 
-    size_t read;
+    size_t read = 0;
     error_t error = fsReadFile(file, &header, sizeof(header), &read);
 
-    if (read != sizeof(header))
+    if (error != NO_ERROR || read != sizeof(header))
     {
         TRACE_ERROR("Failed to read header\r\n");
         return ERROR_FAILURE;
@@ -621,12 +1454,12 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
     for (int seg = 0; seg < header.segments; seg++)
     {
-        struct ESP32_segment segment;
+        struct ESP32_segment segment = {0};
 
         fsSeekFile(file, offset_current, FS_SEEK_SET);
         error = fsReadFile(file, &segment, sizeof(segment), &read);
 
-        if (read != sizeof(segment))
+        if (error != NO_ERROR || read != sizeof(segment))
         {
             TRACE_ERROR("Failed to read segment\r\n");
             return ERROR_FAILURE;
@@ -648,7 +1481,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
             fsSeekFile(file, offset_current, FS_SEEK_SET);
             error = fsReadFile(file, buffer, maxLen, &read);
-            if (read != maxLen)
+            if (error != NO_ERROR || read != maxLen)
             {
                 TRACE_ERROR("Failed to read data\r\n");
                 return ERROR_FAILURE;
@@ -672,7 +1505,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
     uint8_t chk;
     error = fsReadFile(file, &chk, sizeof(chk), &read);
 
-    if (read != sizeof(chk))
+    if (error != NO_ERROR || read != sizeof(chk))
     {
         TRACE_ERROR("Failed to read chk\r\n");
         return ERROR_FAILURE;
@@ -703,7 +1536,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
         uint8_t sha256[32];
         error = fsReadFile(file, &sha256, sizeof(sha256), &read);
 
-        if (read != sizeof(sha256))
+        if (error != NO_ERROR || read != sizeof(sha256))
         {
             TRACE_ERROR("Failed to read sha256\r\n");
             return ERROR_FAILURE;
@@ -738,7 +1571,7 @@ error_t esp32_fixup_image(FsFile *file, size_t offset, size_t length, bool modif
 
 error_t esp32_fixup(const char *path, bool modify)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(path, &length);
 
     if (error || length < 0x9000)
@@ -757,7 +1590,7 @@ error_t esp32_fixup(const char *path, bool modify)
 
 error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char *out_path)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(firmware, &length);
 
     if (error || length < 0x9000)
@@ -768,8 +1601,8 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
 
     FsFile *file = fsOpenFileEx(firmware, "rb+");
 
-    size_t part_offset;
-    size_t part_size;
+    size_t part_offset = 0;
+    size_t part_size = 0;
     error = esp32_get_partition(file, 0x9000, "assets", &part_offset, &part_size);
     if (error != NO_ERROR)
     {
@@ -777,7 +1610,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
         return ERROR_NOT_FOUND;
     }
 
-    esp32_fat_extract_folder(file, part_offset, part_size, "CERT", out_path);
+    esp32_fat_extract_folder(file, part_offset, part_size, fat_path, out_path);
     fsCloseFile(file);
 
     return NO_ERROR;
@@ -785,7 +1618,7 @@ error_t esp32_fat_extract(const char *firmware, const char *fat_path, const char
 
 error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char *in_path)
 {
-    uint32_t length;
+    uint32_t length = 0;
     error_t error = fsGetFileSize(firmware, &length);
 
     if (error || length < 0x9000)
@@ -796,8 +1629,8 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
 
     FsFile *file = fsOpenFileEx(firmware, "rb+");
 
-    size_t part_offset;
-    size_t part_size;
+    size_t part_offset = 0;
+    size_t part_size = 0;
     error = esp32_get_partition(file, 0x9000, "assets", &part_offset, &part_size);
     if (error != NO_ERROR)
     {
@@ -828,8 +1661,8 @@ error_t esp32_fat_inject(const char *firmware, const char *fat_path, const char 
 uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, const char *replace)
 {
     int replaced = 0;
-    size_t pattern_len = strlen(pattern) + 1;
-    size_t replace_len = strlen(replace) + 1;
+    size_t pattern_len = osStrlen(pattern) + 1;
+    size_t replace_len = osStrlen(replace) + 1;
 
     if (pattern_len == 0 || buffer_len == 0)
     {
@@ -847,7 +1680,7 @@ uint32_t mem_replace(uint8_t *buffer, size_t buffer_len, const char *pattern, co
                 break;
             }
 
-            memcpy(&buffer[i], replace, replace_len);
+            osMemcpy(&buffer[i], replace, replace_len);
             i += (pattern_len - 1); // Skip ahead
             replaced++;
         }
@@ -890,7 +1723,7 @@ error_t esp32_inject_cert(const char *rootPath, const char *patchedPath, const c
         }
     } while (0);
 
-    free(cert_path);
+    osFreeMem(cert_path);
 
     return ret;
 }
@@ -919,13 +1752,13 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
         size_t server_ca_der_size = 0;
 
         TRACE_INFO("Convert CA certificate...\r\n");
-        if (pemImportCertificate(server_ca, strlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
+        if (pemImportCertificate(server_ca, osStrlen(server_ca), NULL, &server_ca_der_size, NULL) != NO_ERROR)
         {
             TRACE_ERROR("pemImportCertificate failed\r\n");
             return ERROR_FAILURE;
         }
         uint8_t *server_ca_der = osAllocMem(server_ca_der_size);
-        if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
+        if (pemImportCertificate(server_ca, osStrlen(server_ca), server_ca_der, &server_ca_der_size, NULL) != NO_ERROR)
         {
             TRACE_ERROR("pemImportCertificate failed\r\n");
             return ERROR_FAILURE;
@@ -977,8 +1810,8 @@ error_t esp32_inject_ca(const char *rootPath, const char *patchedPath, const cha
         }
     } while (0);
 
-    free(cert_path);
-    free(ca_file);
+    osFreeMem(cert_path);
+    osFreeMem(ca_file);
 
     return ret;
 }

@@ -2,6 +2,7 @@
 #include "fs_port.h"
 #include "os_port.h"
 #include "settings.h"
+#include "cache.h"
 #include "debug.h"
 #include "cJSON.h"
 #include "handler.h"
@@ -114,7 +115,7 @@ error_t tonies_update()
     ctx.file = NULL;
     fsDeleteFile(tonies_json_tmp_path);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
     {
@@ -151,7 +152,7 @@ error_t toniesV2_update()
     ctx.file = NULL;
     fsDeleteFile(tonies_json_tmp_path);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
     {
@@ -228,7 +229,7 @@ error_t tonieboxes_update()
     ctx.file = NULL;
     fsDeleteFile(target_tmp);
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
 
     if (error == NO_ERROR && fsFileExists(target_tmp))
     {
@@ -276,7 +277,7 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
 
     size_t fileSize = 0;
     fsGetFileSize(source, (uint32_t *)(&fileSize));
-    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", source, fileSize);
+    TRACE_INFO("Trying to read %s with size %zu\r\n", source, fileSize);
 
     FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_READ);
     if (fsFile != NULL)
@@ -367,7 +368,28 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                 osFreeMem(releaseString);
                 item->language = tonies_jsonGetString(tonieJson, "language");
                 item->category = tonies_jsonGetString(tonieJson, "category");
-                item->picture = tonies_jsonGetString(tonieJson, "pic");
+
+                char *pic_link = tonies_jsonGetString(tonieJson, "pic");
+
+                if (osStrlen(pic_link) > 0 && settings_get_bool("tonie_json.cache_images"))
+                {
+                    cache_entry_t *cache = cache_add(pic_link);
+
+                    if (cache)
+                    {
+                        osFreeMem(pic_link);
+                        pic_link = strdup(cache->cached_url);
+
+                        TRACE_DEBUG("Cache URL would be: '%s'\r\n", cache->cached_url);
+
+                        if (settings_get_bool("tonie_json.cache_preload"))
+                        {
+                            /* try to download and cache the file */
+                            cache_fetch_entry(cache);
+                        }
+                    }
+                }
+                item->picture = pic_link;
             }
             cJSON_Delete(toniesJson);
         }
@@ -375,7 +397,7 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
     else
     {
         TRACE_INFO("Create empty json file\r\n");
-        FsFile *fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
+        fsFile = fsOpenFile(source, FS_FILE_MODE_WRITE);
         if (fsFile != NULL)
         {
             fsWriteFile(fsFile, "[]", 2);
@@ -528,12 +550,10 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
 {
 #if TONIES_JSON_CACHED == 1
     size_t count = *result_size;
-    size_t count_model = 0;
-    size_t count_series = 0;
-    size_t count_episode = 0;
 
     if (model != NULL && osStrlen(model) > 0)
     {
+        size_t count_model = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_model >= (max_slots - count) / 3)
@@ -561,6 +581,7 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     }
     if (series != NULL && osStrlen(series) > 0)
     {
+        size_t count_series = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_series >= (max_slots - count) / 2)
@@ -588,6 +609,7 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
     }
     if (episode != NULL && osStrlen(episode) > 0)
     {
+        size_t count_episode = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
             if (count >= max_slots || count_episode >= (max_slots - count) / 1)
@@ -650,15 +672,14 @@ void tonies_deinit_base(toniesJson_item_t *toniesCache, size_t *toniesCount)
         osFreeMem(item->picture);
         if (item->tracks_count > 0)
         {
-            for (size_t i = 0; i < item->tracks_count; i++)
+            for (size_t track = 0; track < item->tracks_count; track++)
             {
-                osFreeMem(item->tracks[i]);
+                osFreeMem(item->tracks[track]);
             }
             osFreeMem(item->tracks);
         }
     }
     osFreeMem(toniesCache);
-    toniesCache = NULL;
 #endif
 }
 

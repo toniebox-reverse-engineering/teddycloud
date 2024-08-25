@@ -32,6 +32,7 @@ char *custom_asprintf(const char *fmt, ...)
 
     if (length < 0)
     {
+        va_end(args);
         return NULL;
     }
 
@@ -39,6 +40,7 @@ char *custom_asprintf(const char *fmt, ...)
     char *new_str = osAllocMem(length + 1); // Add 1 for the null terminator
     if (new_str == NULL)
     {
+        va_end(args);
         return NULL;
     }
 
@@ -53,12 +55,14 @@ char *custom_asprintf(const char *fmt, ...)
 
 int urldecode(char *dest, size_t dest_max, const char *src)
 {
-    char a, b;
     size_t dest_idx = 0;
     size_t src_idx = 0;
 
     while (src[src_idx] && dest_idx < dest_max - 1)
     {
+        char a = 0;
+        char b = 0;
+        
         if ((src[src_idx] == '%') &&
             ((a = src[src_idx + 1]) && (b = src[src_idx + 2])) &&
             (isxdigit(a) && isxdigit(b)))
@@ -606,7 +610,6 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
     error_t error;
     int_t i = 0;
     int_t j = -1;
-    int_t k = 0;
     int32_t value = -1;
 
     // Parse input string
@@ -709,13 +712,13 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
                 ipAddr->w[i++] = htons(value);
 
             // Move the part of the address that follows the "::" symbol
-            for (k = 0; k < (i - j); k++)
+            for (int k = 0; k < (i - j); k++)
             {
                 ipAddr->w[7 - k] = ipAddr->w[i - 1 - k];
             }
 
             // A sequence of zeroes can now be written in place of "::"
-            for (k = 0; k < (8 - i); k++)
+            for (int k = 0; k < (8 - i); k++)
             {
                 ipAddr->w[j + k] = 0;
             }
@@ -806,6 +809,15 @@ error_t httpServerUriErrorCallback(HttpConnection *connection, const char_t *uri
     new_error = httpSendErrorResponse(connection, 500, "Internal Server Error");
 
     TRACE_WARNING(" >> 500 with error code %s on %s\r\n", error2text(error), uri);
+    return new_error;
+}
+error_t httpServerUriUnauthorizedCallback(HttpConnection *connection, const char_t *uri)
+{
+    error_t new_error = NO_ERROR;
+
+    new_error = httpSendErrorResponse(connection, 401, "Unauthorized");
+
+    TRACE_WARNING(" >> 401 on %s\r\n", uri);
     return new_error;
 }
 

@@ -28,6 +28,9 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
     content_json->cloud_override = false;
     content_json->_has_cloud_auth = false;
     content_json->tonie_model = NULL;
+    content_json->_source_model = NULL;
+    content_json->hide = false;
+    content_json->claimed = false;
     content_json->_valid = false;
     content_json->_create_if_missing = create_if_missing;
 
@@ -76,6 +79,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 content_json->cloud_auth = jsonGetBytes(contentJson, "cloud_auth", &content_json->cloud_auth_len);
                 content_json->cloud_override = jsonGetBool(contentJson, "cloud_override");
                 content_json->tonie_model = jsonGetString(contentJson, "tonie_model");
+                content_json->hide = jsonGetBool(contentJson, "hide");
+                content_json->claimed = jsonGetBool(contentJson, "claimed");
 
                 // TODO: use checkCustomTonie to validate
                 // TODO validate rUID
@@ -97,8 +102,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                     }
                     else
                     {
-                        error_t error = tap_load(content_json->_source_resolved, &content_json->_tap);
-                        if (error == NO_ERROR && content_json->_tap._valid)
+                        error_t tap_error = tap_load(content_json->_source_resolved, &content_json->_tap);
+                        if (tap_error == NO_ERROR && content_json->_tap._valid)
                         {
                             if (content_json->_tap._cached)
                             {
@@ -189,6 +194,8 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
     jsonAddByteArrayToObject(contentJson, "cloud_auth", content_json->cloud_auth, content_json->cloud_auth_len);
     cJSON_AddBoolToObject(contentJson, "cloud_override", content_json->cloud_override);
     jsonAddStringToObject(contentJson, "tonie_model", content_json->tonie_model);
+    cJSON_AddBoolToObject(contentJson, "hide", content_json->hide);
+    cJSON_AddBoolToObject(contentJson, "claimed", content_json->claimed);
     cJSON_AddNumberToObject(contentJson, "_version", CONTENT_JSON_VERSION);
 
     char *jsonRaw = cJSON_Print(contentJson);
@@ -226,16 +233,19 @@ void content_json_update_model(contentJson_t *content_json, uint32_t audio_id, u
     if (content_json->_valid)
     {
         toniesJson_item_t *toniesJson = tonies_byAudioIdHash(audio_id, hash);
-        if (toniesJson != NULL && osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
+        if (toniesJson != NULL)
         {
-            if (audio_id == SPECIAL_AUDIO_ID_ONE && hash == NULL)
-            { // don't update special tonies without hash
-            }
-            else
+            if (osStrcmp(content_json->tonie_model, toniesJson->model) != 0)
             {
-                osFreeMem(content_json->tonie_model);
-                content_json->tonie_model = strdup(toniesJson->model);
-                content_json->_updated = true;
+                if (audio_id == SPECIAL_AUDIO_ID_ONE && hash == NULL)
+                { // don't update special tonies without hash
+                }
+                else
+                {
+                    osFreeMem(content_json->tonie_model);
+                    content_json->tonie_model = strdup(toniesJson->model);
+                    content_json->_updated = true;
+                }
             }
         }
         else
@@ -268,6 +278,11 @@ void free_content_json(contentJson_t *content_json)
     {
         osFreeMem(content_json->tonie_model);
         content_json->tonie_model = NULL;
+    }
+    if (content_json->_source_model)
+    {
+        osFreeMem(content_json->_source_model);
+        content_json->_source_model = NULL;
     }
     if (content_json->_streamFile)
     {

@@ -2,10 +2,14 @@ name: Make web and commit
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    outputs:
+      tcw_commit_hash: ${{ steps.get_commit_hash.outputs.commit_hash }}
 
     steps:
       - name: Checkout code
@@ -90,25 +94,15 @@ jobs:
           echo "No changes to commit and push."
           fi
 
-      - name: Get current branch for next step
-        id: get_branch
-        run: echo "branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-  
-      - name: Trigger publish_docker_matrix.yml
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const event_type = 'trigger-publish-docker'; // Matches the repository_dispatch trigger
-            const client_payload = { "branch": process.env.branch };
+      - name: Get Last Commit Hash
+        id: get_tcw_commit_hash
+        run: echo "tcw_commit_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-            await github.repos.createDispatchEvent({
-              owner,
-              repo,
-              event_type,
-              client_payload
-            });
+      - name: Wait for a few seconds # to avoid missing commit in followup steps
+        run: sleep 10
 
   build_docker:
+    needs: build
     uses: ./.github/workflows/publish_docker_matrix.yml
+    with:
+      tcw_commit_hash: ${{ needs.build.outputs.tcw_commit_hash }}

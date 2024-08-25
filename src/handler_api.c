@@ -22,6 +22,7 @@
 #include "fs_ext.h"
 #include "cert.h"
 #include "esp32.h"
+#include "cache.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -30,7 +31,7 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
     size_t size;
     if (buffer_size <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size  %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size  %zu bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
         return ERROR_BUFFER_OVERFLOW;
     }
     error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
@@ -98,11 +99,11 @@ error_t queryPrepare(const char *queryString, const char **rootPath, char *overl
 {
     char special[16];
 
-    osStrcpy(overlay, "");
     osStrcpy(special, "");
 
     if (overlay)
     {
+        osStrcpy(overlay, "");
         if (queryGet(queryString, "overlay", overlay, overlay_size))
         {
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -162,6 +163,7 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *
         cJSON_AddStringToObject(tonieInfoJson, "series", item->series);
         cJSON_AddStringToObject(tonieInfoJson, "episode", item->episodes);
         cJSON_AddStringToObject(tonieInfoJson, "picture", item->picture);
+        cJSON_AddStringToObject(tonieInfoJson, "language", item->language);
         for (size_t i = 0; i < item->tracks_count; i++)
         {
             cJSON_AddItemToArray(tracksJson, cJSON_CreateString(item->tracks[i]));
@@ -187,8 +189,6 @@ void addToniesJsonInfoJson(toniesJson_item_t *item, char *fallbackModel, cJSON *
 error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = NULL;
-    char *response = "OK";
-    error_t ret = NO_ERROR;
 
     TRACE_INFO("Query: '%s'\r\n", queryString);
 
@@ -207,24 +207,17 @@ error_t handleApiAssignUnknown(HttpConnection *connection, const char_t *uri, co
         TRACE_INFO("got path '%s'\r\n", path);
     }
 
-    if (ret == NO_ERROR)
-    {
-        /* important: first canonicalize path, then merge to prevent directory traversal attacks */
-        pathSafeCanonicalize(path);
-        char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
-        pathSafeCanonicalize(pathAbsolute);
+    /* important: first canonicalize path, then merge to prevent directory traversal attacks */
+    pathSafeCanonicalize(path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    pathSafeCanonicalize(pathAbsolute);
 
-        TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
+    TRACE_INFO("Set '%s' for next unknown request\r\n", pathAbsolute);
 
-        settings_set_string("internal.assign_unknown", pathAbsolute);
-        osFreeMem(pathAbsolute);
-    }
+    settings_set_string("internal.assign_unknown", pathAbsolute);
+    osFreeMem(pathAbsolute);
 
-    httpInitResponseHeader(connection);
-    connection->response.contentType = "text/plain";
-    connection->response.contentLength = osStrlen(response);
-
-    return httpWriteResponseString(connection, response, false);
+    return httpOkResponse(connection);
 }
 
 error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -330,7 +323,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
 }
 
-error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     cJSON *json = cJSON_CreateObject();
     cJSON *jsonArray = cJSON_AddArrayToObject(json, "boxes");
@@ -419,31 +412,33 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     }
     setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
 
+    if (opt == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+
     if (opt->level != LEVEL_SECRET)
     {
-        if (opt)
+        switch (opt->type)
         {
-            switch (opt->type)
-            {
-            case TYPE_BOOL:
-                osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
-                break;
-            case TYPE_HEX:
-            case TYPE_UNSIGNED:
-                osSprintf(response, "%d", settings_get_unsigned_ovl(item, overlay));
-                break;
-            case TYPE_SIGNED:
-                osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
-                break;
-            case TYPE_STRING:
-                response_ptr = settings_get_string_ovl(item, overlay);
-                break;
-            case TYPE_FLOAT:
-                osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
-                break;
-            default:
-                break;
-            }
+        case TYPE_BOOL:
+            osSprintf(response, "%s", settings_get_bool_ovl(item, overlay) ? "true" : "false");
+            break;
+        case TYPE_HEX:
+        case TYPE_UNSIGNED:
+            osSprintf(response, "%u", settings_get_unsigned_ovl(item, overlay));
+            break;
+        case TYPE_SIGNED:
+            osSprintf(response, "%d", settings_get_signed_ovl(item, overlay));
+            break;
+        case TYPE_STRING:
+            response_ptr = settings_get_string_ovl(item, overlay);
+            break;
+        case TYPE_FLOAT:
+            osSprintf(response, "%f", settings_get_float_ovl(item, overlay));
+            break;
+        default:
+            break;
         }
     }
 
@@ -492,6 +487,10 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
         setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
+        if (opt == NULL)
+        {
+            return ERROR_NOT_FOUND;
+        }
         bool success = false;
 
         if (size > 0 || opt->type == TYPE_STRING)
@@ -561,7 +560,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
     return httpWriteResponseString(connection, response, false);
 }
-error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
+error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
     osSprintf(response, "ERROR");
@@ -671,7 +670,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         cJSON_AddNumberToObject(jsonEntry, "size", entry.size);
         cJSON_AddBoolToObject(jsonEntry, "isDir", isDir);
 
-        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, false, client_ctx->settings);
         toniesJson_item_t *item = NULL;
         if (tafInfo->valid)
         {
@@ -836,15 +835,15 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
             char desc[3 + 1 + 8 + 1 + 40 + 1 + 64 + 1 + 64];
             desc[0] = 0;
-            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, client_ctx->settings);
+            tonie_info_t *tafInfo = getTonieInfo(filePathAbsolute, false, client_ctx->settings);
             toniesJson_item_t *item = NULL;
             if (tafInfo->valid)
             {
                 osSnprintf(desc, sizeof(desc), "TAF:%08X:", tafInfo->tafHeader->audio_id);
-                for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
+                for (int hash_pos = 0; hash_pos < tafInfo->tafHeader->sha1_hash.len; hash_pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
+                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
                     osStrcat(desc, tmp);
                 }
                 char extraDesc[1 + 64 + 1 + 64];
@@ -1066,8 +1065,9 @@ error_t file_save_end_cert(void *in_ctx)
 error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
-    char message[128];
-    char overlay[16];
+    char message[128] = {0};
+    char overlay[16] = {0};
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -1242,9 +1242,11 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
 
     bool generate_certs = false;
     bool inject_ca = true;
-    char patch_host[32];
-    char filename[255];
-    char mac[13];
+    char patch_host[32] = {0};
+    char wifi_ssid[64] = {0};
+    char wifi_pass[64] = {0};
+    char filename[255] = {0};
+    char mac[13] = {0};
     osStrcpy(patch_host, "");
     osStrcpy(filename, "");
     osStrcpy(mac, "");
@@ -1257,6 +1259,16 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
     if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
     {
         TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
+    }
+
+    if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
+    {
+        TRACE_INFO("wifi ssid '%s'\r\n", wifi_ssid);
+    }
+
+    if (queryGet(queryString, "wifi_pass", wifi_pass, sizeof(wifi_pass)))
+    {
+        TRACE_INFO("wifi pass '%s'\r\n", wifi_pass);
     }
 
     const char *sep = osStrchr(filename, '_');
@@ -1311,6 +1323,15 @@ error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, co
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (osStrlen(wifi_ssid) > 0)
+    {
+        if (esp32_patch_wifi(patched_path, wifi_ssid, wifi_pass) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch WiFi credentials\r\n");
             return ERROR_NOT_FOUND;
         }
     }
@@ -1489,12 +1510,12 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     error = fsGetFileSize(file_path, &length);
 
     bool_t isStream = false;
-    tonie_info_t *tafInfo = getTonieInfo(file_path, client_ctx->settings);
+    tonie_info_t *tafInfo = getTonieInfo(file_path, false, client_ctx->settings);
 
     if (tafInfo->valid && tafInfo->json._source_type == CT_SOURCE_STREAM)
     {
         isStream = true;
-        length = CONTENT_LENGTH_MAX;
+        length = client_ctx->settings->encode.stream_max_size;
         connection->response.noCache = true;
     }
 
@@ -1695,7 +1716,7 @@ error_t taf_encode_start(void *in_ctx, const char *name, const char *filename)
         TRACE_INFO("[TAF] Start encoding to %s\r\n", ctx->file_path);
         TRACE_INFO("[TAF]   first file: %s\r\n", name);
 
-        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id, false);
+        ctx->taf = toniefile_create(ctx->file_path, ctx->audio_id, false, 0);
 
         if (ctx->taf == NULL)
         {
@@ -2221,6 +2242,32 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
             updated = true;
         }
     }
+    if (queryGet(post_data, "hide", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.hide)
+        {
+            content_json.hide = target_value;
+            updated = true;
+        }
+    }
+    if (queryGet(post_data, "claimed", item_data, sizeof(item_data)))
+    {
+        bool_t target_value = false;
+        if (!osStrcmp(item_data, "true"))
+        {
+            target_value = true;
+        }
+        if (target_value != content_json.claimed)
+        {
+            content_json.claimed = target_value;
+            updated = true;
+        }
+    }
 
     if (updated)
     {
@@ -2236,11 +2283,7 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
     osFreeMem(contentPath);
     free_content_json(&content_json);
 
-    char *message = "success";
-    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
-    httpWriteResponseString(connection, message, false);
-
-    return NO_ERROR;
+    return httpOkResponse(connection);
 }
 
 bool isHexString(const char *buf, size_t maxLen)
@@ -2257,6 +2300,153 @@ bool isHexString(const char *buf, size_t maxLen)
     return isHex;
 }
 
+error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ctx)
+{
+    error_t error = NO_ERROR;
+    /* build filename with 8 chars of the taf/json */
+    char *tagPath = custom_asprintf("%.8s%c%.8s", &ruid[0], PATH_SEPARATOR, &ruid[8]);
+    for (size_t i = 0; tagPath[i] != '\0'; i++)
+    {
+        tagPath[i] = toupper(tagPath[i]);
+    }
+    char *fullTagPath = custom_asprintf("%s%c%s", client_ctx->settings->internal.contentdirfull, PATH_SEPARATOR, tagPath);
+    char *fullJsonPath = custom_asprintf("%s%c%s.json", client_ctx->settings->internal.contentdirfull, PATH_SEPARATOR, tagPath);
+
+    if (fsFileExists(fullJsonPath))
+    {
+        contentJson_t contentJson;
+        /* read TAF info - would create .json if not existing */
+        // tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfo(fullTagPath, false, client_ctx->settings);
+        /* now update with updated model if found. */
+        saveTonieInfo(tafInfo, true);
+        contentJson = tafInfo->json;
+
+        if (contentJson._valid)
+        {
+            /* only process one TAF/json per directory */
+            cJSON *jsonEntry = cJSON_CreateObject();
+            cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
+
+            char huid[24];
+            for (size_t i = 0; i < 8; i++)
+            {
+                size_t hcharId = (i * 3);
+                size_t rcharId = 16 - (i * 2) - 1;
+                huid[hcharId + 2] = ':';
+                huid[hcharId + 1] = toupper(ruid[rcharId]);
+                huid[hcharId] = toupper(ruid[rcharId - 1]);
+            }
+            huid[23] = '\0';
+            cJSON_AddStringToObject(jsonEntry, "uid", huid);
+
+            bool isSys = !osStrncmp(ruid, "0000000", 7);
+            if (isSys)
+            {
+                cJSON_AddStringToObject(jsonEntry, "type", "system");
+            }
+            else
+            {
+                cJSON_AddStringToObject(jsonEntry, "type", "tag");
+            }
+            cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
+            cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+            cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
+            cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
+            cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
+            cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
+            cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
+            cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
+
+            char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
+            char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
+            cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
+            if (!tafInfo->exists && !tafInfo->json.nocloud)
+            {
+                if (contentJson._has_cloud_auth || isSys)
+                {
+                    cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
+                }
+                else
+                {
+                    cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
+                }
+            }
+            osFreeMem(audioUrl);
+            osFreeMem(downloadUrl);
+
+            toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
+            addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
+
+            toniesJson_item_t *item2 = tonies_byModel(contentJson._source_model);
+            if (tafInfo->exists && item != item2)
+            {
+                cJSON *jsonSourceInfo = cJSON_CreateObject();
+                addToniesJsonInfoJson(item2, contentJson._source_model, jsonSourceInfo);
+                cJSON *tonieInfoCopy = cJSON_DetachItemFromObject(jsonSourceInfo, "tonieInfo");
+                cJSON_AddItemToObject(jsonEntry, "sourceInfo", tonieInfoCopy);
+            }
+
+            if (cJSON_IsArray(jsonTarget))
+            {
+                cJSON_AddItemToArray(jsonTarget, jsonEntry);
+            }
+            else
+            {
+                cJSON_AddItemToObject(jsonTarget, "tagInfo", jsonEntry);
+            }
+        }
+        else
+        {
+            error = ERROR_NOT_FOUND;
+        }
+        freeTonieInfo(tafInfo);
+    }
+    else
+    {
+        error = ERROR_NOT_FOUND;
+    }
+
+    osFreeMem(tagPath);
+    osFreeMem(fullTagPath);
+    osFreeMem(fullJsonPath);
+
+    return error;
+}
+
+error_t handleApiTagInfo(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    char ruid[17];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+    if (!queryGet(queryString, "ruid", ruid, sizeof(ruid)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+
+    error_t error = getTagInfoJson(ruid, json, client_ctx);
+    if (error != NO_ERROR)
+    {
+        cJSON_Delete(json);
+        return error;
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
 error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
@@ -2306,14 +2496,11 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
         char *subDirPath = custom_asprintf("%s/%s", rootPath, entry.name);
         FsDir *subDir = fsOpenDir(subDirPath);
 
-        bool dirProcessed = false;
-
-        while (!dirProcessed)
+        while (true)
         {
             FsDirEntry subEntry;
             if (fsReadDir(subDir, &subEntry) != NO_ERROR)
             {
-                fsCloseDir(subDir);
                 break;
             }
 
@@ -2336,81 +2523,12 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 ruid[i] = tolower(ruid[i]);
             }
 
-            /* build filename with 8 chars of the taf/json */
-            char *tagPath = custom_asprintf("%s%c%.8s", subDirPath, PATH_SEPARATOR, subEntry.name);
-
-            /* read TAF info - will create .json if not existing */
-            tonie_info_t *tafInfo = getTonieInfo(tagPath, client_ctx->settings);
-            /* now update with updated model if found. */
-            if (tafInfo->json._updated && tafInfo->json._create_if_missing)
+            if (getTagInfoJson(ruid, jsonArray, client_ctx) == NO_ERROR)
             {
-                save_content_json(tafInfo->jsonPath, &tafInfo->json);
+                break;
             }
-
-            contentJson_t contentJson;
-            load_content_json(tagPath, &contentJson, false, client_ctx->settings);
-
-            if (contentJson._valid)
-            {
-                /* only process one TAF/json per directory */
-                dirProcessed = true;
-                cJSON *jsonEntry = cJSON_CreateObject();
-                cJSON_AddStringToObject(jsonEntry, "ruid", ruid);
-
-                char huid[24];
-                for (size_t i = 0; i < 8; i++)
-                {
-                    size_t hcharId = (i * 3);
-                    size_t rcharId = 16 - (i * 2) - 1;
-                    huid[hcharId + 2] = ':';
-                    huid[hcharId + 1] = toupper(ruid[rcharId]);
-                    huid[hcharId] = toupper(ruid[rcharId - 1]);
-                }
-                huid[23] = '\0';
-                cJSON_AddStringToObject(jsonEntry, "uid", huid);
-
-                bool isSys = !osStrncmp(ruid, "0000000", 7);
-                if (isSys)
-                {
-                    cJSON_AddStringToObject(jsonEntry, "type", "system");
-                }
-                else
-                {
-                    cJSON_AddStringToObject(jsonEntry, "type", "tag");
-                }
-                cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
-                cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
-                cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
-                cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
-                cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
-
-                char *downloadUrl = custom_asprintf("/content/download%s?overlay=%s", &tagPath[osStrlen(rootPath)], overlay);
-                char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
-                cJSON_AddStringToObject(jsonEntry, "audioUrl", audioUrl);
-                if (!tafInfo->exists && !tafInfo->json.nocloud)
-                {
-                    if (contentJson._has_cloud_auth || isSys)
-                    {
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", downloadUrl);
-                    }
-                    else
-                    {
-                        cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
-                    }
-                }
-                osFreeMem(audioUrl);
-                osFreeMem(downloadUrl);
-
-                toniesJson_item_t *item = tonies_byModel(contentJson.tonie_model);
-                addToniesJsonInfoJson(item, contentJson.tonie_model, jsonEntry);
-
-                cJSON_AddItemToArray(jsonArray, jsonEntry);
-            }
-
-            freeTonieInfo(tafInfo);
-            free_content_json(&contentJson);
-            osFreeMem(tagPath);
         }
+        fsCloseDir(subDir);
         osFreeMem(subDirPath);
     }
 
@@ -2436,9 +2554,9 @@ error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const 
     }
 
     char username[256];
-    char passwordHash[256];
     if (queryGet(post_data, "username", username, sizeof(username)))
     {
+        char passwordHash[256];
         if (queryGet(post_data, "passwordHash", passwordHash, sizeof(passwordHash)))
         {
             if (osStrcmp("admin", username) == 0) // && osStrcmp("admin", passwordHash) == 0)
@@ -2501,7 +2619,8 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    error_t error = ERROR_FILE_NOT_FOUND;
+    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -2517,29 +2636,81 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         }
     }
 
-    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)))
+    if (queryGet(post_data, "ruid", ruid, sizeof(ruid)) && osStrlen(ruid) == 16)
     {
-        if (osStrlen(ruid) == 16)
-        {
-            tonie_info_t *tonieInfo;
-            tonieInfo = getTonieInfoFromRuid(ruid, client_ctx->settings);
+        tonie_info_t *tonieInfo;
+        tonieInfo = getTonieInfoFromRuid(ruid, false, client_ctx->settings);
 
-            if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
-            {
-                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
-            }
-            else
-            {
-                error = ERROR_FILE_NOT_FOUND;
-            }
-            freeTonieInfo(tonieInfo);
-            if (error != NO_ERROR)
-            {
-                return ERROR_FILE_NOT_FOUND;
-            }
+        if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
+        {
+            error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
         }
+        else
+        {
+            error = ERROR_FILE_NOT_FOUND;
+        }
+        freeTonieInfo(tonieInfo);
     }
-    httpInitResponseHeader(connection);
-    connection->response.contentLength = 0;
-    return httpWriteResponse(connection, "", connection->response.contentLength, false);
+    if (error != NO_ERROR)
+    {
+        return ERROR_FILE_NOT_FOUND;
+    }
+    return httpOkResponse(connection);
+}
+
+error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+    if (get_overlay_id(overlay) == 0)
+    {
+        TRACE_ERROR("No overlay detected %s\n", overlay);
+        return ERROR_FAILURE;
+    }
+    get_settings_cn(overlay)->internal.config_used = false;
+    settings_save();
+    TRACE_INFO("Removed overlay %s\n", overlay);
+
+    return httpOkResponse(connection);
+}
+
+error_t handleApiCacheFlush(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    /* RESTful API-based cache flush request */
+    uint32_t deleted = cache_flush();
+
+    char json_resp[128];
+    snprintf(json_resp, sizeof(json_resp), "{\"message\": \"Cache successfully flushed.\", \"deleted_files\": %u}", deleted);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", strlen(json_resp));
+    return httpWriteResponseString(connection, json_resp, false);
+}
+
+error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    cache_stats_t stats;
+    cache_stats(&stats);
+
+    char stats_json[512];
+    snprintf(stats_json, sizeof(stats_json),
+             "{"
+             "\"total_entries\": %zu,"
+             "\"exists_entries\": %zu,"
+             "\"total_files\": %zu,"
+             "\"total_size\": %zu,"
+             "\"memory_used\": %zu"
+             "}",
+             stats.total_entries,
+             stats.exists_entries,
+             stats.total_files,
+             stats.total_size,
+             stats.memory_used);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(stats_json));
+    return httpWriteResponseString(connection, stats_json, false);
 }

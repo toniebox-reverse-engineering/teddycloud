@@ -795,6 +795,8 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       connection->response.chunkedEncoding = FALSE;
       //The size of the response body is not limited
       connection->response.byteCount = UINT_MAX;
+      //empty buffer
+      buffer[0] = '\0';
       //We are done since HTTP 0.9 does not support Full-Response format
       return NO_ERROR;
    }
@@ -947,7 +949,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    else if(connection->response.keepAlive)
    {
       //Set Content-Length field
-      p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
+      p += osSprintf(p, "Content-Length: %zu\r\n", connection->response.contentLength);
    }
 
    //Terminate the header with an empty line

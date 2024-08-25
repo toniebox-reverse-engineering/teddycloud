@@ -1,6 +1,14 @@
 
 #include "fs_ext.h"
 
+#include <stdint.h>          // for uint8_t
+#include <stdio.h>           // for fopen, FILE
+#include <stdlib.h>          // for NULL, free
+#include <string.h>          // for strdup, strlen, strrchr
+#include "error.h"           // for NO_ERROR, ERROR_END_OF_FILE, ERROR_FILE_...
+#include "fs_port_config.h"  // for PATH_SEPARATOR
+#include "os_port.h"         // for osStrlen
+
 #define FILE_COPY_BUFFER_SIZE 4096 // You can adjust this buffer size as needed
 
 void fsFixPath(char_t *path)
