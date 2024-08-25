@@ -8,6 +8,7 @@ on:
         description: "Commit hash from the teddycloud_web build job"
         type: string
         required: false
+        default: "HEAD"
 
   push:
     branches:
