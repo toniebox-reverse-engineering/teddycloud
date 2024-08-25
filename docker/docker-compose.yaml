@@ -7,13 +7,14 @@ services:
     # ports:
     #  - 80:80 #optional (for the webinterface)
     #  - 8443:8443 #optional (for the webinterface)
-    #  - 443:443 #Port is needed for the connection for the box
+    #  - 443:443 #Port is needed for the connection for the box, must not be changed!
     volumes:
       - certs:/teddycloud/certs
       - config:/teddycloud/config
       - content:/teddycloud/data/content
       - library:/teddycloud/data/library
       - firmware:/teddycloud/data/firmware
+      - cache:/teddycloud/data/cache
     restart: unless-stopped
 volumes:
   certs:
