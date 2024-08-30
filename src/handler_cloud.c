@@ -673,7 +673,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
 
         stream_ctx->active = false;
-        
+
         while (!stream_ctx->quit)
         {
             osDelayTask(100);
