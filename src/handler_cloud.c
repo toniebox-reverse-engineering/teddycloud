@@ -857,7 +857,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                     tonieInfo->updated = boxAudioId < serverAudioId;
                     tonieInfo->updated = tonieInfo->updated || (client_ctx->settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
-                    if (client_ctx->settings->cloud.prioCustomContent)
+                    if (client_ctx->settings->cloud.prioCustomContent && !client_ctx->settings->cloud.updateOnLowerAudioId)
                     {
                         if (custom_box && !custom_server)
                             tonieInfo->updated = false;
