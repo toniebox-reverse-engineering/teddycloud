@@ -220,7 +220,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, TRUE, "Cache content", "Cache cloud content on local server", LEVEL_DETAIL)
     OPTION_BOOL("cloud.cacheToLibrary", &settings->cloud.cacheToLibrary, TRUE, "Cache to library", "Cache cloud content to library", LEVEL_DETAIL)
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password", LEVEL_EXPERT)
-    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update, only if \"Update content on lower audio id\" is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
 
