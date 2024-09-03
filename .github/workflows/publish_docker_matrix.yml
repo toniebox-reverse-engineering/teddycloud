@@ -29,7 +29,7 @@ jobs:
           ref: ${{ inputs.tcw_commit_hash }}
 
       - name: Verify commit hash
-        if: inputs.tcw_commit_hash != ''
+        if: ${{ inputs.tcw_commit_hash != '' }}
         run: |
           COMMIT_HASH=$(git rev-parse HEAD)
           if [ "$COMMIT_HASH" != "${{ inputs.tcw_commit_hash }}" ]; then
