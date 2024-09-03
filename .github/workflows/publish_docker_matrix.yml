@@ -5,10 +5,7 @@ on:
   workflow_call:
     inputs:
       tcw_commit_hash:
-        description: "Commit hash from the teddycloud_web build job"
         type: string
-        required: false
-        default: "HEAD"
 
   push:
     branches:
@@ -18,18 +15,42 @@ on:
       - tc_nightly*
       - tc_v*.*.*
   pull_request:
-    branches: ["master", "develop"]
+    branches:
+      - master
+      - develop
 
 jobs:
+  test_commit_hash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: ${{ inputs.tcw_commit_hash }}
+
+      - name: Verify commit hash
+        if: inputs.tcw_commit_hash != ''
+        run: |
+          COMMIT_HASH=$(git rev-parse HEAD)
+          if [ "$COMMIT_HASH" != "${{ inputs.tcw_commit_hash }}" ]; then
+            echo "Error: Checked out commit hash ($COMMIT_HASH) does not match the expected hash (${{ inputs.tcw_commit_hash }})."
+            exit 1
+          else
+            echo "Commit hash verified: $COMMIT_HASH"
+          fi
+
   debian:
+    needs: test_commit_hash
     uses: ./.github/workflows/publish_docker_matrix_debian.yml
     with:
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   ubuntu:
+    needs: test_commit_hash
     uses: ./.github/workflows/publish_docker_matrix_ubuntu.yml
     with:
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   alpine:
+    needs: test_commit_hash
     uses: ./.github/workflows/publish_docker_matrix_alpine.yml
     with:
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}

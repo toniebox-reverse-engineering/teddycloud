@@ -7,8 +7,6 @@ on:
       tcw_commit_hash:
         description: "Commit hash from the teddycloud_web build job"
         type: string
-        required: false
-        default: "HEAD"
 
 # permissions are needed if pushing to ghcr.io
 permissions:
@@ -36,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: ${{ inputs.tcw_commit_hash }}
+          ref: ${{ inputs.tcw_commit_hash || 'HEAD' }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
