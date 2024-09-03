@@ -43,7 +43,7 @@ jobs:
     with:
       system: "debian"
       dockerfile: "DockerfileDebian"
-      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
       error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
@@ -53,7 +53,7 @@ jobs:
     with:
       system: "alpine"
       dockerfile: "DockerfileAlpine"
-      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x", "linux/386"]'
+      platforms: '["linux/amd64", "linux/arm/v6", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x", "linux/386"]'
       primary_image: false
       error_platforms: "[]"
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
