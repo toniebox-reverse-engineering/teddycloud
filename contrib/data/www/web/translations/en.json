@@ -502,6 +502,7 @@
         },
         "encoder": {
             "clearList": "Clear list",
+            "errorFileProcessing": "Failed to process the audio file:",
             "filename": "Filename",
             "maxFiles": "You can only add up to {{maxFiles}} files.",
             "navigationTitle": "Audio Encoder",

@@ -503,6 +503,7 @@
         },
         "encoder": {
             "clearList": "Vider la liste",
+            "errorFileProcessing": "Échec du traitement du fichier audio :",
             "filename": "Nom du fichier",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",

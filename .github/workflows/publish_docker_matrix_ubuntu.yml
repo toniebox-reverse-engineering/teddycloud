@@ -7,8 +7,6 @@ on:
       tcw_commit_hash:
         description: "Commit hash from the teddycloud_web build job"
         type: string
-        required: false
-        default: "HEAD"
 
 # permissions are needed if pushing to ghcr.io
 permissions:
