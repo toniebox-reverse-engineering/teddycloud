@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      tcw_commit_hash: ${{ steps.get_commit_hash.outputs.commit_hash }}
+      tcw_commit_hash: ${{ steps.get_tcw_commit_hash.outputs.tcw_commit_hash }}
 
     steps:
       - name: Checkout code
