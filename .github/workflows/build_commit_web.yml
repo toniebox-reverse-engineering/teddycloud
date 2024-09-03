@@ -96,7 +96,7 @@ jobs:
 
       - name: Get Last Commit Hash
         id: get_tcw_commit_hash
-        run: echo "tcw_commit_hash=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        run: echo "tcw_commit_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Wait for a few seconds # to avoid missing commit in followup steps
         run: sleep 30
