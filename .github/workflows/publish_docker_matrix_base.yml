@@ -205,11 +205,10 @@ jobs:
         if: ${{ github.event_name != 'pull_request' && inputs.primary_image }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
-          suffix="${{ inputs.system }}"
           # Extract original tags
           original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
           # Remove suffix and create a modified tag list
-          modified_tags=$(jq -cr '.tags | map("-t " + sub("_" + $suffix + "$"; "")) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          modified_tags=$(jq -cr '.tags | map("-t " + sub("_${{ inputs.system }}$"; "")) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
           # Combine original and modified tags
           all_tags="$original_tags $modified_tags"
           docker buildx imagetools create $all_tags \
