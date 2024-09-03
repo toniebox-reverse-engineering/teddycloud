@@ -7,6 +7,18 @@ on:
       tcw_commit_hash:
         type: string
 
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - tc_nightly*
+      - tc_v*.*.*
+  pull_request:
+    branches:
+      - master
+      - develop
+
 jobs:
   test_commit_hash:
     runs-on: ubuntu-latest

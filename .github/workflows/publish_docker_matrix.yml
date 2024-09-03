@@ -1,4 +1,4 @@
-name: Docker Image Publish Matrix (All)
+name: Docker Image Publish Matrix (All Old)
 
 on:
   workflow_dispatch:
@@ -6,18 +6,6 @@ on:
     inputs:
       tcw_commit_hash:
         type: string
-
-  push:
-    branches:
-      - master
-      - develop
-    tags:
-      - tc_nightly*
-      - tc_v*.*.*
-  pull_request:
-    branches:
-      - master
-      - develop
 
 jobs:
   test_commit_hash:
