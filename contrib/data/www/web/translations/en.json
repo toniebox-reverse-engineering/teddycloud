@@ -466,6 +466,7 @@
             "track": "Track"
         },
         "addToniesCustomJsonEntry": "WIP: Add Model",
+        "alternativeSourceUnknown": "This Tonie {{originalTonie}} is assigned alternative content!",
         "alternativeSource": "This Tonie {{originalTonie}} is assigned the content {{assignedContent}}!",
         "cancel": "Cancel",
         "closeAudioPlayer": "Close player",
