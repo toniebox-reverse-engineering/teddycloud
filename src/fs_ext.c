@@ -158,6 +158,9 @@ error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t 
 }
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
 {
+    if (!overwrite && fsFileExists(target_path)) {
+        return ERROR_NOT_WRITABLE;
+    }
     error_t error = fsRenameFile(source_path, target_path);
     if (error == NO_ERROR && !fsFileExists(source_path) && fsFileExists(target_path))
     {
