@@ -1937,8 +1937,8 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
-        TRACE_ERROR("Error creating directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error creating directory '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error creating directory '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
@@ -1986,8 +1986,8 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error deleting directory '%s', error %d", path, err);
-        TRACE_ERROR("Error deleting directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error deleting directory '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error deleting directory '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
@@ -2035,8 +2035,8 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error deleting file '%s', error %d", path, err);
-        TRACE_ERROR("Error deleting file '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error deleting file '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error deleting file '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
