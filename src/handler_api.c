@@ -2045,6 +2045,68 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
     return httpWriteResponseString(connection, message, false);
 }
+error_t handleApiFileMove(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    char source[256 + 3];
+    char target[256 + 3];
+
+    if (!queryGet(post_data, "source", source, sizeof(source))) {
+        TRACE_ERROR("source missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+    if (!queryGet(post_data, "target", target, sizeof(target))) {
+        TRACE_ERROR("target missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(source, false);
+    char *sourceAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, source);
+    sanitizePath(sourceAbsolute, false);
+
+    sanitizePath(target, false);
+    char *targetAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, target);
+    sanitizePath(targetAbsolute, false);
+
+    TRACE_INFO("Moving file: '%s' to '%s'\r\n", source, target);
+    TRACE_INFO("Moving file: '%s' to '%s'\r\n", sourceAbsolute, targetAbsolute);
+
+    uint_t statusCode = 200;
+    char message[1024];
+
+    osSnprintf(message, sizeof(message), "OK");
+
+    error_t err = fsMoveFile(sourceAbsolute, targetAbsolute, false);
+
+    if (err != NO_ERROR)
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "Error moving file '%s' to '%s', error %s", source, target, error2text(err));
+        TRACE_ERROR("Error moving file '%s' to '%s', error %s\r\n", sourceAbsolute, targetAbsolute, error2text(err));
+    }
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    osFreeMem(sourceAbsolute);
+    osFreeMem(targetAbsolute);
+
+    return httpWriteResponseString(connection, message, false);
+}
 
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {

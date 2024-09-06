@@ -119,6 +119,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
     /* custom API */
     {REQ_POST, "/api/fileDelete", SERTY_WEB, &handleApiFileDelete},
+    {REQ_POST, "/api/fileMove", SERTY_WEB, &handleApiFileMove},
     {REQ_POST, "/api/dirDelete", SERTY_WEB, &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", SERTY_WEB, &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", SERTY_WEB, &handleApiUploadCert},
