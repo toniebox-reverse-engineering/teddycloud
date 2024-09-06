@@ -2108,6 +2108,13 @@ error_t handleApiFileMove(HttpConnection *connection, const char_t *uri, const c
     return httpWriteResponseString(connection, message, false);
 }
 
+error_t handleApiToniesJsonReload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    tonies_deinit();
+    tonies_init();
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", 2);
+    return httpWriteResponseString(connection, "OK", false);
+}
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
