@@ -467,7 +467,8 @@
             "track": "Piste"
         },
         "addToniesCustomJsonEntry": "WIP: Ajouter un modèle",
-        "alternativeSource": "Cette Tonie {{originalTonie}} est associée au contenu {{assignedContent}}!",
+        "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
+        "alternativeSource": "Cette Tonie {{originalTonie}} est assignée à un contenu {{assignedContent}} !",
         "cancel": "Annuler",
         "closeAudioPlayer": "Fermer le lecteur audio",
         "closeAudioPlayerPopover": "Fermer arrête la lecture!",
