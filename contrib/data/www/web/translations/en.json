@@ -80,10 +80,21 @@
     ],
     "fileBrowser": {
         "actions": "Actions",
+        "attention": "Please note!",
         "cancel": "Cancel",
         "confirmDeleteDialog": "Are you sure you want to delete {{fileToDelete}}?",
         "confirmDeleteModal": "Confirm delete",
         "confirmMultipleDeleteDialog": "Are you sure you want to delete the selected rows?",
+        "createDirectory": {
+            "cancel": "Cancel",
+            "create": "Create",
+            "createDirectory": "Create New Directory",
+            "directoryCreated": "New directory has been created!",
+            "inDirectory": "in directory ",
+            "modalTitle": "Create New Directory",
+            "parentPath": "Parent directory:",
+            "placeholder": "Enter the folder name"
+        },
         "date": "Date",
         "delete": "Delete",
         "deleteMultiple": "Delete selected rows",
@@ -91,18 +102,42 @@
         "filter": "Filter within current folder",
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
         "messages": {
-            "deleteFailed": "Delete failed",
-            "deleteSuccessful": "Deleted successful!",
+            "deleteFailed": "Deletion of file {{file}} failed",
+            "deleteSuccessful": "Deleted file {{file}} successful!",
             "deleting": "Deleting...",
             "migrationFailed": "Migration failed",
             "migrationOngoing": "Migrating...",
-            "migrationSuccessful": "Migration successful!"
+            "migrationSuccessful": "Migration successful!",
+            "moving": "Moving...",
+            "movingFailed": "Moving of file {{file}} failed",
+            "movingSuccessful": "Moved file {{file}} successfully!",
+            "renaming": "Renaming...",
+            "renamingFailed": "Renaming of file {{file]}} failed",
+            "renamingSuccessful": "Renamed file {{file]}} successfully!"
         },
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
         "model": "Model",
+        "move": "Move",
+        "moveFile": {
+            "attention": "Moving files does not update the association with the Tonies/Tags. You will need to manually adjust all Tonies/Tags that have set the files being moved as a source!",
+            "cancel": "Cancel",
+            "destinationPlaceholder": "Select destination folder",
+            "modalTitle": "Move File",
+            "modalTitleMultiple": "Move Selected Files",
+            "move": "Move",
+            "moveTo": "to"
+        },
+        "moveMultiple": "Move selected files (files only, folders are skipped!)",
         "name": "Name",
         "playFile": "Play",
+        "rename": "Rename",
+        "renameFile": {
+            "attention": "Renaming files does not update the association with the Tonies/Tags. You will need to manually adjust all Tonies/Tags that have set the file being renamed as a source!",
+            "cancel": "Cancel",
+            "modalTitle": "Rename File",
+            "rename": "Rename"
+        },
         "root": "Root",
         "selectTafOrTapOnly": "You can only select TAF or TAP files!",
         "series": "Series",
@@ -261,8 +296,8 @@
         "levelLabel": "Settings level",
         "navigationTitle": "Settings",
         "overlayDisabled": "Overlayed disabled!",
-        "overlayed": "overlayed",
         "overlayEnabled": "Overlayed enabled!",
+        "overlayed": "overlayed",
         "restartComplete": "Restart TeddyCloud server sucessful!",
         "restartFailed": "Restart TeddyCloud server failed!",
         "restartInProgress": "TeddyCloud is rebooting...",
@@ -276,9 +311,10 @@
         "saved": "Setting saved!",
         "title": "Settings",
         "tonieboxes": "tonieboxes",
-        "tonieJsonUpdateFailed": "Tonies.json update failed!",
-        "tonieJsonUpdateTriggered": "Tonies.json update triggered!",
-        "updateToniesJson": "Update Tonies.json",
+        "toniesJsonReload": "Reload Tonies.json",
+        "toniesJsonReloadFailed": "Failed to reload Tonies(.custom).json!",
+        "toniesJsonReloadInProgress": "Loading Tonies(.custom).json...",
+        "toniesJsonReloadSuccessful": "Tonies(.custom).json reloaded successfully!",
         "warning": "Attention! Save button + Settings level",
         "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
     },
@@ -391,21 +427,21 @@
                 "titlePatchFlash": "Patch Flash",
                 "titleReadESP32ImportFlash": "Read ESP32/Import Flash",
                 "uploadFailed": "Upload failed",
-                "uploading": "Uploading...",
                 "uploadSuccessful": "Upload successful, saved as",
+                "uploading": "Uploading...",
                 "wifiCredentialsIncomplete": "WiFi credentials incomplete! Please enter both SSID AND password, or leave both fields empty!",
                 "wifiPassword": "WiFi Password:",
-                "wifiSettings": "WiFi Data (optional):",
                 "wifiSSID": "WiFi SSID:",
+                "wifiSettings": "WiFi Data (optional):",
                 "writingFinished": "Writing finished",
                 "writingFlash": "Writing {{size}} MiB flash..."
             },
             "hint": "This section is only available when using HTTPS and a browser that supports the Web Serial API, such as Chrome or Edge. If you want to flash your ESP32 Toniebox, please click on \"Proceed to HTTPS\", and you will be automatically redirected to the HTTPS version. Your browser might warn that the connection is not secure. This is okay; confirm it and proceed to open the page anyway. You may need to display more details in the warning.",
             "hintWiki": "If you prefer not to use a browser that supports WebSerial, you can find step-by-step guidance here:",
             "hintWiki2": "Please follow then the ESP32 path:",
+            "httpsSettings": "HTTPS Settings",
             "linkWikiGeneral": "Patching your Toniebox for using with TeddyCloud",
             "linkWikiSpecific": "ESP32 specific setup",
-            "httpsSettings": "HTTPS Settings",
             "navigationTitle": "ESP32 Box Flashing",
             "redirect": "Proceed to HTTPS",
             "title": "ESP32 Box Flashing"
@@ -429,8 +465,8 @@
         "title": "Your Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ATTENTION: Default Path!)",
-            "boxSpecific": " (overlayed for toniebox)",
             "Label": "Certificates",
+            "boxSpecific": " (overlayed for toniebox)",
             "uploadPath": "Upload path (certDir):",
             "uploadTonieboxCertificates": "Upload certificates for Toniebox \"{{name}}\""
         }
@@ -466,8 +502,8 @@
             "track": "Track"
         },
         "addToniesCustomJsonEntry": "WIP: Add Model",
-        "alternativeSourceUnknown": "This Tonie {{originalTonie}} is assigned alternative content!",
         "alternativeSource": "This Tonie {{originalTonie}} is assigned the content {{assignedContent}}!",
+        "alternativeSourceUnknown": "This Tonie {{originalTonie}} is assigned alternative content!",
         "cancel": "Cancel",
         "closeAudioPlayer": "Close player",
         "closeAudioPlayerPopover": "Close stops playback!",
@@ -482,15 +518,6 @@
             "showToniesOfBoxes": "Content of the following Tonieboxes",
             "title": "Content",
             "toniePicture": "Tonie Picture"
-        },
-        "createDirectory": {
-            "cancel": "Cancel",
-            "create": "Create",
-            "createDirectory": "Create New Directory",
-            "directoryCreated": "New directory has been created!",
-            "inDirectory": "in directory ",
-            "modalTitle": "Create New Directory",
-            "placeholder": "Enter the folder name"
         },
         "currentPath": "Current Path: ",
         "editModal": {
@@ -517,9 +544,9 @@
             "uploadFailed": "The upload encountered an error",
             "uploadFiles": "Select File(s)",
             "uploadHint": "Drag the audio files here!",
-            "uploading": "Uploading...",
             "uploadSuccessful": "The file was added successfully to the library",
-            "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area"
+            "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area",
+            "uploading": "Uploading..."
         },
         "infoModal": {
             "exists": "Exists:",

@@ -80,10 +80,21 @@
     ],
     "fileBrowser": {
         "actions": "Actions",
+        "attention": "Veuillez noter !",
         "cancel": "Annuler",
         "confirmDeleteDialog": "Êtes-vous sûr de vouloir supprimer {{fileToDelete}}?",
         "confirmDeleteModal": "Confirmer la suppression",
         "confirmMultipleDeleteDialog": "Êtes-vous sûr de vouloir supprimer les lignes sélectionnées ?",
+        "createDirectory": {
+            "cancel": "Annuler",
+            "create": "Créer",
+            "createDirectory": "Créer un nouveau dossier",
+            "directoryCreated": "Le nouveau dossier a été créé !",
+            "inDirectory": "dans le dossier ",
+            "modalTitle": "Créer un nouveau dossier",
+            "parentPath": "Répertoire parent:",
+            "placeholder": "Entrez le nom du dossier"
+        },
         "date": "Date",
         "delete": "Supprimer",
         "deleteMultiple": "Supprimer les lignes sélectionnées",
@@ -91,18 +102,42 @@
         "filter": "Filtrer dans le dossier actuel",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
         "messages": {
-            "deleteFailed": "Échec de la suppression",
-            "deleteSuccessful": "Suppression réussie !",
+            "deleteFailed": "La suppression du fichier {{file}} a échoué",
+            "deleteSuccessful": "Le fichier {{file}} a été supprimé avec succès !",
             "deleting": "Suppression...",
             "migrationFailed": "Échec de la migration",
             "migrationOngoing": "Migration en cours...",
-            "migrationSuccessful": "Migration réussie !"
+            "migrationSuccessful": "Migration réussie!",
+            "moving": "Déplacement en cours...",
+            "movingFailed": "Le déplacement du fichier {{file}} a échoué",
+            "movingSuccessful": "Le fichier {{file}} a été déplacé avec succès !",
+            "renaming": "Renommage en cours...",
+            "renamingFailed": "Le renommage du fichier {{file}} a échoué",
+            "renamingSuccessful": "Le fichier {{file}} a été renommé avec succès !"
         },
         "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
         "migrateContentToLibRoot": "Migrer TAF vers la bibliothèque (racine)",
         "model": "Modèle",
+        "move": "Déplacer",
+        "moveFile": {
+            "attention": "Le déplacement des fichiers ne met pas à jour l'association avec les Tonies/Tags. Vous devrez ajuster manuellement tous les Tonies/Tags qui ont défini les fichiers déplacés comme source!",
+            "cancel": "Annuler",
+            "destinationPlaceholder": "Sélectionnez le dossier de destination",
+            "modalTitle": "Déplacer le fichier",
+            "modalTitleMultiple": "Déplacer les fichiers sélectionnés",
+            "move": "Déplacer",
+            "moveTo": "vers"
+        },
+        "moveMultiple": "Déplacer les fichiers sélectionnés (fichiers uniquement, les dossiers sont ignorés!)",
         "name": "Nom",
         "playFile": "Lire",
+        "rename": "Renommer",
+        "renameFile": {
+            "attention": "Renommer les fichiers ne met pas à jour l'association avec les Tonies/Tags. Vous devrez ajuster manuellement tous les Tonies/Tags qui ont défini le fichier renommé comme source!",
+            "cancel": "Annuler",
+            "modalTitle": "Renommer le fichier",
+            "rename": "Renommer"
+        },
         "root": "Dossier racine",
         "selectTafOrTapOnly": "Vous ne pouvez sélectionner que des fichiers TAF ou TAP !",
         "series": "Série",
@@ -261,8 +296,8 @@
         "levelLabel": "Niveau des paramètres",
         "navigationTitle": "Paramètres",
         "overlayDisabled": "Superposition désactivée !",
-        "overlayed": "superposé",
         "overlayEnabled": "Superposition activée !",
+        "overlayed": "superposé",
         "restartComplete": "Redémarrage du serveur TeddyCloud réussi !",
         "restartFailed": "Échec du redémarrage du serveur TeddyCloud !",
         "restartInProgress": "Redémarrage de TeddyCloud en cours...",
@@ -276,9 +311,10 @@
         "saved": "Paramètre enregistré !",
         "title": "Paramètres",
         "tonieboxes": "tonieboxes",
-        "tonieJsonUpdateFailed": "La mise à jour de Tonies.json a échoué!",
-        "tonieJsonUpdateTriggered": "Mise à jour Tonies.json déclenchée!",
-        "updateToniesJson": "Mettre à jour Tonies.json",
+        "toniesJsonReload": "Recharger Tonies.json",
+        "toniesJsonReloadFailed": "Échec du rechargement de Tonies(.custom).json!",
+        "toniesJsonReloadInProgress": "Chargement de Tonies(.custom).json...",
+        "toniesJsonReloadSuccessful": "Tonies(.custom).json rechargé avec succès!",
         "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
         "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
@@ -392,21 +428,21 @@
                 "titlePatchFlash": "Patch Flash",
                 "titleReadESP32ImportFlash": "Lire l'ESP32/Importer le Flash",
                 "uploadFailed": "Échec du téléchargement",
-                "uploading": "Téléchargement en cours...",
                 "uploadSuccessful": "Téléchargement réussi, enregistré sous",
+                "uploading": "Téléchargement en cours...",
                 "wifiCredentialsIncomplete": "Identifiants WiFi incomplets ! Veuillez entrer à la fois le SSID ET le mot de passe, ou laisser les deux champs vides !",
                 "wifiPassword": "Mot de passe WiFi:",
-                "wifiSettings": "Données WiFi (optionnel):",
                 "wifiSSID": "SSID WiFi:",
+                "wifiSettings": "Données WiFi (optionnel):",
                 "writingFinished": "Écriture terminée",
                 "writingFlash": "Écriture de {{size}} MiB de mémoire flash..."
             },
             "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l’avertissement.",
             "hintWiki": "Si vous ne souhaitez pas utiliser un navigateur qui prend en charge WebSerial, vous trouverez ici un guide étape par étape :",
             "hintWiki2": "Veuillez suivre ensuite le chemin ESP32 :",
+            "httpsSettings": "Paramètres HTTPS",
             "linkWikiGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkWikiSpecific": "Configuration spécifique ESP32",
-            "httpsSettings": "Paramètres HTTPS",
             "navigationTitle": "ESP32 Flashage de la boîte",
             "redirect": "Continuer vers HTTPS",
             "title": "ESP32 Flashage de la boîte"
@@ -430,8 +466,8 @@
         "title": "Vos Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ATTENTION: Chemin par défaut!)",
-            "boxSpecific": " (superposé pour la Toniebox)",
             "Label": "Certificats",
+            "boxSpecific": " (superposé pour la Toniebox)",
             "uploadPath": "Chemin de téléchargement (certDir):",
             "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox \"{{name}}\""
         }
@@ -467,8 +503,8 @@
             "track": "Piste"
         },
         "addToniesCustomJsonEntry": "WIP: Ajouter un modèle",
-        "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
         "alternativeSource": "Cette Tonie {{originalTonie}} est assignée à un contenu {{assignedContent}} !",
+        "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
         "cancel": "Annuler",
         "closeAudioPlayer": "Fermer le lecteur audio",
         "closeAudioPlayerPopover": "Fermer arrête la lecture!",
@@ -483,15 +519,6 @@
             "showToniesOfBoxes": "Contenu des Tonieboxes suivants",
             "title": "Contenu",
             "toniePicture": "Image du Tonie"
-        },
-        "createDirectory": {
-            "cancel": "Annuler",
-            "create": "Créer",
-            "createDirectory": "Créer un nouveau dossier",
-            "directoryCreated": "Le nouveau dossier a été créé !",
-            "inDirectory": "dans le dossier ",
-            "modalTitle": "Créer un nouveau dossier",
-            "placeholder": "Entrez le nom du dossier"
         },
         "currentPath": "Chemin actuel : ",
         "editModal": {
@@ -518,9 +545,9 @@
             "uploadFailed": "Le téléchargement a rencontré une erreur",
             "uploadFiles": "Sélectionner le(s) fichier(s)",
             "uploadHint": "Faites glisser les fichiers audio ici !",
-            "uploading": "Téléchargement...",
             "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque",
-            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
+            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone",
+            "uploading": "Téléchargement..."
         },
         "infoModal": {
             "exists": "Existe:",
