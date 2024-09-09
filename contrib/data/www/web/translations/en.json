@@ -112,8 +112,8 @@
             "movingFailed": "Moving of file {{file}} failed",
             "movingSuccessful": "Moved file {{file}} successfully!",
             "renaming": "Renaming...",
-            "renamingFailed": "Renaming of file {{file]}} failed",
-            "renamingSuccessful": "Renamed file {{file]}} successfully!"
+            "renamingFailed": "Renaming of file {{file}} failed",
+            "renamingSuccessful": "Renamed file {{file}} successfully!"
         },
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
