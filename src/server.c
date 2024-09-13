@@ -627,7 +627,7 @@ error_t httpServerCgiCallback(HttpConnection *connection,
     return NO_ERROR;
 }
 
-error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tlsContext, TlsClientAuthMode authMode)
 {
     error_t error;
 
@@ -651,8 +651,8 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     if (error)
         return error;
 
-    // Client authentication is not required
-    error = tlsSetClientAuthMode(tlsContext, TLS_CLIENT_AUTH_OPTIONAL);
+    // Client authentication
+    error = tlsSetClientAuthMode(tlsContext, authMode);
     // Any error to report?
     if (error)
         return error;
@@ -677,6 +677,44 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 
     // Successful processing
     return NO_ERROR;
+}
+error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+{
+    return httpServerTlsInitCallbackBase(connection, tlsContext, TLS_CLIENT_AUTH_OPTIONAL);
+}
+error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+{
+    settings_t *settings = connection->private.client_ctx.settings;
+    TlsClientAuthMode authMode = TLS_CLIENT_AUTH_OPTIONAL;
+    if (settings->core.boxCertAuth)
+    {
+        authMode = TLS_CLIENT_AUTH_REQUIRED;
+    }
+    error_t error = httpServerTlsInitCallbackBase(connection, tlsContext, authMode);
+    if (error)
+        return error;
+
+    if (settings->core.boxCertAuth)
+    {
+        // TODO add client certs and check if this works.
+        const char *trustedCaList = NULL;
+        for (uint8_t settingsId = 0; settingsId < MAX_OVERLAYS; settingsId++)
+        {
+            if (trustedCaList == NULL || trustedCaList[0] == 0)
+                break;
+            trustedCaList = get_settings_id(settingsId)->internal.client.ca;
+        }
+        if (trustedCaList != NULL)
+        {
+            error = tlsSetTrustedCaList(tlsContext, trustedCaList, osStrlen(trustedCaList));
+        }
+        else
+        {
+            TRACE_ERROR("Failed to get trusted CA list\r\n");
+            error = ERROR_FAILURE; //TODO which error
+        }
+    }
+    return error;
 }
 
 bool sanityCheckDir(const char *dir)
@@ -770,8 +808,9 @@ void server_init(bool test)
     https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
     https_web_settings.isHttps = true;
 
-    /* use them for HTTPS */
+    /* use them for Box HTTPS */
     https_api_settings = https_web_settings;
+    https_api_settings.tlsInitCallback = httpServerBoxTlsInitCallback;
     https_api_settings.requestCallback = httpServerAPIRequestCallback;
     https_api_settings.connections = httpsApiConnections;
     https_api_settings.port = settings_get_unsigned("core.server.https_api_port");
