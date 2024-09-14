@@ -789,7 +789,7 @@ error_t mpiImport(Mpi *r, const uint8_t *data, uint_t length, MpiFormat format)
          // Import data
          for (i = 0; i < length; i++, data--)
          {
-            r->data[i / MPI_INT_SIZE] |= *data << ((i % MPI_INT_SIZE) * 8);
+            r->data[i / MPI_INT_SIZE] |= (uint64_t)*data << ((i % MPI_INT_SIZE) * 8);
          }
       }
    }

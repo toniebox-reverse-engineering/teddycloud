@@ -255,17 +255,17 @@ __weak_func error_t aesInit(AesContext *context, const uint8_t *key,
       if((i % keyLen) == 0)
       {
          context->ek[i] = sbox[(temp >> 8) & 0xFF];
-         context->ek[i] |= (sbox[(temp >> 16) & 0xFF] << 8);
-         context->ek[i] |= (sbox[(temp >> 24) & 0xFF] << 16);
-         context->ek[i] |= (sbox[temp & 0xFF] << 24);
+         context->ek[i] |= ((uint64_t)sbox[(temp >> 16) & 0xFF] << 8);
+         context->ek[i] |= ((uint64_t)sbox[(temp >> 24) & 0xFF] << 16);
+         context->ek[i] |= ((uint64_t)sbox[temp & 0xFF] << 24);
          context->ek[i] ^= rcon[i / keyLen];
       }
       else if(keyLen > 6 && (i % keyLen) == 4)
       {
          context->ek[i] = sbox[temp & 0xFF];
-         context->ek[i] |= (sbox[(temp >> 8) & 0xFF] << 8);
-         context->ek[i] |= (sbox[(temp >> 16) & 0xFF] << 16);
-         context->ek[i] |= (sbox[(temp >> 24) & 0xFF] << 24);
+         context->ek[i] |= ((uint64_t)sbox[(temp >> 8) & 0xFF] << 8);
+         context->ek[i] |= ((uint64_t)sbox[(temp >> 16) & 0xFF] << 16);
+         context->ek[i] |= ((uint64_t)sbox[(temp >> 24) & 0xFF] << 24);
       }
       else
       {
@@ -380,24 +380,24 @@ __weak_func void aesEncryptBlock(AesContext *context, const uint8_t *input,
 
    //The last round differs slightly from the first rounds
    t0 = sbox[s0 & 0xFF];
-   t0 |= sbox[(s1 >> 8) & 0xFF] << 8;
-   t0 |= sbox[(s2 >> 16) & 0xFF] << 16;
-   t0 |= sbox[(s3 >> 24) & 0xFF] << 24;
+   t0 |= (uint64_t)sbox[(s1 >> 8) & 0xFF] << 8;
+   t0 |= (uint64_t)sbox[(s2 >> 16) & 0xFF] << 16;
+   t0 |= (uint64_t)sbox[(s3 >> 24) & 0xFF] << 24;
 
    t1 = sbox[s1 & 0xFF];
-   t1 |= sbox[(s2 >> 8) & 0xFF] << 8;
-   t1 |= sbox[(s3 >> 16) & 0xFF] << 16;
-   t1 |= sbox[(s0 >> 24) & 0xFF] << 24;
+   t1 |= (uint64_t)sbox[(s2 >> 8) & 0xFF] << 8;
+   t1 |= (uint64_t)sbox[(s3 >> 16) & 0xFF] << 16;
+   t1 |= (uint64_t)sbox[(s0 >> 24) & 0xFF] << 24;
 
    t2 = sbox[s2 & 0xFF];
-   t2 |= sbox[(s3 >> 8) & 0xFF] << 8;
-   t2 |= sbox[(s0 >> 16) & 0xFF] << 16;
-   t2 |= sbox[(s1 >> 24) & 0xFF] << 24;
+   t2 |= (uint64_t)sbox[(s3 >> 8) & 0xFF] << 8;
+   t2 |= (uint64_t)sbox[(s0 >> 16) & 0xFF] << 16;
+   t2 |= (uint64_t)sbox[(s1 >> 24) & 0xFF] << 24;
 
    t3 = sbox[s3 & 0xFF];
-   t3 |= sbox[(s0 >> 8) & 0xFF] << 8;
-   t3 |= sbox[(s1 >> 16) & 0xFF] << 16;
-   t3 |= sbox[(s2 >> 24) & 0xFF] << 24;
+   t3 |= (uint64_t)sbox[(s0 >> 8) & 0xFF] << 8;
+   t3 |= (uint64_t)sbox[(s1 >> 16) & 0xFF] << 16;
+   t3 |= (uint64_t)sbox[(s2 >> 24) & 0xFF] << 24;
 
    //Last round key addition
    s0 = t0 ^ context->ek[context->nr * 4];
@@ -491,24 +491,24 @@ __weak_func void aesDecryptBlock(AesContext *context, const uint8_t *input,
 
    //The last round differs slightly from the first rounds
    t0 = isbox[s0 & 0xFF];
-   t0 |= isbox[(s3 >> 8) & 0xFF] << 8;
-   t0 |= isbox[(s2 >> 16) & 0xFF] << 16;
-   t0 |= isbox[(s1 >> 24) & 0xFF] << 24;
+   t0 |= (uint64_t)isbox[(s3 >> 8) & 0xFF] << 8;
+   t0 |= (uint64_t)isbox[(s2 >> 16) & 0xFF] << 16;
+   t0 |= (uint64_t)isbox[(s1 >> 24) & 0xFF] << 24;
 
    t1 = isbox[s1 & 0xFF];
-   t1 |= isbox[(s0 >> 8) & 0xFF] << 8;
-   t1 |= isbox[(s3 >> 16) & 0xFF] << 16;
-   t1 |= isbox[(s2 >> 24) & 0xFF] << 24;
+   t1 |= (uint64_t)isbox[(s0 >> 8) & 0xFF] << 8;
+   t1 |= (uint64_t)isbox[(s3 >> 16) & 0xFF] << 16;
+   t1 |= (uint64_t)isbox[(s2 >> 24) & 0xFF] << 24;
 
    t2 = isbox[s2 & 0xFF];
-   t2 |= isbox[(s1 >> 8) & 0xFF] << 8;
-   t2 |= isbox[(s0 >> 16) & 0xFF] << 16;
-   t2 |= isbox[(s3 >> 24) & 0xFF] << 24;
+   t2 |= (uint64_t)isbox[(s1 >> 8) & 0xFF] << 8;
+   t2 |= (uint64_t)isbox[(s0 >> 16) & 0xFF] << 16;
+   t2 |= (uint64_t)isbox[(s3 >> 24) & 0xFF] << 24;
 
    t3 = isbox[s3 & 0xFF];
-   t3 |= isbox[(s2 >> 8) & 0xFF] << 8;
-   t3 |= isbox[(s1 >> 16) & 0xFF] << 16;
-   t3 |= isbox[(s0 >> 24) & 0xFF] << 24;
+   t3 |= (uint64_t)isbox[(s2 >> 8) & 0xFF] << 8;
+   t3 |= (uint64_t)isbox[(s1 >> 16) & 0xFF] << 16;
+   t3 |= (uint64_t)isbox[(s0 >> 24) & 0xFF] << 24;
 
    //Last round key addition
    s0 = t0 ^ context->dk[0];
