@@ -345,6 +345,7 @@ CYCLONE_SOURCES = \
 CYCLONE_SOURCES := $(filter-out \
 	cyclone/common/debug.c \
 	cyclone/common/error.c \
+	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
@@ -357,6 +358,7 @@ CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/common/error.c \
 	src/cyclone/cyclone_crypto/mpi.c \
+	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
