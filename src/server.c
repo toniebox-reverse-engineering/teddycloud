@@ -935,7 +935,7 @@ void server_init(bool test)
         if (openConnections != openAPIConnectionsLast)
         {
             openAPIConnectionsLast = openConnections;
-            TRACE_INFO("%zu open HTTPS Web connections\r\n", openConnections);
+            TRACE_INFO("%zu open HTTPS API connections\r\n", openConnections);
         }
         for (size_t i = 0; i < MAX_OVERLAYS; i++)
         {
