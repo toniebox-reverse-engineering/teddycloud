@@ -680,32 +680,50 @@ error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tl
 }
 error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
 {
-    return httpServerTlsInitCallbackBase(connection, tlsContext, TLS_CLIENT_AUTH_OPTIONAL);
+    return httpServerTlsInitCallbackBase(connection, tlsContext, TLS_CLIENT_AUTH_NONE);
 }
 error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
 {
-    settings_t *settings = get_settings();
+    settings_t *settings = get_settings(); // Overlay is currently unknown and settings in the context empty
     TlsClientAuthMode authMode = TLS_CLIENT_AUTH_OPTIONAL;
+    error_t error = NO_ERROR;
+    /*
     if (settings->core.boxCertAuth)
     {
         authMode = TLS_CLIENT_AUTH_REQUIRED;
     }
-    error_t error = httpServerTlsInitCallbackBase(connection, tlsContext, authMode);
+    */
+    error = httpServerTlsInitCallbackBase(connection, tlsContext, authMode);
     if (error)
         return error;
 
-    if (settings->core.boxCertAuth)
+    if (settings->core.boxCertAuth && 1 == 0)
     {
         // TODO add client certs and check if this works.
-        const char *trustedCaList = NULL;
-        for (uint8_t settingsId = 0; settingsId < MAX_OVERLAYS; settingsId++)
+        // CA cannot be used - the intermedia CAs are not available
+        // Doesn't work, because cyclone checks for the chain
+        uint32_t trustedCaListLen = 0;
+        for (uint8_t settingsId = 1; settingsId < MAX_OVERLAYS; settingsId++)
         {
-            if (trustedCaList != NULL && trustedCaList[0] != 0)
-                break;
-            trustedCaList = get_settings_id(settingsId)->internal.client.ca;
+            const char *cert = get_settings_id(settingsId)->internal.client.crt;
+            if (cert != NULL)
+            {
+                trustedCaListLen += osStrlen(cert);
+            }
         }
-        if (trustedCaList != NULL)
+
+        if (trustedCaListLen > 0)
         {
+            char *trustedCaList = osAllocMem(trustedCaListLen + 1);
+            trustedCaList[0] = '\0';
+            for (uint8_t settingsId = 1; settingsId < MAX_OVERLAYS; settingsId++)
+            {
+                const char *cert = get_settings_id(settingsId)->internal.client.crt;
+                if (cert != NULL)
+                {
+                    osStrcat(trustedCaList, cert);
+                }
+            }
             error = tlsSetTrustedCaList(tlsContext, trustedCaList, osStrlen(trustedCaList));
         }
         else
@@ -714,6 +732,7 @@ error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tls
             error = ERROR_FAILURE; // TODO which error
         }
     }
+
     return error;
 }
 
