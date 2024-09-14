@@ -684,7 +684,7 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 }
 error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
 {
-    settings_t *settings = connection->private.client_ctx.settings;
+    settings_t *settings = get_settings();
     TlsClientAuthMode authMode = TLS_CLIENT_AUTH_OPTIONAL;
     if (settings->core.boxCertAuth)
     {
@@ -711,7 +711,7 @@ error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tls
         else
         {
             TRACE_ERROR("Failed to get trusted CA list\r\n");
-            error = ERROR_FAILURE; //TODO which error
+            error = ERROR_FAILURE; // TODO which error
         }
     }
     return error;
@@ -810,10 +810,10 @@ void server_init(bool test)
 
     /* use them for Box HTTPS */
     https_api_settings = https_web_settings;
-    https_api_settings.tlsInitCallback = httpServerBoxTlsInitCallback;
-    https_api_settings.requestCallback = httpServerAPIRequestCallback;
     https_api_settings.connections = httpsApiConnections;
     https_api_settings.port = settings_get_unsigned("core.server.https_api_port");
+    https_api_settings.tlsInitCallback = httpServerBoxTlsInitCallback;
+    https_api_settings.requestCallback = httpServerAPIRequestCallback;
 
     error_t err = httpServerInit(&http_context, &http_settings);
     if (err != NO_ERROR)
@@ -824,7 +824,7 @@ void server_init(bool test)
     err = httpServerInit(&https_web_context, &https_web_settings);
     if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS Webfailed with code %d\r\n", err);
+        TRACE_ERROR("httpServerInit() for HTTPS Web failed with code %d\r\n", err);
         return;
     }
     err = httpServerInit(&https_api_context, &https_api_settings);
