@@ -700,7 +700,7 @@ error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tls
         const char *trustedCaList = NULL;
         for (uint8_t settingsId = 0; settingsId < MAX_OVERLAYS; settingsId++)
         {
-            if (trustedCaList == NULL || trustedCaList[0] == 0)
+            if (trustedCaList != NULL && trustedCaList[0] != 0)
                 break;
             trustedCaList = get_settings_id(settingsId)->internal.client.ca;
         }
