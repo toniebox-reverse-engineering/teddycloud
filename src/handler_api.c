@@ -1806,14 +1806,9 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
 
     char multisource[99][PATH_LEN];
     uint8_t multisource_size = 0;
-    char source[256 + 3];
-    char target[256 + 3];
+    char source[PATH_LEN];
+    char target[PATH_LEN];
 
-    if (!queryGet(post_data, "source", source, sizeof(source)))
-    {
-        TRACE_ERROR("source missing!\r\n");
-        return ERROR_INVALID_REQUEST;
-    }
     if (!queryGet(post_data, "target", target, sizeof(target)))
     {
         TRACE_ERROR("target missing!\r\n");
@@ -1823,21 +1818,52 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     char *targetAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, target);
     sanitizePath(targetAbsolute, false);
 
-    // TODO implement multiple sources
-    sanitizePath(source, false);
-    osSprintf(multisource[multisource_size++], "%s%c%s", rootPath, PATH_SEPARATOR, source);
-    sanitizePath(multisource[multisource_size - 1], false);
-    TRACE_INFO("Encode: '%s'\r\n", multisource[multisource_size - 1]);
+    char_t message[256];
+    uint_t statusCode = 200;
 
-    TRACE_INFO("Encode %" PRIu8 " files to '%s'\r\n", multisource_size, target);
-    size_t current_source = 0;
-    error = ffmpeg_convert(multisource, multisource_size, &current_source, target, 0);
-    osFreeMem(targetAbsolute);
-    if (error != NO_ERROR)
+    if (fsFileExists(targetAbsolute))
     {
-        TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
+        TRACE_ERROR("File %s already exists!\r\n", targetAbsolute);
+        osSnprintf(message, sizeof(message), "File %s already exists!\r\n", targetAbsolute);
+        statusCode = 500;
+    }
+    else
+    {
+        while (queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
+        {
+            sanitizePath(source, false);
+            osSprintf(multisource[multisource_size], "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            sanitizePath(multisource[multisource_size], false);
+            // TRACE_INFO("Source %s\r\n", multisource[multisource_size]);
+            multisource_size++;
+        }
+        if (multisource_size == 0)
+        {
+            TRACE_ERROR("Source missing!\r\n");
+            osFreeMem(targetAbsolute);
+            return ERROR_INVALID_REQUEST;
+        }
+
+        TRACE_INFO("Encode %" PRIu8 " files to %s\r\n", multisource_size, targetAbsolute);
+        size_t current_source = 0;
+        error = ffmpeg_convert(multisource, multisource_size, &current_source, targetAbsolute, 0);
+        osFreeMem(targetAbsolute);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
+            statusCode = 500;
+            osSnprintf(message, sizeof(message), "ffmpeg_convert failed with error %s\r\n", error2text(error));
+        }
+        else
+        {
+            osSnprintf(message, sizeof(message), "OK\r\n");
+        }
     }
 
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
     return error;
 }
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)

@@ -62,7 +62,7 @@ int urldecode(char *dest, size_t dest_max, const char *src)
     {
         char a = 0;
         char b = 0;
-        
+
         if ((src[src_idx] == '%') &&
             ((a = src[src_idx + 1]) && (b = src[src_idx + 2])) &&
             (isxdigit(a) && isxdigit(b)))
@@ -101,31 +101,42 @@ int urldecode(char *dest, size_t dest_max, const char *src)
 
 bool queryGet(const char *query, const char *key, char *data, size_t data_len)
 {
+    return queryGetMulti(query, key, data, data_len, 0);
+}
+bool queryGetMulti(const char *query, const char *key, char *data, size_t data_len, size_t skip_len)
+{
     const char *q = query;
     size_t key_len = osStrlen(key);
     while ((q = strstr(q, key)))
     {
         if (q[key_len] == '=')
         {
-            // Found the key, let's start copying the value
-            q += key_len + 1;  // Skip past the key and the '='
-            char buffer[1024]; // Temporary buffer for decoding
-            char *b = buffer;
-            while (*q && *q != '&')
+            if (skip_len == 0)
             {
-                if (b - buffer < sizeof(buffer) - 1)
-                { // Prevent buffer overflow
-                    *b++ = *q++;
-                }
-                else
+                // Found the key, let's start copying the value
+                q += key_len + 1;  // Skip past the key and the '='
+                char buffer[1024]; // Temporary buffer for decoding
+                char *b = buffer;
+                while (*q && *q != '&')
                 {
-                    // The value is too long, truncate it
-                    break;
+                    if (b - buffer < sizeof(buffer) - 1)
+                    { // Prevent buffer overflow
+                        *b++ = *q++;
+                    }
+                    else
+                    {
+                        // The value is too long, truncate it
+                        break;
+                    }
                 }
+                *b = '\0';                         // Null-terminate the buffer
+                urldecode(data, data_len, buffer); // Decode and copy the value
+                return true;
             }
-            *b = '\0';                         // Null-terminate the buffer
-            urldecode(data, data_len, buffer); // Decode and copy the value
-            return true;
+            else
+            {
+                skip_len--;
+            }
         }
         q += key_len; // Skip past the key
     }
