@@ -142,9 +142,27 @@
         "selectTafOrTapOnly": "Vous ne pouvez sélectionner que des fichiers TAF ou TAP !",
         "series": "Série",
         "size": "Taille",
+        "tafMeta": {
+            "edit": "(WIP - non implémenté) Éditer les métadonnées"
+        },
         "tap": {
             "copy": "(WIP - non implémenté) Dupliquer la playlist audio Tonie",
             "edit": "(WIP - non implémenté) Modifier la playlist audio Tonie"
+        },
+        "upload": {
+            "hideUploadFilesDragNDrop": "Masquer le téléversement de fichiers",
+            "showUploadFilesDragNDrop": "Téléversement de fichiers",
+            "uploadText": "Cliquez ou faites glisser les fichiers dans cette zone pour les téléverser",
+            "uploadHint": "Faites glisser les fichiers ici pour les téléverser",
+            "upload": "Téléverser",
+            "cancel": "Annuler",
+            "modalTitle": "Téléverser le(s) fichier(s)",
+            "uploading": "Téléversement en cours...",
+            "uploadFailedForFile": "Échec du téléversement de \"{{file}}\".",
+            "uploadSuccessfulForFile": "Fichier \"{{file}}\" téléversé avec succès.",
+            "uploadInProgress": "Téléversement de \"{{file}}\"...",
+            "uploadFailed": "Certains fichiers n'ont pas pu être téléversés. Veuillez réessayer.",
+            "uploadSuccessful": "Fichiers téléversés avec succès."
         }
     },
     "home": {

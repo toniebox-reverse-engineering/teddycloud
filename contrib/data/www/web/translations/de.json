@@ -142,9 +142,27 @@
         "selectTafOrTapOnly": "Du kannst nur TAF oder TAP Dateien auswählen!",
         "series": "Serie",
         "size": "Größe",
+        "tafMeta": {
+            "edit": "(WIP - not implemented yet) Metadaten editieren"
+        },
         "tap": {
             "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren",
             "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
+        },
+        "upload": {
+            "hideUploadFilesDragNDrop": "Dateiupload ausblenden",
+            "showUploadFilesDragNDrop": "Dateiupload",
+            "uploadText": "Klicke oder ziehe die Dateien zum Hochladen in diesen Bereich",
+            "uploadHint": "Ziehe die hochzuladenden Dateien hierher",
+            "upload": "Hochladen",
+            "cancel": "Abbrechen",
+            "modalTitle": "Datei(en) hochladen",
+            "uploading": "Lädt hoch...",
+            "uploadFailedForFile": "Hochladen von \"{{file}}\" fehlgeschlagen.",
+            "uploadSuccessfulForFile": "Datei \"{{file}}\" erfolgreich hochgeladen.",
+            "uploadInProgress": "Lade \"{{file}}\" hoch...",
+            "uploadFailed": "Einige Dateien konnten nicht hochgeladen werden. Versuche es erneut.",
+            "uploadSuccessful": "Dateien erfolgreich hochgeladen."
         }
     },
     "home": {
