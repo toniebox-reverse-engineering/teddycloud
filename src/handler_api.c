@@ -1786,6 +1786,60 @@ error_t taf_encode_end(void *in_ctx)
     return NO_ERROR;
 }
 
+error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("parsePostData failed with error %s\r\n", error2text(error));
+        return error;
+    }
+
+    char multisource[99][PATH_LEN];
+    uint8_t multisource_size = 0;
+    char source[256 + 3];
+    char target[256 + 3];
+
+    if (!queryGet(post_data, "source", source, sizeof(source)))
+    {
+        TRACE_ERROR("source missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+    if (!queryGet(post_data, "target", target, sizeof(target)))
+    {
+        TRACE_ERROR("target missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+    sanitizePath(target, false);
+    char *targetAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, target);
+    sanitizePath(targetAbsolute, false);
+
+    // TODO implement multiple sources
+    sanitizePath(source, false);
+    osSprintf(multisource[multisource_size++], "%s%c%s", rootPath, PATH_SEPARATOR, source);
+    sanitizePath(multisource[multisource_size - 1], false);
+    TRACE_INFO("Encode: '%s'\r\n", multisource[multisource_size - 1]);
+
+    TRACE_INFO("Encode %" PRIu8 " files to '%s'\r\n", multisource_size, target);
+    size_t current_source = 0;
+    error = ffmpeg_convert(multisource, multisource_size, &current_source, target, 0);
+    osFreeMem(targetAbsolute);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
+    }
+
+    return error;
+}
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
@@ -2065,11 +2119,13 @@ error_t handleApiFileMove(HttpConnection *connection, const char_t *uri, const c
     char source[256 + 3];
     char target[256 + 3];
 
-    if (!queryGet(post_data, "source", source, sizeof(source))) {
+    if (!queryGet(post_data, "source", source, sizeof(source)))
+    {
         TRACE_ERROR("source missing!\r\n");
         return ERROR_INVALID_REQUEST;
     }
-    if (!queryGet(post_data, "target", target, sizeof(target))) {
+    if (!queryGet(post_data, "target", target, sizeof(target)))
+    {
         TRACE_ERROR("target missing!\r\n");
         return ERROR_INVALID_REQUEST;
     }
