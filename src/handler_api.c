@@ -681,7 +681,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
             {
                 char tmp[3];
-                osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
+                osSprintf(tmp, "%02x", tafInfo->tafHeader->sha1_hash.data[pos]);
                 osStrcat(sha1Hash, tmp);
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
@@ -843,7 +843,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                 for (int hash_pos = 0; hash_pos < tafInfo->tafHeader->sha1_hash.len; hash_pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
+                    osSprintf(tmp, "%02x", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
                     osStrcat(desc, tmp);
                 }
                 char extraDesc[1 + 64 + 1 + 64];
