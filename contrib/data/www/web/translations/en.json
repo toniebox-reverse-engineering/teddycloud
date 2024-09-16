@@ -142,9 +142,27 @@
         "selectTafOrTapOnly": "You can only select TAF or TAP files!",
         "series": "Series",
         "size": "Size",
+        "tafMeta": {
+            "edit": "(WIP - not implemented yet) Edit metadata"
+        },
         "tap": {
             "copy": "(WIP - not implemented yet) Duplicate Tonie Audio Playlist",
             "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
+        },
+        "upload": {
+            "hideUploadFilesDragNDrop": "Hide file upload",
+            "showUploadFilesDragNDrop": "File upload",
+            "uploadText": "Click or drag files to this area to upload",
+            "uploadHint": "Drag files here to upload",
+            "upload": "Upload",
+            "cancel": "Cancel",
+            "modalTitle": "Upload file(s)",
+            "uploading": "Uploading...",
+            "uploadFailedForFile": "Upload of \"{{file}}\" failed.",
+            "uploadSuccessfulForFile": "File \"{{file}}\" uploaded successfully.",
+            "uploadInProgress": "Uploading \"{{file}}\"...",
+            "uploadFailed": "Some files could not be uploaded. Please try again.",
+            "uploadSuccessful": "Files uploaded successfully."
         }
     },
     "home": {
