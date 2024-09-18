@@ -1835,6 +1835,12 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
             osSprintf(multisource[multisource_size], "%s%c%s", rootPath, PATH_SEPARATOR, source);
             sanitizePath(multisource[multisource_size], false);
             // TRACE_INFO("Source %s\r\n", multisource[multisource_size]);
+            if (!fsFileExists(multisource[multisource_size]))
+            {
+                TRACE_ERROR("Source %s does not exist!\r\n", multisource[multisource_size]);
+                osFreeMem(targetAbsolute);
+                return ERROR_INVALID_REQUEST;
+            }
             multisource_size++;
         }
         if (multisource_size == 0)
