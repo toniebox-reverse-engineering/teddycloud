@@ -59,8 +59,10 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
 error_t toniefile_write_header(toniefile_t *ctx);
 error_t toniefile_new_chapter(toniefile_t *ctx);
 
+bool toniefile_is_valid(const char *file_path);
+
 FILE *ffmpeg_decode_audio_start(const char *input_source);
-FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds);
+FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds, size_t skip_bytes);
 error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error);
 error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, size_t *blocks_read);
 error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream);

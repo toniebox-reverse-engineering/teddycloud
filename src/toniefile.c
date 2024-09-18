@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include "toniefile.h"
+#include "handler.h"
 #include "hash/sha1.h"
 #include "error.h"
 #include "path.h"
@@ -100,14 +101,15 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     osMemset(ctx, 0x00, sizeof(toniefile_t));
 
     int32_t tonie_audio_size = TONIE_LENGTH_MAX;
-    if (size > 0) {
+    if (size > 0)
+    {
         tonie_audio_size = size;
     }
 
     /* init TAF header */
     toniebox_audio_file_header__init(&ctx->taf);
     ctx->taf.audio_id = audio_id;
-    ctx->taf.num_bytes = tonie_audio_size; //TONIE_LENGTH_MAX;
+    ctx->taf.num_bytes = tonie_audio_size; // TONIE_LENGTH_MAX;
     ctx->taf.n_track_page_nums = 0;
     ctx->taf.track_page_nums = osAllocMem(sizeof(uint32_t) * TONIEFILE_MAX_CHAPTERS);
     sha1Init(&ctx->sha1);
@@ -529,20 +531,32 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
     return NO_ERROR;
 }
 
+bool toniefile_is_valid(const char *file_path)
+{
+    bool is_valid = false;
+
+    tonie_info_t *tonieInfo;
+    tonieInfo = getTonieInfo(file_path, false, get_settings());
+    is_valid = tonieInfo->valid;
+    freeTonieInfo(tonieInfo);
+
+    return is_valid;
+}
+
 // Function to decode audio from FFmpeg's standard output
 FILE *ffmpeg_decode_audio_start(const char *input_source)
 {
-    return ffmpeg_decode_audio_start_skip(input_source, 0);
+    return ffmpeg_decode_audio_start_skip(input_source, 0, 0);
 }
 
-FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds)
+FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds, size_t skip_bytes)
 {
 #ifdef FFMPEG_DECODING
     TRACE_INFO("Start ffmpeg for decoding...\r\n");
 
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
-    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -", input_source, skip_seconds);
+    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -skip_initial_bytes %zu -", input_source, skip_seconds, skip_bytes);
 
     FILE *ffmpeg_pipe = NULL;
 
@@ -596,8 +610,10 @@ error_t ffmpeg_decode_audio_end(FILE *ffmpeg_pipe, error_t error)
     // Close the FFmpeg pipe
     int error_code = osPclose(ffmpeg_pipe);
 
-    TRACE_INFO("Stopped ffmpeg with error code=%i...\r\n", error_code);
-    return NO_ERROR;
+    TRACE_INFO("Stopped ffmpeg with code=%i...\r\n", error_code);
+    if (error_code == 0)
+        return NO_ERROR;
+    return ERROR_ABORTED;
 #else
     return ERROR_NOT_IMPLEMENTED;
 #endif
@@ -664,7 +680,15 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         current_source = &cs;
     }
     *current_source = 0;
-    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[*current_source], skip_seconds);
+
+    size_t skip_bytes = 0;
+    if (toniefile_is_valid(source[*current_source]))
+    {
+        skip_bytes = 0x1000;
+        TRACE_INFO(" detected TAF file, skipping %zu bytes\r\n", skip_bytes);
+    }
+
+    ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[*current_source], skip_seconds, skip_bytes);
     if (ffmpeg_pipe == NULL)
     {
         return ERROR_ABORTED;
@@ -702,9 +726,20 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
             (*current_source)++;
             if (*current_source < source_len)
             {
-                ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+                error = ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+                if (error != NO_ERROR)
+                {
+                    TRACE_ERROR("Could not close FFmpeg pipe error=%s\r\n", error2text(error));
+                    break;
+                }
                 TRACE_INFO("Decode next source: %s\r\n", source[*current_source]);
-                ffmpeg_pipe = ffmpeg_decode_audio_start(source[*current_source]);
+                skip_bytes = 0;
+                if (toniefile_is_valid(source[*current_source]))
+                {
+                    skip_bytes = 0x1000;
+                    TRACE_INFO(" detected TAF file, skipping %zu bytes\r\n", skip_bytes);
+                }
+                ffmpeg_pipe = ffmpeg_decode_audio_start_skip(source[*current_source], skip_seconds, skip_bytes);
                 if (ffmpeg_pipe == NULL)
                 {
                     error = ERROR_ABORTED;
@@ -738,10 +773,34 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
         *active = false;
     }
 
-    ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+    if (error == ERROR_END_OF_STREAM)
+    {
+        error = NO_ERROR;
+    }
+
+    if (error == NO_ERROR)
+    {
+        error = ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Could not close FFmpeg pipe error=%s\r\n", error2text(error));
+        }
+    }
+    else
+    {
+        ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+    }
     toniefile_close(taf);
 
-    TRACE_INFO("TAF encoding successful\r\n");
+    if (error == NO_ERROR)
+    {
+        TRACE_INFO("TAF encoding successful\r\n");
+    }
+    else
+    {
+        TRACE_ERROR("TAF encoding failed, deleting TAF\r\n");
+        fsDeleteFile(target_taf);
+    }
 
     return error;
 }
