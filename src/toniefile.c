@@ -556,7 +556,10 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
 
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
-    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -skip_initial_bytes %zu -", input_source, skip_seconds, skip_bytes);
+    // snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -skip_initial_bytes %zu -", input_source, skip_seconds, skip_bytes);
+    snprintf(ffmpeg_command, sizeof(ffmpeg_command), "tail -c +%zu \"%s\" | ffmpeg -i - -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %zu -", skip_bytes + 1, input_source, skip_seconds);
+
+    TRACE_INFO("FFmpeg command: %s\r\n", ffmpeg_command);
 
     FILE *ffmpeg_pipe = NULL;
 
