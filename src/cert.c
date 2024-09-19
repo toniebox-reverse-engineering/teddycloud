@@ -39,7 +39,7 @@ static void hex_string_to_bytes(const char *hex_string, uint8_t *output)
 
 error_t cert_generate_rsa(int size, RsaPrivateKey *cert_privkey, RsaPublicKey *cert_pubkey)
 {
-    TRACE_INFO("Generating RSA Key... (slow!)\r\n");
+    TRACE_INFO("Generating RSA Key... (slow, very slow!!!)\r\n");
 
     osMemset(cert_privkey, 0x00, sizeof(RsaPrivateKey));
     osMemset(cert_pubkey, 0x00, sizeof(RsaPublicKey));
@@ -153,18 +153,29 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     cert_req.subject.name.length = osStrlen(subject);
     cert_req.subject.commonName.value = subject;
     cert_req.subject.commonName.length = osStrlen(subject);
+    cert_req.subject.organizationName.value = "Team RevvoX";
+    cert_req.subject.organizationName.length = 11;
+    cert_req.subject.countryName.value = "DE";
+    cert_req.subject.countryName.length = 2;
+    cert_req.subject.localityName.value = "Duesseldorf";
+    cert_req.subject.localityName.length = 11;
+    cert_req.subject.stateOrProvinceName.value = "NW";
+    cert_req.subject.stateOrProvinceName.length = 2;
+
     cert_req.subjectPublicKeyInfo.oid.value = RSA_ENCRYPTION_OID;
     cert_req.subjectPublicKeyInfo.oid.length = sizeof(RSA_ENCRYPTION_OID);
 
+    /*
     cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_DIGITAL_SIGNATURE;
     cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_NON_REPUDIATION;
     cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_SERVER_AUTH;
     cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_CLIENT_AUTH;
+    */
 
     if (self_sign)
     {
         cert_req.attributes.extensionReq.basicConstraints.cA = true;
-        cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
+        // cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
     }
 
     X509SerialNumber serial;
@@ -180,10 +191,16 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     validity.notBefore.year = 2015;
     validity.notBefore.month = 11;
     validity.notBefore.day = 3;
+    validity.notBefore.hours = 15;
+    validity.notBefore.minutes = 23;
+    validity.notBefore.seconds = 19;
 
     validity.notAfter.year = 2040;
     validity.notAfter.month = 6;
     validity.notAfter.day = 24;
+    validity.notAfter.hours = 15;
+    validity.notAfter.minutes = 23;
+    validity.notAfter.seconds = 19;
 
     X509SignAlgoId algo;
     osMemset(&algo, 0x00, sizeof(algo));
@@ -327,7 +344,7 @@ void cert_generate_serial(uint8_t *serial, size_t *serial_length)
     time_t cur_time = getCurrentUnixTime();
 
     /* write the current time in big endian format with leading zero */
-    *serial_length = 9;
+    //*serial_length = 18 + 1;
     serial[0] = 0;
     STORE64BE(cur_time, &serial[1]);
 
@@ -404,14 +421,15 @@ error_t cert_generate_default()
 {
     const char *cacert = settings_get_string("core.server_cert.file.ca");
     const char *cacert_key = settings_get_string("core.server_cert.file.ca_key");
-    uint8_t serial[9];
-    size_t serial_length;
+    uint8_t serial[14];
+    size_t serial_length = 14;
 
     /* create a proper ASN.1 compatible serial with no leading zeroes */
     cert_generate_serial(serial, &serial_length);
+    serial[0] = 0x00;
 
     TRACE_INFO("Generating CA certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud CA Root Certificate", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
+    if (cert_generate_signed("TeddyCloud CA Root Cert.", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;

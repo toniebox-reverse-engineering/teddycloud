@@ -1547,7 +1547,7 @@ error_t settings_load_certs_id(uint8_t settingsId)
     {
         TRACE_INFO("********************************************\r\n");
         TRACE_INFO("   No certificates found. Generating.\r\n");
-        TRACE_INFO("   This will take some time...\r\n");
+        TRACE_INFO("   This will take several minutes...\r\n");
         TRACE_INFO("********************************************\r\n");
         cert_generate_default();
         TRACE_INFO("********************************************\r\n");

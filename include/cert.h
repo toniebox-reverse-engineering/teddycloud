@@ -87,4 +87,4 @@ error_t cert_generate_default();
  */
 void cert_truncate_serial(uint8_t *serial, size_t *serial_length);
 
-#define CERT_RSA_SIZE 2048
+#define CERT_RSA_SIZE 4096
