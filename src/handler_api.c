@@ -1181,7 +1181,7 @@ error_t file_save_end_suffix(void *in_ctx)
     return NO_ERROR;
 }
 
-error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
     char message[128];
@@ -1233,7 +1233,7 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
     return httpWriteResponseString(connection, message, false);
 }
 
-error_t handleApiExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     error_t error = NO_ERROR;
     const char *firmwareRootPath = get_settings()->internal.firmwaredirfull;
@@ -1309,7 +1309,7 @@ error_t handleApiExtractCerts(HttpConnection *connection, const char_t *uri, con
     osFreeMem(private2_file);
     return error;
 }
-error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
