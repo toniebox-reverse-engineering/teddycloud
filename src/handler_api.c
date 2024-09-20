@@ -1233,6 +1233,82 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
     return httpWriteResponseString(connection, message, false);
 }
 
+error_t handleApiExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    error_t error = NO_ERROR;
+    const char *firmwareRootPath = get_settings()->internal.firmwaredirfull;
+    const char *certRootPath = get_settings()->internal.certdirfull;
+    char filename[255] = {0};
+    char mac[13] = {0};
+
+    if (!queryGet(queryString, "filename", filename, sizeof(filename)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    const char *sep = osStrchr(filename, '_');
+    if (!sep || strlen(&sep[1]) < 12)
+    {
+        TRACE_ERROR("Invalid file pattern '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+    osStrncpy(mac, &sep[1], 12);
+    mac[12] = 0;
+
+    char *file_path = custom_asprintf("%s%c%s", firmwareRootPath, PATH_SEPARATOR, filename);
+    char *target_dir = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, mac);
+
+    char *ca_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "CA.DER");
+    char *client_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "CLIENT.DER");
+    char *private_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "PRIVATE.DER");
+
+    char *ca2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "ca.der");
+    char *client2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "client.der");
+    char *private2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "private.der");
+
+    do
+    {
+        error = fsCreateDir(target_dir);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
+            break;
+        }
+        error = esp32_fat_extract(file_path, "CERT", target_dir);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("esp32_fat_extract failed with error %s\r\n", error2text(error));
+            break;
+        }
+        error = fsMoveFile(ca_file, ca2_file, true);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Moving CA from %s to %s failed with error %s\r\n", ca_file, ca2_file, error2text(error));
+        }
+        error = fsMoveFile(client_file, client2_file, true);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Moving CLIENT from %s to %s failed with error %s\r\n", client_file, client2_file, error2text(error));
+        }
+        error = fsMoveFile(private_file, private2_file, true);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Moving PRIVATE from %s to %s failed with error %s\r\n", private_file, private2_file, error2text(error));
+        }
+    } while (false);
+
+    osFreeMem(file_path);
+    osFreeMem(target_dir);
+
+    osFreeMem(ca_file);
+    osFreeMem(client_file);
+    osFreeMem(private_file);
+
+    osFreeMem(ca2_file);
+    osFreeMem(client2_file);
+    osFreeMem(private2_file);
+    return error;
+}
 error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = get_settings()->internal.firmwaredirfull;

@@ -124,6 +124,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/dirCreate", SERTY_WEB, &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", SERTY_WEB, &handleApiUploadCert},
     {REQ_POST, "/api/uploadFirmware", SERTY_WEB, &handleApiUploadFirmware},
+    {REQ_POST, "/api/extractCerts", SERTY_WEB, &handleApiExtractCerts},
     {REQ_GET, "/api/patchFirmware", SERTY_WEB, &handleApiPatchFirmware},
     {REQ_POST, "/api/fileUpload", SERTY_WEB, &handleApiFileUpload},
     {REQ_POST, "/api/fileEncode", SERTY_WEB, &handleApiEncodeFile},
