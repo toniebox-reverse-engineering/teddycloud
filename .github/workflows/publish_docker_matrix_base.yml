@@ -82,14 +82,14 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
             prefix=arch_,onlatest=true
-            suffix=_${{ matrix.platform }}_ubuntu,onlatest=${{ inputs.primary_image }}
+            suffix=_${{ matrix.platform }}_${{ inputs.system }},onlatest=${{ inputs.primary_image }}
 
       - name: Modify tags
         id: modify_tags
         if: ${{ inputs.primary_image }}
         run: |
           original_tags=$(jq -cr '.tags | map(.) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
+          modified_tags=$(echo "$original_tags" | sed 's/_${{ inputs.system }}//')
           all_tags="$original_tags $modified_tags"
           echo "all_tags=$all_tags"
           echo "all_tags=$all_tags" >> $GITHUB_OUTPUT
