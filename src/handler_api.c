@@ -1235,6 +1235,9 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
 
 error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    uint_t statusCode = 500;
+    char message[1024];
+
     error_t error = NO_ERROR;
     const char *firmwareRootPath = get_settings()->internal.firmwaredirfull;
     const char *certRootPath = get_settings()->internal.certdirfull;
@@ -1271,31 +1274,42 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
         error = fsCreateDir(target_dir);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
+            osSnprintf(message, sizeof(message), "Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
             break;
         }
         error = esp32_fat_extract(file_path, "CERT", target_dir);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("esp32_fat_extract failed with error %s\r\n", error2text(error));
+            osSnprintf(message, sizeof(message), "esp32_fat_extract failed with error %s\r\n", error2text(error));
             break;
         }
         error = fsMoveFile(ca_file, ca2_file, true);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Moving CA from %s to %s failed with error %s\r\n", ca_file, ca2_file, error2text(error));
+            osSnprintf(message, sizeof(message), "Moving CA from %s to %s failed with error %s\r\n", ca_file, ca2_file, error2text(error));
+            break;
         }
         error = fsMoveFile(client_file, client2_file, true);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Moving CLIENT from %s to %s failed with error %s\r\n", client_file, client2_file, error2text(error));
+            osSnprintf(message, sizeof(message), "Moving CLIENT from %s to %s failed with error %s\r\n", client_file, client2_file, error2text(error));
+            break;
         }
         error = fsMoveFile(private_file, private2_file, true);
         if (error != NO_ERROR)
         {
-            TRACE_ERROR("Moving PRIVATE from %s to %s failed with error %s\r\n", private_file, private2_file, error2text(error));
+            osSnprintf(message, sizeof(message), "Moving PRIVATE from %s to %s failed with error %s\r\n", private_file, private2_file, error2text(error));
+            break;
         }
+
+        osSnprintf(message, sizeof(message), "OK");
+        statusCode = 200;
     } while (false);
+
+    if (statusCode != 200)
+    {
+        TRACE_ERROR("%s\r\n", message);
+    }
 
     osFreeMem(file_path);
     osFreeMem(target_dir);
@@ -1307,7 +1321,11 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     osFreeMem(ca2_file);
     osFreeMem(client2_file);
     osFreeMem(private2_file);
-    return error;
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
 }
 error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
