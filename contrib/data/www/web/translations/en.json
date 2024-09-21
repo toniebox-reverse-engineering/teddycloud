@@ -4,6 +4,9 @@
         "navigationTitle": "404 - Page not found",
         "title": "404"
     },
+    "audio": {
+        "unknownSource": "Unkown"
+    },
     "community": {
         "changelog": {
             "navigationTitle": "Changelog",
@@ -99,14 +102,15 @@
         "delete": "Delete",
         "deleteMultiple": "Delete selected rows",
         "encodeFiles": {
-            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: ",
+            "addFiles": "Add files",
+            "cancel": "Cancel",
+            "encode": "Encode",
+            "encodeFiles": "Encode selected files into a taf file. Only the following file types will be considered: ",
+            "encodingFailed": "Encoding failed!",
             "encodingInProgress": "Files are being encoded...",
             "encodingSuccessful": "Files encoded successfully!",
-            "encodingFailed": "Encoding failed!",
             "modalTitle": "Encode Audio Files",
-            "encode": "Encode",
-            "cancel": "Cancel",
-            "encodeFiles": "Encode selected files into a taf file. Only the following file types will be considered: "
+            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: "
         },
         "episode": "Episode",
         "filter": "Filter within current folder",
@@ -149,7 +153,7 @@
             "rename": "Rename"
         },
         "root": "Root",
-        "selectTafOrTapOnly": "You can only select TAF or TAP files!",
+        "selectAllowedFileTypesOnly": "You can only select the following file types: {{fileTypes}}",
         "series": "Series",
         "size": "Size",
         "tafMeta": {
@@ -160,19 +164,19 @@
             "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
         },
         "upload": {
-            "hideUploadFilesDragNDrop": "Hide file upload",
-            "showUploadFilesDragNDrop": "File upload",
-            "uploadText": "Click or drag files to this area to upload",
-            "uploadHint": "Drag files here to upload",
-            "upload": "Upload",
             "cancel": "Cancel",
+            "hideUploadFilesDragNDrop": "Hide file upload",
             "modalTitle": "Upload file(s)",
-            "uploading": "Uploading...",
-            "uploadFailedForFile": "Upload of \"{{file}}\" failed.",
-            "uploadSuccessfulForFile": "File \"{{file}}\" uploaded successfully.",
-            "uploadInProgress": "Uploading \"{{file}}\"...",
+            "showUploadFilesDragNDrop": "File upload",
+            "upload": "Upload",
             "uploadFailed": "Some files could not be uploaded. Please try again.",
-            "uploadSuccessful": "Files uploaded successfully."
+            "uploadFailedForFile": "Upload of \"{{file}}\" failed.",
+            "uploadHint": "Drag files here to upload",
+            "uploadInProgress": "Uploading \"{{file}}\"...",
+            "uploadSuccessful": "Files uploaded successfully.",
+            "uploadSuccessfulForFile": "File \"{{file}}\" uploaded successfully.",
+            "uploadText": "Click or drag files to this area to upload",
+            "uploading": "Uploading..."
         }
     },
     "home": {
@@ -395,6 +399,7 @@
             "attention": "Attention",
             "browserNotSupported": "ESP32 Box Flashing can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
             "esp32flasher": {
+                "automatically": "Automatically",
                 "cancel": "Cancel",
                 "chipMAC": "Chip MAC",
                 "chipType": "Chip Type",
@@ -414,14 +419,12 @@
                 "downloadLinkPatched": "Download patched firmware",
                 "error": "Error",
                 "extractCertificates": "Extract Certificates for TeddyCloud",
-                "automatically": "Automatically",
-                "manually": "Manually",
-                "extractingCertificates": "Extracting certificates for TeddyCloud...",
                 "extractCertificatesAutomaticallyHint": "Click the button \"Extract certificates for TeddyCloud\" to automatically extract and store the certificates in TeddyCloud.",
-                "extractingCertificatesSuccessful": "Certificates successfully extracted from \"{{file}}\" and stored in TeddyCloud.",
-                "extractingCertificatesFailed": "Failed to extract certificates from \"{{file}}\"",
-                "extractCertificatesManuallyHint": "You can also extract the certificates manually by following the steps below.",
                 "extractCertificatesManually": "Extract certificates manually",
+                "extractCertificatesManuallyHint": "You can also extract the certificates manually by following the steps below.",
+                "extractingCertificates": "Extracting certificates for TeddyCloud...",
+                "extractingCertificatesFailed": "Failed to extract certificates from \"{{file}}\"",
+                "extractingCertificatesSuccessful": "Certificates successfully extracted from \"{{file}}\" and stored in TeddyCloud.",
                 "failedToCommunicate": "Failed to communicate:",
                 "failedToConnect": "Failed to connect:",
                 "flash": "Flash",
@@ -443,6 +446,7 @@
                 "infoTable": "ESP32 info",
                 "invalidSerialPort": "Invalid serial port",
                 "loadFile": "Load File",
+                "manually": "Manually",
                 "next": "Next",
                 "noPortAvailable": "No port available or user aborted",
                 "patchImage": "Patch",
@@ -631,7 +635,7 @@
         "selectFileModal": {
             "cancel": "Cancel",
             "ok": "OK",
-            "selectFile": "Select TAF/TAP-file"
+            "selectFile": "Select file"
         },
         "system-sounds": {
             "navigationTitle": "System Sounds",

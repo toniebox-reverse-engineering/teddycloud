@@ -4,6 +4,9 @@
         "navigationTitle": "404 - Seite nicht gefunden",
         "title": "404"
     },
+    "audio": {
+        "unknownSource": "Unbekannt"
+    },
     "community": {
         "changelog": {
             "navigationTitle": "Changelog",
@@ -99,14 +102,15 @@
         "delete": "Löschen",
         "deleteMultiple": "Markierte Zeilen löschen",
         "encodeFiles": {
-            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: ",
+            "addFiles": "Dateien hinzufügen",
+            "cancel": "Abbrechen",
+            "encode": "Konvertiere",
+            "encodeFiles": "Markierte Dateien in eine taf-Datei konvertieren. Nur die folgenden Dateitypen werden berücksichtigt: ",
+            "encodingFailed": "Konvertierung fehlgeschlagen!",
             "encodingInProgress": "Dateien werden konvertiert...",
             "encodingSuccessful": "Dateien erfolgreich konvertiert!",
-            "encodingFailed": "Konvertierung fehlgeschlagen!",
             "modalTitle": "Audiodateien konvertieren",
-            "encode": "Konvertiere",
-            "cancel": "Abbrechen",
-            "encodeFiles": "Markierte Dateien in eine taf-Datei konvertieren. Nur die folgenden Dateitypen werden berücksichtigt: "
+            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: "
         },
         "episode": "Episode",
         "filter": "Filter im aktuellen Ordner",
@@ -149,7 +153,7 @@
             "rename": "Umbenennen"
         },
         "root": "Stammverzeichnis",
-        "selectTafOrTapOnly": "Du kannst nur TAF oder TAP Dateien auswählen!",
+        "selectAllowedFileTypesOnly": "Du kannst nur folgende Dateitypen auswählen: {{fileTypes}}",
         "series": "Serie",
         "size": "Größe",
         "tafMeta": {
@@ -160,19 +164,19 @@
             "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
         },
         "upload": {
-            "hideUploadFilesDragNDrop": "Dateiupload ausblenden",
-            "showUploadFilesDragNDrop": "Dateiupload",
-            "uploadText": "Klicke oder ziehe die Dateien zum Hochladen in diesen Bereich",
-            "uploadHint": "Ziehe die hochzuladenden Dateien hierher",
-            "upload": "Hochladen",
             "cancel": "Abbrechen",
+            "hideUploadFilesDragNDrop": "Dateiupload ausblenden",
             "modalTitle": "Datei(en) hochladen",
-            "uploading": "Lädt hoch...",
-            "uploadFailedForFile": "Hochladen von \"{{file}}\" fehlgeschlagen.",
-            "uploadSuccessfulForFile": "Datei \"{{file}}\" erfolgreich hochgeladen.",
-            "uploadInProgress": "Lade \"{{file}}\" hoch...",
+            "showUploadFilesDragNDrop": "Dateiupload",
+            "upload": "Hochladen",
             "uploadFailed": "Einige Dateien konnten nicht hochgeladen werden. Versuche es erneut.",
-            "uploadSuccessful": "Dateien erfolgreich hochgeladen."
+            "uploadFailedForFile": "Hochladen von \"{{file}}\" fehlgeschlagen.",
+            "uploadHint": "Ziehe die hochzuladenden Dateien hierher",
+            "uploadInProgress": "Lade \"{{file}}\" hoch...",
+            "uploadSuccessful": "Dateien erfolgreich hochgeladen.",
+            "uploadSuccessfulForFile": "Datei \"{{file}}\" erfolgreich hochgeladen.",
+            "uploadText": "Klicke oder ziehe die Dateien zum Hochladen in diesen Bereich",
+            "uploading": "Lädt hoch..."
         }
     },
     "home": {
@@ -396,6 +400,7 @@
             "attention": "Achtung",
             "browserNotSupported": "ESP32 Box Flashing kann nur mit Browsern genutzt werden, die die Web Serial API unterstützen. Dein genutzter Browser unterstützt diese Funktion leider nicht. Bitte verwende einen Browser, der die Web Serial API unterstützt, wie z.B. Chrome oder Edge.",
             "esp32flasher": {
+                "automatically": "Automatisch",
                 "cancel": "Abbrechen",
                 "chipMAC": "Chip-MAC",
                 "chipType": "Chip-Typ",
@@ -415,14 +420,12 @@
                 "downloadLinkPatched": "Download gepachte Firmware",
                 "error": "Fehler",
                 "extractCertificates": "Zertifikate für TeddyCloud extrahieren",
-                "automatically": "Automatisch",
-                "manually": "Manuell",
-                "extractingCertificates": "Zertifikate für TeddyCloud werden extrahiert...",
                 "extractCertificatesAutomaticallyHint": "Klicke den Button \"Zertifikate für TeddyCloud extrahieren\" zum automatischen Extrahieren und Ablegen der Zertifikate in TeddyCloud.",
-                "extractingCertificatesSuccessful": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud abgelegt.",
-                "extractingCertificatesFailed": "Zertifikate aus \"{{file}}\" extrahieren fehlgeschlagen",
-                "extractCertificatesManuallyHint": "Du kannst die Zertifikate auch manuell extrahieren, führe dazu die folgenden Schritte durch",
                 "extractCertificatesManually": "Zertifikate manuell extrahieren",
+                "extractCertificatesManuallyHint": "Du kannst die Zertifikate auch manuell extrahieren, führe dazu die folgenden Schritte durch",
+                "extractingCertificates": "Zertifikate für TeddyCloud werden extrahiert...",
+                "extractingCertificatesFailed": "Zertifikate aus \"{{file}}\" extrahieren fehlgeschlagen",
+                "extractingCertificatesSuccessful": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud abgelegt.",
                 "failedToCommunicate": "Kommunikation fehlgeschlagen:",
                 "failedToConnect": "Verbindung fehlgeschlagen:",
                 "flash": "Flashen",
@@ -444,6 +447,7 @@
                 "infoTable": "ESP32 info",
                 "invalidSerialPort": "Ungültiger serieller Port",
                 "loadFile": "Datei laden",
+                "manually": "Manuell",
                 "next": "Weiter",
                 "noPortAvailable": "Kein Port verfügbar oder Benutzer hat abgebrochen",
                 "patchImage": "Patch",
@@ -632,7 +636,7 @@
         "selectFileModal": {
             "cancel": "Abbrechen",
             "ok": "OK",
-            "selectFile": "TAF/TAP-Datei auswählen"
+            "selectFile": "Datei auswählen"
         },
         "system-sounds": {
             "navigationTitle": "System Sounds",
