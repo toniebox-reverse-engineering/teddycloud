@@ -113,7 +113,7 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
     return NO_ERROR;
 }
 
-error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file)
+error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, size_t key_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file)
 {
     /* load server CA certificate */
     X509CertInfo issuer_cert;
@@ -134,7 +134,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     size_t priv_size = 0;
     uint8_t *priv_data = NULL;
 
-    if (cert_generate_rsa(CERT_RSA_SIZE, &cert_privkey, &cert_pubkey) != NO_ERROR)
+    if (cert_generate_rsa(key_size, &cert_privkey, &cert_pubkey) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_rsa failed\r\n");
         return ERROR_FAILURE;
@@ -308,7 +308,7 @@ error_t cert_generate_mac(const char *mac, const char *dest)
     char_t *client_file = custom_asprintf("%s/client.der", dest);
     char_t *private_file = custom_asprintf("%s/private.der", dest);
 
-    if (cert_generate_signed(subj, serial, 7, false, true, client_file, private_file) != NO_ERROR)
+    if (cert_generate_signed(subj, serial, 7, CERT_RSA_SIZE, false, true, client_file, private_file) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
@@ -424,15 +424,26 @@ error_t cert_generate_default()
     uint8_t serial[14];
     size_t serial_length = 14;
 
-    /* create a proper ASN.1 compatible serial with no leading zeroes */
-    cert_generate_serial(serial, &serial_length);
-    serial[0] = 0x00;
+    error_t error_ca = load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", 0);
+    error_t error_ca_key = load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", 0);
 
-    TRACE_INFO("Generating CA certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud CA Root Cert.", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
+    if (error_ca != NO_ERROR || error_ca_key != NO_ERROR)
     {
-        TRACE_ERROR("cert_generate_signed failed\r\n");
-        return ERROR_FAILURE;
+
+        /* create a proper ASN.1 compatible serial with no leading zeroes */
+        cert_generate_serial(serial, &serial_length);
+        serial[0] = 0x00;
+
+        TRACE_INFO("Generating CA certificate...\r\n");
+        if (cert_generate_signed("TeddyCloud CA Root Cert.", serial, serial_length, CA_RSA_SIZE, true, false, cacert, cacert_key) != NO_ERROR)
+        {
+            TRACE_ERROR("cert_generate_signed failed\r\n");
+            return ERROR_FAILURE;
+        }
+    }
+    else
+    {
+        TRACE_INFO("CA certificates already there, skipping generation!\r\n");
     }
 
     /* reload certs to reload the CA cert again */
@@ -458,7 +469,7 @@ error_t cert_generate_default()
     cert_generate_serial(serial, &serial_length);
 
     TRACE_INFO("Generating Server certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, false, false, server_cert, server_key) != NO_ERROR)
+    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, CERT_RSA_SIZE, false, false, server_cert, server_key) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
