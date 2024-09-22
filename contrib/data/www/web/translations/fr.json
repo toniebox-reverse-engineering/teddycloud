@@ -179,6 +179,9 @@
             "uploading": "Téléversement en cours..."
         }
     },
+    "inputValidator": {
+        "invalidCharactersDetected": "Ta saisie contient des caractères invalides, tels que {{invalidChar}}"
+    },
     "home": {
         "features": {
             "currentlyImplementedFeatures": "Fonctionnalités actuellement implémentées",
