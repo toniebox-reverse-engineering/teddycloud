@@ -149,7 +149,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
 int32_t read_little_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24));
+    return (int32_t)((uint32_t)buf[0] | (buf[1] << 8) | ((uint32_t)buf[2] << 16) | ((uint32_t)buf[3] << 24));
 }
 
 int64_t read_little_endian64(const uint8_t *buf)
