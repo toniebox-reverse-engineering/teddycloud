@@ -805,6 +805,10 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
     {
         TRACE_INFO("TAF encoding successful\r\n");
     }
+    else if (isStream)
+    {
+        TRACE_INFO("TAF encoding stopped (streaming)\r\n");
+    }
     else
     {
         TRACE_ERROR("TAF encoding failed, deleting TAF\r\n");
