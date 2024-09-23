@@ -274,6 +274,9 @@
         "yourCustomTonies": "Deine Custom Tonies",
         "yourTonies": "Deine Tonies"
     },
+    "inputValidator": {
+        "invalidCharactersDetected": "Deine Eingabe enthält ungültige Zeichen, wie {{invalidChar}}"
+    },
     "language": {
         "change": "Sprache ändern",
         "english": "EN",

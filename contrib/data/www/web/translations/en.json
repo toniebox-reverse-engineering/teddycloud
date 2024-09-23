@@ -179,6 +179,9 @@
             "uploading": "Uploading..."
         }
     },
+    "inputValidator": {
+        "invalidCharactersDetected": "Your input contains invalid characters, such as {{invalidChar}}"
+    },
     "home": {
         "features": {
             "currentlyImplementedFeatures": "Currently implemented features",
