@@ -641,6 +641,10 @@ bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len)
 bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
 bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
 
+bool settings_set_by_string(const char *item, const char *value);
+bool settings_set_by_string_ovl(const char *item, const char *value, const char *overlay_name);
+bool settings_set_by_string_id(const char *item, const char *value, uint8_t settingsId);
+
 void settings_load_all_certs();
 error_t settings_try_load_certs_id(uint8_t settingsId);
 error_t settings_load_certs_id(uint8_t settingsId);

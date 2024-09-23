@@ -16,6 +16,24 @@
             },
         },
         {
+            "name": "[linux] teddyCloud Settings Port Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/teddycloud",
+            "args": [
+                "--config-set",
+                "core.server.http_port=90,core.server.https_web_port=9443"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb",
+            },
+        },
+        {
             "name": "[linux] teddyCloud Time Test",
             "type": "cppdbg",
             "request": "launch",

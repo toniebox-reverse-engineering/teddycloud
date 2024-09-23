@@ -1505,6 +1505,77 @@ static char *settings_sanitize_box_id(const char *input_id)
     return new_str;
 }
 
+bool settings_set_by_string(const char *item, const char *value)
+{
+    return settings_set_by_string_id(item, value, 0);
+}
+bool settings_set_by_string_ovl(const char *item, const char *value, const char *overlay_name)
+{
+    return settings_set_by_string_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_by_string_id(const char *item, const char *value, uint8_t settingsId)
+{
+    bool success = false;
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
+    if (opt == NULL)
+    {
+        TRACE_ERROR("Settings: %s not found\r\n", item);
+        return ERROR_NOT_FOUND;
+    }
+    else if (opt)
+    {
+        switch (opt->type)
+        {
+        case TYPE_BOOL:
+        {
+            success = settings_set_bool_id(item, !strcasecmp(value, "true"), settingsId);
+            break;
+        }
+        case TYPE_STRING:
+        {
+            success = settings_set_string_id(item, value, settingsId);
+            break;
+        }
+        case TYPE_HEX:
+        {
+            uint32_t data = strtoul(value, NULL, 16);
+            success = settings_set_unsigned_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_UNSIGNED:
+        {
+            uint32_t data = strtoul(value, NULL, 10);
+            success = settings_set_unsigned_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_SIGNED:
+        {
+            int32_t data = strtol(value, NULL, 10);
+            success = settings_set_signed_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_FLOAT:
+        {
+            float data = strtof(value, NULL);
+            success = settings_set_float_id(item, data, settingsId);
+            break;
+        }
+
+        default:
+            break;
+        }
+    }
+    else
+    {
+        TRACE_WARNING("Setting: '%s' cannot be set to '%s'\r\n", item, value);
+    }
+
+    return success;
+}
+
 /* unused? */
 void settings_load_all_certs()
 {

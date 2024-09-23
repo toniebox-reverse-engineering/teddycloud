@@ -206,6 +206,24 @@ void cbr_header(void *ctx, HttpClientContext *cloud_ctx, const char *header, con
     }
 }
 
+void set_settings(const char *option)
+{
+    // Option will be in the format "name=value"
+    char *data = strdup(option);
+    char *name = strtok(data, "=");
+    char *value = strtok(NULL, "=");
+
+    if (name && value)
+    {
+        TRACE_INFO("Setting config entry '%s' to value '%s'\r\n", name, value);
+        settings_set_by_string(name, value);
+    }
+    else
+    {
+        TRACE_ERROR("Invalid config-set option format. Expected name=value.\r\n");
+    }
+}
+
 int_t main(int argc, char *argv[])
 {
     char cwd[PATH_LEN] = {0};
@@ -244,6 +262,7 @@ int_t main(int argc, char *argv[])
         const char *hostname;
         const char *oldrtnlhost;
         const char *oldapihost;
+        const char *config_set;
     } options = {0};
 
     options.base_path = BASE_PATH;
@@ -269,15 +288,16 @@ int_t main(int argc, char *argv[])
                 {"esp32-extract", required_argument, 0, 'X'},
                 {"docker-test", no_argument, 0, 'D'},
                 {"url-test", required_argument, 0, 'U'},
-                {"cloud-test", required_argument, 0, 'C'},
+                {"cloud-test", required_argument, 0, 'T'},
                 {"hash", required_argument, 0, 'H'},
                 {"hostname", required_argument, 0, 'h'},
+                {"config-set", required_argument, 0, 'C'},
                 {"help", no_argument, 0, '?'},
                 {0, 0, 0, 0}};
 
         /* getopt_long stores the option index here. */
         int option_index = 0;
-        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:C:H:h:?", long_options, &option_index);
+        int c = getopt_long(argc, argv, "b:s:d:gc:e:E:S:P:F:I:X:DU:T:H:h:C:?", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
@@ -304,9 +324,10 @@ int_t main(int argc, char *argv[])
             OPT_SIMPLE_STR('X', esp32_extract);
             OPT_SIMPLE_NON('D', docker_test);
             OPT_SIMPLE_STR('U', url_test);
-            OPT_SIMPLE_STR('C', cloud_test);
+            OPT_SIMPLE_STR('T', cloud_test);
             OPT_SIMPLE_STR('H', hash);
             OPT_SIMPLE_STR('h', hostname);
+            OPT_SIMPLE_STR('C', config_set);
             OPT_SIMPLE_STR(0x100, oldrtnlhost);
             OPT_SIMPLE_STR(0x101, oldapihost);
 
@@ -335,6 +356,19 @@ int_t main(int argc, char *argv[])
     /* ok now load settings, autogenerate certs if needed */
     get_settings()->internal.autogen_certs = autogen;
     main_init_settings(cwd, options.base_path);
+
+    /* parse config-set option */
+    if (options.config_set)
+    {
+        char *config_set_ptr;
+        char *config_set = strdup(options.config_set);
+        char *option = strtok_r(config_set, ",", &config_set_ptr);
+        while (option)
+        {
+            set_settings(option);
+            option = strtok_r(NULL, ",", &config_set_ptr);
+        }
+    }
 
     toniebox_state_init();
     platform_init();
@@ -638,6 +672,9 @@ static void print_usage(char *argv[])
         "    Optional: --hash <HASH> to specify a hash value used in the test.\r\n"
         "\r\n"
         "  --encode-test <FILE>\r\n"
+        "    Perform an internal encoding test on the specified file.\r\n"
+        "\r\n"
+        "  --config-set <NAME>=<VALUE>,<NAME2>=<VALUE2>,...\r\n"
         "    Perform an internal encoding test on the specified file.\r\n"
         "\r\n",
 
