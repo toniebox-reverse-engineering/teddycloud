@@ -227,9 +227,14 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
 
     char overlay[16];
     osStrcpy(overlay, "");
-    char internal[16];
+    char internal[6];
     osStrcpy(internal, "");
+    char noLevel[6];
+    osStrcpy(noLevel, "");
+
     bool showInternal = false;
+    bool isNoLevel = false;
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -239,6 +244,13 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         if (internal[0] == 't')
         {
             showInternal = true;
+        }
+    }
+    if (queryGet(queryString, "nolevel", noLevel, sizeof(internal)))
+    {
+        if (noLevel[0] == 't')
+        {
+            isNoLevel = true;
         }
     }
     for (size_t pos = 0; pos < settings_get_size(); pos++)
@@ -256,7 +268,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         }
 
         settings_level user_level = get_settings_ovl(overlay)->core.settings_level;
-        if (opt->level > user_level)
+        if (!isNoLevel && opt->level > user_level)
         {
             continue;
         }
@@ -268,38 +280,45 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
         cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
         cJSON_AddBoolToObject(jsonEntry, "internal", opt->internal);
+        cJSON_AddNumberToObject(jsonEntry, "level", opt->level);
 
         switch (opt->type)
         {
         case TYPE_BOOL:
             cJSON_AddStringToObject(jsonEntry, "type", "bool");
             cJSON_AddBoolToObject(jsonEntry, "value", settings_get_bool_ovl(opt->option_name, overlay));
+            cJSON_AddBoolToObject(jsonEntry, "valueInit", opt->init.bool_value);
             break;
         case TYPE_UNSIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "uint");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_SIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "int");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.signed_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.signed_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.signed_value);
             break;
         case TYPE_HEX:
             cJSON_AddStringToObject(jsonEntry, "type", "hex");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_STRING:
             cJSON_AddStringToObject(jsonEntry, "type", "string");
             cJSON_AddStringToObject(jsonEntry, "value", settings_get_string_ovl(opt->option_name, overlay));
+            cJSON_AddStringToObject(jsonEntry, "valueInit", opt->init.string_value);
             break;
         case TYPE_FLOAT:
             cJSON_AddStringToObject(jsonEntry, "type", "float");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.float_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.float_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.float_value);
             break;
