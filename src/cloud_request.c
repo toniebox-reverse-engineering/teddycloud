@@ -218,7 +218,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to connect to HTTP server! Error=%s\r\n", error2text(error));
+                TRACE_ERROR("Failed to connect to HTTP server! HTTP=%s error=%s\r\n", httpstatus2text(error), error2text(error));
                 if (isCloud)
                     stats_update("cloud_failed", 1);
                 break;
