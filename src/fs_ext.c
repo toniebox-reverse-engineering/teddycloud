@@ -1,11 +1,13 @@
 
 #include "fs_ext.h"
 
+#include <errno.h>           // for errno
 #include <stdint.h>          // for uint8_t
 #include <stdio.h>           // for fopen, FILE
 #include <stdlib.h>          // for NULL, free
-#include <string.h>          // for strdup, strlen, strrchr
+#include <string.h>          // for strdup, strlen, strrchr, strerror
 #include "error.h"           // for NO_ERROR, ERROR_END_OF_FILE, ERROR_FILE_...
+#include "debug.h"           // for TRACE_INFO, TRACE_ERROR, TRACE_LEVEL_INFO
 #include "fs_port_config.h"  // for PATH_SEPARATOR
 #include "os_port.h"         // for osStrlen
 
@@ -36,6 +38,10 @@ FsFile *fsOpenFileEx(const char_t *path, char *mode)
 
     // Open the specified file
     fp = fopen(path, mode);
+
+    if (fp == NULL) {
+        TRACE_ERROR("Could not open file %s: %s\n", path, strerror(errno));
+    }
 
     // Return a handle to the file
     return fp;
