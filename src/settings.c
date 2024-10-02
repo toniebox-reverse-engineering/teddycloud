@@ -1597,25 +1597,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
     load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
 
-    const char *client_ca_crt = settings_get_string("internal.client.ca");
-
-    size_t boxine_ca_length = 2008;
-    size_t ca_length = osStrlen(client_ca_crt);
-    if (ca_length > 0)
-    {
-        if (ca_length != boxine_ca_length)
-        {
-            TRACE_WARNING("Client CA length mismatch %" PRIuSIZE " expected %" PRIuSIZE "\r\n", ca_length, boxine_ca_length);
-        }
-        else
-        {
-            if (osStrstr(client_ca_crt, "MC0JveGluZSBHbW") == NULL   // Boxine GmbH
-                || osStrstr(client_ca_crt, "DAlCb3hpbmUgQ") == NULL) // Boxine
-            {
-                TRACE_WARNING("Client CA does not match Boxine\r\n");
-            }
-        }
-    }
+    test_boxine_ca(settingsId);
 
     const char *server_crt = settings_get_string("internal.server.crt");
     const char *server_ca_crt = settings_get_string("internal.server.ca");
@@ -1623,7 +1605,6 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
     settings_set_string_id("internal.server.cert_chain", chain, settingsId);
     osFreeMem(chain);
-
     return NO_ERROR;
 }
 
@@ -1647,4 +1628,31 @@ error_t settings_load_certs_id(uint8_t settingsId)
     }
 
     return NO_ERROR;
+}
+
+bool test_boxine_ca(uint8_t settingsId)
+{
+    const char *client_ca_crt = settings_get_string_id("internal.client.ca", settingsId);
+
+    size_t boxine_ca_length = 2008;
+    size_t ca_length = osStrlen(client_ca_crt);
+    if (ca_length > 0)
+    {
+        if (ca_length != boxine_ca_length)
+        {
+            TRACE_WARNING("Client CA length mismatch %" PRIuSIZE " expected %" PRIuSIZE "\r\n", ca_length, boxine_ca_length);
+            return false;
+        }
+        else
+        {
+            if (osStrstr(client_ca_crt, "MC0JveGluZSBHbW") == NULL   // Boxine GmbH
+                || osStrstr(client_ca_crt, "DAlCb3hpbmUgQ") == NULL) // Boxine
+            {
+                TRACE_WARNING("Client CA does not match Boxine\r\n");
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
