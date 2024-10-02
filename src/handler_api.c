@@ -1194,6 +1194,33 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
     return httpWriteResponseString(connection, message, false);
 }
 
+bool_t move_cert_file(const char *type, char *from, char *to, char message[1024], uint_t *statusCode, bool overwrite)
+{
+    size_t message_size = 1024;
+    error_t error = fsCompareFiles(from, to, NULL);
+    if (error == ERROR_FILE_NOT_FOUND || overwrite)
+    {
+        error = fsMoveFile(from, to, true);
+        if (error != NO_ERROR)
+        {
+            osSnprintf(message, message_size, "Moving %s from %s to %s failed with error %s\r\n", type, from, to, error2text(error));
+            return false;
+        }
+    }
+    else if (error == ERROR_ABORTED)
+    {
+        *statusCode = 409; // Conflict
+        osSnprintf(message, message_size, "Different %s already exists at %s\r\n", type, to);
+        return false;
+    }
+    else if (error == NO_ERROR)
+    {
+        TRACE_INFO("Skipped identical %s", type);
+        fsDeleteFile(from);
+    }
+    return true;
+}
+
 error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
@@ -1203,11 +1230,21 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     const char *firmwareRootPath = get_settings()->internal.firmwaredirfull;
     const char *certRootPath = get_settings()->internal.certdirfull;
     char filename[255] = {0};
+    char overwrite_s[16] = {0};
     char mac[13] = {0};
 
     if (!queryGet(queryString, "filename", filename, sizeof(filename)))
     {
         return ERROR_FAILURE;
+    }
+
+    bool overwrite = false;
+    if (queryGet(queryString, "overwrite", overwrite_s, sizeof(overwrite_s)))
+    {
+        if (overwrite_s[0] == 't')
+        {
+            overwrite = true;
+        }
     }
 
     const char *sep = osStrchr(filename, '_');
@@ -1226,17 +1263,24 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     char *client_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "CLIENT.DER");
     char *private_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "PRIVATE.DER");
 
-    char *ca2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "ca.der");
-    char *client2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "client.der");
-    char *private2_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "private.der");
+    char *ca_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "ca.der");
+    char *client_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "client.der");
+    char *private_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "private.der");
+
+    char *ca_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "ca.der");
+    char *client_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "client.der");
+    char *private_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "private.der");
 
     do
     {
-        error = fsCreateDir(target_dir);
-        if (error != NO_ERROR)
+        if (!fsDirExists(target_dir))
         {
-            osSnprintf(message, sizeof(message), "Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
-            break;
+            error = fsCreateDir(target_dir);
+            if (error != NO_ERROR)
+            {
+                osSnprintf(message, sizeof(message), "Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
+                break;
+            }
         }
         error = esp32_fat_extract(file_path, "CERT", target_dir);
         if (error != NO_ERROR)
@@ -1244,22 +1288,30 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
             osSnprintf(message, sizeof(message), "esp32_fat_extract failed with error %s\r\n", error2text(error));
             break;
         }
-        error = fsMoveFile(ca_file, ca2_file, true);
-        if (error != NO_ERROR)
+
+        if (!move_cert_file("CA", ca_file, ca_target_file, message, &statusCode, overwrite))
         {
-            osSnprintf(message, sizeof(message), "Moving CA from %s to %s failed with error %s\r\n", ca_file, ca2_file, error2text(error));
             break;
         }
-        error = fsMoveFile(client_file, client2_file, true);
-        if (error != NO_ERROR)
+        if (!move_cert_file("CLIENT", client_file, client_target_file, message, &statusCode, overwrite))
         {
-            osSnprintf(message, sizeof(message), "Moving CLIENT from %s to %s failed with error %s\r\n", client_file, client2_file, error2text(error));
             break;
         }
-        error = fsMoveFile(private_file, private2_file, true);
-        if (error != NO_ERROR)
+        if (!move_cert_file("PRIVATE", private_file, private_target_file, message, &statusCode, overwrite))
         {
-            osSnprintf(message, sizeof(message), "Moving PRIVATE from %s to %s failed with error %s\r\n", private_file, private2_file, error2text(error));
+            break;
+        }
+
+        if (!move_cert_file("CA", ca_target_file, ca_global_file, message, &statusCode, overwrite))
+        {
+            break;
+        }
+        if (!move_cert_file("CLIENT", client_target_file, client_global_file, message, &statusCode, overwrite))
+        {
+            break;
+        }
+        if (!move_cert_file("PRIVATE", private_target_file, private_global_file, message, &statusCode, overwrite))
+        {
             break;
         }
 
@@ -1279,9 +1331,13 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     osFreeMem(client_file);
     osFreeMem(private_file);
 
-    osFreeMem(ca2_file);
-    osFreeMem(client2_file);
-    osFreeMem(private2_file);
+    osFreeMem(ca_target_file);
+    osFreeMem(client_target_file);
+    osFreeMem(private_target_file);
+
+    osFreeMem(ca_global_file);
+    osFreeMem(client_global_file);
+    osFreeMem(private_global_file);
 
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
