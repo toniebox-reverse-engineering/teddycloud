@@ -12,6 +12,7 @@
 
 #include "fs_port.h"
 #include "fs_ext.h"
+#include "os_ext.h"
 #include "server_helpers.h"
 #include "cert.h"
 
@@ -404,6 +405,7 @@ settings_t *get_settings_cn(const char *commonName)
 
                 const char *certDir = settings_get_string_id("core.certdir", i);
                 char *customCertDir = osAllocMem(osStrlen(boxId) + osStrlen(certDir) + 2);
+                osStringToLower(customCertDir);
                 osSnprintf(customCertDir, osStrlen(boxId) + osStrlen(certDir) + 2, "%s%c%s", certDir, PATH_SEPARATOR, boxId);
                 settings_set_string_id("core.certdir", customCertDir, i);
                 osFreeMem(customCertDir);

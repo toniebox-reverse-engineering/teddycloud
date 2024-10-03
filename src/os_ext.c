@@ -17,3 +17,21 @@ int osPclose(FILE *stream)
     return pclose(stream);
 #endif
 }
+
+void osStringToUpper(char *str)
+{
+    while (*str)
+    {
+        *str = toupper(*str);
+        str++;
+    }
+}
+
+void osStringToLower(char *str)
+{
+    while (*str)
+    {
+        *str = tolower(*str);
+        str++;
+    }
+}

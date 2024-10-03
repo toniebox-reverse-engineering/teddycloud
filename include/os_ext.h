@@ -5,3 +5,5 @@
 
 FILE *osPopen(const char *command, const char *type);
 int osPclose(FILE *stream);
+void osStringToUpper(char *str);
+void osStringToLower(char *str);

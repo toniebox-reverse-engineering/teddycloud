@@ -20,6 +20,7 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 #include "fs_ext.h"
+#include "os_ext.h"
 #include "cert.h"
 #include "esp32.h"
 #include "cache.h"
@@ -1255,6 +1256,7 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     }
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
+    osStringToLower(mac);
 
     char *file_path = custom_asprintf("%s%c%s", firmwareRootPath, PATH_SEPARATOR, filename);
     char *target_dir = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, mac);
