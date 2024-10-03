@@ -404,8 +404,8 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_get_by_name_id("core.certdir", i)->overlayed = true;
 
                 const char *certDir = settings_get_string_id("core.certdir", i);
+                osStringToLower(boxId);
                 char *customCertDir = osAllocMem(osStrlen(boxId) + osStrlen(certDir) + 2);
-                osStringToLower(customCertDir);
                 osSnprintf(customCertDir, osStrlen(boxId) + osStrlen(certDir) + 2, "%s%c%s", certDir, PATH_SEPARATOR, boxId);
                 settings_set_string_id("core.certdir", customCertDir, i);
                 osFreeMem(customCertDir);
