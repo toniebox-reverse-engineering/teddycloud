@@ -400,8 +400,14 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("boxName", boxName, i);
                 settings_set_string_id("boxModel", "", i);
                 settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
-                settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
-                settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
+                settings_get_by_name_id("core.certdir", i)->overlayed = true;
+
+                const char *certDir = settings_get_string_id("core.certdir", i);
+                char *customCertDir = osAllocMem(osStrlen(boxId) + osStrlen(certDir) + 2);
+                osSnprintf(customCertDir, osStrlen(boxId) + osStrlen(certDir) + 2, "%s%c%s", certDir, PATH_SEPARATOR, boxId);
+                settings_set_string_id("core.certdir", customCertDir, i);
+                osFreeMem(customCertDir);
+
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS);
