@@ -80,7 +80,6 @@ error_t httpClientTlsInitCallbackNoCA(HttpClientContext *context,
 error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
                                                   TlsContext *tlsContext)
 {
-    // TODO fix code duplication with server.c
     req_cbr_t *cbr_ctx = context->sourceCtx;
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
     settings_t *settings = client_ctx->settings;
@@ -89,9 +88,31 @@ error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
     const char *client_crt = settings->internal.client.crt;
     const char *client_key = settings->internal.client.key;
 
+    if (settings->internal.overlayNumber != 0 && (!client_ca || !client_crt || !client_key))
+    {
+        TRACE_WARNING("Missing certificates for overlay %s, fallback to global certificates\r\n", settings->internal.overlayUniqueId);
+        settings = get_settings();
+        client_ca = settings->internal.server.ca;
+        client_crt = settings->internal.server.crt;
+        client_key = settings->internal.server.key;
+    }
+
     if (!client_ca || !client_crt || !client_key)
     {
-        TRACE_ERROR("Failed to get certificates\r\n");
+        TRACE_ERROR("Failed to get certificates:");
+        if (!client_ca)
+        {
+            TRACE_ERROR_RESUME(" ca.der");
+        }
+        if (!client_crt)
+        {
+            TRACE_ERROR_RESUME(" client.der");
+        }
+        if (!client_key)
+        {
+            TRACE_ERROR_RESUME(" private.der");
+        }
+        TRACE_ERROR_RESUME("\r\n");
         return ERROR_FAILURE;
     }
     return httpClientTlsInitCallbackBase(context, tlsContext, client_ca, client_crt, client_key);
