@@ -1216,7 +1216,6 @@ bool_t move_cert_file(const char *type, char *from, char *to, char message[1024]
     else if (error == NO_ERROR)
     {
         TRACE_INFO("Skipped identical %s", type);
-        fsDeleteFile(from);
     }
     return true;
 }
@@ -1239,6 +1238,7 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     }
 
     bool overwrite = false;
+    bool overwriteBase = false;
     if (queryGet(queryString, "overwrite", overwrite_s, sizeof(overwrite_s)))
     {
         if (overwrite_s[0] == 't')
@@ -1302,17 +1302,14 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
             break;
         }
 
-        if (!move_cert_file("CA", ca_target_file, ca_global_file, message, &statusCode, overwrite))
+        if (!move_cert_file("CA", ca_target_file, ca_global_file, message, &statusCode, overwriteBase))
         {
-            break;
         }
-        if (!move_cert_file("CLIENT", client_target_file, client_global_file, message, &statusCode, overwrite))
+        if (!move_cert_file("CLIENT", client_target_file, client_global_file, message, &statusCode, overwriteBase))
         {
-            break;
         }
-        if (!move_cert_file("PRIVATE", private_target_file, private_global_file, message, &statusCode, overwrite))
+        if (!move_cert_file("PRIVATE", private_target_file, private_global_file, message, &statusCode, overwriteBase))
         {
-            break;
         }
 
         osSnprintf(message, sizeof(message), "OK");
@@ -1323,6 +1320,10 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     {
         TRACE_ERROR("%s\r\n", message);
     }
+
+    fsDeleteFile(ca_file);
+    fsDeleteFile(client_file);
+    fsDeleteFile(private_file);
 
     osFreeMem(file_path);
     osFreeMem(target_dir);
