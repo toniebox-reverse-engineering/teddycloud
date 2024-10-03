@@ -402,13 +402,24 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("boxModel", "", i);
                 settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
                 settings_get_by_name_id("core.certdir", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.ca", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
 
                 const char *certDir = settings_get_string_id("core.certdir", i);
                 osStringToLower(boxId);
-                char *customCertDir = osAllocMem(osStrlen(boxId) + osStrlen(certDir) + 2);
-                osSnprintf(customCertDir, osStrlen(boxId) + osStrlen(certDir) + 2, "%s%c%s", certDir, PATH_SEPARATOR, boxId);
+                char *customCertDir = custom_asprintf("%s%c%s", certDir, PATH_SEPARATOR, boxId);
+                char *ca = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "ca.der");
+                char *crt = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "client.der");
+                char *key = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "private.der");
                 settings_set_string_id("core.certdir", customCertDir, i);
+                settings_set_string_id("core.client_cert.file.ca", ca, i);
+                settings_set_string_id("core.client_cert.file.crt", crt, i);
+                settings_set_string_id("core.client_cert.file.key", key, i);
                 osFreeMem(customCertDir);
+                osFreeMem(ca);
+                osFreeMem(crt);
+                osFreeMem(key);
 
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
