@@ -88,7 +88,11 @@ error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
     const char *client_crt = settings->internal.client.crt;
     const char *client_key = settings->internal.client.key;
 
-    if (settings->internal.overlayNumber != 0 && (!client_ca || !client_crt || !client_key))
+    bool ca_missing = (client_ca == NULL || osStrlen(client_ca) == 0);
+    bool crt_missing = (client_crt == NULL || osStrlen(client_crt) == 0);
+    bool key_missing = (client_key == NULL || osStrlen(client_key) == 0);
+
+    if (settings->internal.overlayNumber != 0 && (ca_missing || crt_missing || key_missing))
     {
         TRACE_WARNING("Missing certificates for overlay %s, fallback to global certificates\r\n", settings->internal.overlayUniqueId);
         settings = get_settings();
@@ -97,18 +101,18 @@ error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
         client_key = settings->internal.server.key;
     }
 
-    if (!client_ca || !client_crt || !client_key)
+    if (ca_missing || crt_missing || key_missing)
     {
         TRACE_ERROR("Failed to get certificates:");
-        if (!client_ca)
+        if (ca_missing)
         {
             TRACE_ERROR_RESUME(" ca.der");
         }
-        if (!client_crt)
+        if (crt_missing)
         {
             TRACE_ERROR_RESUME(" client.der");
         }
-        if (!client_key)
+        if (key_missing)
         {
             TRACE_ERROR_RESUME(" private.der");
         }
