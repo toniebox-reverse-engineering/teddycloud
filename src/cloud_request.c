@@ -30,7 +30,7 @@
 error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
                                       TlsContext *tlsContext, const char *client_ca, const char *client_crt, const char *client_key)
 {
-    TRACE_INFO("Initializing TLS...\r\n");
+    TRACE_DEBUG("Initializing TLS...\r\n");
     error_t error;
 
     // Select client operation mode
@@ -67,7 +67,7 @@ error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
 
     tlsContext->serverName = (char *)strdup(context->serverName);
 
-    TRACE_INFO("Initializing TLS done\r\n");
+    TRACE_DEBUG("Initializing TLS done\r\n");
 
     // Successful processing
     return NO_ERROR;
@@ -354,7 +354,14 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
             if (status)
             {
-                TRACE_INFO("HTTP code: %u\r\n", status);
+                if (status == 200 || status == 302)
+                {
+                    TRACE_DEBUG("HTTP code: %u\r\n", status);
+                }
+                else
+                {
+                    TRACE_INFO("HTTP code: %u\r\n", status);
+                }
 
                 if (statusCode)
                 {
@@ -422,7 +429,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 if (!osStrcmp(header_name, "Content-Type"))
                 {
                     osStrncpy(content_type, header_value, sizeof(content_type) - 1);
-                    TRACE_INFO("Content-Type is %s\r\n", content_type);
+                    TRACE_DEBUG("Content-Type is %s\r\n", content_type);
                 }
             } while (1);
 
@@ -500,7 +507,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             }
 
             // Debug message
-            TRACE_INFO("Connection closed\r\n");
+            TRACE_DEBUG("Connection closed\r\n");
         } while (0);
 
         if (success)

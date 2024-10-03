@@ -222,13 +222,13 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
         {
             if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
             {
-                TRACE_INFO(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
+                TRACE_DEBUG(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
                 osSprintf(line, "%s: %s\r\n", header, value);
             }
         }
         else
         {
-            TRACE_INFO(">> cbrCloudHeaderPassthrough: NULL\r\n");
+            TRACE_DEBUG(">> cbrCloudHeaderPassthrough: NULL\r\n");
             osStrcpy(line, "\r\n");
         }
 
@@ -403,7 +403,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_INFO(">> cbrCloudServerDiscoPassthrough\r\n");
+    TRACE_DEBUG(">> cbrCloudServerDiscoPassthrough\r\n");
     httpFlushStream(ctx->connection);
     ctx->status = PROX_STATUS_DONE;
 }

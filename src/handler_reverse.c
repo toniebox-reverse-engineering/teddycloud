@@ -30,13 +30,13 @@ error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_
         return error;
     }
 
-    TRACE_INFO("httpServerRequestCallback: (waiting)\r\n");
+    TRACE_DEBUG("httpServerRequestCallback: (waiting)\r\n");
     while (cbr_ctx.status != PROX_STATUS_DONE)
     {
         osDelayTask(50);
     }
     error = httpFlushStream(connection);
 
-    TRACE_INFO("httpServerRequestCallback: (done)\r\n");
+    TRACE_DEBUG("httpServerRequestCallback: (done)\r\n");
     return error;
 }
