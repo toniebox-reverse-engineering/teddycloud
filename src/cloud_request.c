@@ -95,28 +95,44 @@ error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
     if (settings->internal.overlayNumber != 0 && (ca_missing || crt_missing || key_missing))
     {
         TRACE_WARNING("Missing certificates for overlay %s, fallback to global certificates\r\n", settings->internal.overlayUniqueId);
+        if (ca_missing)
+        {
+            TRACE_WARNING(" ca.der (%s) missing\r\n", settings->core.client_cert.file.ca);
+        }
+        if (crt_missing)
+        {
+            TRACE_WARNING(" client.der (%s) missing\r\n", settings->core.client_cert.file.crt);
+        }
+        if (key_missing)
+        {
+            TRACE_WARNING(" private.der (%s) missing\r\n", settings->core.client_cert.file.key);
+        }
+
         settings = get_settings();
-        client_ca = settings->internal.server.ca;
-        client_crt = settings->internal.server.crt;
-        client_key = settings->internal.server.key;
+        client_ca = settings->internal.client.ca;
+        client_crt = settings->internal.client.crt;
+        client_key = settings->internal.client.key;
+
+        ca_missing = (client_ca == NULL || osStrlen(client_ca) == 0);
+        crt_missing = (client_crt == NULL || osStrlen(client_crt) == 0);
+        key_missing = (client_key == NULL || osStrlen(client_key) == 0);
     }
 
     if (ca_missing || crt_missing || key_missing)
     {
-        TRACE_ERROR("Failed to get certificates:");
+        TRACE_ERROR("Failed to get certificates:\r\n");
         if (ca_missing)
         {
-            TRACE_ERROR_RESUME(" ca.der");
+            TRACE_ERROR(" ca.der (%s) missing\r\n", settings->core.client_cert.file.ca);
         }
         if (crt_missing)
         {
-            TRACE_ERROR_RESUME(" client.der");
+            TRACE_ERROR(" client.der (%s) missing\r\n", settings->core.client_cert.file.crt);
         }
         if (key_missing)
         {
-            TRACE_ERROR_RESUME(" private.der");
+            TRACE_ERROR(" private.der (%s) missing\r\n", settings->core.client_cert.file.key);
         }
-        TRACE_ERROR_RESUME("\r\n");
         return ERROR_FAILURE;
     }
     return httpClientTlsInitCallbackBase(context, tlsContext, client_ca, client_crt, client_key);
