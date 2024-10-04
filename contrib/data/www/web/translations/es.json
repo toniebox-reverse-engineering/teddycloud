@@ -369,7 +369,7 @@
             "hint2": "Sigue luego el camino para CC3200:",
             "linkGeneral": "Parchear tu Toniebox para usar con TeddyCloud",
             "linkSpecific": "Configuración específica para CC3200",
-            "navigationTitle": "Flasheo de la caja CC3200",
+            "navigationTitle": "CC3200 Flasheo de la caja",
             "title": "Flasheo de la caja CC3200"
         },
         "cc3235BoxFlashing": {
@@ -377,7 +377,7 @@
             "hint2": "Sigue luego el camino para CC3235:",
             "linkGeneral": "Parchear tu Toniebox para usar con TeddyCloud",
             "linkSpecific": "Configuración específica para CC3235",
-            "navigationTitle": "Flasheo de la caja CC3235",
+            "navigationTitle": "CC3235 Flasheo de la caja",
             "title": "Flasheo de la caja CC3235"
         },
         "confirmDeleteDialog": "¿Realmente quieres eliminar {{tonieboxToDelete}}?",
@@ -417,8 +417,6 @@
                 "connectingToESP": "Conectando al ESP...",
                 "connectingWriteFlash": "Conectando para escribir Flash...",
                 "downloadFlashFilesHint": "Las imágenes del firmware se almacenan en el directorio de datos de tu servidor en caso de que desees volver a flashearlas. Si deseas guardar tus imágenes de firmware en otro lugar, puedes descargarlas y moverlas a un lugar seguro:",
-                "downloadFlashFilesHintP1": "Puedes extraerlas manualmente en el directorio ../{{certDir}}/. Puedes hacerlo con el ejecutable teddycloud en tu computadora o a través del shell de Docker",
-                "downloadFlashFilesHintP2": "Por favor, revisa el nombre de los certificados extraídos, especialmente las mayúsculas. Cámbialos a minúsculas si están en mayúsculas.",
                 "downloadLink": "Descargar firmware no parcheado",
                 "downloadLinkPatched": "Descargar firmware parcheado",
                 "error": "Error",
@@ -427,6 +425,9 @@
                 "extractCertificatesAutomaticallyHint2": "Los certificados se almacenarán en hasta dos ubicaciones: primero, en el directorio base de certificados para TeddyCloud ../{{certDir}}/ (si no hay certificados presentes), y segundo, en la carpeta ../{{certDir}}/{{mac}}.",
                 "extractCertificatesManually": "Extraer certificados manualmente",
                 "extractCertificatesManuallyHint": "También puedes extraer los certificados manualmente siguiendo los pasos a continuación.",
+                "extractCertificatesManuallyHintP1": "Puedes hacerlo con el ejecutable teddycloud en tu computadora o a través del shell de Docker",
+                "extractCertificatesManuallyHintP2": "Por favor, revisa el nombre de los certificados extraídos, especialmente las mayúsculas. Cámbialos a minúsculas si están en mayúsculas.",
+                "extractCertificatesManuallyHintP3": "Para configurar tu primera Toniebox con TeddyCloud, copia los certificados en el directorio base de certificados del cliente. TeddyCloud utiliza estos certificados para autenticarse con la nube oficial de Tonies, permitiéndote descargar contenido sin interacción con la Toniebox (por ejemplo, cuando haces clic en 'Descargar' en un Tonie en la interfaz).",
                 "extractingCertificates": "Extrayendo certificados para TeddyCloud...",
                 "extractingCertificates409ResponseForceOverwrite": "Sobrescribir certificados existentes",
                 "extractingCertificates409ResponseForceOverwriteConfirmButton": "Sobrescribir archivos",
@@ -490,7 +491,7 @@
             "httpsSettings": "Configuración de HTTPS",
             "linkWikiGeneral": "Parchear tu Toniebox para usar con TeddyCloud",
             "linkWikiSpecific": "Configuración específica para ESP32",
-            "navigationTitle": "Flasheo de la caja ESP32",
+            "navigationTitle": "ESP32 Flasheo de la caja",
             "redirect": "Proceder a HTTPS",
             "title": "Flasheo de la caja ESP32"
         },
