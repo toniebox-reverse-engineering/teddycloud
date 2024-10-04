@@ -227,7 +227,8 @@
                     "items": {
                         "01certificates": "Zertifikate in einem ESP32-Firmware-Dump extrahieren/injizieren",
                         "02newServerHost": "Neuen Server-Host festlegen",
-                        "03wifiCredentials": "WLAN-Zugangsdaten festlegen"
+                        "03wifiCredentials": "WLAN-Zugangsdaten festlegen",
+                        "04extractCertificates": "Zertifikate extrahieren und in TeddyCloud ablegen"
                     },
                     "title": "ESP32 Box Flashing"
                 },
@@ -241,7 +242,6 @@
             },
             "futureFeatures": {
                 "01firmwareUpdate": "Firmware-Update über TeddyCloud",
-                "02improvedFlashing": "Verbessertes ESP32 Box Flashing (vollständig über Web GUI, keine Backend-Schritte mehr)",
                 "03reportUnknownTonies": "Unbekannte Tonies melden",
                 "04completeTAPIntegration": "Abschluss der TAP-WebFrontend-Integration",
                 "05completeCustomToniesIntegration": "Abschluss der Integration benutzerdefinierter Tonies im JSON-WebFront (\"Metadaten benutzerdefinierter Tags\")",
@@ -281,7 +281,8 @@
         "change": "Sprache ändern",
         "english": "EN",
         "french": "FR",
-        "german": "DE"
+        "german": "DE",
+        "spanish": "ES"
     },
     "languageUtil": {
         "de-de": "Deutsch",
@@ -417,16 +418,20 @@
                 "connectingToESP": "Verbinde zum ESP...",
                 "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
                 "downloadFlashFilesHint": "Die Firmware Images sind im Datenverzeichnis deines Servers gespeichert, falls du sie nochmal flashen möchtest. Wenn du deine Firmware Images woanders speichern willst, kannst du sie herunterladen und an einem sicheren Ort ablegen:",
-                "downloadFlashFilesHintP1": "Du kannst sie manuell ins Verzeichnis /certs/client/ extrahieren. Das kannst du entweder mit teddycloud Executable auf deinem Computer machen oder über die Docker-Shell.",
+                "downloadFlashFilesHintP1": "Du kannst sie manuell ins Verzeichnis ../{{certDir}}/ extrahieren. Das kannst du entweder mit teddycloud Executable auf deinem Computer machen oder über die Docker-Shell.",
                 "downloadFlashFilesHintP2": "Bitte überprüfe den Dateinamen der extrahierten Zertifikate, besonders die Groß- und Kleinschreibung! Ändere sie in Kleinbuchstaben, wenn sie in Großbuchstaben sind.",
                 "downloadLink": "Download ungepachte Firmware",
                 "downloadLinkPatched": "Download gepachte Firmware",
                 "error": "Fehler",
                 "extractCertificates": "Zertifikate für TeddyCloud extrahieren",
                 "extractCertificatesAutomaticallyHint": "Klicke den Button \"Zertifikate für TeddyCloud extrahieren\" zum automatischen Extrahieren und Ablegen der Zertifikate in TeddyCloud.",
+                "extractCertificatesAutomaticallyHint2": "Die Zertifikate werden an bis zu zwei Speicherorten abgelegt: Zuerst im Basisclientzertifikatverzeichnis für TeddyCloud unter ../{{certDir}}/ (falls keine Zertifikate vorhanden sind) und dann im Ordner ../{{certDir}}/{{mac}}.",
                 "extractCertificatesManually": "Zertifikate manuell extrahieren",
                 "extractCertificatesManuallyHint": "Du kannst die Zertifikate auch manuell extrahieren, führe dazu die folgenden Schritte durch",
                 "extractingCertificates": "Zertifikate für TeddyCloud werden extrahiert...",
+                "extractingCertificates409ResponseForceOverwrite": "Vorhandene Zertifikate überschreiben",
+                "extractingCertificates409ResponseForceOverwriteConfirmButton": "Dateien überschreiben",
+                "extractingCertificates409ResponseForceOverwriteContent": "Der erste Versuch, die Zertifikate zu speichern, ist fehlgeschlagen: {{error}}. Möchten Sie die vorhandenen Dateien überschreiben?",
                 "extractingCertificatesFailed": "Zertifikate aus \"{{file}}\" extrahieren fehlgeschlagen",
                 "extractingCertificatesSuccessful": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud abgelegt.",
                 "failedToCommunicate": "Kommunikation fehlgeschlagen:",
@@ -490,6 +495,8 @@
             "redirect": "Weiter zu HTTPS",
             "title": "ESP32 Box Flashing"
         },
+        "hintLatestFirmware": "Für die Ersteinrichtung deiner Toniebox mit TeddyCloud stelle bitte sicher, dass die neueste Firmware installiert ist. Wenn du dir nicht sicher bist, ob deine Toniebox auf dem neuesten Stand ist, verbinde sie mit der offiziellen Cloud und warte, bis das Firmware-Update abgeschlossen ist.",
+        "hintLatestFirmwareTitle": "Wichtig",
         "lastOnline": "zuletzt online",
         "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
         "linkToBoxCFW": "Öffne Web Frontend deiner Toniebox",
