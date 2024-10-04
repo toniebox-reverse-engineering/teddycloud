@@ -179,9 +179,6 @@
             "uploading": "Uploading..."
         }
     },
-    "inputValidator": {
-        "invalidCharactersDetected": "Your input contains invalid characters, such as {{invalidChar}}"
-    },
     "home": {
         "features": {
             "currentlyImplementedFeatures": "Currently implemented features",
@@ -230,7 +227,8 @@
                     "items": {
                         "01certificates": "extract/inject certificates on a esp32 firmware dump",
                         "02newServerHost": "set new server host",
-                        "03wifiCredentials": "set WiFi credentials"
+                        "03wifiCredentials": "set WiFi credentials",
+                        "04extractCertificates": "Extract certificates and store in TeddyCloud"
                     },
                     "title": "ESP32 Box flashing"
                 },
@@ -244,7 +242,6 @@
             },
             "futureFeatures": {
                 "01firmwareUpdate": "Firmware update through TeddyCloud",
-                "02improvedFlashing": "Improved ESP32 Box Flashing (completely through Web GUI, no backend steps anymore)",
                 "03reportUnknownTonies": "Report unknown Tonies",
                 "04completeTAPIntegration": "Completion of TAP WebFrontend Integration",
                 "05completeCustomToniesIntegration": "Completion of Custom Tonies Json WebFront Integration (\"Meta data of custom tags\")",
@@ -276,11 +273,15 @@
         },
         "yourTonies": "Your Tonies"
     },
+    "inputValidator": {
+        "invalidCharactersDetected": "Your input contains invalid characters, such as {{invalidChar}}"
+    },
     "language": {
         "change": "Change language",
         "english": "EN",
         "french": "FR",
-        "german": "DE"
+        "german": "DE",
+        "spanish": "ES"
     },
     "languageUtil": {
         "de-de": "German",
@@ -416,16 +417,21 @@
                 "connectingToESP": "Connecting to ESP...",
                 "connectingWriteFlash": "Connecting to write Flash...",
                 "downloadFlashFilesHint": "The firmware images are stored in your server's data directory in case you want to reflash them. In case you want to save your firmware images somewhere else, you can download them and move them to a safe place:",
-                "downloadFlashFilesHintP1": "You can manually extract them into the /certs/client/ directory. You can either do that with the teddycloud executable on your computer or you may do it via the docker shell",
-                "downloadFlashFilesHintP2": "Please check the filename of the extracted certs, especially the case! Change them to lowercase if they are uppercase.",
                 "downloadLink": "Download unpatched firmware",
                 "downloadLinkPatched": "Download patched firmware",
                 "error": "Error",
                 "extractCertificates": "Extract Certificates for TeddyCloud",
                 "extractCertificatesAutomaticallyHint": "Click the button \"Extract certificates for TeddyCloud\" to automatically extract and store the certificates in TeddyCloud.",
+                "extractCertificatesAutomaticallyHint2": "Certificates will be stored in up to two locations: first, in the base client certificate directory ../{{certDir}}/ for TeddyCloud (if no certificates are already present), and second, in the folder ../{{certDir}}/{{mac}}.",
                 "extractCertificatesManually": "Extract certificates manually",
                 "extractCertificatesManuallyHint": "You can also extract the certificates manually by following the steps below.",
+                "extractCertificatesManuallyHintP1": "You can either do that with the teddycloud executable on your computer or you may do it via the docker shell",
+                "extractCertificatesManuallyHintP2": "Please check the filename of the extracted certs, especially the case! Change them to lowercase if they are uppercase.",
+                "extractCertificatesManuallyHintP3": "For your first Toniebox setup with TeddyCloud, copy the certificates into the base client certificates directory. TeddyCloud uses these certificates to authenticate with the official Tonies Cloud, allowing content to be downloaded without Toniebox interaction (e.g., when you click 'Download' on a Tonie in the GUI).",
                 "extractingCertificates": "Extracting certificates for TeddyCloud...",
+                "extractingCertificates409ResponseForceOverwrite": "Overwrite existing certificates",
+                "extractingCertificates409ResponseForceOverwriteConfirmButton": "Overwrite files",
+                "extractingCertificates409ResponseForceOverwriteContent": "The initial attempt to store certificates failed: {{error}}. Would you like to overwrite the existing files?",
                 "extractingCertificatesFailed": "Failed to extract certificates from \"{{file}}\"",
                 "extractingCertificatesSuccessful": "Certificates successfully extracted from \"{{file}}\" and stored in TeddyCloud.",
                 "failedToCommunicate": "Failed to communicate:",
@@ -489,6 +495,8 @@
             "redirect": "Proceed to HTTPS",
             "title": "ESP32 Box Flashing"
         },
+        "hintLatestFirmware": "For the initial setup with TeddyCloud of your Toniebox, please ensure it has the latest firmware installed. If you're unsure whether your Toniebox is up to date, connect it to the official cloud and allow some time for the firmware update to complete.",
+        "hintLatestFirmwareTitle": "Important",
         "lastOnline": "last online",
         "lastPlayedTonie": "Last played Tonie: ",
         "linkToBoxCFW": "Open web interface of Toniebox",

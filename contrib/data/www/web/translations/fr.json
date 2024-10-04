@@ -179,9 +179,6 @@
             "uploading": "Téléversement en cours..."
         }
     },
-    "inputValidator": {
-        "invalidCharactersDetected": "Ta saisie contient des caractères invalides, tels que {{invalidChar}}"
-    },
     "home": {
         "features": {
             "currentlyImplementedFeatures": "Fonctionnalités actuellement implémentées",
@@ -230,7 +227,8 @@
                     "items": {
                         "01certificates": "extraire/injecter des certificats sur un dump de firmware esp32",
                         "02newServerHost": "définir un nouvel hôte de serveur",
-                        "03wifiCredentials": "définir les identifiants WiFi"
+                        "03wifiCredentials": "définir les identifiants WiFi",
+                        "04extractCertificates": "Extraire les certificats et les stocker dans TeddyCloud"
                     },
                     "title": "Flashage de la Box ESP32"
                 },
@@ -244,7 +242,6 @@
             },
             "futureFeatures": {
                 "01firmwareUpdate": "Mise à jour du firmware via TeddyCloud",
-                "02improvedFlashing": "Amélioration du flashage de la Box ESP32 (entièrement via Web GUI, plus aucune étape backend)",
                 "03reportUnknownTonies": "Signaler les Tonies inconnus",
                 "04completeTAPIntegration": "Achèvement de l'intégration de TAP WebFrontend",
                 "05completeCustomToniesIntegration": "Achèvement de l'intégration des Tonies personnalisés dans le WebFront JSON (\"Métadonnées des tags personnalisés\")",
@@ -276,11 +273,15 @@
         },
         "yourTonies": "Vos Tonies"
     },
+    "inputValidator": {
+        "invalidCharactersDetected": "Ta saisie contient des caractères invalides, tels que {{invalidChar}}"
+    },
     "language": {
         "change": "Changer de langue",
         "english": "EN",
         "french": "FR",
-        "german": "DE"
+        "german": "DE",
+        "spanish": "ES"
     },
     "languageUtil": {
         "de-de": "Allemand",
@@ -416,16 +417,21 @@
                 "connectingToESP": "Connexion à l'ESP...",
                 "connectingWriteFlash": "Connexion pour écrire le flash...",
                 "downloadFlashFilesHint": "Les images du firmware sont stockées dans le répertoire de données de votre serveur au cas où vous voudriez les reflasher. Si vous voulez enregistrer vos images de firmware ailleurs, vous pouvez les télécharger et les mettre en lieu sûr :",
-                "downloadFlashFilesHintP1": "Tu peux les extraire manuellement dans le répertoire /certs/client/. Tu peux soit le faire avec l'exécutable teddycloud sur ton ordinateur, soit via le shell Docker.",
-                "downloadFlashFilesHintP2": "Merci de vérifier le nom de fichier des certificats extraits, en particulier la casse ! Change-les en minuscules s'ils sont en majuscules.",
                 "downloadLink": "Télécharger le firmware non patché",
                 "downloadLinkPatched": "Télécharger le firmware patché",
                 "error": "Erreur",
                 "extractCertificates": "Extraire les certificats pour TeddyCloud",
                 "extractCertificatesAutomaticallyHint": "Cliquez sur le bouton \"Extraire les certificats pour TeddyCloud\" pour extraire et enregistrer automatiquement les certificats dans TeddyCloud.",
+                "extractCertificatesAutomaticallyHint2": "Les certificats seront stockés dans jusqu'à deux emplacements : d'abord dans le répertoire de base des certificats pour TeddyCloud ../{{certDir}}/ (si aucun certificat n'est déjà présent), puis dans le dossier ../{{certDir}}/{{mac}}.",
                 "extractCertificatesManually": "Extraire les certificats manuellement",
                 "extractCertificatesManuallyHint": "Vous pouvez également extraire les certificats manuellement en suivant les étapes ci-dessous.",
+                "extractCertificatesManuallyHintP1": "Tu peux soit le faire avec l'exécutable teddycloud sur ton ordinateur, soit via le shell Docker.",
+                "extractCertificatesManuallyHintP2": "Merci de vérifier le nom de fichier des certificats extraits, en particulier la casse ! Change-les en minuscules s'ils sont en majuscules.",
+                "extractCertificatesManuallyHintP3": "Pour configurer ta première Toniebox avec TeddyCloud, copie les certificats dans le répertoire de base des certificats clients. TeddyCloud utilise ces certificats pour s'authentifier auprès du cloud officiel de Tonies, te permettant de télécharger du contenu sans interaction avec la Toniebox (par exemple, quand tu cliques sur 'Télécharger' sur un Tonie dans l'interface).",
                 "extractingCertificates": "Extraction des certificats pour TeddyCloud...",
+                "extractingCertificates409ResponseForceOverwrite": "Écraser les certificats existants",
+                "extractingCertificates409ResponseForceOverwriteConfirmButton": "Écraser les fichiers",
+                "extractingCertificates409ResponseForceOverwriteContent": "La tentative initiale de stockage des certificats a échoué : {{error}}. Voulez-vous écraser les fichiers existants ?",
                 "extractingCertificatesFailed": "Échec de l'extraction des certificats à partir de \"{{file}}\"",
                 "extractingCertificatesSuccessful": "Certificats extraits avec succès de \"{{file}}\" et enregistrés dans TeddyCloud.",
                 "failedToCommunicate": "Échec de la communication :",
@@ -490,6 +496,8 @@
             "redirect": "Continuer vers HTTPS",
             "title": "ESP32 Flashage de la boîte"
         },
+        "hintLatestFirmware": "Pour la configuration initiale de votre Toniebox avec TeddyCloud, assurez-vous qu'elle dispose du dernier firmware installé. Si vous n'êtes pas certain que votre Toniebox soit à jour, connectez-la au cloud officiel et laissez-lui le temps de terminer la mise à jour du firmware",
+        "hintLatestFirmwareTitle": "Important",
         "lastOnline": "dernière connexion",
         "lastPlayedTonie": "Dernier Tonie joué: ",
         "linkToBoxCFW": "Ouvrir l'interface web de la Toniebox",
