@@ -648,7 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
             cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
-            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "tracks_seconds");
+            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "trackSeconds");
             for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
@@ -2629,7 +2629,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
             cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
 
-            cJSON *tracksArray = cJSON_AddArrayToObject(jsonEntry, "tracks_seconds");
+            cJSON *tracksArray = cJSON_AddArrayToObject(jsonEntry, "trackSeconds");
             for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
