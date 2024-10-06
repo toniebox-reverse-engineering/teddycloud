@@ -648,10 +648,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
             cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
-            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "tracks");
-            for (size_t i = 0; i < tafInfo->tafHeader->n_track_page_nums; i++)
+            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "tracks_seconds");
+            for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
-                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->tafHeader->track_page_nums[i]));
+                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
 
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
@@ -2628,6 +2628,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
             cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
             cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
+
+            cJSON *tracksArray = cJSON_AddArrayToObject(jsonEntry, "tracks_seconds");
+            for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
+            {
+                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
+            }
 
             char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
             char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);

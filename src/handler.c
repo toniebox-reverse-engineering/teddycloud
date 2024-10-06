@@ -482,6 +482,67 @@ bool_t isValidTaf(const char *contentPath)
     return valid;
 }
 
+void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
+{
+    bool hasError = false;
+    track_positions_t *trackPos = &tonieInfo->additional.track_positions;
+    TonieboxAudioFileHeader *tafHeader = tonieInfo->tafHeader;
+    trackPos->count = tafHeader->n_track_page_nums;
+    trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
+    trackPos->pos[0] = 0;
+    for (size_t i = 1; i < trackPos->count; i++)
+    {
+        uint8_t buffer[14];
+        size_t readBytes = 0;
+        uint32_t trackPageNum = tafHeader->track_page_nums[i];
+        size_t filePos = 4096 + 4096 * trackPageNum;
+
+        error_t error = fsSeekFile(file, filePos, SEEK_SET);
+        if (error != NO_ERROR)
+        {
+            hasError = true;
+            TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+            break;
+        }
+        error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
+        if (error != NO_ERROR)
+        {
+            hasError = true;
+            TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+            break;
+        }
+
+        if (!osMemcmp(buffer, "OggS", 4) == 0)
+        {
+            hasError = true;
+            TRACE_ERROR("Invalid OggS header at %" PRIuSIZE "\r\n", filePos);
+            break;
+        }
+        if (buffer[4] != 0)
+        { // Opus Version
+            hasError = true;
+            TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[4], filePos);
+            break;
+        }
+        if (buffer[5] != 0)
+        { // Header Type
+            hasError = true;
+            TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[5], filePos);
+            break;
+        }
+        uint64_t granulePosition = 0;
+        osMemcpy(&granulePosition, &buffer[6], 8);
+        trackPos->pos[i] = (uint32_t)(granulePosition / 48000); // 48000 samples per second
+        TRACE_VERBOSE("Track position %" PRIu32 "\r\n", trackPos->pos[i]);
+    }
+    if (hasError)
+    {
+        trackPos->count = 0;
+        osFreeMem(trackPos->pos);
+        trackPos->pos = NULL;
+    }
+}
+
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings)
 {
     char *contentPath;
@@ -511,6 +572,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
     tonieInfo->exists = false;
     tonieInfo->locked = false;
     osMemset(&tonieInfo->json, 0, sizeof(contentJson_t));
+    osMemset(&tonieInfo->additional, 0, sizeof(tonie_info_additional_t));
 
     if (osStrstr(contentPath, ".json") == NULL)
     {
@@ -559,6 +621,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
                                 tonieInfo->valid = true;
+                                readTrackPositions(tonieInfo, file);
                                 if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
@@ -633,6 +696,12 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
     {
         osFreeMem(tonieInfo->jsonPath);
         tonieInfo->jsonPath = NULL;
+    }
+    if (tonieInfo->additional.track_positions.pos)
+    {
+        osFreeMem(tonieInfo->additional.track_positions.pos);
+        tonieInfo->additional.track_positions.pos = NULL;
+        tonieInfo->additional.track_positions.count = 0;
     }
 
     free_content_json(&tonieInfo->json);
