@@ -490,12 +490,17 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
     trackPos->count = tafHeader->n_track_page_nums;
     trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
     trackPos->pos[0] = 0;
-    for (size_t i = 1; i < trackPos->count; i++)
+    uint64_t correction = 0;
+    for (size_t i = 0; i < trackPos->count; i++)
     {
         uint8_t buffer[14];
         size_t readBytes = 0;
         uint32_t trackPageNum = tafHeader->track_page_nums[i];
         size_t filePos = 4096 + 4096 * trackPageNum;
+        if (i == 0)
+        {
+            filePos += 0x200;
+        }
 
         error_t error = fsSeekFile(file, filePos, SEEK_SET);
         if (error != NO_ERROR)
@@ -532,8 +537,13 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
         }
         uint64_t granulePosition = 0;
         osMemcpy(&granulePosition, &buffer[6], 8);
-        trackPos->pos[i] = (uint32_t)(granulePosition / 48000); // 48000 samples per second
+        trackPos->pos[i] = (uint32_t)((granulePosition - correction) / 48000); // 48000 samples per second
         TRACE_VERBOSE("Track position %" PRIu32 "\r\n", trackPos->pos[i]);
+
+        if (i == 0)
+        {
+            correction = granulePosition;
+        }
     }
     if (hasError)
     {
