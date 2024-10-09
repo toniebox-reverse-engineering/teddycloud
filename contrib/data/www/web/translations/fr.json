@@ -34,7 +34,22 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Communauté",
-        "title": "Communauté"
+        "title": "Communauté",
+        "translations": {
+            "allTranslationStrings": "Toutes les chaînes de traduction",
+            "extraKeys": "Clés supplémentaires",
+            "hint": "Si tu vois une mauvaise traduction, reviens vers nous sur Telegram. Le français et l'espagnol sont actuellement complètement traduits par ChatGPT.",
+            "key": "Clé",
+            "language": "Langue",
+            "missing": "MANQUANT",
+            "missingExtraKeysHeadline": "Clés de traduction manquantes / supplémentaires",
+            "missingKeys": "Clés manquantes",
+            "navigationTitle": "Traductions",
+            "noDiscrepancies": "Tout va bien.",
+            "noExtraKeys": "Aucune clé supplémentaire.",
+            "noMissingKeys": "Aucune clé manquante.",
+            "title": "Traductions"
+        }
     },
     "confirmDialog": {
         "contentHintTitle": "Garde à l'esprit"
@@ -471,7 +486,6 @@
                 "readingFlash": "Lecture du flash...",
                 "readyToProceed": ", prêt à continuer.",
                 "retrievingMac": "Récupération de l'adresse MAC...",
-                "title": "Flashage de la boîte ESP32",
                 "titleESP32FirmwareFlashed": "ESP32 flashé",
                 "titleFlashESP32": "Flasher l'ESP32",
                 "titlePatchFlash": "Patch Flash",
@@ -638,10 +652,10 @@
             "liveEnabled": "En direct activé!",
             "setToEmptyValue": "vide",
             "setTonieToModelFailed": "Impossible de changer le modèle de Tonie!",
-            "setTonieToModelSuccess": "Le modèle a été changé pour: ",
-            "setTonieToRadioStreamSuccess": "Le flux radio a été changé pour: ",
-            "setTracklistFailed": "Impossible de modifier la liste de lecture: ",
-            "successfulTonieUpdate": "Tonie mis à jour avec succès!"
+            "setTonieToModelSuccessful": "Le modèle a été changé pour: ",
+            "setTonieToSourceFailed": "Impossible de changer la source du tonie !",
+            "setTonieToSourceSuccessful": "Source du tonie définie sur {{selectedSource}} !",
+            "sourceSetSuccessful": "Source définie sur {{selectedFile}} !"
         },
         "navigationTitle": "Tonies",
         "selectFileModal": {
