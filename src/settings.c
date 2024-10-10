@@ -176,6 +176,15 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details", LEVEL_NONE)
 
+    OPTION_INTERNAL_STRING("internal.version_web.id", &settings->internal.version_web.id, "", "Web version id", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.git_sha_short", &settings->internal.version_web.git_sha_short, "", "Short Git SHA-1 hash of the web version", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.git_sha", &settings->internal.version_web.git_sha, "", "Full Git SHA-1 hash of the web version", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.version_web.dirty", &settings->internal.version_web.dirty, FALSE, "Indicates if the web was made from a modified (dirty) git tree", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.datetime", &settings->internal.version_web.datetime, "", "Datetime of the web or git commit", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_short", &settings->internal.version_web.v_short, "", "Concise web version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_long", &settings->internal.version_web.v_long, "", "Detailed web version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_full", &settings->internal.version_web.v_full, "", "Complete web version descriptor with all details", LEVEL_NONE)
+
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, UINT64_MAX, "Box IC from User Agent", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, UINT64_MAX, "Firmware version from User Agent", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, UINT64_MAX, "Service Pack version from User Agent", LEVEL_NONE)
@@ -690,6 +699,15 @@ error_t settings_init(const char *cwd, const char *base_dir)
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
+    settings_set_string("internal.version_web.id", WEB_VERSION);
+    settings_set_string("internal.version_web.git_sha_short", WEB_GIT_SHORT_SHA);
+    settings_set_string("internal.version_web.git_sha", WEB_GIT_SHA);
+    settings_set_bool("internal.version_web.id", WEB_GIT_IS_DIRTY);
+    settings_set_string("internal.version_web.datetime", WEB_DATETIME);
+    settings_set_string("internal.version_web.v_short", WEB_FULL_NAME_SHORT);
+    settings_set_string("internal.version_web.v_long", WEB_FULL_NAME_LONG);
+    settings_set_string("internal.version_web.v_full", WEB_FULL_NAME_FULL);
 
     settings_set_bool("internal.logColorSupport", supportsAnsiColors());
     settings_set_bool("internal.autogen_certs", autogen_certs);

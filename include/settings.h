@@ -158,6 +158,18 @@ typedef struct
 
 typedef struct
 {
+    char *id;
+    char *git_sha_short;
+    char *git_sha;
+    bool dirty;
+    char *datetime;
+    char *v_short;
+    char *v_long;
+    char *v_full;
+} settings_version_web_t;
+
+typedef struct
+{
     settings_earid lastEarId;
     uint64_t lastEarpress;
     bool wasDoubleEarpress;
@@ -227,6 +239,7 @@ typedef struct
 
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
+    settings_version_web_t version_web;
     settings_internal_toniebox_firmware_t toniebox_firmware;
     settings_internal_security_mit_t security_mit;
 
