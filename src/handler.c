@@ -488,68 +488,70 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
     track_positions_t *trackPos = &tonieInfo->additional.track_positions;
     TonieboxAudioFileHeader *tafHeader = tonieInfo->tafHeader;
     trackPos->count = tafHeader->n_track_page_nums;
-    trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
-    trackPos->pos[0] = 0;
-    uint64_t correction = 0;
-    for (size_t i = 0; i < trackPos->count; i++)
+    if (trackPos->count > 0)
     {
-        uint8_t buffer[14];
-        size_t readBytes = 0;
-        uint32_t trackPageNum = tafHeader->track_page_nums[i];
-        size_t filePos = 4096 + 4096 * trackPageNum;
-        if (i == 0)
+        trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
+        uint64_t correction = 0;
+        for (size_t i = 0; i < trackPos->count; i++)
         {
-            filePos += 0x200;
-        }
+            uint8_t buffer[14];
+            size_t readBytes = 0;
+            uint32_t trackPageNum = tafHeader->track_page_nums[i];
+            size_t filePos = 4096 + 4096 * trackPageNum;
+            if (i == 0)
+            {
+                filePos += 0x200;
+            }
 
-        error_t error = fsSeekFile(file, filePos, SEEK_SET);
-        if (error != NO_ERROR)
-        {
-            hasError = true;
-            TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
-            break;
-        }
-        error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
-        if (error != NO_ERROR)
-        {
-            hasError = true;
-            TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
-            break;
-        }
+            error_t error = fsSeekFile(file, filePos, SEEK_SET);
+            if (error != NO_ERROR)
+            {
+                hasError = true;
+                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                break;
+            }
+            error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
+            if (error != NO_ERROR)
+            {
+                hasError = true;
+                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                break;
+            }
 
-        if (!osMemcmp(buffer, "OggS", 4) == 0)
-        {
-            hasError = true;
-            TRACE_ERROR("Invalid OggS header at %" PRIuSIZE "\r\n", filePos);
-            break;
-        }
-        if (buffer[4] != 0)
-        { // Opus Version
-            hasError = true;
-            TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[4], filePos);
-            break;
-        }
-        if (buffer[5] != 0)
-        { // Header Type
-            hasError = true;
-            TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[5], filePos);
-            break;
-        }
-        uint64_t granulePosition = 0;
-        osMemcpy(&granulePosition, &buffer[6], 8);
-        trackPos->pos[i] = (uint32_t)((granulePosition - correction) / 48000); // 48000 samples per second
-        TRACE_VERBOSE("Track position %" PRIu32 "\r\n", trackPos->pos[i]);
+            if (!osMemcmp(buffer, "OggS", 4) == 0)
+            {
+                hasError = true;
+                TRACE_ERROR("Invalid OggS header at %" PRIuSIZE "\r\n", filePos);
+                break;
+            }
+            if (buffer[4] != 0)
+            { // Opus Version
+                hasError = true;
+                TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[4], filePos);
+                break;
+            }
+            if (buffer[5] != 0)
+            { // Header Type
+                hasError = true;
+                TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[5], filePos);
+                break;
+            }
+            uint64_t granulePosition = 0;
+            osMemcpy(&granulePosition, &buffer[6], 8);
+            trackPos->pos[i] = (uint32_t)((granulePosition - correction) / 48000); // 48000 samples per second
+            TRACE_VERBOSE("Track position %" PRIu32 "\r\n", trackPos->pos[i]);
 
-        if (i == 0)
-        {
-            correction = granulePosition;
+            if (i == 0)
+            {
+                correction = granulePosition;
+            }
         }
-    }
-    if (hasError)
-    {
-        trackPos->count = 0;
-        osFreeMem(trackPos->pos);
-        trackPos->pos = NULL;
+        if (hasError)
+        {
+            trackPos->count = 0;
+            osFreeMem(trackPos->pos);
+            trackPos->pos = NULL;
+        }
     }
 }
 
