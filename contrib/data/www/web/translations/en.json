@@ -34,7 +34,22 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Community",
-        "title": "Community"
+        "title": "Community",
+        "translations": {
+            "allTranslationStrings": "All Translation strings",
+            "extraKeys": "Extra keys",
+            "hint": "If you see any bad translation, please come back to us on Telegram. French and Spanish are currently completely translated by ChatGPT.",
+            "key": "Key",
+            "language": "Language",
+            "missing": "MISSING",
+            "missingExtraKeysHeadline": "Missing / Extra Translation keys",
+            "missingKeys": "Missing keys",
+            "navigationTitle": "Translations",
+            "noDiscrepancies": "Everything is fine.",
+            "noExtraKeys": "No extra keys.",
+            "noMissingKeys": "No missing keys.",
+            "title": "Translations"
+        }
     },
     "confirmDialog": {
         "contentHintTitle": "Keep in mind"

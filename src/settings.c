@@ -66,7 +66,7 @@ static void option_map_init(uint8_t settingsId)
 
     /* settings for HTTPS server */
     OPTION_TREE_DESC("core.server", "Server ports", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP portfor the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port for the webinterface", LEVEL_EXPERT)
     OPTION_UNSIGNED("core.server.https_web_port", &settings->core.https_web_port, 8443, 1, 65535, "HTTPS Web port", "HTTPS port for the webinterface", LEVEL_EXPERT)
     OPTION_UNSIGNED("core.server.https_api_port", &settings->core.https_api_port, 443, 1, 65535, "HTTPS API port", "HTTPS port for the Toniebox API", LEVEL_EXPERT)
     OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
