@@ -100,6 +100,7 @@ typedef struct
 typedef struct
 {
     bool split_model_content;
+    bool ignore_web_version_mismatch;
 } settings_frontend_t;
 
 typedef struct
