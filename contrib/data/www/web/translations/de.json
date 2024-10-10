@@ -195,6 +195,9 @@
         }
     },
     "home": {
+        "error": "Fehler - Das Frontend ist nicht auf dem erwarteten Stand.",
+        "errorConfirm": "Schließen",
+        "errorWebVersionMismatch": "Backend hat eine andere Version als das Frontend. Bei einer Dockerinstallation bitte sicherstellen, dass kein Volume unter data/www angelegt wurde.",
         "features": {
             "currentlyImplementedFeatures": "Derzeit implementierte Features",
             "description": "TeddyCloud ist ein alternativer Server für deine Toniebox, mit dem du die Cloud-Dienste lokal hosten kannst. Dies gibt dir die Kontrolle darüber, welche Daten an die Cloud des ursprünglichen Herstellers gesendet werden, und ermöglicht es dir, deine eigenen Figuren-Audiodateien z.B. auf deinem NAS oder einem anderen Server zu hosten.",
