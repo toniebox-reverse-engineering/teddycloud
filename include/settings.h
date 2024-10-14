@@ -101,6 +101,7 @@ typedef struct
 {
     bool split_model_content;
     bool ignore_web_version_mismatch;
+    bool confirm_audioplayer_close;
 } settings_frontend_t;
 
 typedef struct

@@ -245,6 +245,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("frontend", "Frontend", LEVEL_BASIC)
     OPTION_BOOL("frontend.split_model_content", &settings->frontend.split_model_content, TRUE, "Split content / model", "If enabled, the content of the TAF will be shown beside the model of the figurine", LEVEL_DETAIL)
     OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
+    OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
