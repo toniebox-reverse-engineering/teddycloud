@@ -289,6 +289,7 @@ error_t socketReceive(Socket *socket, void *data_in,
             }
             else
             {
+                TRACE_WARNING("buffer does not contain null terminator\r\n");
                 /* If no null terminator, safely use memchr over the whole buffer */
                 ptr = memchr(buff->buffer, flags & 0xFF, buff->buffer_used);
             }
