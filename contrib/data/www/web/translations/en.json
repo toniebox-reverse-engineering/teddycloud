@@ -590,7 +590,7 @@
         },
         "esp32BoxFlashing": {
             "attention": "Attention",
-            "browserNotSupported": "ESP32 Box Flashing can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
+            "browserNotSupported": "The integrated ESP32 Box flashing functionality can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
             "esp32flasher": {
                 "automatically": "Automatically",
                 "cancel": "Cancel",
@@ -676,13 +676,12 @@
                 "connectESPCollapseTitle": "Help: Connect UART with Toniebox"
             },
             "hint": "This section is only available when using HTTPS and a browser that supports the Web Serial API, such as Chrome or Edge. If you want to flash your ESP32 Toniebox, please click on \"Proceed to HTTPS\", and you will be automatically redirected to the HTTPS version. Your browser might warn that the connection is not secure. This is okay; confirm it and proceed to open the page anyway. You may need to display more details in the warning.",
-            "hintWiki": "If you prefer not to use a browser that supports WebSerial, you can find step-by-step guidance here:",
-            "hintWiki2": "Please follow then the ESP32 path:",
+            "hintLegacyApproach": "If you prefer not to use a browser that supports WebSerial, you can still use the legacy method (no GUI, command line only).",
             "httpsSettings": "HTTPS Settings",
             "legacy": {
-                "followLegacyApproach": "Use the legacy approach instead:",
-                "navigationTitle": "Legacy way",
-                "title": "Legacy way of flashing",
+                "followLegacyApproach": "Or use the legacy method (no GUI, command line only).",
+                "navigationTitle": "Legacy method",
+                "title": "Legacy method of flashing",
                 "hint": "There is a direct support of flashing your ESP32 Toniebox with TeddyCloud available!",
                 "preparationText": "Please connect your Toniebox to your Wi-Fi and update its firmware. Many boxes are shipped with a production firmware that needs to be updated. Otherwise the box won`t work as it should. It is not necessary to connect the box to the mytonies app/account.",
                 "preparationTextLink": "Connect the box without the setup assistant.",
@@ -698,7 +697,8 @@
                 "flashCAreplacementText1": "Replace the original CA within your flash dump with esptool.",
                 "flashCAreplacementText2": "Reassamble your Toniebox again. If you already set the teddyCloud hostname, you can skip the DNS step for the ESP32, if not continue with DNS step for the ESP32.",
                 "flashCAreplacementText3": "Your Toniebox should now be able to connect to your teddyCloud. Do a freshnesscheck and click on \"Check available Boxes\".",
-                "certificatesDumpedCAreplacementFlashed": "Certificates dumped and CA replacement flashed",
+                "proceedWithDNS": "Proceed with DNS step",
+                "skipDnsIfAlreadyDone": "If you have already replaced the IP/hostname in the flash dump, you can skip this step here.",
                 "checkBoxes": "Show available boxes",
                 "dnsIntro": "You can either set the IP/hostname within the image or you may do it like described in the following."
             },

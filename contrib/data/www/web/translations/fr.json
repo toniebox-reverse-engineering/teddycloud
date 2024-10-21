@@ -590,7 +590,7 @@
         },
         "esp32BoxFlashing": {
             "attention": "Attention",
-            "browserNotSupported": "Le flashage de la boîte ESP32 ne peut être utilisé qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur prenant en charge l'API Web Serial, comme Chrome ou Edge.",
+            "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
             "esp32flasher": {
                 "automatically": "Automatiquement",
                 "cancel": "Annuler",
@@ -676,13 +676,12 @@
                 "connectESPCollapseTitle": "Aide : Connecter UART avec Toniebox"
             },
             "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l’avertissement.",
-            "hintWiki": "Si vous ne souhaitez pas utiliser un navigateur qui prend en charge WebSerial, vous trouverez ici un guide étape par étape :",
-            "hintWiki2": "Veuillez suivre ensuite le chemin ESP32 :",
+            "hintLegacyApproach": "Si vous préférez ne pas utiliser un navigateur prenant en charge WebSerial, vous pouvez toujours utiliser l'approche héritée via votre ligne de commande.",
             "httpsSettings": "Paramètres HTTPS",
             "legacy": {
-                "followLegacyApproach": "Utilisez plutôt l'approche légendaire :",
-                "navigationTitle": "Méthode héritée",
-                "title": "Flashing de la boîte ESP32 légendaire",
+                "followLegacyApproach": "Ou utilisez la méthode ancienne (pas de GUI, uniquement en ligne de commande).",
+                "navigationTitle": "Méthode ancienne",
+                "title": "Méthode ancienne de flashage",
                 "hint": "Il existe un support direct pour flasher votre Toniebox ESP32 avec TeddyCloud !",
                 "preparationText": "Veuillez connecter votre Toniebox à votre Wi-Fi et mettre à jour son firmware. De nombreuses boîtes sont expédiées avec un firmware de production qui doit être mis à jour. Sinon, la boîte ne fonctionnera pas comme elle le devrait. Il n'est pas nécessaire de connecter la boîte à l'application/comptes mytonies.",
                 "preparationTextLink": "Connectez la boîte sans l'assistant de configuration.",
@@ -698,7 +697,8 @@
                 "flashCAreplacementText1": "Remplacez le CA d'origine dans votre dump flash avec esptool.",
                 "flashCAreplacementText2": "Remontez votre Toniebox. Si vous avez déjà défini le nom d'hôte de teddyCloud, vous pouvez ignorer l'étape DNS pour l'ESP32, sinon continuez avec l'étape DNS pour l'ESP32.",
                 "flashCAreplacementText3": "Votre Toniebox devrait maintenant pouvoir se connecter à votre teddyCloud. Effectuez un contrôle de fraîcheur et cliquez sur \"Vérifier les boîtes disponibles\".",
-                "certificatesDumpedCAreplacementFlashed": "Certificats dumpés et remplacement CA flashé",
+                "proceedWithDNS": "Procédez à l'étape DNS",
+                "skipDnsIfAlreadyDone": "Si vous avez déjà remplacé l'IP/le nom d'hôte dans le dump flash, vous pouvez ignorer cette étape ici.",
                 "checkBoxes": "Afficher les boîtes disponibles",
                 "dnsIntro": "Vous pouvez soit définir l'adresse IP/le nom d'hôte dans l'image, soit le faire comme décrit ci-dessous."
             },
