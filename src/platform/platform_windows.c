@@ -327,6 +327,8 @@ error_t socketReceive(Socket *socket, void *data_in,
 
         if ((flags & SOCKET_FLAG_BREAK_CHAR) && buff->buffer_used)
         {
+            const char *ptr = NULL;
+
             /* First, check for the null terminator (0x00) in the buffer */
             const char *null_pos = memchr(buff->buffer, 0x00, buff->buffer_used);
             if (null_pos)
