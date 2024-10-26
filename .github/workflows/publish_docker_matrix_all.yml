@@ -1,227 +1,71 @@
-name: Docker Image Publish Matrix
+name: Docker Image Publish Matrix (All)
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
-      system:
-        description: "debian, ubuntu or alpine"
-        type: string
-        required: true
-      dockerfile:
-        description: "DockerfileDebian, DockerfileUbuntu or DockerfileAlpine"
-        type: string
-        required: true
-      platforms:
-        description: "Comma-separated list of target platforms for the build (e.g., linux/amd64,linux/arm/v7)"
-        type: string
-        required: true
-      primary_image:
-        description: "Flag if it is the primary fallback image to use"
-        type: boolean
-        required: true
-      error_platforms:
-        description: "Comma-separated list of target platforms that can have build errors (e.g., linux/amd64,linux/arm/v7)"
-        type: string
-        required: true
-
       tcw_commit_hash:
         type: string
 
-# permissions are needed if pushing to ghcr.io
-permissions:
-  packages: write
-
-env:
-  REGISTRY_IMAGE: ghcr.io/toniebox-reverse-engineering/teddycloud
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - tc_nightly*
+      - tc_v*.*.*
+  pull_request:
+    branches:
+      - master
+      - develop
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: ${{ fromJson(inputs.platforms) }}
+  test_commit_hash:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          ref: ${{ inputs.tcw_commit_hash || 'HEAD' }}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v3
+          ref: ${{ inputs.tcw_commit_hash }}
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Docker meta matrix
-        id: matrix_meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY_IMAGE }}
-          tags: |
-            type=schedule
-            type=schedule,pattern=nightly
-            type=schedule,pattern={{date 'YYYYMMDD'}}
-            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Germany/Berlin'}}
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
-            type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
-            type=raw,value=nightly-develop,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=ref,event=tag
-            type=match,pattern=tc_v(\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+.\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
-          flavor: |
-            prefix=arch_,onlatest=true
-            suffix=_${{ matrix.platform }}_ubuntu,onlatest=${{ inputs.primary_image }}
-
-      - name: Modify tags
-        id: modify_tags
-        if: ${{ inputs.primary_image }}
+      - name: Verify commit hash
+        if: ${{ inputs.tcw_commit_hash != '' }}
         run: |
-          original_tags=$(jq -cr '.tags | map(.) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          modified_tags=$(echo "$original_tags" | sed 's/_ubuntu//')
-          all_tags="$original_tags $modified_tags"
-          echo "all_tags=$all_tags"
-          echo "all_tags=$all_tags" >> $GITHUB_OUTPUT
+          COMMIT_HASH=$(git rev-parse HEAD)
+          if [ "$COMMIT_HASH" != "${{ inputs.tcw_commit_hash }}" ]; then
+            echo "Error: Checked out commit hash ($COMMIT_HASH) does not match the expected hash (${{ inputs.tcw_commit_hash }})."
+            exit 1
+          else
+            echo "Commit hash verified: $COMMIT_HASH"
+          fi
 
-      - name: Build & push digest docker ${{ matrix.platform }}
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ inputs.dockerfile }}
-          platforms: ${{ matrix.platform }}
-          push: true
-          labels: ${{ steps.matrix_meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Platform name strip for filename
-        id: platform_strip
-        run: |
-          platform=$(echo "${{ matrix.platform }}" | tr '/' '_')
-          echo "platform=$platform"
-          echo "platform=$platform" >> $GITHUB_OUTPUT
-      - name: Run docker image test
-        run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
-        continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
-      - name: Extract release zip
-        run: |
-          docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
-          docker rm teddyCloud-test
-        continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
-
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests/${{ github.sha }}
-          digest="${{ steps.build.outputs.digest }}"
-          commit_sha="${{ github.sha }}"
-          touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
-
-      - name: Push docker tags ${{ matrix.platform }}
-        id: push_tags
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ inputs.dockerfile }}
-          platforms: ${{ matrix.platform }}
-          push: ${{ github.event_name != 'pull_request' }}
-          # tags: ${{ steps.modify_tags.outputs.all_tags }} # invalid reference format
-          tags: ${{ steps.matrix_meta.outputs.tags }}
-          labels: ${{ steps.matrix_meta.outputs.labels }}
-
-      - name: Upload digest
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
-          path: /tmp/digests/${{ github.sha }}/*
-          if-no-files-found: error
-      - name: Upload release file
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ steps.platform_strip.outputs.platform }}-${{ inputs.system }}
-          path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
-          if-no-files-found: error
-
-  merge-images:
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-      - name: Download digests
-        uses: actions/download-artifact@v4
-        with:
-          pattern: digests-${{ inputs.system }}-*
-          merge-multiple: true
-          path: /tmp/digests/${{ github.sha }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Docker meta
-        id: teddycloud_meta # you'll use this in the next step
-        uses: docker/metadata-action@v5
-        with:
-          # list of Docker images to use as base name for tags
-          images: ${{ env.REGISTRY_IMAGE }}
-          # Docker tags based on the following events/attributes
-          tags: |
-            type=schedule
-            type=schedule,pattern=nightly
-            type=schedule,pattern={{date 'YYYYMMDD'}}
-            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Germany/Berlin'}}
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
-            type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
-            type=raw,value=nightly-develop,enable=${{ github.ref == 'refs/heads/develop' }}
-            type=ref,event=tag
-            type=match,pattern=tc_v(\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+.\d+),group=1
-            type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
-          flavor: |
-            suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
-
-      - name: Create manifest list and push (primary)
-        if: ${{ github.event_name != 'pull_request' && inputs.primary_image }}
-        working-directory: /tmp/digests/${{ github.sha }}
-        run: |
-          suffix="${{ inputs.system }}"
-          # Extract original tags
-          original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          # Remove suffix and create a modified tag list
-          modified_tags=$(jq -cr '.tags | map("-t " + sub("_" + $suffix + "$"; "")) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
-          # Combine original and modified tags
-          all_tags="$original_tags $modified_tags"
-          docker buildx imagetools create $all_tags \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
-
-      - name: Create manifest list and push
-        if: ${{ github.event_name != 'pull_request' && !inputs.primary_image }}
-        working-directory: /tmp/digests/${{ github.sha }}
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
-      - name: Inspect image
-        if: ${{ github.event_name != 'pull_request' }}
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.teddycloud_meta.outputs.version }}
+  ubuntu:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "ubuntu"
+      dockerfile: "DockerfileUbuntu"
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
+      primary_image: true
+      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7"]'
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+  debian:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "debian"
+      dockerfile: "DockerfileDebian"
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
+      primary_image: false
+      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7"]'
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+  alpine:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "alpine"
+      dockerfile: "DockerfileAlpine"
+      platforms: '["linux/amd64", "linux/arm/v6", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x", "linux/386"]'
+      primary_image: false
+      error_platforms: "[]"
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}

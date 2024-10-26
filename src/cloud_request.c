@@ -30,7 +30,7 @@
 error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
                                       TlsContext *tlsContext, const char *client_ca, const char *client_crt, const char *client_key)
 {
-    TRACE_INFO("Initializing TLS...\r\n");
+    TRACE_DEBUG("Initializing TLS...\r\n");
     error_t error;
 
     // Select client operation mode
@@ -67,7 +67,7 @@ error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
 
     tlsContext->serverName = (char *)strdup(context->serverName);
 
-    TRACE_INFO("Initializing TLS done\r\n");
+    TRACE_DEBUG("Initializing TLS done\r\n");
 
     // Successful processing
     return NO_ERROR;
@@ -80,7 +80,6 @@ error_t httpClientTlsInitCallbackNoCA(HttpClientContext *context,
 error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
                                                   TlsContext *tlsContext)
 {
-    // TODO fix code duplication with server.c
     req_cbr_t *cbr_ctx = context->sourceCtx;
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
     settings_t *settings = client_ctx->settings;
@@ -89,9 +88,51 @@ error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
     const char *client_crt = settings->internal.client.crt;
     const char *client_key = settings->internal.client.key;
 
-    if (!client_ca || !client_crt || !client_key)
+    bool ca_missing = (client_ca == NULL || osStrlen(client_ca) == 0);
+    bool crt_missing = (client_crt == NULL || osStrlen(client_crt) == 0);
+    bool key_missing = (client_key == NULL || osStrlen(client_key) == 0);
+
+    if (settings->internal.overlayNumber != 0 && (ca_missing || crt_missing || key_missing))
     {
-        TRACE_ERROR("Failed to get certificates\r\n");
+        TRACE_WARNING("Missing certificates for overlay %s, fallback to global certificates\r\n", settings->internal.overlayUniqueId);
+        if (ca_missing)
+        {
+            TRACE_WARNING(" ca.der (%s) missing\r\n", settings->core.client_cert.file.ca);
+        }
+        if (crt_missing)
+        {
+            TRACE_WARNING(" client.der (%s) missing\r\n", settings->core.client_cert.file.crt);
+        }
+        if (key_missing)
+        {
+            TRACE_WARNING(" private.der (%s) missing\r\n", settings->core.client_cert.file.key);
+        }
+
+        settings = get_settings();
+        client_ca = settings->internal.client.ca;
+        client_crt = settings->internal.client.crt;
+        client_key = settings->internal.client.key;
+
+        ca_missing = (client_ca == NULL || osStrlen(client_ca) == 0);
+        crt_missing = (client_crt == NULL || osStrlen(client_crt) == 0);
+        key_missing = (client_key == NULL || osStrlen(client_key) == 0);
+    }
+
+    if (ca_missing || crt_missing || key_missing)
+    {
+        TRACE_ERROR("Failed to get certificates:\r\n");
+        if (ca_missing)
+        {
+            TRACE_ERROR(" ca.der (%s) missing\r\n", settings->core.client_cert.file.ca);
+        }
+        if (crt_missing)
+        {
+            TRACE_ERROR(" client.der (%s) missing\r\n", settings->core.client_cert.file.crt);
+        }
+        if (key_missing)
+        {
+            TRACE_ERROR(" private.der (%s) missing\r\n", settings->core.client_cert.file.key);
+        }
         return ERROR_FAILURE;
     }
     return httpClientTlsInitCallbackBase(context, tlsContext, client_ca, client_crt, client_key);
@@ -218,7 +259,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to connect to HTTP server! Error=%s\r\n", error2text(error));
+                TRACE_ERROR("Failed to connect to HTTP server! HTTP=%s error=%s\r\n", httpstatus2text(error), error2text(error));
                 if (isCloud)
                     stats_update("cloud_failed", 1);
                 break;
@@ -313,7 +354,14 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
             if (status)
             {
-                TRACE_INFO("HTTP code: %u\r\n", status);
+                if (status == 200 || status == 302)
+                {
+                    TRACE_DEBUG("HTTP code: %u\r\n", status);
+                }
+                else
+                {
+                    TRACE_INFO("HTTP code: %u\r\n", status);
+                }
 
                 if (statusCode)
                 {
@@ -381,7 +429,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 if (!osStrcmp(header_name, "Content-Type"))
                 {
                     osStrncpy(content_type, header_value, sizeof(content_type) - 1);
-                    TRACE_INFO("Content-Type is %s\r\n", content_type);
+                    TRACE_DEBUG("Content-Type is %s\r\n", content_type);
                 }
             } while (1);
 
@@ -459,7 +507,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             }
 
             // Debug message
-            TRACE_INFO("Connection closed\r\n");
+            TRACE_DEBUG("Connection closed\r\n");
         } while (0);
 
         if (success)

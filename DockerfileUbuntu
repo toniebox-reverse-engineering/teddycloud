@@ -10,8 +10,8 @@ RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonie
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /buildenv/contrib/config/tonieboxes.json || true
 RUN make zip
 
-FROM ubuntu:22.04
-EXPOSE 80 443
+FROM ubuntu:24.04
+EXPOSE 80 443 8443
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libubsan1 ffmpeg curl ca-certificates \

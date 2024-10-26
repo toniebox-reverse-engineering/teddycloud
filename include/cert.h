@@ -63,7 +63,7 @@ error_t cert_generate_mac(const char *mac, const char *dest);
  * The certificate is either saved in DER or PEM format depending on the cert_der flag.
  * The private key is saved in DER format.
  */
-error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file);
+error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, size_t key_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file);
 
 /**
  * @brief Generate root and server certificates.
@@ -87,4 +87,5 @@ error_t cert_generate_default();
  */
 void cert_truncate_serial(uint8_t *serial, size_t *serial_length);
 
+#define CA_RSA_SIZE 4096
 #define CERT_RSA_SIZE 2048

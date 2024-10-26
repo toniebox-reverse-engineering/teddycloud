@@ -48,6 +48,17 @@ typedef struct
 
 typedef struct
 {
+    size_t count;
+    uint32_t *pos;
+} track_positions_t;
+
+typedef struct
+{
+    track_positions_t track_positions;
+} tonie_info_additional_t;
+
+typedef struct
+{
     char *contentPath;
     char *jsonPath;
     bool_t exists;
@@ -56,6 +67,7 @@ typedef struct
     bool_t locked;
     contentJson_t json;
     TonieboxAudioFileHeader *tafHeader;
+    tonie_info_additional_t additional;
 } tonie_info_t;
 
 #define CONTENT_JSON_VERSION 5

@@ -39,7 +39,7 @@ static void hex_string_to_bytes(const char *hex_string, uint8_t *output)
 
 error_t cert_generate_rsa(int size, RsaPrivateKey *cert_privkey, RsaPublicKey *cert_pubkey)
 {
-    TRACE_INFO("Generating RSA Key... (slow!)\r\n");
+    TRACE_INFO("Generating RSA Key... (slow, very slow!!!)\r\n");
 
     osMemset(cert_privkey, 0x00, sizeof(RsaPrivateKey));
     osMemset(cert_pubkey, 0x00, sizeof(RsaPublicKey));
@@ -113,7 +113,7 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
     return NO_ERROR;
 }
 
-error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file)
+error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, int serial_number_size, size_t key_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file)
 {
     /* load server CA certificate */
     X509CertInfo issuer_cert;
@@ -134,7 +134,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     size_t priv_size = 0;
     uint8_t *priv_data = NULL;
 
-    if (cert_generate_rsa(CERT_RSA_SIZE, &cert_privkey, &cert_pubkey) != NO_ERROR)
+    if (cert_generate_rsa(key_size, &cert_privkey, &cert_pubkey) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_rsa failed\r\n");
         return ERROR_FAILURE;
@@ -153,18 +153,29 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     cert_req.subject.name.length = osStrlen(subject);
     cert_req.subject.commonName.value = subject;
     cert_req.subject.commonName.length = osStrlen(subject);
+    cert_req.subject.organizationName.value = "Team RevvoX";
+    cert_req.subject.organizationName.length = 11;
+    cert_req.subject.countryName.value = "DE";
+    cert_req.subject.countryName.length = 2;
+    cert_req.subject.localityName.value = "Duesseldorf";
+    cert_req.subject.localityName.length = 11;
+    cert_req.subject.stateOrProvinceName.value = "NW";
+    cert_req.subject.stateOrProvinceName.length = 2;
+
     cert_req.subjectPublicKeyInfo.oid.value = RSA_ENCRYPTION_OID;
     cert_req.subjectPublicKeyInfo.oid.length = sizeof(RSA_ENCRYPTION_OID);
 
+    /*
     cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_DIGITAL_SIGNATURE;
     cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_NON_REPUDIATION;
     cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_SERVER_AUTH;
     cert_req.attributes.extensionReq.extKeyUsage.bitmap |= X509_EXT_KEY_USAGE_CLIENT_AUTH;
+    */
 
     if (self_sign)
     {
         cert_req.attributes.extensionReq.basicConstraints.cA = true;
-        cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
+        // cert_req.attributes.extensionReq.keyUsage.bitmap |= X509_KEY_USAGE_KEY_CERT_SIGN;
     }
 
     X509SerialNumber serial;
@@ -180,10 +191,16 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     validity.notBefore.year = 2015;
     validity.notBefore.month = 11;
     validity.notBefore.day = 3;
+    validity.notBefore.hours = 15;
+    validity.notBefore.minutes = 23;
+    validity.notBefore.seconds = 19;
 
     validity.notAfter.year = 2040;
     validity.notAfter.month = 6;
     validity.notAfter.day = 24;
+    validity.notAfter.hours = 15;
+    validity.notAfter.minutes = 23;
+    validity.notAfter.seconds = 19;
 
     X509SignAlgoId algo;
     osMemset(&algo, 0x00, sizeof(algo));
@@ -291,7 +308,7 @@ error_t cert_generate_mac(const char *mac, const char *dest)
     char_t *client_file = custom_asprintf("%s/client.der", dest);
     char_t *private_file = custom_asprintf("%s/private.der", dest);
 
-    if (cert_generate_signed(subj, serial, 7, false, true, client_file, private_file) != NO_ERROR)
+    if (cert_generate_signed(subj, serial, 7, CERT_RSA_SIZE, false, true, client_file, private_file) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;
@@ -327,7 +344,7 @@ void cert_generate_serial(uint8_t *serial, size_t *serial_length)
     time_t cur_time = getCurrentUnixTime();
 
     /* write the current time in big endian format with leading zero */
-    *serial_length = 9;
+    //*serial_length = 18 + 1;
     serial[0] = 0;
     STORE64BE(cur_time, &serial[1]);
 
@@ -404,17 +421,29 @@ error_t cert_generate_default()
 {
     const char *cacert = settings_get_string("core.server_cert.file.ca");
     const char *cacert_key = settings_get_string("core.server_cert.file.ca_key");
-    uint8_t serial[9];
-    size_t serial_length;
+    uint8_t serial[14];
+    size_t serial_length = 14;
 
-    /* create a proper ASN.1 compatible serial with no leading zeroes */
-    cert_generate_serial(serial, &serial_length);
+    error_t error_ca = load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", 0);
+    error_t error_ca_key = load_cert("internal.server.ca_key", "core.server_cert.file.ca_key", "core.server_cert.data.ca_key", 0);
 
-    TRACE_INFO("Generating CA certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud CA Root Certificate", serial, serial_length, true, false, cacert, cacert_key) != NO_ERROR)
+    if (error_ca != NO_ERROR || error_ca_key != NO_ERROR)
     {
-        TRACE_ERROR("cert_generate_signed failed\r\n");
-        return ERROR_FAILURE;
+
+        /* create a proper ASN.1 compatible serial with no leading zeroes */
+        cert_generate_serial(serial, &serial_length);
+        serial[0] = 0x00;
+
+        TRACE_INFO("Generating CA certificate...\r\n");
+        if (cert_generate_signed("TeddyCloud CA Root Cert.", serial, serial_length, CA_RSA_SIZE, true, false, cacert, cacert_key) != NO_ERROR)
+        {
+            TRACE_ERROR("cert_generate_signed failed\r\n");
+            return ERROR_FAILURE;
+        }
+    }
+    else
+    {
+        TRACE_INFO("CA certificates already there, skipping generation!\r\n");
     }
 
     /* reload certs to reload the CA cert again */
@@ -440,7 +469,7 @@ error_t cert_generate_default()
     cert_generate_serial(serial, &serial_length);
 
     TRACE_INFO("Generating Server certificate...\r\n");
-    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, false, false, server_cert, server_key) != NO_ERROR)
+    if (cert_generate_signed("TeddyCloud Server", serial, serial_length, CERT_RSA_SIZE, false, false, server_cert, server_key) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
         return ERROR_FAILURE;

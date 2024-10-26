@@ -2159,7 +2159,7 @@
             async patchFlash() {
                 this.setState({ showProgress: false, showFlash: false });
                 this.setState({ state: `Patching flash image...` });
-                const response = await fetch(`/api/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}&wifi_ssid=${this.state.wifi_ssid}&wifi_pass=${this.state.wifi_pass}`, {
+                const response = await fetch(`/api/esp32/patchFirmware?filename=${this.state.filename}&hostname=${this.state.hostname}&wifi_ssid=${this.state.wifi_ssid}&wifi_pass=${this.state.wifi_pass}`, {
                     method: 'GET'
                 });
                 this.setState({ state: `Payload received` });
@@ -2253,7 +2253,7 @@
                     const formData = new FormData();
                     formData.append(sanitizedName, new Blob([flashData.buffer]), sanitizedName);
 
-                    const response = await fetch('/api/uploadFirmware', {
+                    const response = await fetch('/api/esp32/uploadFirmware', {
                         method: 'POST',
                         body: formData,
                     });

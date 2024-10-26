@@ -100,6 +100,8 @@ typedef struct
 typedef struct
 {
     bool split_model_content;
+    bool ignore_web_version_mismatch;
+    bool confirm_audioplayer_close;
 } settings_frontend_t;
 
 typedef struct
@@ -155,6 +157,18 @@ typedef struct
     char *v_long;
     char *v_full;
 } settings_version_t;
+
+typedef struct
+{
+    char *id;
+    char *git_sha_short;
+    char *git_sha;
+    bool dirty;
+    char *datetime;
+    char *v_short;
+    char *v_long;
+    char *v_full;
+} settings_version_web_t;
 
 typedef struct
 {
@@ -227,6 +241,7 @@ typedef struct
 
     settings_internal_rtnl_t rtnl;
     settings_version_t version;
+    settings_version_web_t version_web;
     settings_internal_toniebox_firmware_t toniebox_firmware;
     settings_internal_security_mit_t security_mit;
 
@@ -641,8 +656,13 @@ bool settings_set_u64_array(const char *item, const uint64_t *value, size_t len)
 bool settings_set_u64_array_ovl(const char *item, const uint64_t *value, size_t len, const char *overlay_name);
 bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t len, uint8_t settingsId);
 
+bool settings_set_by_string(const char *item, const char *value);
+bool settings_set_by_string_ovl(const char *item, const char *value, const char *overlay_name);
+bool settings_set_by_string_id(const char *item, const char *value, uint8_t settingsId);
+
 void settings_load_all_certs();
 error_t settings_try_load_certs_id(uint8_t settingsId);
 error_t settings_load_certs_id(uint8_t settingsId);
+bool test_boxine_ca(uint8_t settingsId);
 
 #endif

@@ -20,6 +20,7 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 #include "fs_ext.h"
+#include "os_ext.h"
 #include "cert.h"
 #include "esp32.h"
 #include "cache.h"
@@ -227,9 +228,14 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
 
     char overlay[16];
     osStrcpy(overlay, "");
-    char internal[16];
+    char internal[6];
     osStrcpy(internal, "");
+    char noLevel[6];
+    osStrcpy(noLevel, "");
+
     bool showInternal = false;
+    bool isNoLevel = false;
+
     if (queryGet(queryString, "overlay", overlay, sizeof(overlay)))
     {
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
@@ -239,6 +245,13 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         if (internal[0] == 't')
         {
             showInternal = true;
+        }
+    }
+    if (queryGet(queryString, "nolevel", noLevel, sizeof(internal)))
+    {
+        if (noLevel[0] == 't')
+        {
+            isNoLevel = true;
         }
     }
     for (size_t pos = 0; pos < settings_get_size(); pos++)
@@ -256,7 +269,7 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         }
 
         settings_level user_level = get_settings_ovl(overlay)->core.settings_level;
-        if (opt->level > user_level)
+        if (!isNoLevel && opt->level > user_level)
         {
             continue;
         }
@@ -268,38 +281,45 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "label", opt->label);
         cJSON_AddBoolToObject(jsonEntry, "overlayed", opt->overlayed);
         cJSON_AddBoolToObject(jsonEntry, "internal", opt->internal);
+        cJSON_AddNumberToObject(jsonEntry, "level", opt->level);
 
         switch (opt->type)
         {
         case TYPE_BOOL:
             cJSON_AddStringToObject(jsonEntry, "type", "bool");
             cJSON_AddBoolToObject(jsonEntry, "value", settings_get_bool_ovl(opt->option_name, overlay));
+            cJSON_AddBoolToObject(jsonEntry, "valueInit", opt->init.bool_value);
             break;
         case TYPE_UNSIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "uint");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_SIGNED:
             cJSON_AddStringToObject(jsonEntry, "type", "int");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_signed_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.signed_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.signed_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.signed_value);
             break;
         case TYPE_HEX:
             cJSON_AddStringToObject(jsonEntry, "type", "hex");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_unsigned_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.unsigned_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.unsigned_value);
             break;
         case TYPE_STRING:
             cJSON_AddStringToObject(jsonEntry, "type", "string");
             cJSON_AddStringToObject(jsonEntry, "value", settings_get_string_ovl(opt->option_name, overlay));
+            cJSON_AddStringToObject(jsonEntry, "valueInit", opt->init.string_value);
             break;
         case TYPE_FLOAT:
             cJSON_AddStringToObject(jsonEntry, "type", "float");
             cJSON_AddNumberToObject(jsonEntry, "value", settings_get_float_ovl(opt->option_name, overlay));
+            cJSON_AddNumberToObject(jsonEntry, "valueInit", opt->init.float_value);
             cJSON_AddNumberToObject(jsonEntry, "min", opt->min.float_value);
             cJSON_AddNumberToObject(jsonEntry, "max", opt->max.float_value);
             break;
@@ -486,69 +506,11 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
         {
             TRACE_DEBUG("got overlay '%s'\r\n", overlay);
         }
-        setting_item_t *opt = settings_get_by_name_ovl(item, overlay);
-        if (opt == NULL)
-        {
-            return ERROR_NOT_FOUND;
-        }
+
         bool success = false;
-
-        if (size > 0 || opt->type == TYPE_STRING)
+        if (size > 0)
         {
-            if (opt)
-            {
-                switch (opt->type)
-                {
-                case TYPE_BOOL:
-                {
-                    success = settings_set_bool_ovl(item, !strcasecmp(data, "true"), overlay);
-                    break;
-                }
-                case TYPE_STRING:
-                {
-                    success = settings_set_string_ovl(item, data, overlay);
-                    break;
-                }
-                case TYPE_HEX:
-                {
-                    uint32_t value = strtoul(data, NULL, 16);
-                    success = settings_set_unsigned_ovl(item, value, overlay);
-                    break;
-                }
-
-                case TYPE_UNSIGNED:
-                {
-                    uint32_t value = strtoul(data, NULL, 10);
-                    success = settings_set_unsigned_ovl(item, value, overlay);
-                    break;
-                }
-
-                case TYPE_SIGNED:
-                {
-                    int32_t value = strtol(data, NULL, 10);
-                    success = settings_set_signed_ovl(item, value, overlay);
-                    break;
-                }
-
-                case TYPE_FLOAT:
-                {
-                    float value = strtof(data, NULL);
-                    success = settings_set_float_ovl(item, value, overlay);
-                    break;
-                }
-
-                default:
-                    break;
-                }
-            }
-            else
-            {
-                TRACE_WARNING("Setting: '%s' cannot be set to '%s'\r\n", item, data);
-            }
-        }
-        else
-        {
-            TRACE_ERROR("Setting '%s' is unknown", item);
+            success = settings_set_by_string_ovl(item, data, overlay);
         }
 
         if (success)
@@ -681,15 +643,15 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             for (int pos = 0; pos < tafInfo->tafHeader->sha1_hash.len; pos++)
             {
                 char tmp[3];
-                osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[pos]);
+                osSprintf(tmp, "%02x", tafInfo->tafHeader->sha1_hash.data[pos]);
                 osStrcat(sha1Hash, tmp);
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
             cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
-            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "tracks");
-            for (size_t i = 0; i < tafInfo->tafHeader->n_track_page_nums; i++)
+            cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "trackSeconds");
+            for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
-                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->tafHeader->track_page_nums[i]));
+                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
 
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
@@ -843,7 +805,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
                 for (int hash_pos = 0; hash_pos < tafInfo->tafHeader->sha1_hash.len; hash_pos++)
                 {
                     char tmp[3];
-                    osSprintf(tmp, "%02X", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
+                    osSprintf(tmp, "%02x", tafInfo->tafHeader->sha1_hash.data[hash_pos]);
                     osStrcat(desc, tmp);
                 }
                 char extraDesc[1 + 64 + 1 + 64];
@@ -1181,7 +1143,7 @@ error_t file_save_end_suffix(void *in_ctx)
     return NO_ERROR;
 }
 
-error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
     char message[128];
@@ -1233,7 +1195,159 @@ error_t handleApiUploadFirmware(HttpConnection *connection, const char_t *uri, c
     return httpWriteResponseString(connection, message, false);
 }
 
-error_t handleApiPatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+bool_t move_cert_file(const char *type, char *from, char *to, char message[1024], uint_t *statusCode, bool overwrite)
+{
+    size_t message_size = 1024;
+    error_t error = fsCompareFiles(from, to, NULL);
+    if (error == ERROR_FILE_NOT_FOUND || overwrite)
+    {
+        error = fsMoveFile(from, to, true);
+        if (error != NO_ERROR)
+        {
+            osSnprintf(message, message_size, "Moving %s from %s to %s failed with error %s\r\n", type, from, to, error2text(error));
+            return false;
+        }
+    }
+    else if (error == ERROR_ABORTED)
+    {
+        *statusCode = 409; // Conflict
+        osSnprintf(message, message_size, "Different %s already exists at %s\r\n", type, to);
+        return false;
+    }
+    else if (error == NO_ERROR)
+    {
+        TRACE_INFO("Skipped identical %s", type);
+    }
+    return true;
+}
+
+error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint_t statusCode = 500;
+    char message[1024];
+
+    error_t error = NO_ERROR;
+    const char *firmwareRootPath = get_settings()->internal.firmwaredirfull;
+    const char *certRootPath = get_settings()->internal.certdirfull;
+    char filename[255] = {0};
+    char overwrite_s[16] = {0};
+    char mac[13] = {0};
+
+    if (!queryGet(queryString, "filename", filename, sizeof(filename)))
+    {
+        return ERROR_FAILURE;
+    }
+
+    bool overwrite = false;
+    bool overwriteBase = false;
+    if (queryGet(queryString, "overwrite", overwrite_s, sizeof(overwrite_s)))
+    {
+        if (overwrite_s[0] == 't')
+        {
+            overwrite = true;
+        }
+    }
+
+    const char *sep = osStrchr(filename, '_');
+    if (!sep || strlen(&sep[1]) < 12)
+    {
+        TRACE_ERROR("Invalid file pattern '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+    osStrncpy(mac, &sep[1], 12);
+    mac[12] = 0;
+    osStringToLower(mac);
+
+    char *file_path = custom_asprintf("%s%c%s", firmwareRootPath, PATH_SEPARATOR, filename);
+    char *target_dir = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, mac);
+
+    char *ca_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "CA.DER");
+    char *client_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "CLIENT.DER");
+    char *private_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "PRIVATE.DER");
+
+    char *ca_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "ca.der");
+    char *client_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "client.der");
+    char *private_target_file = custom_asprintf("%s%c%s", target_dir, PATH_SEPARATOR, "private.der");
+
+    char *ca_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "ca.der");
+    char *client_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "client.der");
+    char *private_global_file = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, "private.der");
+
+    do
+    {
+        if (!fsDirExists(target_dir))
+        {
+            error = fsCreateDir(target_dir);
+            if (error != NO_ERROR)
+            {
+                osSnprintf(message, sizeof(message), "Failed to create directory '%s' with error %s\r\n", target_dir, error2text(error));
+                break;
+            }
+        }
+        error = esp32_fat_extract(file_path, "CERT", target_dir);
+        if (error != NO_ERROR)
+        {
+            osSnprintf(message, sizeof(message), "esp32_fat_extract failed with error %s\r\n", error2text(error));
+            break;
+        }
+
+        if (!move_cert_file("CA", ca_file, ca_target_file, message, &statusCode, overwrite))
+        {
+            break;
+        }
+        if (!move_cert_file("CLIENT", client_file, client_target_file, message, &statusCode, overwrite))
+        {
+            break;
+        }
+        if (!move_cert_file("PRIVATE", private_file, private_target_file, message, &statusCode, overwrite))
+        {
+            break;
+        }
+
+        if (!move_cert_file("CA", ca_target_file, ca_global_file, message, &statusCode, overwriteBase))
+        {
+        }
+        if (!move_cert_file("CLIENT", client_target_file, client_global_file, message, &statusCode, overwriteBase))
+        {
+        }
+        if (!move_cert_file("PRIVATE", private_target_file, private_global_file, message, &statusCode, overwriteBase))
+        {
+        }
+
+        osSnprintf(message, sizeof(message), "OK");
+        statusCode = 200;
+    } while (false);
+
+    if (statusCode != 200)
+    {
+        TRACE_ERROR("%s\r\n", message);
+    }
+
+    fsDeleteFile(ca_file);
+    fsDeleteFile(client_file);
+    fsDeleteFile(private_file);
+
+    osFreeMem(file_path);
+    osFreeMem(target_dir);
+
+    osFreeMem(ca_file);
+    osFreeMem(client_file);
+    osFreeMem(private_file);
+
+    osFreeMem(ca_target_file);
+    osFreeMem(client_target_file);
+    osFreeMem(private_target_file);
+
+    osFreeMem(ca_global_file);
+    osFreeMem(client_global_file);
+    osFreeMem(private_global_file);
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+}
+error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
@@ -1786,6 +1900,92 @@ error_t taf_encode_end(void *in_ctx)
     return NO_ERROR;
 }
 
+error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("parsePostData failed with error %s\r\n", error2text(error));
+        return error;
+    }
+
+    char multisource[99][PATH_LEN];
+    uint8_t multisource_size = 0;
+    char source[PATH_LEN];
+    char target[PATH_LEN];
+
+    if (!queryGet(post_data, "target", target, sizeof(target)))
+    {
+        TRACE_ERROR("target missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+    sanitizePath(target, false);
+    char *targetAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, target);
+    sanitizePath(targetAbsolute, false);
+
+    char_t message[256];
+    uint_t statusCode = 200;
+
+    if (fsFileExists(targetAbsolute))
+    {
+        TRACE_ERROR("File %s already exists!\r\n", targetAbsolute);
+        osSnprintf(message, sizeof(message), "File %s already exists!\r\n", targetAbsolute);
+        statusCode = 500;
+    }
+    else
+    {
+        while (queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
+        {
+            sanitizePath(source, false);
+            osSprintf(multisource[multisource_size], "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            sanitizePath(multisource[multisource_size], false);
+            // TRACE_INFO("Source %s\r\n", multisource[multisource_size]);
+            if (!fsFileExists(multisource[multisource_size]))
+            {
+                TRACE_ERROR("Source %s does not exist!\r\n", multisource[multisource_size]);
+                osFreeMem(targetAbsolute);
+                return ERROR_INVALID_REQUEST;
+            }
+            multisource_size++;
+        }
+        if (multisource_size == 0)
+        {
+            TRACE_ERROR("Source missing!\r\n");
+            osFreeMem(targetAbsolute);
+            return ERROR_INVALID_REQUEST;
+        }
+
+        TRACE_INFO("Encode %" PRIu8 " files to %s\r\n", multisource_size, targetAbsolute);
+        size_t current_source = 0;
+        error = ffmpeg_convert(multisource, multisource_size, &current_source, targetAbsolute, 0);
+        osFreeMem(targetAbsolute);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
+            statusCode = 500;
+            osSnprintf(message, sizeof(message), "ffmpeg_convert failed with error %s\r\n", error2text(error));
+        }
+        else
+        {
+            osSnprintf(message, sizeof(message), "OK\r\n");
+        }
+    }
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+    return error;
+}
 error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
@@ -1937,8 +2137,8 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error creating directory '%s', error %d", path, err);
-        TRACE_ERROR("Error creating directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error creating directory '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error creating directory '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
@@ -1986,8 +2186,8 @@ error_t handleApiDirectoryDelete(HttpConnection *connection, const char_t *uri, 
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error deleting directory '%s', error %d", path, err);
-        TRACE_ERROR("Error deleting directory '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error deleting directory '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error deleting directory '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
@@ -2035,8 +2235,8 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
     if (err != NO_ERROR)
     {
         statusCode = 500;
-        osSnprintf(message, sizeof(message), "Error deleting file '%s', error %d", path, err);
-        TRACE_ERROR("Error deleting file '%s' -> '%s', error %d\r\n", path, pathAbsolute, err);
+        osSnprintf(message, sizeof(message), "Error deleting file '%s', error %s", path, error2text(err));
+        TRACE_ERROR("Error deleting file '%s' -> '%s', error %s\r\n", path, pathAbsolute, error2text(err));
     }
     httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
     connection->response.statusCode = statusCode;
@@ -2045,7 +2245,78 @@ error_t handleApiFileDelete(HttpConnection *connection, const char_t *uri, const
 
     return httpWriteResponseString(connection, message, false);
 }
+error_t handleApiFileMove(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
 
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char_t post_data[BODY_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    char source[256 + 3];
+    char target[256 + 3];
+
+    if (!queryGet(post_data, "source", source, sizeof(source)))
+    {
+        TRACE_ERROR("source missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+    if (!queryGet(post_data, "target", target, sizeof(target)))
+    {
+        TRACE_ERROR("target missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(source, false);
+    char *sourceAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, source);
+    sanitizePath(sourceAbsolute, false);
+
+    sanitizePath(target, false);
+    char *targetAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, target);
+    sanitizePath(targetAbsolute, false);
+
+    TRACE_INFO("Moving file: '%s' to '%s'\r\n", source, target);
+    TRACE_INFO("Moving file: '%s' to '%s'\r\n", sourceAbsolute, targetAbsolute);
+
+    uint_t statusCode = 200;
+    char message[1024];
+
+    osSnprintf(message, sizeof(message), "OK");
+
+    error_t err = fsMoveFile(sourceAbsolute, targetAbsolute, false);
+
+    if (err != NO_ERROR)
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "Error moving file '%s' to '%s', error %s", source, target, error2text(err));
+        TRACE_ERROR("Error moving file '%s' to '%s', error %s\r\n", sourceAbsolute, targetAbsolute, error2text(err));
+    }
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    osFreeMem(sourceAbsolute);
+    osFreeMem(targetAbsolute);
+
+    return httpWriteResponseString(connection, message, false);
+}
+
+error_t handleApiToniesJsonReload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    tonies_deinit();
+    tonies_init();
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", 2);
+    return httpWriteResponseString(connection, "OK", false);
+}
 error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
@@ -2357,6 +2628,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             cJSON_AddBoolToObject(jsonEntry, "hide", tafInfo->json.hide);
             cJSON_AddBoolToObject(jsonEntry, "claimed", tafInfo->json.claimed);
             cJSON_AddStringToObject(jsonEntry, "source", tafInfo->json.source);
+
+            cJSON *tracksArray = cJSON_AddArrayToObject(jsonEntry, "trackSeconds");
+            for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
+            {
+                cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
+            }
 
             char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
             char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);

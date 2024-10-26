@@ -1,14 +1,31 @@
-name: Docker Image Publish Matrix (Alpine)
+name: Docker Image Publish Matrix Base Job
 
 on:
-  workflow_dispatch:
   workflow_call:
     inputs:
-      tcw_commit_hash:
-        description: "Commit hash from the teddycloud_web build job"
+      system:
+        description: "debian, ubuntu or alpine"
         type: string
-        required: false
-        default: "HEAD"
+        required: true
+      dockerfile:
+        description: "DockerfileDebian, DockerfileUbuntu or DockerfileAlpine"
+        type: string
+        required: true
+      platforms:
+        description: "Comma-separated list of target platforms for the build (e.g., linux/amd64,linux/arm/v7)"
+        type: string
+        required: true
+      primary_image:
+        description: "Flag if it is the primary fallback image to use"
+        type: boolean
+        required: true
+      error_platforms:
+        description: "Comma-separated list of target platforms that can have build errors (e.g., linux/amd64,linux/arm/v7)"
+        type: string
+        required: true
+
+      tcw_commit_hash:
+        type: string
 
 # permissions are needed if pushing to ghcr.io
 permissions:
@@ -22,16 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          [
-            linux/amd64,
-            linux/arm/v6,
-            linux/arm/v7,
-            linux/arm64/v8,
-            linux/ppc64le,
-            linux/s390x,
-            linux/386,
-          ]
+        platform: ${{ fromJson(inputs.platforms) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,14 +82,24 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
             prefix=arch_,onlatest=true
-            suffix=_${{ matrix.platform }}_alpine,onlatest=true
+            suffix=_${{ matrix.platform }}_${{ inputs.system }},onlatest=${{ inputs.primary_image }}
+
+      - name: Modify tags
+        id: modify_tags
+        if: ${{ inputs.primary_image }}
+        run: |
+          original_tags=$(jq -cr '.tags | map(.) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          modified_tags=$(echo "$original_tags" | sed 's/_${{ inputs.system }}//')
+          all_tags="$original_tags $modified_tags"
+          echo "all_tags=$all_tags"
+          echo "all_tags=$all_tags" >> $GITHUB_OUTPUT
 
       - name: Build & push digest docker ${{ matrix.platform }}
         id: build
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: DockerfileAlpine
+          file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           push: true
           labels: ${{ steps.matrix_meta.outputs.labels }}
@@ -99,12 +117,12 @@ jobs:
         run: |
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
-        continue-on-error: ${{ matrix.platform == 'x' }}
+        continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
       - name: Extract release zip
         run: |
-          docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.alpine.release.zip
+          docker cp teddyCloud-test:/tmp/teddycloud.zip /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
           docker rm teddyCloud-test
-        continue-on-error: ${{ matrix.platform == 'x' }}
+        continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
 
       - name: Export digest
         run: |
@@ -118,23 +136,24 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: DockerfileAlpine
+          file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
+          # tags: ${{ steps.modify_tags.outputs.all_tags }} # invalid reference format
           tags: ${{ steps.matrix_meta.outputs.tags }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-alpine-${{ steps.platform_strip.outputs.platform }}
+          name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ steps.platform_strip.outputs.platform }}-alpine
-          path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.alpine.release.zip
+          name: release-${{ steps.platform_strip.outputs.platform }}-${{ inputs.system }}
+          path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
           if-no-files-found: error
 
   merge-images:
@@ -145,7 +164,7 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          pattern: digests-alpine-*
+          pattern: digests-${{ inputs.system }}-*
           merge-multiple: true
           path: /tmp/digests/${{ github.sha }}
       - name: Set up Docker Buildx
@@ -180,10 +199,23 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
-            suffix=_alpine,onlatest=true
+            suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
+
+      - name: Create manifest list and push (primary)
+        if: ${{ github.event_name != 'pull_request' && inputs.primary_image }}
+        working-directory: /tmp/digests/${{ github.sha }}
+        run: |
+          # Extract original tags
+          original_tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          # Remove suffix and create a modified tag list
+          modified_tags=$(jq -cr '.tags | map("-t " + sub("_${{ inputs.system }}$"; "")) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          # Combine original and modified tags
+          all_tags="$original_tags $modified_tags"
+          docker buildx imagetools create $all_tags \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
       - name: Create manifest list and push
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' && !inputs.primary_image }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \

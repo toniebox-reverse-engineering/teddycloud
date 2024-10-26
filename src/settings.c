@@ -12,6 +12,7 @@
 
 #include "fs_port.h"
 #include "fs_ext.h"
+#include "os_ext.h"
 #include "server_helpers.h"
 #include "cert.h"
 
@@ -65,7 +66,7 @@ static void option_map_init(uint8_t settingsId)
 
     /* settings for HTTPS server */
     OPTION_TREE_DESC("core.server", "Server ports", LEVEL_EXPERT)
-    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP portfor the webinterface", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_port", &settings->core.http_port, 80, 1, 65535, "HTTP port", "HTTP port for the webinterface", LEVEL_EXPERT)
     OPTION_UNSIGNED("core.server.https_web_port", &settings->core.https_web_port, 8443, 1, 65535, "HTTPS Web port", "HTTPS port for the webinterface", LEVEL_EXPERT)
     OPTION_UNSIGNED("core.server.https_api_port", &settings->core.https_api_port, 443, 1, 65535, "HTTPS API port", "HTTPS port for the Toniebox API", LEVEL_EXPERT)
     OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
@@ -175,6 +176,15 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.version.v_long", &settings->internal.version.v_long, "", "Detailed version descriptor", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.version.v_full", &settings->internal.version.v_full, "", "Complete version descriptor with all details", LEVEL_NONE)
 
+    OPTION_INTERNAL_STRING("internal.version_web.id", &settings->internal.version_web.id, "", "Web version id", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.git_sha_short", &settings->internal.version_web.git_sha_short, "", "Short Git SHA-1 hash of the web version", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.git_sha", &settings->internal.version_web.git_sha, "", "Full Git SHA-1 hash of the web version", LEVEL_NONE)
+    OPTION_INTERNAL_BOOL("internal.version_web.dirty", &settings->internal.version_web.dirty, FALSE, "Indicates if the web was made from a modified (dirty) git tree", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.datetime", &settings->internal.version_web.datetime, "", "Datetime of the web or git commit", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_short", &settings->internal.version_web.v_short, "", "Concise web version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_long", &settings->internal.version_web.v_long, "", "Detailed web version descriptor", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.version_web.v_full", &settings->internal.version_web.v_full, "", "Complete web version descriptor with all details", LEVEL_NONE)
+
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.boxIC", &settings->internal.toniebox_firmware.boxIC, 0, 0, UINT64_MAX, "Box IC from User Agent", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionFirmware", &settings->internal.toniebox_firmware.uaVersionFirmware, 0, 0, UINT64_MAX, "Firmware version from User Agent", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.toniebox_firmware.uaVersionServicePack", &settings->internal.toniebox_firmware.uaVersionServicePack, 0, 0, UINT64_MAX, "Service Pack version from User Agent", LEVEL_NONE)
@@ -220,7 +230,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, TRUE, "Cache content", "Cache cloud content on local server", LEVEL_DETAIL)
     OPTION_BOOL("cloud.cacheToLibrary", &settings->cloud.cacheToLibrary, TRUE, "Cache to library", "Cache cloud content to library", LEVEL_DETAIL)
     OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password", LEVEL_EXPERT)
-    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update)", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update, only if \"Update content on lower audio id\" is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
 
@@ -234,6 +244,8 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_TREE_DESC("frontend", "Frontend", LEVEL_BASIC)
     OPTION_BOOL("frontend.split_model_content", &settings->frontend.split_model_content, TRUE, "Split content / model", "If enabled, the content of the TAF will be shown beside the model of the figurine", LEVEL_DETAIL)
+    OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
+    OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
@@ -400,8 +412,26 @@ settings_t *get_settings_cn(const char *commonName)
                 settings_set_string_id("boxName", boxName, i);
                 settings_set_string_id("boxModel", "", i);
                 settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
+                settings_get_by_name_id("core.certdir", i)->overlayed = true;
+                settings_get_by_name_id("core.client_cert.file.ca", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.crt", i)->overlayed = true;
                 settings_get_by_name_id("core.client_cert.file.key", i)->overlayed = true;
+
+                const char *certDir = settings_get_string_id("core.certdir", i);
+                osStringToLower(boxId);
+                char *customCertDir = custom_asprintf("%s%c%s", certDir, PATH_SEPARATOR, boxId);
+                char *ca = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "ca.der");
+                char *crt = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "client.der");
+                char *key = custom_asprintf("%s%c%s", customCertDir, PATH_SEPARATOR, "private.der");
+                settings_set_string_id("core.certdir", customCertDir, i);
+                settings_set_string_id("core.client_cert.file.ca", ca, i);
+                settings_set_string_id("core.client_cert.file.crt", crt, i);
+                settings_set_string_id("core.client_cert.file.key", key, i);
+                osFreeMem(customCertDir);
+                osFreeMem(ca);
+                osFreeMem(crt);
+                osFreeMem(key);
+
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS);
@@ -671,6 +701,15 @@ error_t settings_init(const char *cwd, const char *base_dir)
     settings_set_string("internal.version.v_short", BUILD_FULL_NAME_SHORT);
     settings_set_string("internal.version.v_long", BUILD_FULL_NAME_LONG);
     settings_set_string("internal.version.v_full", BUILD_FULL_NAME_FULL);
+
+    settings_set_string("internal.version_web.id", WEB_VERSION);
+    settings_set_string("internal.version_web.git_sha_short", WEB_GIT_SHORT_SHA);
+    settings_set_string("internal.version_web.git_sha", WEB_GIT_SHA);
+    settings_set_bool("internal.version_web.id", WEB_GIT_IS_DIRTY);
+    settings_set_string("internal.version_web.datetime", WEB_DATETIME);
+    settings_set_string("internal.version_web.v_short", WEB_FULL_NAME_SHORT);
+    settings_set_string("internal.version_web.v_long", WEB_FULL_NAME_LONG);
+    settings_set_string("internal.version_web.v_full", WEB_FULL_NAME_FULL);
 
     settings_set_bool("internal.logColorSupport", supportsAnsiColors());
     settings_set_bool("internal.autogen_certs", autogen_certs);
@@ -1505,6 +1544,77 @@ static char *settings_sanitize_box_id(const char *input_id)
     return new_str;
 }
 
+bool settings_set_by_string(const char *item, const char *value)
+{
+    return settings_set_by_string_id(item, value, 0);
+}
+bool settings_set_by_string_ovl(const char *item, const char *value, const char *overlay_name)
+{
+    return settings_set_by_string_id(item, value, get_overlay_id(overlay_name));
+}
+bool settings_set_by_string_id(const char *item, const char *value, uint8_t settingsId)
+{
+    bool success = false;
+    setting_item_t *opt = settings_get_by_name_id(item, settingsId);
+    if (opt == NULL)
+    {
+        TRACE_ERROR("Settings: %s not found\r\n", item);
+        return ERROR_NOT_FOUND;
+    }
+    else if (opt)
+    {
+        switch (opt->type)
+        {
+        case TYPE_BOOL:
+        {
+            success = settings_set_bool_id(item, !strcasecmp(value, "true"), settingsId);
+            break;
+        }
+        case TYPE_STRING:
+        {
+            success = settings_set_string_id(item, value, settingsId);
+            break;
+        }
+        case TYPE_HEX:
+        {
+            uint32_t data = strtoul(value, NULL, 16);
+            success = settings_set_unsigned_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_UNSIGNED:
+        {
+            uint32_t data = strtoul(value, NULL, 10);
+            success = settings_set_unsigned_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_SIGNED:
+        {
+            int32_t data = strtol(value, NULL, 10);
+            success = settings_set_signed_id(item, data, settingsId);
+            break;
+        }
+
+        case TYPE_FLOAT:
+        {
+            float data = strtof(value, NULL);
+            success = settings_set_float_id(item, data, settingsId);
+            break;
+        }
+
+        default:
+            break;
+        }
+    }
+    else
+    {
+        TRACE_WARNING("Setting: '%s' cannot be set to '%s'\r\n", item, value);
+    }
+
+    return success;
+}
+
 /* unused? */
 void settings_load_all_certs()
 {
@@ -1526,13 +1636,14 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
     load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
 
+    test_boxine_ca(settingsId);
+
     const char *server_crt = settings_get_string("internal.server.crt");
     const char *server_ca_crt = settings_get_string("internal.server.ca");
 
     char *chain = custom_asprintf("%s%s", server_crt, server_ca_crt);
     settings_set_string_id("internal.server.cert_chain", chain, settingsId);
     osFreeMem(chain);
-
     return NO_ERROR;
 }
 
@@ -1547,7 +1658,7 @@ error_t settings_load_certs_id(uint8_t settingsId)
     {
         TRACE_INFO("********************************************\r\n");
         TRACE_INFO("   No certificates found. Generating.\r\n");
-        TRACE_INFO("   This will take some time...\r\n");
+        TRACE_INFO("   This will take several minutes...\r\n");
         TRACE_INFO("********************************************\r\n");
         cert_generate_default();
         TRACE_INFO("********************************************\r\n");
@@ -1556,4 +1667,31 @@ error_t settings_load_certs_id(uint8_t settingsId)
     }
 
     return NO_ERROR;
+}
+
+bool test_boxine_ca(uint8_t settingsId)
+{
+    const char *client_ca_crt = settings_get_string_id("internal.client.ca", settingsId);
+
+    size_t boxine_ca_length = 2008;
+    size_t ca_length = osStrlen(client_ca_crt);
+    if (ca_length > 0)
+    {
+        if (ca_length != boxine_ca_length)
+        {
+            TRACE_WARNING("Client CA length mismatch %" PRIuSIZE " expected %" PRIuSIZE "\r\n", ca_length, boxine_ca_length);
+            return false;
+        }
+        else
+        {
+            if (osStrstr(client_ca_crt, "MC0JveGluZSBHbW") == NULL   // Boxine GmbH
+                || osStrstr(client_ca_crt, "DAlCb3hpbmUgQ") == NULL) // Boxine
+            {
+                TRACE_WARNING("Client CA does not match Boxine\r\n");
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }

@@ -70,6 +70,19 @@ ifeq ($(build_gitTagPrefix),tc)
 	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
 endif
 
+web_gitDirty:=${shell cd $(WEB_SRC_DIR) && git diff --quiet && echo '0' || echo '1'}
+web_gitDateTime:="${shell cd $(WEB_SRC_DIR) && git log -1 --format=%ai}"
+web_gitShortSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse --short HEAD}
+web_gitSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse HEAD}
+web_gitTag:=${shell cd $(WEB_SRC_DIR) && git name-rev --tags --name-only $(web_gitSha)}
+web_gitTagPrefix:=$(firstword $(subst _, ,$(web_gitTag)))
+web_version:=vX.X.X
+CFLAGS_VERSION+=-DWEB_GIT_IS_DIRTY=${web_gitDirty} -DWEB_GIT_DATETIME=\"${web_gitDateTime}\" -DWEB_RAW_DATETIME=\"${web_rawDateTime}\" -DWEB_GIT_SHORT_SHA=\"${web_gitShortSha}\" -DWEB_GIT_SHA=\"${web_gitSha}\" -DWEB_GIT_TAG=\"${web_gitTag}\"
+ifeq ($(web_gitTagPrefix),tcw)
+	web_version:=$(subst ${web_gitTagPrefix}_,,${web_gitTag})
+	CFLAGS_VERSION+=-Dweb_VERSION=\"${web_version}\" 
+endif
+
 ifeq ($(OS),Windows_NT)
 	SHELL       = cmd.exe
 	ECHO        = echo
@@ -345,6 +358,7 @@ CYCLONE_SOURCES = \
 CYCLONE_SOURCES := $(filter-out \
 	cyclone/common/debug.c \
 	cyclone/common/error.c \
+	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
@@ -357,6 +371,7 @@ CYCLONE_SOURCES += \
 	src/cyclone/common/debug.c \
 	src/cyclone/common/error.c \
 	src/cyclone/cyclone_crypto/mpi.c \
+	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
@@ -496,21 +511,31 @@ ifeq ($(OS),Windows_NT)
 web: 
 web_copy: 
 else
+web_version:
+
 web_clean: 
-	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Clean TeddyCloud React Webinterface'
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Clean TeddyCloud Web'
 	$(RM_R) $(CONTRIB_DIR)/$(WEB_DIR)
 		
-web: web_clean 
-	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud React Webinterface'
+web: web_clean
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Build TeddyCloud Web'
 	$(QUIET) $(MKDIR) $(CONTRIB_DIR)/$(WEB_DIR)/
 	$(QUIET)cd $(WEB_SRC_DIR) \
 		&& npm install \
 		&& npm run build \
 		&& $(CP_R) $(WEB_BUILD_DIR)/* ../$(CONTRIB_DIR)/$(WEB_DIR)/ \
 		&& cd -
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Generate TeddyCloud Web version info'
+	$(QUIET)echo "{" > $(CONTRIB_DIR)/$(WEB_DIR)/web_version.json
+	$(QUIET)$(foreach var,$(.VARIABLES), \
+		$(if $(filter web_%,$(var)), \
+			(echo '  "$(var)": "'${$(var)}'",';) >> $(CONTRIB_DIR)/$(WEB_DIR)/web_version.json; \
+		) \
+	)
+	$(QUIET)echo "  \"_eof\":\"\"\n}" >> $(CONTRIB_DIR)/$(WEB_DIR)/web_version.json
 
 web_copy: 
-	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Copy TeddyCloud React Webinterface'
+	$(QUIET)$(ECHO) '[ ${GREEN}WEB${NC}  ] Copy TeddyCloud Web'
 	$(QUIET) $(MKDIR) $(PREINSTALL_DIR)/$(WEB_DIR)/
 	$(QUIET) $(CP_R) $(CONTRIB_DIR)/$(WEB_DIR)/* $(PREINSTALL_DIR)/$(WEB_DIR)/ 
 endif

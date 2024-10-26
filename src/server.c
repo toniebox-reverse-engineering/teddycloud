@@ -119,18 +119,22 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
     /* custom API */
     {REQ_POST, "/api/fileDelete", SERTY_WEB, &handleApiFileDelete},
+    {REQ_POST, "/api/fileMove", SERTY_WEB, &handleApiFileMove},
     {REQ_POST, "/api/dirDelete", SERTY_WEB, &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", SERTY_WEB, &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", SERTY_WEB, &handleApiUploadCert},
-    {REQ_POST, "/api/uploadFirmware", SERTY_WEB, &handleApiUploadFirmware},
-    {REQ_GET, "/api/patchFirmware", SERTY_WEB, &handleApiPatchFirmware},
+    {REQ_POST, "/api/esp32/uploadFirmware", SERTY_WEB, &handleApiESP32UploadFirmware},
+    {REQ_POST, "/api/esp32/extractCerts", SERTY_WEB, &handleApiESP32ExtractCerts},
+    {REQ_GET, "/api/esp32/patchFirmware", SERTY_WEB, &handleApiESP32PatchFirmware},
     {REQ_POST, "/api/fileUpload", SERTY_WEB, &handleApiFileUpload},
+    {REQ_POST, "/api/fileEncode", SERTY_WEB, &handleApiEncodeFile},
     {REQ_POST, "/api/pcmUpload", SERTY_WEB, &handleApiPcmUpload},
     {REQ_GET, "/api/fileIndexV2", SERTY_WEB, &handleApiFileIndexV2},
     {REQ_GET, "/api/fileIndex", SERTY_WEB, &handleApiFileIndex},
     {REQ_GET, "/api/stats", SERTY_WEB, &handleApiStats},
     {REQ_GET, "/api/toniesJsonSearch", SERTY_WEB, &handleApiToniesJsonSearch},
     {REQ_GET, "/api/toniesJsonUpdate", SERTY_WEB, &handleApiToniesJsonUpdate},
+    {REQ_GET, "/api/toniesJsonReload", SERTY_WEB, &handleApiToniesJsonReload},
     {REQ_GET, "/api/toniesJson", SERTY_WEB, &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", SERTY_WEB, &handleApiToniesCustomJson},
     {REQ_GET, "/api/tonieboxesJson", SERTY_WEB, &handleApiTonieboxJson},
@@ -625,7 +629,7 @@ error_t httpServerCgiCallback(HttpConnection *connection,
     return NO_ERROR;
 }
 
-error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tlsContext, TlsClientAuthMode authMode)
 {
     error_t error;
 
@@ -649,8 +653,8 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
     if (error)
         return error;
 
-    // Client authentication is not required
-    error = tlsSetClientAuthMode(tlsContext, TLS_CLIENT_AUTH_OPTIONAL);
+    // Client authentication
+    error = tlsSetClientAuthMode(tlsContext, authMode);
     // Any error to report?
     if (error)
         return error;
@@ -675,6 +679,63 @@ error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsCon
 
     // Successful processing
     return NO_ERROR;
+}
+error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+{
+    return httpServerTlsInitCallbackBase(connection, tlsContext, TLS_CLIENT_AUTH_NONE);
+}
+error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
+{
+    settings_t *settings = get_settings(); // Overlay is currently unknown and settings in the context empty
+    TlsClientAuthMode authMode = TLS_CLIENT_AUTH_OPTIONAL;
+    error_t error = NO_ERROR;
+    /*
+    if (settings->core.boxCertAuth)
+    {
+        authMode = TLS_CLIENT_AUTH_REQUIRED;
+    }
+    */
+    error = httpServerTlsInitCallbackBase(connection, tlsContext, authMode);
+    if (error)
+        return error;
+
+    if (settings->core.boxCertAuth && 1 == 0)
+    {
+        // TODO add client certs and check if this works.
+        // CA cannot be used - the intermedia CAs are not available
+        // Doesn't work, because cyclone checks for the chain
+        uint32_t trustedCaListLen = 0;
+        for (uint8_t settingsId = 1; settingsId < MAX_OVERLAYS; settingsId++)
+        {
+            const char *cert = get_settings_id(settingsId)->internal.client.crt;
+            if (cert != NULL)
+            {
+                trustedCaListLen += osStrlen(cert);
+            }
+        }
+
+        if (trustedCaListLen > 0)
+        {
+            char *trustedCaList = osAllocMem(trustedCaListLen + 1);
+            trustedCaList[0] = '\0';
+            for (uint8_t settingsId = 1; settingsId < MAX_OVERLAYS; settingsId++)
+            {
+                const char *cert = get_settings_id(settingsId)->internal.client.crt;
+                if (cert != NULL)
+                {
+                    osStrcat(trustedCaList, cert);
+                }
+            }
+            error = tlsSetTrustedCaList(tlsContext, trustedCaList, osStrlen(trustedCaList));
+        }
+        else
+        {
+            TRACE_ERROR("Failed to get trusted CA list\r\n");
+            error = ERROR_FAILURE; // TODO which error
+        }
+    }
+
+    return error;
 }
 
 bool sanityCheckDir(const char *dir)
@@ -768,11 +829,12 @@ void server_init(bool test)
     https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
     https_web_settings.isHttps = true;
 
-    /* use them for HTTPS */
+    /* use them for Box HTTPS */
     https_api_settings = https_web_settings;
-    https_api_settings.requestCallback = httpServerAPIRequestCallback;
     https_api_settings.connections = httpsApiConnections;
     https_api_settings.port = settings_get_unsigned("core.server.https_api_port");
+    https_api_settings.tlsInitCallback = httpServerBoxTlsInitCallback;
+    https_api_settings.requestCallback = httpServerAPIRequestCallback;
 
     error_t err = httpServerInit(&http_context, &http_settings);
     if (err != NO_ERROR)
@@ -783,7 +845,7 @@ void server_init(bool test)
     err = httpServerInit(&https_web_context, &https_web_settings);
     if (err != NO_ERROR)
     {
-        TRACE_ERROR("httpServerInit() for HTTPS Webfailed with code %d\r\n", err);
+        TRACE_ERROR("httpServerInit() for HTTPS Web failed with code %d\r\n", err);
         return;
     }
     err = httpServerInit(&https_api_context, &https_api_settings);
@@ -894,7 +956,7 @@ void server_init(bool test)
         if (openConnections != openAPIConnectionsLast)
         {
             openAPIConnectionsLast = openConnections;
-            TRACE_INFO("%zu open HTTPS Web connections\r\n", openConnections);
+            TRACE_INFO("%zu open HTTPS API connections\r\n", openConnections);
         }
         for (size_t i = 0; i < MAX_OVERLAYS; i++)
         {

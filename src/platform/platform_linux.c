@@ -278,8 +278,21 @@ error_t socketReceive(Socket *socket, void *data_in,
 
         if ((flags & SOCKET_FLAG_BREAK_CHAR) && buff->buffer_used)
         {
-            /* warning: searches outside buffer if binary */
-            const char *ptr = strchr(buff->buffer, flags & 0xFF);
+            const char *ptr = NULL;
+
+            /* First, check for the null terminator (0x00) in the buffer */
+            const char *null_pos = memchr(buff->buffer, 0x00, buff->buffer_used);
+            if (null_pos)
+            {
+                /* If null terminator is found, use strchr up to the null */
+                ptr = strchr(buff->buffer, flags & 0xFF);
+            }
+            else
+            {
+                TRACE_WARNING("buffer does not contain null terminator\r\n");
+                /* If no null terminator, safely use memchr over the whole buffer */
+                ptr = memchr(buff->buffer, flags & 0xFF, buff->buffer_used);
+            }
 
             if (ptr)
             {

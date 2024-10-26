@@ -149,22 +149,22 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
 
 int32_t read_little_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24));
+    return (int32_t)((uint32_t)buf[0] | (buf[1] << 8) | ((uint32_t)buf[2] << 16) | ((uint32_t)buf[3] << 24));
 }
 
 int64_t read_little_endian64(const uint8_t *buf)
 {
-    return ((int64_t)read_little_endian32(&buf[4])) | (((int64_t)read_little_endian32(buf)) << 32);
+    return ((int64_t)read_little_endian32(&buf[4])) | (((uint64_t)read_little_endian32(buf)) << 32);
 }
 
 int32_t read_big_endian32(const uint8_t *buf)
 {
-    return (int32_t)(buf[3] | (buf[2] << 8) | (buf[1] << 16) | (buf[0] << 24));
+    return (int32_t)((uint32_t)buf[3] | ((uint32_t)buf[2] << 8) | ((uint32_t)buf[1] << 16) | ((uint32_t)buf[0] << 24));
 }
 
 int64_t read_big_endian64(const uint8_t *buf)
 {
-    return ((int64_t)read_big_endian32(buf)) | (((int64_t)read_big_endian32(&buf[4])) << 32);
+    return ((int64_t)read_big_endian32(buf)) | (((uint64_t)read_big_endian32(&buf[4])) << 32);
 }
 
 static char *absolute_url(const char *url_or_path)
