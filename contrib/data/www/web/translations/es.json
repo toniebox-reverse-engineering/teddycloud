@@ -958,6 +958,8 @@
             "sourceSetSuccessful": "Fuente configurada como {{selectedFile}}."
         },
         "navigationTitle": "Tonies",
+        "noData": "No se encontraron Tonies/Tags personalizados.",
+        "noDataText": "Los Tonies/Tags personalizados solo aparecerán después de que una Toniebox haya establecido una conexión exitosa y ya tenga Tonies/Tags personalizados en su tarjeta SD. Asegúrate de que tu Toniebox esté correctamente conectada y tenga algunos Tonies/Tags personalizados, o coloca tu primer Tonie/Tag personalizado en tu Toniebox y actualiza este sitio.",
         "selectFileModal": {
             "cancel": "Cancelar",
             "ok": "OK",
