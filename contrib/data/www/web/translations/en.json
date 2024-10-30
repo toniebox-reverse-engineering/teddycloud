@@ -958,6 +958,8 @@
             "sourceSetSuccessful": "Source set to {{selectedFile}}!"
         },
         "navigationTitle": "Tonies",
+        "noData": "No Tonies/Custom tags found.",
+        "noDataText": "Tonies/Custom tags will only appear after a Toniebox has establishing a successful connection and already has Tonies/Custom tags on its SD card. Ensure your Toniebox is connected properly and has some Tonies/Custom tags on it or place your first Tonie/Custom tag on your Toniebox and refresh this site.",
         "selectFileModal": {
             "cancel": "Cancel",
             "ok": "OK",

@@ -958,6 +958,8 @@
             "sourceSetSuccessful": "Quelle auf {{selectedFile}} gesetzt!"
         },
         "navigationTitle": "Tonies",
+        "noData": "Keine Tonies/benutzerdefinierten Tags gefunden.",
+        "noDataText": "Tonies/benutzerdefinierte Tags erscheinen erst, nachdem eine Toniebox eine erfolgreiche Verbindung hergestellt hat und bereits Tonies/benutzerdefinierte Tags auf ihrer SD-Karte hat. Stelle sicher, dass deine Toniebox korrekt verbunden ist und bereits einige Tonies/benutzerdefinierte Tags darauf hat, oder platziere deinen ersten Tonie/benutzerdefinierten Tag auf deiner Toniebox und aktualisiere diese Seite.",
         "selectFileModal": {
             "cancel": "Abbrechen",
             "ok": "OK",
