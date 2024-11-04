@@ -173,6 +173,88 @@
         },
         "episode": "Episodio",
         "filter": "Filtrar dentro de la carpeta actual",
+        "help": {
+            "actionItems": {
+                "deleteFileFolder": {
+                    "text": "Elimina el archivo o carpeta (solo si la carpeta está vacía). Nota: Si este archivo está asignado a un Tonie/Etiqueta, la referencia no se actualizará.",
+                    "title": "Eliminar archivo/carpeta"
+                },
+                "duplicateTAPFile": {
+                    "text": "Crea una copia del archivo TAP seleccionado.",
+                    "title": "Duplicar archivo TAP"
+                },
+                "editTAFMetadata": {
+                    "text": "Abre el editor de metadatos para modificar los detalles del archivo TAF. Los cambios se guardan en tonies.custom.json. (WIP)",
+                    "title": "Editar metadatos de TAF"
+                },
+                "editTAPPlaylist": {
+                    "text": "Abre el editor de listas de reproducción de audio de Tonie para administrar archivos TAP. (WIP)",
+                    "title": "Editar lista de reproducción TAP"
+                },
+                "migrateToAudioIdFolder": {
+                    "text": "Mueve el archivo TAF a la carpeta 'by/audioId' de la biblioteca y actualiza la fuente en el archivo JSON.",
+                    "title": "Migrar archivo TAF a la biblioteca por AudioId"
+                },
+                "migrateToLibraryRoot": {
+                    "text": "Mueve el archivo TAF a la carpeta raíz de la biblioteca y actualiza la fuente en el archivo JSON correspondiente.",
+                    "title": "Migrar archivo TAF a la raíz de la biblioteca"
+                },
+                "moveFile": {
+                    "text": "Mueve el archivo a una nueva ubicación. Nota: Si este archivo está asignado a un Tonie/Etiqueta, la referencia no se actualizará.",
+                    "title": "Mover archivo"
+                },
+                "playAudioFile": {
+                    "text": "Abre el reproductor de audio e inicia la reproducción del archivo.",
+                    "title": "Reproducir archivo de audio"
+                },
+                "renameFile": {
+                    "text": "Renombra el archivo. Nota: Si este archivo está asignado a un Tonie/Etiqueta, la referencia no se actualizará automáticamente.",
+                    "title": "Renombrar archivo"
+                }
+            },
+            "actionItemsMulti": {
+                "deleteSelectedFiles": {
+                    "text": "Elimina los archivos o carpetas seleccionados (solo si están vacíos). Nota: Las referencias a archivos eliminados en cualquier Tonie/Etiqueta no se actualizarán.",
+                    "title": "Eliminar archivos/carpetas seleccionados"
+                },
+                "encodeFilesToTAF": {
+                    "text": "Agrega archivos compatibles a una cola de codificación. Puedes seleccionar varios archivos para codificarlos en un archivo TAF, que luego puede asignarse a un Tonie/Etiqueta.",
+                    "title": "Codificar archivos a TAF"
+                },
+                "moveSelectedFiles": {
+                    "text": "Mueve los archivos seleccionados a una nueva ubicación. Nota: Las referencias a estos archivos en cualquier Tonie/Etiqueta no se actualizarán. Las carpetas seleccionadas se omitirán.",
+                    "title": "Mover archivos seleccionados"
+                }
+            },
+            "closeButton": "Cerrar",
+            "instructions": {
+                "fileActions": {
+                    "title": "Acciones de archivos"
+                },
+                "multiSelection": {
+                    "text": "Para realizar acciones en varios archivos, selecciona sus casillas de verificación. Aparecerán nuevos iconos de acción en el encabezado, lo que te permitirá mover, eliminar o codificar varios archivos:",
+                    "title": "Acciones de selección múltiple"
+                },
+                "openDirectory": {
+                    "text": "Haz doble clic en un directorio para abrirlo. Los directorios están marcados con corchetes y muestran <DIR> como tamaño.",
+                    "title": "Abrir directorio"
+                },
+                "openTAFViewer": {
+                    "text": "Haz doble clic en un archivo TAF para ver su encabezado. El visor de encabezado TAF muestra detalles como AudioId, hash SHA1 y tamaño de archivo. AudioId y hash SHA1 son necesarios para las entradas en tonies.custom.json.",
+                    "title": "Abrir visor de encabezado TAF"
+                },
+                "openTAPJSONViewer": {
+                    "text": "Haz doble clic en un archivo TAP o JSON para abrir el visor JSON.",
+                    "title": "Abrir visor de TAP/JSON"
+                },
+                "viewTonieInfoModal": {
+                    "text": "Haz clic en la imagen de un Tonie/Etiqueta en la fila para abrir el modal de TonieInfo. Esto muestra información detallada, incluida una imagen más grande y lista de pistas (si está disponible).",
+                    "title": "Ver modal de TonieInfo"
+                }
+            },
+            "showHelp": "Ayuda",
+            "title": "Ayuda"
+        },
         "maxSelectedRows": "Solo puedes seleccionar hasta {{maxSelectedRows}} archivos",
         "messages": {
             "deleteFailed": "Eliminación del archivo {{file}} fallida",
@@ -389,6 +471,7 @@
         "incident_detected": "¡Incidente de seguridad detectado! ¡Por favor, revisa tus registros!"
     },
     "server": {
+        "boxineDisabled": "Boxine/Toniecloud está actualmente desactivado. Activa la opción 'Cloud enabled' para volver a conectarte a Boxine/Toniecloud.",
         "boxineStatusOffline": "No conectado a Boxine/Toniecloud",
         "boxineStatusOnline": "Conectado a Boxine/Toniecloud",
         "teddycloudStatusOffline": "Servidor de Teddycloud desconectado",

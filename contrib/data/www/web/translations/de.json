@@ -173,6 +173,88 @@
         },
         "episode": "Episode",
         "filter": "Filter im aktuellen Ordner",
+        "help": {
+            "actionItems": {
+                "deleteFileFolder": {
+                    "text": "Löscht die Datei oder den Ordner (nur wenn der Ordner leer ist). Hinweis: Wenn diese Datei einem Tonie/Tag zugewiesen ist, wird der Verweis nicht aktualisiert.",
+                    "title": "Datei/Ordner löschen"
+                },
+                "duplicateTAPFile": {
+                    "text": "Erstellt eine Kopie der ausgewählten TAP-Datei.",
+                    "title": "TAP-Datei duplizieren"
+                },
+                "editTAFMetadata": {
+                    "text": "Öffnet den Metadaten-Editor, um Details der TAF-Datei zu ändern. Änderungen werden in tonies.custom.json gespeichert. (WIP)",
+                    "title": "TAF-Metadaten bearbeiten"
+                },
+                "editTAPPlaylist": {
+                    "text": "Öffnet den Tonie-Audio-Playlist-Editor, um TAP-Dateien zu verwalten. (WIP)",
+                    "title": "TAP-Playlist bearbeiten"
+                },
+                "migrateToAudioIdFolder": {
+                    "text": "Verschiebt die TAF-Datei in den Ordner 'by/audioId' der Bibliothek und aktualisiert die Quelle in der JSON-Datei.",
+                    "title": "TAF-Datei nach AudioId in die Bibliothek verschieben"
+                },
+                "migrateToLibraryRoot": {
+                    "text": "Verschiebt die TAF-Datei in den Hauptordner der Bibliothek und aktualisiert die Quelle in der zugehörigen JSON-Datei.",
+                    "title": "TAF-Datei in die Bibliothekswurzel verschieben"
+                },
+                "moveFile": {
+                    "text": "Verschiebt die Datei an einen neuen Speicherort. Hinweis: Wenn diese Datei einem Tonie/Tag zugewiesen ist, wird der Verweis nicht aktualisiert.",
+                    "title": "Datei verschieben"
+                },
+                "playAudioFile": {
+                    "text": "Öffnet den Audioplayer und startet die Wiedergabe der Datei.",
+                    "title": "Audiodatei abspielen"
+                },
+                "renameFile": {
+                    "text": "Benennt die Datei um. Hinweis: Wenn diese Datei einem Tonie/Tag zugewiesen ist, wird der Verweis nicht automatisch aktualisiert.",
+                    "title": "Datei umbenennen"
+                }
+            },
+            "actionItemsMulti": {
+                "deleteSelectedFiles": {
+                    "text": "Lösche die ausgewählten Dateien oder leere Ordner. Hinweis: Verweise auf gelöschte Dateien in einem Tonie/Tag werden nicht aktualisiert.",
+                    "title": "Ausgewählte Dateien/Ordner löschen"
+                },
+                "encodeFilesToTAF": {
+                    "text": "Füge unterstützte Dateien einer Encoder-Warteschlange hinzu. Du kannst mehrere Dateien auswählen, um sie in eine TAF-Datei zu kodieren, die dann einem Tonie/Tag zugewiesen werden kann.",
+                    "title": "Dateien zu TAF kodieren"
+                },
+                "moveSelectedFiles": {
+                    "text": "Verschiebe die ausgewählten Dateien an einen neuen Speicherort. Hinweis: Verweise auf diese Dateien in einem Tonie/Tag werden nicht aktualisiert. Ausgewählte Ordner werden übersprungen.",
+                    "title": "Ausgewählte Dateien verschieben"
+                }
+            },
+            "closeButton": "Schließen",
+            "instructions": {
+                "fileActions": {
+                    "title": "Dateiaktionen"
+                },
+                "multiSelection": {
+                    "text": "Um Aktionen für mehrere Dateien durchzuführen, wähle deren Kontrollkästchen. Neue Aktionssymbole erscheinen im Kopfbereich, mit denen du mehrere Dateien verschieben, löschen oder kodieren kannst:",
+                    "title": "Mehrfachauswahl-Aktionen"
+                },
+                "openDirectory": {
+                    "text": "Doppelklicke auf ein Verzeichnis, um es zu öffnen. Verzeichnisse sind in eckigen Klammern gekennzeichnet und zeigen <DIR> als Größe.",
+                    "title": "Verzeichnis öffnen"
+                },
+                "openTAFViewer": {
+                    "text": "Doppelklicke auf eine TAF-Datei, um deren Header anzuzeigen. Der TAF-Header-Viewer zeigt Details wie AudioId, SHA1-Hash und Dateigröße. AudioId und SHA1-Hash werden für Einträge in tonies.custom.json benötigt.",
+                    "title": "TAF-Header-Viewer öffnen"
+                },
+                "openTAPJSONViewer": {
+                    "text": "Doppelklicke auf eine TAP- oder JSON-Datei, um den JSON-Viewer zu öffnen.",
+                    "title": "TAP/JSON-Viewer öffnen"
+                },
+                "viewTonieInfoModal": {
+                    "text": "Klicke auf das Bild eines Tonie/Tags in der Zeile, um das TonieInfo-Modal zu öffnen. Dieses zeigt detaillierte Informationen, einschließlich eines größeren Bildes und der Trackliste (falls verfügbar).",
+                    "title": "TonieInfo-Modal anzeigen"
+                }
+            },
+            "showHelp": "Hilfe",
+            "title": "Hilfe"
+        },
         "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
         "messages": {
             "deleteFailed": "Löschvorgang der Datei {{file}} fehlgeschlagen",
@@ -389,6 +471,7 @@
         "incident_detected": "Ein Sicherheitsvorfall wurde entdeckt! Bitte überprüfe deine Logs!"
     },
     "server": {
+        "boxineDisabled": "Boxine/Toniecloud ist derzeit deaktiviert. Aktiviere die Einstellung 'Cloud enabled', um die Verbindung zu Boxine/Toniecloud wiederherzustellen.",
         "boxineStatusOffline": "Nicht mit Boxine/Toniecloud verbunden",
         "boxineStatusOnline": "Mit Boxine/Toniecloud verbunden",
         "teddycloudStatusOffline": "TeddyCloud Server offline",

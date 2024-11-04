@@ -173,6 +173,88 @@
         },
         "episode": "Épisode",
         "filter": "Filtrer dans le dossier actuel",
+        "help": {
+            "actionItems": {
+                "deleteFileFolder": {
+                    "text": "Supprime le fichier ou le dossier (seulement si le dossier est vide). Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour.",
+                    "title": "Supprimer le fichier/dossier"
+                },
+                "duplicateTAPFile": {
+                    "text": "Crée une copie du fichier TAP sélectionné.",
+                    "title": "Dupliquer le fichier TAP"
+                },
+                "editTAFMetadata": {
+                    "text": "Ouvre l'éditeur de métadonnées pour modifier les détails du fichier TAF. Les modifications sont enregistrées dans tonies.custom.json. (WIP)",
+                    "title": "Modifier les métadonnées TAF"
+                },
+                "editTAPPlaylist": {
+                    "text": "Ouvre l'éditeur de liste de lecture audio Tonie pour gérer les fichiers TAP. (WIP)",
+                    "title": "Modifier la liste de lecture TAP"
+                },
+                "migrateToAudioIdFolder": {
+                    "text": "Déplace le fichier TAF dans le dossier 'by/audioId' de la bibliothèque et met à jour la source dans le fichier JSON.",
+                    "title": "Migrer le fichier TAF dans la bibliothèque par AudioId"
+                },
+                "migrateToLibraryRoot": {
+                    "text": "Déplace le fichier TAF vers le dossier racine de la bibliothèque et met à jour la source dans le fichier JSON correspondant.",
+                    "title": "Migrer le fichier TAF vers la racine de la bibliothèque"
+                },
+                "moveFile": {
+                    "text": "Déplace le fichier vers un nouvel emplacement. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour.",
+                    "title": "Déplacer le fichier"
+                },
+                "playAudioFile": {
+                    "text": "Ouvre le lecteur audio et lance la lecture du fichier.",
+                    "title": "Lire le fichier audio"
+                },
+                "renameFile": {
+                    "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
+                    "title": "Renommer le fichier"
+                }
+            },
+            "actionItemsMulti": {
+                "deleteSelectedFiles": {
+                    "text": "Supprime les fichiers ou dossiers sélectionnés (seulement s'ils sont vides). Remarque : les références aux fichiers supprimés dans tout Tonie/Tag ne seront pas mises à jour.",
+                    "title": "Supprimer les fichiers/dossiers sélectionnés"
+                },
+                "encodeFilesToTAF": {
+                    "text": "Ajoute les fichiers pris en charge à une file d'attente d'encodage. Vous pouvez sélectionner plusieurs fichiers pour les encoder dans un fichier TAF, qui peut ensuite être attribué à un Tonie/Tag.",
+                    "title": "Encoder les fichiers en TAF"
+                },
+                "moveSelectedFiles": {
+                    "text": "Déplace les fichiers sélectionnés vers un nouvel emplacement. Remarque : les références à ces fichiers dans tout Tonie/Tag ne seront pas mises à jour. Les dossiers sélectionnés seront ignorés.",
+                    "title": "Déplacer les fichiers sélectionnés"
+                }
+            },
+            "closeButton": "Fermer",
+            "instructions": {
+                "fileActions": {
+                    "title": "Actions de fichiers"
+                },
+                "multiSelection": {
+                    "text": "Pour effectuer des actions sur plusieurs fichiers, cochez leurs cases. De nouvelles icônes d'action apparaîtront dans l'en-tête, vous permettant de déplacer, supprimer ou encoder plusieurs fichiers :",
+                    "title": "Actions de sélection multiple"
+                },
+                "openDirectory": {
+                    "text": "Double-cliquez sur un répertoire pour l'ouvrir. Les répertoires sont marqués par des crochets et affichent <DIR> comme taille.",
+                    "title": "Ouvrir le répertoire"
+                },
+                "openTAFViewer": {
+                    "text": "Double-cliquez sur un fichier TAF pour afficher son en-tête. Le visualiseur d'en-tête TAF montre des détails tels que l'AudioId, le hachage SHA1 et la taille du fichier. L'AudioId et le hachage SHA1 sont nécessaires pour les entrées dans tonies.custom.json.",
+                    "title": "Ouvrir le visualiseur d'en-tête TAF"
+                },
+                "openTAPJSONViewer": {
+                    "text": "Double-cliquez sur un fichier TAP ou JSON pour ouvrir le visualiseur JSON.",
+                    "title": "Ouvrir le visualiseur TAP/JSON"
+                },
+                "viewTonieInfoModal": {
+                    "text": "Cliquez sur l'image d'un Tonie/Tag dans la ligne pour ouvrir la fenêtre d'informations Tonie. Cela affiche des informations détaillées, y compris une image agrandie et une liste de pistes (si disponible).",
+                    "title": "Afficher la fenêtre d'informations Tonie"
+                }
+            },
+            "showHelp": "Aide",
+            "title": "Aide"
+        },
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
         "messages": {
             "deleteFailed": "La suppression du fichier {{file}} a échoué",
@@ -389,6 +471,7 @@
         "incident_detected": "Incident de sécurité détecté ! Veuillez vérifier vos journaux !"
     },
     "server": {
+        "boxineDisabled": "Boxine/Toniecloud est actuellement désactivé. Active le paramètre 'Cloud enabled' pour te reconnecter à Boxine/Toniecloud.",
         "boxineStatusOffline": "Non connecté à Boxine/Toniecloud",
         "boxineStatusOnline": "Connecté à Boxine/Toniecloud",
         "teddycloudStatusOffline": "Serveur TeddyCloud hors ligne",

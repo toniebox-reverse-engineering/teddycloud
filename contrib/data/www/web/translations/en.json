@@ -173,6 +173,88 @@
         },
         "episode": "Episode",
         "filter": "Filter within current folder",
+        "help": {
+            "actionItems": {
+                "deleteFileFolder": {
+                    "text": "Deletes the file or folder (only if the folder is empty). Note: If this file is assigned to a Tonie/Tag, the reference will not be updated.",
+                    "title": "Delete File/Folder"
+                },
+                "duplicateTAPFile": {
+                    "text": "Creates a duplicate of the selected TAP file.",
+                    "title": "Duplicate TAP File"
+                },
+                "editTAFMetadata": {
+                    "text": "Opens the metadata editor to modify TAF file details. Changes are stored in tonies.custom.json. (WIP)",
+                    "title": "Edit TAF Metadata"
+                },
+                "editTAPPlaylist": {
+                    "text": "Opens the Tonie Audio Playlist Editor to manage TAP files. (WIP)",
+                    "title": "Edit TAP Playlist"
+                },
+                "migrateToAudioIdFolder": {
+                    "text": "Moves the TAF file into the library's 'by/audioId' folder and updates the source in the JSON file.",
+                    "title": "Migrate TAF File to Library by AudioId"
+                },
+                "migrateToLibraryRoot": {
+                    "text": "Moves the TAF file to the library's root folder and updates the source in the corresponding JSON file.",
+                    "title": "Migrate TAF File to Library Root"
+                },
+                "moveFile": {
+                    "text": "Move the file to a new location. Note: If this file is assigned to a Tonie/Tag, the reference will not be updated.",
+                    "title": "Move File"
+                },
+                "playAudioFile": {
+                    "text": "Opens the audio player and starts playback of the file.",
+                    "title": "Play Audio File"
+                },
+                "renameFile": {
+                    "text": "Renames the file. Note: If this file is assigned to a Tonie/Tag, the reference will not be updated automatically.",
+                    "title": "Rename File"
+                }
+            },
+            "actionItemsMulti": {
+                "deleteSelectedFiles": {
+                    "text": "Delete the selected files or folders (only if empty). Note: References to deleted files in any Tonie/Tag will not be updated.",
+                    "title": "Delete Selected Files/Folders"
+                },
+                "encodeFilesToTAF": {
+                    "text": "Add supported files to an encoder queue. You can select multiple files to encode them into a TAF file, which can then be assigned to a Tonie/Tag.",
+                    "title": "Encode Files to TAF"
+                },
+                "moveSelectedFiles": {
+                    "text": "Move the selected files to a new location. Note: References to these files in any Tonie/Tag will not be updated. Selected folders will be skipped.",
+                    "title": "Move Selected Files"
+                }
+            },
+            "closeButton": "Close",
+            "instructions": {
+                "fileActions": {
+                    "title": "File Actions"
+                },
+                "multiSelection": {
+                    "text": "To perform actions on multiple files, select their checkboxes. New action icons will appear in the header, allowing you to move, delete, or encode multiple files:",
+                    "title": "Multi-Selection Actions"
+                },
+                "openDirectory": {
+                    "text": "Double-click on a directory to open it. Directories are marked by square brackets and show <DIR> as size.",
+                    "title": "Open Directory"
+                },
+                "openTAFViewer": {
+                    "text": "Double-click on a TAF file to view its header. The TAF Header Viewer shows details like AudioId, SHA1 hash, and file size. AudioId and SHA1 hash are required for entries in tonies.custom.json.",
+                    "title": "Open TAF Header Viewer"
+                },
+                "openTAPJSONViewer": {
+                    "text": "Double-click on a TAP or JSON file to open the JSON Viewer.",
+                    "title": "Open TAP/JSON Viewer"
+                },
+                "viewTonieInfoModal": {
+                    "text": "Click on the image of a Tonie/Tag in the row to open the TonieInfo modal. This displays detailed information, including a larger image and tracklist (if available).",
+                    "title": "View TonieInfo Modal"
+                }
+            },
+            "showHelp": "Help",
+            "title": "Help"
+        },
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
         "messages": {
             "deleteFailed": "Deletion of file {{file}} failed",
@@ -335,7 +417,7 @@
         "forumIntroPart1": "Discover more insights, engage with like-minded individuals, and stay updated on the latest discussions at our forum: ",
         "forumIntroPart2": ". Dive deeper into topics, share your experiences, and connect with our community. Join the conversation today!",
         "helpfulLinks": "Helpful Links",
-        "intro": "TeddyCloud is an alternative server for your Toniebox, allowing you to host the cloud services locally. This gives you the control about which data is sent to the original manufacturer’s cloud and allows you to host your own figurine audio files.",
+        "intro": "TeddyCloud is an alternative server for your Toniebox, allowing you to host the cloud services locally. This gives you the control about which data is sent to the original manufacturer's cloud and allows you to host your own figurine audio files.",
         "navigationTitle": "Home",
         "sponsor": {
             "navigationTitle": "Sponsor"
@@ -389,6 +471,7 @@
         "incident_detected": "Security Incident Detected! Please check your logs!"
     },
     "server": {
+        "boxineDisabled": "Boxine/Toniecloud is currently disabled. Enable setting 'Cloud enabled' to reconnect to Boxine/Toniecloud.",
         "boxineStatusOffline": "Not connected to Boxine/Toniecloud",
         "boxineStatusOnline": "Connected to Boxine/Toniecloud",
         "teddycloudStatusOffline": "Teddycloud server offline",
