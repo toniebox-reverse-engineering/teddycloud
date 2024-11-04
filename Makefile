@@ -24,7 +24,7 @@ ifeq ($(OS),Windows_NT)
 	build_os_id:="windows"
 else
 	SHELL_ENV ?= bash
-	build_arch:="$(shell arch)"
+	build_arch:="$(shell uname -m)"
 	build_os_id:="$(shell grep "^ID=" /etc/os-release | cut -d'=' -f2- | tr -d '"')"
 endif
 
