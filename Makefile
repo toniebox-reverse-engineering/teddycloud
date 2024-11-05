@@ -24,7 +24,7 @@ ifeq ($(OS),Windows_NT)
 	build_os_id:="windows"
 else
 	SHELL_ENV ?= bash
-	build_arch:="$(shell arch)"
+	build_arch:="$(shell uname -m)"
 	build_os_id:="$(shell grep "^ID=" /etc/os-release | cut -d'=' -f2- | tr -d '"')"
 endif
 
@@ -47,11 +47,16 @@ else
 build_rawDateTime:="${shell date "+%Y-%m-%d %H:%M:%S %z"}"
 endif
 
-build_gitDirty:=${shell git diff --quiet && echo '0' || echo '1'}
-build_gitDateTime:="${shell git log -1 --format=%ai}"
-build_gitShortSha:=${shell git rev-parse --short HEAD}
-build_gitSha:=${shell git rev-parse HEAD}
-build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha)}
+GIT_DIRTY ?= 1
+GIT_BUILD_TIME ?= unknown
+GIT_SHORT_SHA ?= unknown
+GIT_SHA ?= unknown
+GIT_TAG ?= unknown
+build_gitDirty:=$(shell git diff --quiet 2>/dev/null && echo '0' || echo $(GIT_DIRTY))
+build_gitDateTime:="$(shell git log -1 --format=%ai 2>/dev/null || echo $(GIT_BUILD_TIME))"
+build_gitShortSha:=${shell git rev-parse --short HEAD 2>/dev/null || echo $(GIT_SHORT_SHA)}
+build_gitSha:=${shell git rev-parse HEAD 2>/dev/null || echo $(GIT_SHA)}
+build_gitTag:=${shell git name-rev --tags --name-only $(build_gitSha) 2>/dev/null || echo $(GIT_TAG)}
 build_platform:=$(PLATFORM)
 build_os:="$(OS)"
 
@@ -70,11 +75,16 @@ ifeq ($(build_gitTagPrefix),tc)
 	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\" 
 endif
 
-web_gitDirty:=${shell cd $(WEB_SRC_DIR) && git diff --quiet && echo '0' || echo '1'}
-web_gitDateTime:="${shell cd $(WEB_SRC_DIR) && git log -1 --format=%ai}"
-web_gitShortSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse --short HEAD}
-web_gitSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse HEAD}
-web_gitTag:=${shell cd $(WEB_SRC_DIR) && git name-rev --tags --name-only $(web_gitSha)}
+WEB_GIT_DIRTY ?= 1
+WEB_GIT_BUILD_TIME ?= unknown
+WEB_GIT_SHORT_SHA ?= unknown
+WEB_GIT_SHA ?= unknown
+WEB_GIT_TAG ?= unknown
+web_gitDirty:=${shell cd $(WEB_SRC_DIR) && git diff --quiet 2>/dev/null && echo '0' || echo $(WEB_GIT_DIRTY)}
+web_gitDateTime:="${shell cd $(WEB_SRC_DIR) && git log -1 --format=%ai 2>/dev/null || echo $(WEB_GIT_BUILD_TIME)}"
+web_gitShortSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse --short HEAD 2>/dev/null || echo $(WEB_GIT_SHORT_SHA)}
+web_gitSha:=${shell cd $(WEB_SRC_DIR) && git rev-parse HEAD 2>/dev/null || echo $(WEB_GIT_SHA)}
+web_gitTag:=${shell cd $(WEB_SRC_DIR) && git name-rev --tags --name-only $(web_gitSha) 2>/dev/null || echo $(WEB_GIT_TAG)}
 web_gitTagPrefix:=$(firstword $(subst _, ,$(web_gitTag)))
 web_version:=vX.X.X
 CFLAGS_VERSION+=-DWEB_GIT_IS_DIRTY=${web_gitDirty} -DWEB_GIT_DATETIME=\"${web_gitDateTime}\" -DWEB_RAW_DATETIME=\"${web_rawDateTime}\" -DWEB_GIT_SHORT_SHA=\"${web_gitShortSha}\" -DWEB_GIT_SHA=\"${web_gitSha}\" -DWEB_GIT_TAG=\"${web_gitTag}\"
