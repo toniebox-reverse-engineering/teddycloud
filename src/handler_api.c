@@ -2918,9 +2918,17 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         tonie_info_t *tonieInfo;
         tonieInfo = getTonieInfoFromRuid(ruid, false, client_ctx->settings);
 
-        if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
+        if (tonieInfo->valid)
         {
-            error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            if (tonieInfo->json._source_type == CT_SOURCE_NONE)
+            {
+                error = ERROR_FILE_NOT_FOUND;
+                TRACE_WARNING("Source already set, cannot migrate %s\n", ruid);
+            }
+            else
+            {
+                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            }
         }
         else
         {
