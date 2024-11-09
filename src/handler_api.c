@@ -2921,7 +2921,7 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
 
         if (tonieInfo->valid)
         {
-            if (tonieInfo->json._source_type == CT_SOURCE_NONE)
+            if (tonieInfo->json._source_type != CT_SOURCE_NONE)
             {
                 error = ERROR_FILE_NOT_FOUND;
                 TRACE_WARNING("Source already set, cannot migrate %s\n", ruid);
