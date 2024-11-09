@@ -9,12 +9,13 @@ services:
     #  - 8443:8443 #optional (for the webinterface)
     #  - 443:443 #Port is needed for the connection for the box, must not be changed!
     volumes:
-      - certs:/teddycloud/certs
-      - config:/teddycloud/config
-      - content:/teddycloud/data/content
-      - library:/teddycloud/data/library
-      - firmware:/teddycloud/data/firmware
-      - cache:/teddycloud/data/cache
+      - certs:/teddycloud/certs #certificates of the server
+      - config:/teddycloud/config #config file for the server and the boxes
+      - content:/teddycloud/data/content #microSD representation for the boxes
+      - library:/teddycloud/data/library #library to manage content
+      - custom_img:/teddycloud/data/www/custom_img #location to store custom images for custom tonies json
+      - firmware:/teddycloud/data/firmware #firmware backups
+      - cache:/teddycloud/data/cache #img cache for content images
     restart: unless-stopped
 volumes:
   certs:
