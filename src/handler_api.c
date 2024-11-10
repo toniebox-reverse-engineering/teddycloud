@@ -700,7 +700,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                 item = tonies_byModel(contentJson.tonie_model);
 
-                cJSON_AddStringToObject(jsonEntry, "hide", contentJson.hide);
+                cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
                 if (contentJson._has_cloud_auth)
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
