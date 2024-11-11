@@ -141,6 +141,8 @@
         }
     ],
     "fileBrowser": {
+        "title": "Filebrowser",
+        "hidden": "Hidden",
         "actions": "Actions",
         "attention": "Please note!",
         "cancel": "Cancel",
@@ -152,6 +154,9 @@
             "create": "Create",
             "createDirectory": "Create New Directory",
             "directoryCreated": "New directory has been created!",
+            "directoryCreatedDetails": "New directory \"{{directory}}\" has been created!",
+            "directoryCreateFailed": "Create directory failed!",
+            "directoryCreateFailedDetails": "Create directory \"{{directory}}\" failed: ",
             "inDirectory": "in directory ",
             "modalTitle": "Create New Directory",
             "parentPath": "Parent directory:",
@@ -169,7 +174,10 @@
             "encodingInProgress": "Files are being encoded...",
             "encodingSuccessful": "Files encoded successfully!",
             "modalTitle": "Encode Audio Files",
-            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: "
+            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: ",
+            "encodingSuccessfulDetails": "Files encoded successfully into \"{{file}}\"",
+            "encodingFailedDetails": "Encoded files \"{{file}}\" failed: ",
+            "encoding": "Encoding"
         },
         "episode": "Episode",
         "filter": "Filter within current folder",
@@ -257,18 +265,35 @@
         },
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
         "messages": {
-            "deleteFailed": "Deletion of file {{file}} failed",
-            "deleteSuccessful": "Deleted file {{file}} successful!",
+            "deleteFailedDetails": "Deletion of file \"{{file}}\" failed",
+            "deleteSuccessfulDetails": "Deleted file \"{{file}}\" successful!",
             "deleting": "Deleting...",
             "migrationFailed": "Migration failed",
             "migrationOngoing": "Migrating...",
             "migrationSuccessful": "Migration successful!",
             "moving": "Moving...",
-            "movingFailed": "Moving of file {{file}} failed",
-            "movingSuccessful": "Moved file {{file}} successfully!",
+            "movingFailed": "Moving failed",
+            "movingSuccessful": "Moved file successfully!",
             "renaming": "Renaming...",
-            "renamingFailed": "Renaming of file {{file}} failed",
-            "renamingSuccessful": "Renamed file {{file}} successfully!"
+            "renamingFailed": "Renaming failed",
+            "renamingSuccessful": "Renamed file successfully!",
+            "errorFetchingDirContent": "Loading dir content failed",
+            "errorFetchingDirContentDetails": "Failed to load dir content of \"{{path}}\": ",
+            "migrationOngoingDetails": "Migration {{ruid}} in progress...",
+            "migrationSuccessfulDetails": "Migration of {{ruid}} successful!",
+            "migrationFailedDetails": "Migration of {{ruid}} failed: ",
+            "noRowsSelected": "No rows selected",
+            "noRowsSelectedForDeletion": "No rows selected for deletion",
+            "noRowsSelectedForMoving": "No rows selected for moving",
+            "deleteSuccessful": "Deletion successful!",
+            "deleteFailed": "Deletion failed",
+            "deletingDetails": "Deleting file \"{{file}}\"...",
+            "movingDetails": "Moving file \"{{file}}\"...",
+            "renamingDetails": "Renaming file \"{{file}}\"...",
+            "movingFailedDetails": "Moving of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
+            "movingSuccessfulDetails": "Moved file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!",
+            "renamingFailedDetails": "Renaming of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
+            "renamingSuccessfulDetails": "Renamed file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!"
         },
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
@@ -317,7 +342,10 @@
             "uploadSuccessful": "Files uploaded successfully.",
             "uploadSuccessfulForFile": "File \"{{file}}\" uploaded successfully.",
             "uploadText": "Click or drag files to this area to upload",
-            "uploading": "Uploading..."
+            "uploading": "Uploading...",
+            "uploadedFile": "File uploaded!",
+            "uploadedFileFailed": "File upload failed!",
+            "uploadSuccessfulDetails": "All files were uploaded successfully."
         }
     },
     "footer": {
@@ -463,7 +491,8 @@
         "undefined": "Other/undefined"
     },
     "radioStreamSearch": {
-        "failedToFetchSearchResults": "Failed to fetch search results: ",
+        "failedToFetchSearchResults": "Failed to fetch radio stations search results",
+        "failedToFetchSearchResultsDetails": "Failed to fetch radio stations  search results: ",
         "searchLabel": "[Optionally] Search for a radio stream"
     },
     "security": {
@@ -478,6 +507,10 @@
         "teddycloudStatusOnline": "Teddycloud server running fine"
     },
     "settings": {
+        "errorSettingSettingsLevel": "Error setting Settings level",
+        "errorSettingSettingsLevelDetails": "Could not set new Settings level:",
+        "errorWhileSavingConfig": "Saving config to file failed",
+        "errorWhileSavingConfigDetails": "Error while saving config to file: ",
         "certificates": {
             "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
             "information": "Information",
@@ -508,7 +541,7 @@
             "confirmSelectedNotifications": "Confirm selected notifications",
             "confirmed": "confirmed",
             "endDate": "End Date",
-            "error": "Failure",
+            "error": "Error",
             "filterBy": "Filter by",
             "info": "Info",
             "navigationTitle": "Notifications",
@@ -546,9 +579,11 @@
         "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
     },
     "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Failed to fetch search results: "
+        "failedToFetchSearchResults": "Error fetching models",
+        "failedToFetchSearchResultsDetails": "Failed to fetch models search results: "
     },
     "tonieboxes": {
+        "errorFetchingModels": "Error fetching Tonieboxes Models",
         "accessApiDisabled": "Access to TeddyCloud APIs disabled.",
         "accessApiEnabled": "Access to TeddyCloud APIs enabled.",
         "availableBoxModal": {
@@ -891,15 +926,18 @@
         "delete": "Delete",
         "editModelModal": {
             "editModel": "Edit Toniebox \"{{name}}\"",
-            "errorOnModelChange": "Error saving model: {{error}}",
-            "errorOnNameChange": "Error saving name: {{error}}",
-            "errorWhileSavingConfig": "Error while saving config to file.",
+            "errorOnModelChange": "Error saving model",
+            "errorOnModelChangeDetails": "Error saving model of Toniebox {{mac}}: {{error}}",
+            "errorOnNameChange": "Error saving name",
+            "errorOnNameChangeDetails": "Error saving name of Toniebox {{mac}}: {{error}}",
             "model": "Model",
             "name": "Name",
             "placeholderSearchForAModel": "Select color variant of your Toniebox",
-            "successOnModelChange": "Model of the Toniebox was edited",
-            "successOnNameChange": "Name of the Toniebox was edited",
-            "unsetBoxName": "Model unknown/not set"
+            "successOnModelChange": "Model change saved sucessfully",
+            "successOnNameChange": "Name change saved sucessfully",
+            "unsetBoxName": "Model unknown/not set",
+            "successOnModelChangeDetails": "New model \"{{model}}\"of the Toniebox {{mac}} was saved sucessfully.",
+            "successOnNameChangeDetails": "New name \"{{name}}\"of the Toniebox {{mac}} was saved sucessfully."
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Edit settings for Toniebox \"{{name}}\"",
@@ -1032,11 +1070,17 @@
         "linkToBoxCFW": "Open web interface of Toniebox",
         "messages": {
             "apiAccessDisabled": "Disabled access to TeddyCloud APIs!",
+            "apiAccessDisabledDetails": "Disabled access to TeddyCloud APIs for Toniebox {{mac}}",
             "apiAccessEnabled": "Enabled access to TeddyCloud APIs!",
-            "apiAccessNotChangedError": "Changing access to TeddyCloud API failed: ",
-            "deleteFailed": "Delete failed:",
+            "apiAccessEnabledDetails": "Enabled access to TeddyCloud APIs for Toniebox {{mac}}",
+            "apiAccessNotChangedError": "Changing access to TeddyCloud API failed",
+            "apiAccessNotChangedErrorDetails": "Changing access to TeddyCloud API for Toniebox {{mac}} failed: ",
+            "deleteFailed": "Delete failed",
+            "deleteFailedDetails": "Delete Toniebox {{mac}} failed",
             "deleteSuccessful": "Deleted successful!",
-            "deleting": "Deleting..."
+            "deleteSuccessfulDetails": "Deleted Toniebox {{mac}} from TeddyCloud successful!",
+            "deleting": "Deleting...",
+            "deletingDetails": "Deleting Toniebox {{mac}} from TeddyCloud"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "New Tonieboxes allowed",

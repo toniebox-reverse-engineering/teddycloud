@@ -141,6 +141,8 @@
         }
     ],
     "fileBrowser": {
+        "title": "Explorador de archivos",
+        "hidden": "Oculto",
         "actions": "Acciones",
         "attention": "¡Atención!",
         "cancel": "Cancelar",
@@ -152,6 +154,9 @@
             "create": "Crear",
             "createDirectory": "Crear nuevo directorio",
             "directoryCreated": "¡Nuevo directorio creado!",
+            "directoryCreatedDetails": "Nuevo directorio \"{{directory}}\" ha sido creado!",
+            "directoryCreateFailed": "¡Error al crear el directorio!",
+            "directoryCreateFailedDetails": "Error al crear el directorio \"{{directory}}\": ",
             "inDirectory": "en el directorio",
             "modalTitle": "Crear nuevo directorio",
             "parentPath": "Directorio principal:",
@@ -164,12 +169,15 @@
             "addFiles": "Agregar archivos",
             "cancel": "Cancelar",
             "encode": "Codificar",
-            "encodeFiles": "Codificar los archivos seleccionados en un archivo taf. Solo se considerarán los siguientes tipos de archivos:",
+            "encodeFiles": "Codificar los archivos seleccionados en un archivo taf. Solo se considerarán los siguientes tipos de archivos: ",
             "encodingFailed": "¡Falló la codificación!",
             "encodingInProgress": "Codificando archivos...",
             "encodingSuccessful": "¡Archivos codificados con éxito!",
             "modalTitle": "Codificar archivos de audio",
-            "noSupportedFiletypesChoosen": "No se eligieron tipos de archivos compatibles. Se admiten los siguientes tipos de archivos:"
+            "noSupportedFiletypesChoosen": "No se eligieron tipos de archivos compatibles. Se admiten los siguientes tipos de archivos: ",
+            "encodingSuccessfulDetails": "Archivos codificados exitosamente en \"{{file}}\"",
+            "encodingFailedDetails": "Error al codificar los archivos \"{{file}}\": ",
+            "encoding": "Codificación"
         },
         "episode": "Episodio",
         "filter": "Filtrar dentro de la carpeta actual",
@@ -257,18 +265,35 @@
         },
         "maxSelectedRows": "Solo puedes seleccionar hasta {{maxSelectedRows}} archivos",
         "messages": {
-            "deleteFailed": "Eliminación del archivo {{file}} fallida",
-            "deleteSuccessful": "¡Archivo {{file}} eliminado con éxito!",
+            "deleteFailedDetails": "Error al eliminar el archivo \"{{file}}\"",
+            "deleteSuccessfulDetails": "Archivo \"{{file}}\" eliminado con éxito!",
             "deleting": "Eliminando...",
-            "migrationFailed": "La migración falló",
+            "migrationFailed": "Migración fallida",
             "migrationOngoing": "Migrando...",
             "migrationSuccessful": "¡Migración exitosa!",
             "moving": "Moviendo...",
-            "movingFailed": "Error al mover el archivo {{file}}",
-            "movingSuccessful": "¡Archivo {{file}} movido con éxito!",
+            "movingFailed": "Error al mover",
+            "movingSuccessful": "¡Archivo movido con éxito!",
             "renaming": "Renombrando...",
-            "renamingFailed": "Error al renombrar el archivo {{file}}",
-            "renamingSuccessful": "¡Archivo {{file}} renombrado con éxito!"
+            "renamingFailed": "Error al renombrar",
+            "renamingSuccessful": "¡Archivo renombrado con éxito!",
+            "errorFetchingDirContent": "Error al cargar el contenido del directorio",
+            "errorFetchingDirContentDetails": "Error al cargar el contenido del directorio \"{{path}}\": ",
+            "migrationOngoingDetails": "Migración {{ruid}} en progreso...",
+            "migrationSuccessfulDetails": "Migración de {{ruid}} exitosa!",
+            "migrationFailedDetails": "Error en la migración de {{ruid}}: ",
+            "noRowsSelected": "No se seleccionaron filas",
+            "noRowsSelectedForDeletion": "No se seleccionaron filas para eliminar",
+            "noRowsSelectedForMoving": "No se seleccionaron filas para mover",
+            "deleteSuccessful": "¡Eliminación exitosa!",
+            "deleteFailed": "Eliminación fallida",
+            "deletingDetails": "Eliminando archivo \"{{file}}\"...",
+            "movingDetails": "Moviendo archivo \"{{file}}\"...",
+            "renamingDetails": "Renombrando archivo \"{{file}}\"...",
+            "movingFailedDetails": "Error al mover el archivo \"{{fileSource}}\" a \"{{fileTarget}}\": ",
+            "movingSuccessfulDetails": "Archivo \"{{fileSource}}\" movido a \"{{fileTarget}}\" con éxito!",
+            "renamingFailedDetails": "Error al renombrar el archivo \"{{fileSource}}\" a \"{{fileTarget}}\": ",
+            "renamingSuccessfulDetails": "Archivo \"{{fileSource}}\" renombrado a \"{{fileTarget}}\" con éxito!"
         },
         "migrateContentToLib": "Migrar TAF a la biblioteca (por/audioId/)",
         "migrateContentToLibRoot": "Migrar TAF a la biblioteca (raíz)",
@@ -317,7 +342,10 @@
             "uploadSuccessful": "Archivos subidos con éxito.",
             "uploadSuccessfulForFile": "Archivo \"{{file}}\" subido con éxito.",
             "uploadText": "Haz clic o arrastra archivos a esta área para subir",
-            "uploading": "Subiendo..."
+            "uploading": "Subiendo...",
+            "uploadedFile": "¡Archivo subido!",
+            "uploadedFileFailed": "¡Error al subir el archivo!",
+            "uploadSuccessfulDetails": "Todos los archivos se han subido con éxito."
         }
     },
     "footer": {
@@ -463,7 +491,8 @@
         "undefined": "Otro/no definido"
     },
     "radioStreamSearch": {
-        "failedToFetchSearchResults": "Error al obtener resultados de búsqueda: ",
+        "failedToFetchSearchResults": "No se pudieron obtener los resultados de búsqueda de emisoras de radio",
+        "failedToFetchSearchResultsDetails": "No se pudieron obtener los resultados de búsqueda de emisoras de radio: ",
         "searchLabel": "[Opcional] Buscar una transmisión de radio"
     },
     "security": {
@@ -478,6 +507,10 @@
         "teddycloudStatusOnline": "Servidor de Teddycloud funcionando correctamente"
     },
     "settings": {
+        "errorSettingSettingsLevel": "Error al configurar el nivel de configuración",
+        "errorSettingSettingsLevelDetails": "No se pudo establecer el nuevo nivel de configuración:",
+        "errorWhileSavingConfig": "Error al guardar la configuración en el archivo",
+        "errorWhileSavingConfigDetails": "Error al guardar la configuración en el archivo: ",
         "certificates": {
             "hint": "Estos son los certificados utilizados para el uso general de TeddyCloud. Se pueden usar certificados específicos para tus Tonieboxes. Para cambiarlos, ve a ",
             "information": "Información",
@@ -546,9 +579,11 @@
         "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'."
     },
     "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Error al obtener resultados de búsqueda: "
+        "failedToFetchSearchResults": "Error al obtener los modelos",
+        "failedToFetchSearchResultsDetails": "No se pudieron obtener los resultados de búsqueda de modelos: "
     },
     "tonieboxes": {
+        "errorFetchingModels": "Error al obtener los modelos de Tonieboxes",
         "accessApiDisabled": "Acceso a las API de TeddyCloud deshabilitado.",
         "accessApiEnabled": "Acceso a las API de TeddyCloud habilitado.",
         "availableBoxModal": {
@@ -891,15 +926,18 @@
         "delete": "Eliminar",
         "editModelModal": {
             "editModel": "Editar Toniebox \"{{name}}\"",
-            "errorOnModelChange": "Error al guardar el modelo: {{error}}",
-            "errorOnNameChange": "Error al guardar el nombre: {{error}}",
-            "errorWhileSavingConfig": "Error al guardar la configuración en el archivo.",
+            "errorOnModelChange": "Error al guardar el modelo",
+            "errorOnModelChangeDetails": "Error al guardar el modelo de la Toniebox {{mac}}: {{error}}",
+            "errorOnNameChange": "Error al guardar el nombre",
+            "errorOnNameChangeDetails": "Error al guardar el nombre de la Toniebox {{mac}}: {{error}}",
             "model": "Modelo",
             "name": "Nombre",
             "placeholderSearchForAModel": "Selecciona la variante de color de tu Toniebox",
-            "successOnModelChange": "El modelo de la Toniebox fue editado",
-            "successOnNameChange": "El nombre de la Toniebox fue editado",
-            "unsetBoxName": "Modelo desconocido/no configurado"
+            "successOnModelChange": "Cambio de modelo guardado exitosamente",
+            "successOnNameChange": "Cambio de nombre guardado exitosamente",
+            "unsetBoxName": "Modelo desconocido/no configurado",
+            "successOnModelChangeDetails": "El nuevo modelo \"{{model}}\" de la Toniebox {{mac}} se guardó exitosamente.",
+            "successOnNameChangeDetails": "El nuevo nombre \"{{name}}\" de la Toniebox {{mac}} se guardó exitosamente."
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Editar configuración de la Toniebox \"{{name}}\"",
@@ -1031,12 +1069,18 @@
         "lastPlayedTonie": "Último Tonie reproducido: ",
         "linkToBoxCFW": "Abrir interfaz web de Toniebox",
         "messages": {
-            "apiAccessDisabled": "¡Acceso deshabilitado a las API de TeddyCloud!",
-            "apiAccessEnabled": "¡Acceso habilitado a las API de TeddyCloud!",
-            "apiAccessNotChangedError": "Error al cambiar el acceso a la API de TeddyCloud:",
-            "deleteFailed": "Eliminación fallida:",
+            "apiAccessDisabled": "¡Acceso a las APIs de TeddyCloud deshabilitado!",
+            "apiAccessDisabledDetails": "Acceso a las APIs de TeddyCloud deshabilitado para Toniebox {{mac}}",
+            "apiAccessEnabled": "¡Acceso a las APIs de TeddyCloud habilitado!",
+            "apiAccessEnabledDetails": "Acceso a las APIs de TeddyCloud habilitado para Toniebox {{mac}}",
+            "apiAccessNotChangedError": "Error al cambiar el acceso a la API de TeddyCloud",
+            "apiAccessNotChangedErrorDetails": "Error al cambiar el acceso a la API de TeddyCloud para Toniebox {{mac}}: ",
+            "deleteFailed": "Error al eliminar",
+            "deleteFailedDetails": "Error al eliminar Toniebox {{mac}}",
             "deleteSuccessful": "¡Eliminado con éxito!",
-            "deleting": "Eliminando..."
+            "deleteSuccessfulDetails": "¡Toniebox {{mac}} eliminada exitosamente de TeddyCloud!",
+            "deleting": "Eliminando...",
+            "deletingDetails": "Eliminando Toniebox {{mac}} de TeddyCloud"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "Nuevas Tonieboxes permitidas",

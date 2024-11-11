@@ -141,6 +141,8 @@
         }
     ],
     "fileBrowser": {
+        "title": "Dateibrowser",
+        "hidden": "Versteckt",
         "actions": "Aktionen",
         "attention": "Bitte beachte!",
         "cancel": "Cancel",
@@ -152,6 +154,9 @@
             "create": "Anlegen",
             "createDirectory": "Neuen Ordner anlegen",
             "directoryCreated": "Neuer Ordner wurde angelegt!",
+            "directoryCreatedDetails": "Neues Verzeichnis \"{{directory}}\" wurde erstellt!",
+            "directoryCreateFailed": "Verzeichniserstellung fehlgeschlagen!",
+            "directoryCreateFailedDetails": "Erstellen des Verzeichnisses \"{{directory}}\" fehlgeschlagen: ",
             "inDirectory": "im Pfad ",
             "modalTitle": "Neuen Ordner anlegen",
             "parentPath": "übergeordnete(r) Ordner:",
@@ -169,7 +174,10 @@
             "encodingInProgress": "Dateien werden konvertiert...",
             "encodingSuccessful": "Dateien erfolgreich konvertiert!",
             "modalTitle": "Audiodateien konvertieren",
-            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: "
+            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: ",
+            "encodingSuccessfulDetails": "Dateien erfolgreich in \"{{file}}\" kodiert",
+            "encodingFailedDetails": "Kodierung der Dateien \"{{file}}\" fehlgeschlagen: ",
+            "encoding": "Kodierung"
         },
         "episode": "Episode",
         "filter": "Filter im aktuellen Ordner",
@@ -257,18 +265,35 @@
         },
         "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
         "messages": {
-            "deleteFailed": "Löschvorgang der Datei {{file}} fehlgeschlagen",
-            "deleteSuccessful": "Löschvorgang der Datei {{file}} erfolgreich!",
-            "deleting": "Wird gelöscht...",
+            "deleteFailedDetails": "Löschen der Datei \"{{file}}\" fehlgeschlagen",
+            "deleteSuccessfulDetails": "Datei \"{{file}}\" erfolgreich gelöscht!",
+            "deleting": "Löschen...",
             "migrationFailed": "Migration fehlgeschlagen",
-            "migrationOngoing": "migriere...",
+            "migrationOngoing": "Migriere...",
             "migrationSuccessful": "Migration erfolgreich!",
             "moving": "Verschiebe...",
-            "movingFailed": "Verschieben der Datei {{file}} fehlgeschlagen",
-            "movingSuccessful": "Datei {{file}} erfolgreich verschoben!",
+            "movingFailed": "Verschieben fehlgeschlagen",
+            "movingSuccessful": "Datei erfolgreich verschoben!",
             "renaming": "Benenne um...",
-            "renamingFailed": "Umbenennen der Datei {{file}} fehlgeschlagen",
-            "renamingSuccessful": "Datei {{file}} erfolgreich umbenannt!"
+            "renamingFailed": "Umbenennen fehlgeschlagen",
+            "renamingSuccessful": "Datei erfolgreich umbenannt!",
+            "errorFetchingDirContent": "Laden des Verzeichnisinhalts fehlgeschlagen",
+            "errorFetchingDirContentDetails": "Laden des Verzeichnisinhalts von \"{{path}}\" fehlgeschlagen: ",
+            "migrationOngoingDetails": "Migration {{ruid}} läuft...",
+            "migrationSuccessfulDetails": "Migration von {{ruid}} erfolgreich!",
+            "migrationFailedDetails": "Migration von {{ruid}} fehlgeschlagen: ",
+            "noRowsSelected": "Keine Zeilen ausgewählt",
+            "noRowsSelectedForDeletion": "Keine Zeilen zum Löschen ausgewählt",
+            "noRowsSelectedForMoving": "Keine Zeilen zum Verschieben ausgewählt",
+            "deleteSuccessful": "Löschen erfolgreich!",
+            "deleteFailed": "Löschen fehlgeschlagen",
+            "deletingDetails": "Lösche Datei \"{{file}}\"...",
+            "movingDetails": "Verschiebe Datei \"{{file}}\"...",
+            "renamingDetails": "Benenne Datei \"{{file}}\" um...",
+            "movingFailedDetails": "Verschieben der Datei \"{{fileSource}}\" nach \"{{fileTarget}}\" fehlgeschlagen: ",
+            "movingSuccessfulDetails": "Datei \"{{fileSource}}\" erfolgreich nach \"{{fileTarget}}\" verschoben!",
+            "renamingFailedDetails": "Umbenennen der Datei \"{{fileSource}}\" in \"{{fileTarget}}\" fehlgeschlagen: ",
+            "renamingSuccessfulDetails": "Datei \"{{fileSource}}\" erfolgreich in \"{{fileTarget}}\" umbenannt!"
         },
         "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
         "migrateContentToLibRoot": "TAF-Datei in Library (root) migrieren",
@@ -317,7 +342,10 @@
             "uploadSuccessful": "Dateien erfolgreich hochgeladen.",
             "uploadSuccessfulForFile": "Datei \"{{file}}\" erfolgreich hochgeladen.",
             "uploadText": "Klicke oder ziehe die Dateien zum Hochladen in diesen Bereich",
-            "uploading": "Lädt hoch..."
+            "uploading": "Lädt hoch...",
+            "uploadedFile": "Datei hochgeladen!",
+            "uploadedFileFailed": "Datei-Upload fehlgeschlagen!",
+            "uploadSuccessfulDetails": "Alle Dateien wurden erfolgreich hochgeladen."
         }
     },
     "footer": {
@@ -463,7 +491,8 @@
         "undefined": "Andere/undefiniert"
     },
     "radioStreamSearch": {
-        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: ",
+        "failedToFetchSearchResults": "Abrufen der Radiosender-Suchergebnisse fehlgeschlagen",
+        "failedToFetchSearchResultsDetails": "Abrufen der Radiosender-Suchergebnisse fehlgeschlagen: ",
         "searchLabel": "[optional] Radio stream suchen"
     },
     "security": {
@@ -478,6 +507,10 @@
         "teddycloudStatusOnline": "TeddyCloud Server online"
     },
     "settings": {
+        "errorSettingSettingsLevel": "Fehler beim Festlegen des Settings level",
+        "errorSettingSettingsLevelDetails": "Neues Settings level konnte nicht festgelegt werden:",
+        "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen",
+        "errorWhileSavingConfigDetails": "Fehler beim Speichern der Einstellungen: ",
         "certificates": {
             "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der TeddyCloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
             "information": "Information",
@@ -546,9 +579,11 @@
         "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
     },
     "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Suchergebnisse konnten nicht abgerufen werden: "
+        "failedToFetchSearchResults": "Fehler beim Abrufen der Modelle",
+        "failedToFetchSearchResultsDetails": "Fehler beim Abrufen der Suchergebnisse: "
     },
     "tonieboxes": {
+        "errorFetchingModels": "Fehler beim Abrufen der Toniebox-Modelle",
         "accessApiDisabled": "Zugriff auf TeddyCloud APIs deaktiviert.",
         "accessApiEnabled": "Zugriff auf TeddyCloud APIs aktiviert.",
         "availableBoxModal": {
@@ -891,15 +926,18 @@
         "delete": "Löschen",
         "editModelModal": {
             "editModel": "Toniebox \"{{name}}\" bearbeiten",
-            "errorOnModelChange": "Fehler beim Speichern des Models: {{error}}",
-            "errorOnNameChange": "Fehler beim Speichern des Namens: {{error}}",
-            "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen",
+            "errorOnModelChange": "Fehler beim Speichern des Modells",
+            "errorOnModelChangeDetails": "Fehler beim Speichern des Modells der Toniebox {{mac}}: {{error}}",
+            "errorOnNameChange": "Fehler beim Speichern des Namens",
+            "errorOnNameChangeDetails": "Fehler beim Speichern des Namens der Toniebox {{mac}}: {{error}}",
             "model": "Modell",
-            "name": "Bezeichnung",
+            "name": "Name",
             "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
-            "successOnModelChange": "Das Model der Toniebox wurde geändert",
-            "successOnNameChange": "Der Name der Toniebox wurde geändert",
-            "unsetBoxName": "Modell unbekannt/ungesetzt"
+            "successOnModelChange": "Modelländerung erfolgreich gespeichert",
+            "successOnNameChange": "Namensänderung erfolgreich gespeichert",
+            "unsetBoxName": "Modell unbekannt/nicht gesetzt",
+            "successOnModelChangeDetails": "Neues Modell \"{{model}}\" der Toniebox {{mac}} wurde erfolgreich gespeichert.",
+            "successOnNameChangeDetails": "Neuer Name \"{{name}}\" der Toniebox {{mac}} wurde erfolgreich gespeichert."
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Einstellungen der Toniebox \"{{name}}\" bearbeiten",
@@ -1031,12 +1069,18 @@
         "lastPlayedTonie": "Zuletzt gespielter Tonie: ",
         "linkToBoxCFW": "Öffne Web Frontend deiner Toniebox",
         "messages": {
-            "apiAccessDisabled": "Zugriff auf TeddyCloud APIs deaktiviert!",
-            "apiAccessEnabled": "Zugriff auf TeddyCloud APIs aktiviert!",
-            "apiAccessNotChangedError": "Konnte TeddyCloud API Zugriff nicht ändern: ",
-            "deleteFailed": "Löschvorgang fehlgeschlagen: ",
-            "deleteSuccessful": "Löschvorgang erfolgreich!",
-            "deleting": "Wird gelöscht..."
+            "apiAccessDisabled": "Zugriff auf TeddyCloud-APIs deaktiviert!",
+            "apiAccessDisabledDetails": "Zugriff auf TeddyCloud-APIs für Toniebox {{mac}} deaktiviert",
+            "apiAccessEnabled": "Zugriff auf TeddyCloud-APIs aktiviert!",
+            "apiAccessEnabledDetails": "Zugriff auf TeddyCloud-APIs für Toniebox {{mac}} aktiviert",
+            "apiAccessNotChangedError": "Änderung des Zugriffs auf TeddyCloud-API fehlgeschlagen",
+            "apiAccessNotChangedErrorDetails": "Änderung des Zugriffs auf TeddyCloud-API für Toniebox {{mac}} fehlgeschlagen: ",
+            "deleteFailed": "Löschen fehlgeschlagen",
+            "deleteFailedDetails": "Löschen der Toniebox {{mac}} fehlgeschlagen",
+            "deleteSuccessful": "Erfolgreich gelöscht!",
+            "deleteSuccessfulDetails": "Toniebox {{mac}} erfolgreich aus TeddyCloud gelöscht!",
+            "deleting": "Löschen...",
+            "deletingDetails": "Toniebox {{mac}} wird aus TeddyCloud gelöscht"
         },
         "navigationTitle": "Tonieboxen",
         "newBoxesAllowed": "Neue Tonieboxen erlaubt",
@@ -1183,11 +1227,11 @@
             "setToEmptyValue": "leer",
             "setTonieToModelFailed": "Konnte Tonie-Modell nicht ändern!",
             "setTonieToModelFailedDetails": "Konnte Tonie-Modell für [{{ruid}}] nicht ändern: ",
-            "setTonieToModelSuccessful": "Tonie-Modell erfolgtreich auf {{selectedModel}} gesetzt!",
+            "setTonieToModelSuccessful": "Tonie-Modell erfolgtreich gesetzt!",
             "setTonieToModelSuccessfulDetails": "Tonie-Modell auf {{selectedModel}} für [{{ruid}}] gesetzt",
             "setTonieToSourceFailed": "Konnte Tonie-Quelle nicht ändern!",
             "setTonieToSourceFailedDetails": "Konnte Tonie-Quelle für [{{ruid}}] nicht ändern: ",
-            "setTonieToSourceSuccessful": "Setze Tonie-Quelle auf {{selectedSource}}!",
+            "setTonieToSourceSuccessful": "Tonie-Quelle erfolgreich gesetzt!",
             "setTonieToSourceSuccessfulDetails": "Tonie-Quelle auf {{selectedSource}} für [{{ruid}}] gesetzt"
         },
         "navigationTitle": "Tonies",
