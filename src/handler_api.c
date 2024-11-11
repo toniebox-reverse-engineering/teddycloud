@@ -1144,6 +1144,16 @@ error_t file_save_end_suffix(void *in_ctx)
     return NO_ERROR;
 }
 
+error_t handleApiGetCaDer(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    settings_t *settings = get_settings();
+    char *ca_path = custom_asprintf("%s%c%s", settings->internal.basedirfull, PATH_SEPARATOR, settings->core.server_cert.file.ca_der);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, ca_path);
+    osFreeMem(ca_path);
+    return err;
+}
+
 error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint_t statusCode = 500;
