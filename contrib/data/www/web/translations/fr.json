@@ -141,8 +141,6 @@
         }
     ],
     "fileBrowser": {
-        "title": "Navigateur de fichiers",
-        "hidden": "Caché",
         "actions": "Actions",
         "attention": "Veuillez noter !",
         "cancel": "Annuler",
@@ -153,10 +151,10 @@
             "cancel": "Annuler",
             "create": "Créer",
             "createDirectory": "Créer un nouveau dossier",
-            "directoryCreatedDetails": "Nouveau dossier \"{{directory}}\" créé !",
             "directoryCreateFailed": "Échec de la création du dossier !",
             "directoryCreateFailedDetails": "Échec de la création du dossier \"{{directory}}\" : ",
             "directoryCreated": "Le nouveau dossier a été créé !",
+            "directoryCreatedDetails": "Nouveau dossier \"{{directory}}\" créé !",
             "inDirectory": "dans le dossier ",
             "modalTitle": "Créer un nouveau dossier",
             "parentPath": "Répertoire parent:",
@@ -170,16 +168,17 @@
             "cancel": "Annuler",
             "encode": "Encoder",
             "encodeFiles": "Encoder les fichiers sélectionnés en un fichier taf. Seuls les types de fichiers suivants seront pris en compte : ",
+            "encoding": "Encodage",
             "encodingFailed": "Échec de l'encodage !",
+            "encodingFailedDetails": "Échec de l'encodage des fichiers \"{{file}}\" : ",
             "encodingInProgress": "Les fichiers sont en cours d'encodage...",
             "encodingSuccessful": "Fichiers encodés avec succès !",
-            "modalTitle": "Encoder les fichiers audio",
-            "noSupportedFiletypesChoosen": "Aucun type de fichier pris en charge sélectionné. Les types de fichiers suivants sont pris en charge : ",
             "encodingSuccessfulDetails": "Fichiers encodés avec succès dans \"{{file}}\"",
-            "encodingFailedDetails": "Échec de l'encodage des fichiers \"{{file}}\" : ",
-            "encoding": "Encodage"
+            "modalTitle": "Encoder les fichiers audio",
+            "noSupportedFiletypesChoosen": "Aucun type de fichier pris en charge sélectionné. Les types de fichiers suivants sont pris en charge : "
         },
         "episode": "Épisode",
+        "fileTypesWarning": "Sélectionne uniquement des types de fichiers pris en charge !",
         "filter": "Filtrer dans le dossier actuel",
         "help": {
             "actionItems": {
@@ -244,7 +243,7 @@
                     "title": "Actions de sélection multiple"
                 },
                 "openDirectory": {
-                    "text": "Double-cliquez sur un répertoire pour l'ouvrir. Les répertoires sont marqués par des crochets et affichent <DIR> comme taille.",
+                    "text": "Double-cliquez sur un répertoire pour l'ouvrir. Les répertoires ont une icône de dossier devant et affichent <DIR> comme taille.",
                     "title": "Ouvrir le répertoire"
                 },
                 "openTAFViewer": {
@@ -263,36 +262,38 @@
             "showHelp": "Aide",
             "title": "Aide"
         },
+        "hidden": "Caché",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
+        "maxSelectedRowsWarning": "Trop de fichiers sélectionnés !",
         "messages": {
+            "deleteFailed": "Échec de la suppression",
             "deleteFailedDetails": "Échec de la suppression du fichier \"{{file}}\"",
+            "deleteSuccessful": "Suppression réussie!",
             "deleteSuccessfulDetails": "Fichier \"{{file}}\" supprimé avec succès!",
             "deleting": "Suppression...",
-            "migrationFailed": "Échec de la migration",
-            "migrationOngoing": "Migration en cours...",
-            "migrationSuccessful": "Migration réussie!",
-            "moving": "Déplacement...",
-            "movingFailed": "Échec du déplacement",
-            "movingSuccessful": "Fichier déplacé avec succès!",
-            "renaming": "Renommage en cours...",
-            "renamingFailed": "Échec du renommage",
-            "renamingSuccessful": "Fichier renommé avec succès!",
+            "deletingDetails": "Suppression du fichier \"{{file}}\"...",
             "errorFetchingDirContent": "Échec du chargement du contenu du répertoire",
             "errorFetchingDirContentDetails": "Échec du chargement du contenu du répertoire \"{{path}}\" : ",
-            "migrationOngoingDetails": "Migration {{ruid}} en cours...",
-            "migrationSuccessfulDetails": "Migration de {{ruid}} réussie!",
+            "migrationFailed": "Échec de la migration",
             "migrationFailedDetails": "Échec de la migration de {{ruid}} : ",
+            "migrationOngoing": "Migration en cours...",
+            "migrationOngoingDetails": "Migration {{ruid}} en cours...",
+            "migrationSuccessful": "Migration réussie!",
+            "migrationSuccessfulDetails": "Migration de {{ruid}} réussie!",
+            "moving": "Déplacement...",
+            "movingDetails": "Déplacement du fichier \"{{file}}\"...",
+            "movingFailed": "Échec du déplacement",
+            "movingFailedDetails": "Échec du déplacement du fichier \"{{fileSource}}\" vers \"{{fileTarget}}\" : ",
+            "movingSuccessful": "Fichier déplacé avec succès!",
+            "movingSuccessfulDetails": "Fichier \"{{fileSource}}\" déplacé vers \"{{fileTarget}}\" avec succès!",
             "noRowsSelected": "Aucune ligne sélectionnée",
             "noRowsSelectedForDeletion": "Aucune ligne sélectionnée pour suppression",
             "noRowsSelectedForMoving": "Aucune ligne sélectionnée pour déplacement",
-            "deleteSuccessful": "Suppression réussie!",
-            "deleteFailed": "Échec de la suppression",
-            "deletingDetails": "Suppression du fichier \"{{file}}\"...",
-            "movingDetails": "Déplacement du fichier \"{{file}}\"...",
+            "renaming": "Renommage en cours...",
             "renamingDetails": "Renommage du fichier \"{{file}}\"...",
-            "movingFailedDetails": "Échec du déplacement du fichier \"{{fileSource}}\" vers \"{{fileTarget}}\" : ",
-            "movingSuccessfulDetails": "Fichier \"{{fileSource}}\" déplacé vers \"{{fileTarget}}\" avec succès!",
+            "renamingFailed": "Échec du renommage",
             "renamingFailedDetails": "Échec du renommage du fichier \"{{fileSource}}\" en \"{{fileTarget}}\" : ",
+            "renamingSuccessful": "Fichier renommé avec succès!",
             "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!"
         },
         "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
@@ -329,6 +330,7 @@
             "copy": "(WIP - non implémenté) Dupliquer la playlist audio Tonie",
             "edit": "(WIP - non implémenté) Modifier la playlist audio Tonie"
         },
+        "title": "Navigateur de fichiers",
         "upload": {
             "cancel": "Annuler",
             "hideUploadFilesDragNDrop": "Masquer le téléversement de fichiers",
@@ -340,12 +342,12 @@
             "uploadHint": "Faites glisser les fichiers ici pour les téléverser",
             "uploadInProgress": "Téléversement de \"{{file}}\"...",
             "uploadSuccessful": "Fichiers téléversés avec succès.",
+            "uploadSuccessfulDetails": "Tous les fichiers ont été téléchargés avec succès.",
             "uploadSuccessfulForFile": "Fichier \"{{file}}\" téléversé avec succès.",
             "uploadText": "Cliquez ou faites glisser les fichiers dans cette zone pour les téléverser",
-            "uploading": "Téléversement en cours...",
             "uploadedFile": "Fichier téléchargé!",
             "uploadedFileFailed": "Échec du téléchargement du fichier!",
-            "uploadSuccessfulDetails": "Tous les fichiers ont été téléchargés avec succès."
+            "uploading": "Téléversement en cours..."
         }
     },
     "footer": {
@@ -507,20 +509,25 @@
         "teddycloudStatusOnline": "Le serveur TeddyCloud fonctionne correctement"
     },
     "settings": {
+        "certificates": {
+            "hint": "Voici les certificats utilisés pour l'utilisation générale de TeddyCloud. Des certificats spécifiques peuvent être utilisés pour vos Tonieboxes. Pour les changer, allez à ",
+            "information": "Informations",
+            "invalidFileType": "Type de fichier invalide ! Seuls les fichiers .der sont autorisés !",
+            "navigationTitle": "Certificats",
+            "title": "Certificats",
+            "uploadFailed": "Échec du téléchargement du certificat !",
+            "uploadFailedDetails": "Le téléchargement du certificat {{filename}} a échoué",
+            "uploadHint": "Glissez-déposez les certificats clients (*.der) de votre box ici",
+            "uploadSuccessful": "Certificat téléchargé avec succès.",
+            "uploadSuccessfulDetails": "Certificat {{filename}} téléchargé avec succès.",
+            "uploadText": "Cliquez ou faites glisser les certificats clients dans cette zone pour les télécharger"
+        },
+        "errorFetchingSetting": "Erreur lors de la récupération du paramètre !",
+        "errorFetchingSettingDetails": "Erreur lors de la récupération du paramètre \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Erreur lors de la configuration du niveau des paramètres",
         "errorSettingSettingsLevelDetails": "Impossible de définir le nouveau niveau de paramètres :",
         "errorWhileSavingConfig": "Échec de la sauvegarde de la configuration dans le fichier",
         "errorWhileSavingConfigDetails": "Erreur lors de la sauvegarde de la configuration dans le fichier : ",
-        "certificates": {
-            "hint": "Voici les certificats utilisés pour l'utilisation générale de TeddyCloud. Des certificats spécifiques peuvent être utilisés pour vos Tonieboxes. Pour les changer, allez à ",
-            "information": "Informations",
-            "navigationTitle": "Certificats",
-            "title": "Certificats",
-            "uploadFailed": "Échec du téléchargement du fichier {{filename}}. Consultez la console",
-            "uploadHint": "Glissez-déposez les certificats clients de votre box ici",
-            "uploadSuccessful": "Fichier {{filename}} téléchargé avec succès.",
-            "uploadText": "Cliquez ou faites glisser les certificats clients dans cette zone pour les télécharger"
-        },
         "general": {
             "navigationTitle": "Général",
             "title": "Paramètres généraux"
@@ -562,6 +569,7 @@
         "restartFailed": "Échec du redémarrage du serveur TeddyCloud !",
         "restartInProgress": "Redémarrage de TeddyCloud en cours...",
         "restartServer": "Redémarrer le serveur",
+        "restartTC": "Redémarrage de TeddyCloud",
         "rtnl": {
             "clear": "Effacer le journal RTNL",
             "enableRtnl": "Activer la journalisation",
@@ -575,6 +583,7 @@
         "toniesJsonReloadFailed": "Échec du rechargement de Tonies(.custom).json!",
         "toniesJsonReloadInProgress": "Chargement de Tonies(.custom).json...",
         "toniesJsonReloadSuccessful": "Tonies(.custom).json rechargé avec succès!",
+        "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
         "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
         "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
@@ -583,7 +592,6 @@
         "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche de modèles : "
     },
     "tonieboxes": {
-        "errorFetchingModels": "Erreur lors de la récupération des modèles de Tonieboxes",
         "accessApiDisabled": "Accès aux API de TeddyCloud désactivé.",
         "accessApiEnabled": "Accès aux API de TeddyCloud activé.",
         "availableBoxModal": {
@@ -869,6 +877,7 @@
             "flashCAreplacementLink": "Trouver les instructions de flashage ici",
             "flashCAreplacementText1": "Remplace la CA originale dans ton dump flash par la CA de remplacement et reflash ta boîte.",
             "flashCAreplacementText2": "Si la boîte ne se connecte pas du tout (mot-clé: chouette), tu peux essayer l'ancien gencerts.sh pour générer de nouveaux certificats et reflasher la boîte.",
+            "flashCAreplacementText3": "Attention : Le fichier ca.der mentionné dans l'extrait de code doit être le CA de remplacement de TeddyCloud!",
             "flashCollapse": {
                 "cc3235flash": "Mémoire flash avec broches",
                 "cc3235flashWithSMDGrippers": "Mémoire flash avec pinces SMD connectées",
@@ -879,7 +888,7 @@
             "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3235 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
             "hint2": "Veuillez suivre ensuite le chemin CC3235 :",
             "hwToolSpecific": "Préparations Dépendantes du Matériel",
-            "hwToolSpecificText": "Selon le matériel que tu prévois d’utiliser pour flasher ton Toniebox, des préparations supplémentaires sont nécessaires. Veuillez choisir l’option que tu suivras.",
+            "hwToolSpecificText": "Selon le matériel que tu prévois d'utiliser pour flasher ton Toniebox, des préparations supplémentaires sont nécessaires. Veuillez choisir l'option que tu suivras.",
             "installCC3200tool": "Installer l'outil CC3200",
             "installCC3200toolLink": "Trouver les instructions d'installation ici",
             "installSerprogFirmware": "Installer le firmware Serprog",
@@ -924,6 +933,8 @@
             "warningText": "Si le moniteur série est ouvert, cela bloquera l'accès de esptool.py à l'esp. Si vous obtenez un “BROWNOUT_RST”, vérifiez votre alimentation/batterie. “SPI_FAST_FLASH_BOOT” indique un démarrage sans le jumper J100."
         },
         "delete": "Supprimer",
+        "downloadC2DerFile": "Télécharger le certificat de remplacement CA (sous le nom c2.der)",
+        "downloadCADerFile": "Télécharger le certificat de remplacement CA (ca.der)",
         "editModelModal": {
             "editModel": "Modifier la Toniebox \"{{name}}\"",
             "errorOnModelChange": "Erreur lors de la sauvegarde du modèle",
@@ -934,15 +945,17 @@
             "name": "Nom",
             "placeholderSearchForAModel": "Sélectionne la variante de couleur de ta Toniebox",
             "successOnModelChange": "Modification du modèle enregistrée avec succès",
-            "successOnNameChange": "Modification du nom enregistrée avec succès",
-            "unsetBoxName": "Modèle inconnu/non défini",
             "successOnModelChangeDetails": "Le nouveau modèle \"{{model}}\" de la Toniebox {{mac}} a été enregistré avec succès.",
-            "successOnNameChangeDetails": "Le nouveau nom \"{{name}}\" de la Toniebox {{mac}} a été enregistré avec succès."
+            "successOnNameChange": "Modification du nom enregistrée avec succès",
+            "successOnNameChangeDetails": "Le nouveau nom \"{{name}}\" de la Toniebox {{mac}} a été enregistré avec succès.",
+            "unsetBoxName": "Modèle inconnu/non défini"
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Modifier les paramètres pour la Toniebox \"{{name}}\"",
             "editTonieboxSettingsLabel": "Paramètres"
         },
+        "errorFetchingModels": "Erreur lors de la récupération des modèles de Tonieboxes",
+        "errorFetchingTonieboxes": "Erreur lors de la récupération des Tonieboxes",
         "esp32BoxFlashing": {
             "attention": "Attention",
             "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
@@ -977,8 +990,10 @@
                 "extractingCertificates409ResponseForceOverwrite": "Écraser les certificats existants",
                 "extractingCertificates409ResponseForceOverwriteConfirmButton": "Écraser les fichiers",
                 "extractingCertificates409ResponseForceOverwriteContent": "La tentative initiale de stockage des certificats a échoué : {{error}}. Voulez-vous écraser les fichiers existants ?",
-                "extractingCertificatesFailed": "Échec de l'extraction des certificats à partir de \"{{file}}\"",
-                "extractingCertificatesSuccessful": "Certificats extraits avec succès de \"{{file}}\" et enregistrés dans TeddyCloud.",
+                "extractingCertificatesFailed": "Échec de l'extraction des certificats!",
+                "extractingCertificatesFailedDetails": "Échec de l'extraction des certificats depuis \"{{file}}\".",
+                "extractingCertificatesSuccessful": "Certificats extraits et stockés avec succès!",
+                "extractingCertificatesSuccessfulDetails": "Certificats extraits avec succès depuis \"{{file}}\" et stockés dans TeddyCloud.",
                 "failedToCommunicate": "Échec de la communication :",
                 "failedToConnect": "Échec de la connexion :",
                 "flash": "Flasher",
@@ -1091,6 +1106,7 @@
         "noNewBoxesAllowedText": "Tu ne peux pas connecter de nouvelles Tonieboxes à TeddyCloud. Veuillez activer le paramètre \"Autoriser de nouvelles boxes\". Une fois que tu as connecté toutes tes boxes, désactive le paramètre \"Autoriser de nouvelles boxes\" pour des raisons de sécurité.",
         "offline": "hors ligne",
         "online": "en ligne",
+        "processing": "Traitement en cours...",
         "title": "Vos Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ATTENTION: Chemin par défaut!)",
@@ -1110,7 +1126,8 @@
             "category": "Catégorie",
             "episode": "Épisode",
             "episodeHint": "Sera affiché sur la Toniecard",
-            "failedToCreate": "Échec de la création du modèle: ",
+            "failedToCreate": "Échec de la création du modèle!",
+            "failedToCreateDetails": "Échec de la création du modèle {{series}} [{{model}}]: ",
             "formfieldTitle": "Titre",
             "formfieldTitleHint": "Actuellement pas de sortie sur Toniecard",
             "hash": "Hash",
@@ -1127,6 +1144,7 @@
             "seriesHint": "Sera affiché comme titre de la Toniecard",
             "seriesRequired": "La série doit être remplie.",
             "successfullyCreated": "Modèle créé avec succès!",
+            "successfullyCreatedDetails": "Modèle {{series}} [{{model}}] créé avec succès!",
             "title": "Créer un nouveau Tonie/Tag personnalisé",
             "track": "Piste"
         },
@@ -1159,24 +1177,32 @@
         },
         "encoder": {
             "clearList": "Vider la liste",
-            "errorFileProcessing": "Échec du traitement du fichier audio :",
+            "errorFileProcessing": "Échec du traitement du fichier audio : ",
             "filename": "Nom du fichier",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
             "processing": "Traitement...",
+            "processingDetails": "Encodage des fichiers dans \"{{file}}\" en cours...",
+            "processingError": "Erreur lors du traitement !",
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
             "sortAlphabetically": "Trier les fichiers par ordre alphabétique",
             "targetDirectory": "Choisir le répertoire cible",
             "title": "Encodeur audio",
+            "tooManyFilesError": "Trop de fichiers !",
             "upload": "Télécharger",
-            "uploadFailed": "Le téléchargement a rencontré une erreur",
+            "uploadFailed": "Échec du téléchargement",
+            "uploadFailedDetails": "Le téléchargement a rencontré une erreur : ",
             "uploadFiles": "Sélectionner le(s) fichier(s)",
             "uploadHint": "Faites glisser les fichiers audio ici !",
-            "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque",
+            "uploadSuccessful": "Encodage du fichier réussi !",
+            "uploadSuccessfulDetails": "Les fichiers ont été encodés en tant que \"{{file}}\" et ajoutés à la bibliothèque avec succès !",
             "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone",
-            "uploading": "Téléchargement..."
+            "uploading": "Téléchargement...",
+            "uploadingDetails": "Téléchargement du fichier \"{{file}}\"..."
         },
+        "errorFetchingSystemSounds": "Erreur lors de la récupération des sons du système",
+        "errorFetchingTonies": "Erreur lors de la récupération des Tonies",
         "infoModal": {
             "exists": "Existe:",
             "model": "Modèle:",
@@ -1218,8 +1244,10 @@
             "errorDuringDownloadDetails": "Erreur lors du téléchargement en arrière-plan de \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Erreur lors de la récupération de la carte mise à jour!",
             "errorFetchingUpdatedCardDetails": "Erreur lors de la récupération de la carte mise à jour pour \"{{model}}\" [{{ruid}}]: ",
-            "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag: ",
+            "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag!",
+            "hideTonieFailedDetails": "Échec de l'opération pour cacher le Tonie/Tag [{{ruid}}] : ",
             "hideTonieSuccessful": "Tonie/Tag masqué avec succès!",
+            "hideTonieSuccessfulDetails": "Tonie/Tag [{{ruid}}] marqué comme caché avec succès !",
             "liveDisabled": "En direct désactivé!",
             "liveDisabledDetails": "Drapeau en direct désactivé pour \"{{model}}\" [{{ruid}}]",
             "liveEnabled": "En direct activé!",

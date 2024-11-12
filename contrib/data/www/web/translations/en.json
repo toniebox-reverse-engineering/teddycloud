@@ -141,8 +141,6 @@
         }
     ],
     "fileBrowser": {
-        "title": "Filebrowser",
-        "hidden": "Hidden",
         "actions": "Actions",
         "attention": "Please note!",
         "cancel": "Cancel",
@@ -153,10 +151,10 @@
             "cancel": "Cancel",
             "create": "Create",
             "createDirectory": "Create New Directory",
-            "directoryCreated": "New directory has been created!",
-            "directoryCreatedDetails": "New directory \"{{directory}}\" has been created!",
             "directoryCreateFailed": "Create directory failed!",
             "directoryCreateFailedDetails": "Create directory \"{{directory}}\" failed: ",
+            "directoryCreated": "New directory has been created!",
+            "directoryCreatedDetails": "New directory \"{{directory}}\" has been created!",
             "inDirectory": "in directory ",
             "modalTitle": "Create New Directory",
             "parentPath": "Parent directory:",
@@ -170,16 +168,17 @@
             "cancel": "Cancel",
             "encode": "Encode",
             "encodeFiles": "Encode selected files into a taf file. Only the following file types will be considered: ",
+            "encoding": "Encoding",
             "encodingFailed": "Encoding failed!",
+            "encodingFailedDetails": "Encoded files \"{{file}}\" failed: ",
             "encodingInProgress": "Files are being encoded...",
             "encodingSuccessful": "Files encoded successfully!",
-            "modalTitle": "Encode Audio Files",
-            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: ",
             "encodingSuccessfulDetails": "Files encoded successfully into \"{{file}}\"",
-            "encodingFailedDetails": "Encoded files \"{{file}}\" failed: ",
-            "encoding": "Encoding"
+            "modalTitle": "Encode Audio Files",
+            "noSupportedFiletypesChoosen": "No supported file types chosen. The following file types are supported: "
         },
         "episode": "Episode",
+        "fileTypesWarning": "Select only supported file types!",
         "filter": "Filter within current folder",
         "help": {
             "actionItems": {
@@ -244,7 +243,7 @@
                     "title": "Multi-Selection Actions"
                 },
                 "openDirectory": {
-                    "text": "Double-click on a directory to open it. Directories are marked by square brackets and show <DIR> as size.",
+                    "text": "Double-click on a directory to open it. Directories have a folder icon in front and show <DIR> as their size.",
                     "title": "Open Directory"
                 },
                 "openTAFViewer": {
@@ -263,36 +262,38 @@
             "showHelp": "Help",
             "title": "Help"
         },
+        "hidden": "Hidden",
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
+        "maxSelectedRowsWarning": "Too many files selected!",
         "messages": {
+            "deleteFailed": "Deletion failed",
             "deleteFailedDetails": "Deletion of file \"{{file}}\" failed",
+            "deleteSuccessful": "Deletion successful!",
             "deleteSuccessfulDetails": "Deleted file \"{{file}}\" successful!",
             "deleting": "Deleting...",
-            "migrationFailed": "Migration failed",
-            "migrationOngoing": "Migrating...",
-            "migrationSuccessful": "Migration successful!",
-            "moving": "Moving...",
-            "movingFailed": "Moving failed",
-            "movingSuccessful": "Moved file successfully!",
-            "renaming": "Renaming...",
-            "renamingFailed": "Renaming failed",
-            "renamingSuccessful": "Renamed file successfully!",
+            "deletingDetails": "Deleting file \"{{file}}\"...",
             "errorFetchingDirContent": "Loading dir content failed",
             "errorFetchingDirContentDetails": "Failed to load dir content of \"{{path}}\": ",
-            "migrationOngoingDetails": "Migration {{ruid}} in progress...",
-            "migrationSuccessfulDetails": "Migration of {{ruid}} successful!",
+            "migrationFailed": "Migration failed",
             "migrationFailedDetails": "Migration of {{ruid}} failed: ",
+            "migrationOngoing": "Migrating...",
+            "migrationOngoingDetails": "Migration {{ruid}} in progress...",
+            "migrationSuccessful": "Migration successful!",
+            "migrationSuccessfulDetails": "Migration of {{ruid}} successful!",
+            "moving": "Moving...",
+            "movingDetails": "Moving file \"{{file}}\"...",
+            "movingFailed": "Moving failed",
+            "movingFailedDetails": "Moving of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
+            "movingSuccessful": "Moved file successfully!",
+            "movingSuccessfulDetails": "Moved file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!",
             "noRowsSelected": "No rows selected",
             "noRowsSelectedForDeletion": "No rows selected for deletion",
             "noRowsSelectedForMoving": "No rows selected for moving",
-            "deleteSuccessful": "Deletion successful!",
-            "deleteFailed": "Deletion failed",
-            "deletingDetails": "Deleting file \"{{file}}\"...",
-            "movingDetails": "Moving file \"{{file}}\"...",
+            "renaming": "Renaming...",
             "renamingDetails": "Renaming file \"{{file}}\"...",
-            "movingFailedDetails": "Moving of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
-            "movingSuccessfulDetails": "Moved file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!",
+            "renamingFailed": "Renaming failed",
             "renamingFailedDetails": "Renaming of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
+            "renamingSuccessful": "Renamed file successfully!",
             "renamingSuccessfulDetails": "Renamed file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!"
         },
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
@@ -329,6 +330,7 @@
             "copy": "(WIP - not implemented yet) Duplicate Tonie Audio Playlist",
             "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
         },
+        "title": "Filebrowser",
         "upload": {
             "cancel": "Cancel",
             "hideUploadFilesDragNDrop": "Hide file upload",
@@ -340,12 +342,12 @@
             "uploadHint": "Drag files here to upload",
             "uploadInProgress": "Uploading \"{{file}}\"...",
             "uploadSuccessful": "Files uploaded successfully.",
+            "uploadSuccessfulDetails": "All files were uploaded successfully.",
             "uploadSuccessfulForFile": "File \"{{file}}\" uploaded successfully.",
             "uploadText": "Click or drag files to this area to upload",
-            "uploading": "Uploading...",
             "uploadedFile": "File uploaded!",
             "uploadedFileFailed": "File upload failed!",
-            "uploadSuccessfulDetails": "All files were uploaded successfully."
+            "uploading": "Uploading..."
         }
     },
     "footer": {
@@ -507,20 +509,25 @@
         "teddycloudStatusOnline": "Teddycloud server running fine"
     },
     "settings": {
+        "certificates": {
+            "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
+            "information": "Information",
+            "invalidFileType": "Invalid file type! Only .der files are allowed!",
+            "navigationTitle": "Certificates",
+            "title": "Certificates",
+            "uploadFailed": "Certificate upload failed!",
+            "uploadFailedDetails": "Certificate {{filename}} upload failed",
+            "uploadHint": "Drag and drop client certificates (*.der) from your box here",
+            "uploadSuccessful": "Certificate uploaded successfully.",
+            "uploadSuccessfulDetails": "Certificate {{filename}} uploaded successfully.",
+            "uploadText": "Click or drag client certificates to this area to upload"
+        },
+        "errorFetchingSetting": "Error fetching setting!",
+        "errorFetchingSettingDetails": "Error fetching setting \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Error setting Settings level",
         "errorSettingSettingsLevelDetails": "Could not set new Settings level:",
         "errorWhileSavingConfig": "Saving config to file failed",
         "errorWhileSavingConfigDetails": "Error while saving config to file: ",
-        "certificates": {
-            "hint": "These are the certificates used for general use of the TeddyCloud. Specific ones can be used for your Tonieboxes. To change these, go to ",
-            "information": "Information",
-            "navigationTitle": "Certificates",
-            "title": "Certificates",
-            "uploadFailed": "{{filename}} file upload failed. Take a look into the console",
-            "uploadHint": "Drag and drop client certificates from your box here",
-            "uploadSuccessful": "{{filename}} file uploaded successfully.",
-            "uploadText": "Click or drag client certificates to this area to upload"
-        },
         "general": {
             "navigationTitle": "General",
             "title": "General settings"
@@ -562,6 +569,7 @@
         "restartFailed": "Restart TeddyCloud server failed!",
         "restartInProgress": "TeddyCloud is rebooting...",
         "restartServer": "Restart server",
+        "restartTC": "Restarting TeddyCloud",
         "rtnl": {
             "clear": "Clear RTNL Log",
             "enableRtnl": "Enable logging",
@@ -575,6 +583,7 @@
         "toniesJsonReloadFailed": "Failed to reload Tonies(.custom).json!",
         "toniesJsonReloadInProgress": "Loading Tonies(.custom).json...",
         "toniesJsonReloadSuccessful": "Tonies(.custom).json reloaded successfully!",
+        "tryToRestartTC": "Try to restart TeddyCloud",
         "warning": "Attention! Save button + Settings level",
         "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
     },
@@ -583,7 +592,6 @@
         "failedToFetchSearchResultsDetails": "Failed to fetch models search results: "
     },
     "tonieboxes": {
-        "errorFetchingModels": "Error fetching Tonieboxes Models",
         "accessApiDisabled": "Access to TeddyCloud APIs disabled.",
         "accessApiEnabled": "Access to TeddyCloud APIs enabled.",
         "availableBoxModal": {
@@ -869,6 +877,7 @@
             "flashCAreplacementLink": "Find flashing instructions here",
             "flashCAreplacementText1": "Replace the original CA within your flash dump with the replacement CA and reflash it to your box.",
             "flashCAreplacementText2": "If the box does not connect at all (codeword owl), you may try the old gencerts.sh to generate new certificates and reflash the box.",
+            "flashCAreplacementText3": "Attention: The ca.der file referenced in the code snippet must be the TeddyCloud Replacement CA!",
             "flashCollapse": {
                 "cc3235flash": "Flash memory with pins",
                 "cc3235flashWithSMDGrippers": "Flash memory with connected SMD grippers",
@@ -924,6 +933,8 @@
             "warningText": "If the serial monitor is open it will block esptool.py from accessing the esp. If you get a “BROWNOUT_RST” check your power supply / battery. “SPI_FAST_FLASH_BOOT” indicates a boot without the J100 jumper."
         },
         "delete": "Delete",
+        "downloadC2DerFile": "Download CA Replacement Certificate (as c2.der)",
+        "downloadCADerFile": "Download CA Replacement Certificate (ca.der)",
         "editModelModal": {
             "editModel": "Edit Toniebox \"{{name}}\"",
             "errorOnModelChange": "Error saving model",
@@ -934,15 +945,17 @@
             "name": "Name",
             "placeholderSearchForAModel": "Select color variant of your Toniebox",
             "successOnModelChange": "Model change saved sucessfully",
-            "successOnNameChange": "Name change saved sucessfully",
-            "unsetBoxName": "Model unknown/not set",
             "successOnModelChangeDetails": "New model \"{{model}}\"of the Toniebox {{mac}} was saved sucessfully.",
-            "successOnNameChangeDetails": "New name \"{{name}}\"of the Toniebox {{mac}} was saved sucessfully."
+            "successOnNameChange": "Name change saved sucessfully",
+            "successOnNameChangeDetails": "New name \"{{name}}\"of the Toniebox {{mac}} was saved sucessfully.",
+            "unsetBoxName": "Model unknown/not set"
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Edit settings for Toniebox \"{{name}}\"",
             "editTonieboxSettingsLabel": "Settings"
         },
+        "errorFetchingModels": "Error fetching Tonieboxes Models",
+        "errorFetchingTonieboxes": "Error fetching Tonieboxes",
         "esp32BoxFlashing": {
             "attention": "Attention",
             "browserNotSupported": "The integrated ESP32 Box flashing functionality can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
@@ -977,8 +990,10 @@
                 "extractingCertificates409ResponseForceOverwrite": "Overwrite existing certificates",
                 "extractingCertificates409ResponseForceOverwriteConfirmButton": "Overwrite files",
                 "extractingCertificates409ResponseForceOverwriteContent": "The initial attempt to store certificates failed: {{error}}. Would you like to overwrite the existing files?",
-                "extractingCertificatesFailed": "Failed to extract certificates from \"{{file}}\"",
-                "extractingCertificatesSuccessful": "Certificates successfully extracted from \"{{file}}\" and stored in TeddyCloud.",
+                "extractingCertificatesFailed": "Failed to extract certificates!",
+                "extractingCertificatesFailedDetails": "Failed to extract certificates from \"{{file}}\"",
+                "extractingCertificatesSuccessful": "Certificates successfully extracted and stored!",
+                "extractingCertificatesSuccessfulDetails": "Certificates successfully extracted from \"{{file}}\" and stored in TeddyCloud.",
                 "failedToCommunicate": "Failed to communicate:",
                 "failedToConnect": "Failed to connect:",
                 "flash": "Flash",
@@ -1091,6 +1106,7 @@
         "noNewBoxesAllowedText": "You cannot connect new Tonieboxes to TeddyCloud. Please enable first the \"Allow new boxes\" setting. Once you have connected all your boxes, please disable the \"Allow new boxes\" setting for security reasons.",
         "offline": "offline",
         "online": "online",
+        "processing": "Processing...",
         "title": "Your Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ATTENTION: Default Path!)",
@@ -1110,7 +1126,8 @@
             "category": "Category",
             "episode": "Episode",
             "episodeHint": "Will be displayed within the Toniecard",
-            "failedToCreate": "Model creation failed: ",
+            "failedToCreate": "Model creation failed!",
+            "failedToCreateDetails": "Model {{series}} [{{model}}] creation failed: ",
             "formfieldTitle": "Title",
             "formfieldTitleHint": "Currently not shown on Toniecard",
             "hash": "Hash",
@@ -1127,6 +1144,7 @@
             "seriesHint": "Will be displayed as the title of the Toniecard",
             "seriesRequired": "The series must be filled.",
             "successfullyCreated": "Model created successful!",
+            "successfullyCreatedDetails": "Model {{series}} [{{model}}] created successful!",
             "title": "Create new Custom Tonie/Tag",
             "track": "Track"
         },
@@ -1159,24 +1177,32 @@
         },
         "encoder": {
             "clearList": "Clear list",
-            "errorFileProcessing": "Failed to process the audio file:",
+            "errorFileProcessing": "Failed to process the audio file: ",
             "filename": "Filename",
             "maxFiles": "You can only add up to {{maxFiles}} files.",
             "navigationTitle": "Audio Encoder",
             "processing": "Processing...",
+            "processingDetails": "Encoding files into \"{{file}}\" in progress...",
+            "processingError": "Error while processing!",
             "removeFile": "Remove file",
             "saveAs": "Save file as",
             "sortAlphabetically": "Sort files alphabetically",
             "targetDirectory": "Choose target directory",
             "title": "Audio Encoder",
+            "tooManyFilesError": "Too many files!",
             "upload": "Upload",
-            "uploadFailed": "The upload encountered an error",
+            "uploadFailed": "Upload failed",
+            "uploadFailedDetails": "The upload encountered an error: ",
             "uploadFiles": "Select File(s)",
             "uploadHint": "Drag the audio files here!",
-            "uploadSuccessful": "The file was added successfully to the library",
+            "uploadSuccessful": "File encoding successful!",
+            "uploadSuccessfulDetails": "Files were encoded as \"{{file}}\" and added to the library successful!",
             "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area",
-            "uploading": "Uploading..."
+            "uploading": "Uploading...",
+            "uploadingDetails": "Uploading file \"{{file}}\"..."
         },
+        "errorFetchingSystemSounds": "Error fetching system sounds",
+        "errorFetchingTonies": "Error fetching Tonies",
         "infoModal": {
             "exists": "Exists:",
             "model": "Model:",
@@ -1218,8 +1244,10 @@
             "errorDuringDownloadDetails": "Error during background download of \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Error fetching updated card!",
             "errorFetchingUpdatedCardDetails": "Error fetching updated card for \"{{model}}\" [{{ruid}}]: ",
-            "hideTonieFailed": "Failed to hide Tonie/Tag: ",
+            "hideTonieFailed": "Failed to hide Tonie/Tag",
+            "hideTonieFailedDetails": "Failed to hide Tonie/Tag [{{ruid}}]: ",
             "hideTonieSuccessful": "Tonie/Tag successfully marked as hidden!",
+            "hideTonieSuccessfulDetails": "Tonie/Tag [{{ruid}}] successfully marked as hidden!",
             "liveDisabled": "Live disabled!",
             "liveDisabledDetails": "Live flag disabled for \"{{model}}\" [{{ruid}}]",
             "liveEnabled": "Live enabled!",

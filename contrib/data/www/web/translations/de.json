@@ -141,8 +141,6 @@
         }
     ],
     "fileBrowser": {
-        "title": "Dateibrowser",
-        "hidden": "Versteckt",
         "actions": "Aktionen",
         "attention": "Bitte beachte!",
         "cancel": "Cancel",
@@ -153,10 +151,10 @@
             "cancel": "Abbrechen",
             "create": "Anlegen",
             "createDirectory": "Neuen Ordner anlegen",
-            "directoryCreated": "Neuer Ordner wurde angelegt!",
-            "directoryCreatedDetails": "Neues Verzeichnis \"{{directory}}\" wurde erstellt!",
             "directoryCreateFailed": "Verzeichniserstellung fehlgeschlagen!",
             "directoryCreateFailedDetails": "Erstellen des Verzeichnisses \"{{directory}}\" fehlgeschlagen: ",
+            "directoryCreated": "Neuer Ordner wurde angelegt!",
+            "directoryCreatedDetails": "Neues Verzeichnis \"{{directory}}\" wurde erstellt!",
             "inDirectory": "im Pfad ",
             "modalTitle": "Neuen Ordner anlegen",
             "parentPath": "übergeordnete(r) Ordner:",
@@ -168,18 +166,19 @@
         "encodeFiles": {
             "addFiles": "Dateien hinzufügen",
             "cancel": "Abbrechen",
-            "encode": "Konvertiere",
+            "encode": "Konvertieren",
             "encodeFiles": "Markierte Dateien in eine taf-Datei konvertieren. Nur die folgenden Dateitypen werden berücksichtigt: ",
+            "encoding": "Kodierung",
             "encodingFailed": "Konvertierung fehlgeschlagen!",
+            "encodingFailedDetails": "Kodierung der Dateien \"{{file}}\" fehlgeschlagen: ",
             "encodingInProgress": "Dateien werden konvertiert...",
             "encodingSuccessful": "Dateien erfolgreich konvertiert!",
-            "modalTitle": "Audiodateien konvertieren",
-            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: ",
             "encodingSuccessfulDetails": "Dateien erfolgreich in \"{{file}}\" kodiert",
-            "encodingFailedDetails": "Kodierung der Dateien \"{{file}}\" fehlgeschlagen: ",
-            "encoding": "Kodierung"
+            "modalTitle": "Audiodateien konvertieren",
+            "noSupportedFiletypesChoosen": "Keine unterstützte Dateien ausgewählt. Es werden folgende Dateitypen unterstützt: "
         },
         "episode": "Episode",
+        "fileTypesWarning": "Wähle nur unterstützte Dateitypen aus!",
         "filter": "Filter im aktuellen Ordner",
         "help": {
             "actionItems": {
@@ -244,7 +243,7 @@
                     "title": "Mehrfachauswahl-Aktionen"
                 },
                 "openDirectory": {
-                    "text": "Doppelklicke auf ein Verzeichnis, um es zu öffnen. Verzeichnisse sind in eckigen Klammern gekennzeichnet und zeigen <DIR> als Größe.",
+                    "text": "Doppelklicke auf ein Verzeichnis, um es zu öffnen. Verzeichnisse haben ein Ordner-Icon vorangestellt und zeigen <DIR> als Größe.",
                     "title": "Verzeichnis öffnen"
                 },
                 "openTAFViewer": {
@@ -263,36 +262,38 @@
             "showHelp": "Hilfe",
             "title": "Hilfe"
         },
+        "hidden": "Versteckt",
         "maxSelectedRows": "Du kannst nur maximal {{maxSelectedRows}} Dateien auswählen",
+        "maxSelectedRowsWarning": "Zu viele Dateien ausgewählt!",
         "messages": {
+            "deleteFailed": "Löschen fehlgeschlagen",
             "deleteFailedDetails": "Löschen der Datei \"{{file}}\" fehlgeschlagen",
+            "deleteSuccessful": "Löschen erfolgreich!",
             "deleteSuccessfulDetails": "Datei \"{{file}}\" erfolgreich gelöscht!",
             "deleting": "Löschen...",
-            "migrationFailed": "Migration fehlgeschlagen",
-            "migrationOngoing": "Migriere...",
-            "migrationSuccessful": "Migration erfolgreich!",
-            "moving": "Verschiebe...",
-            "movingFailed": "Verschieben fehlgeschlagen",
-            "movingSuccessful": "Datei erfolgreich verschoben!",
-            "renaming": "Benenne um...",
-            "renamingFailed": "Umbenennen fehlgeschlagen",
-            "renamingSuccessful": "Datei erfolgreich umbenannt!",
+            "deletingDetails": "Lösche Datei \"{{file}}\"...",
             "errorFetchingDirContent": "Laden des Verzeichnisinhalts fehlgeschlagen",
             "errorFetchingDirContentDetails": "Laden des Verzeichnisinhalts von \"{{path}}\" fehlgeschlagen: ",
-            "migrationOngoingDetails": "Migration {{ruid}} läuft...",
-            "migrationSuccessfulDetails": "Migration von {{ruid}} erfolgreich!",
+            "migrationFailed": "Migration fehlgeschlagen",
             "migrationFailedDetails": "Migration von {{ruid}} fehlgeschlagen: ",
+            "migrationOngoing": "Migriere...",
+            "migrationOngoingDetails": "Migration {{ruid}} läuft...",
+            "migrationSuccessful": "Migration erfolgreich!",
+            "migrationSuccessfulDetails": "Migration von {{ruid}} erfolgreich!",
+            "moving": "Verschiebe...",
+            "movingDetails": "Verschiebe Datei \"{{file}}\"...",
+            "movingFailed": "Verschieben fehlgeschlagen",
+            "movingFailedDetails": "Verschieben der Datei \"{{fileSource}}\" nach \"{{fileTarget}}\" fehlgeschlagen: ",
+            "movingSuccessful": "Datei erfolgreich verschoben!",
+            "movingSuccessfulDetails": "Datei \"{{fileSource}}\" erfolgreich nach \"{{fileTarget}}\" verschoben!",
             "noRowsSelected": "Keine Zeilen ausgewählt",
             "noRowsSelectedForDeletion": "Keine Zeilen zum Löschen ausgewählt",
             "noRowsSelectedForMoving": "Keine Zeilen zum Verschieben ausgewählt",
-            "deleteSuccessful": "Löschen erfolgreich!",
-            "deleteFailed": "Löschen fehlgeschlagen",
-            "deletingDetails": "Lösche Datei \"{{file}}\"...",
-            "movingDetails": "Verschiebe Datei \"{{file}}\"...",
+            "renaming": "Benenne um...",
             "renamingDetails": "Benenne Datei \"{{file}}\" um...",
-            "movingFailedDetails": "Verschieben der Datei \"{{fileSource}}\" nach \"{{fileTarget}}\" fehlgeschlagen: ",
-            "movingSuccessfulDetails": "Datei \"{{fileSource}}\" erfolgreich nach \"{{fileTarget}}\" verschoben!",
+            "renamingFailed": "Umbenennen fehlgeschlagen",
             "renamingFailedDetails": "Umbenennen der Datei \"{{fileSource}}\" in \"{{fileTarget}}\" fehlgeschlagen: ",
+            "renamingSuccessful": "Datei erfolgreich umbenannt!",
             "renamingSuccessfulDetails": "Datei \"{{fileSource}}\" erfolgreich in \"{{fileTarget}}\" umbenannt!"
         },
         "migrateContentToLib": "TAF-Datei in Library (by/audioId/) migrieren",
@@ -329,6 +330,7 @@
             "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren",
             "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
         },
+        "title": "Dateibrowser",
         "upload": {
             "cancel": "Abbrechen",
             "hideUploadFilesDragNDrop": "Dateiupload ausblenden",
@@ -340,12 +342,12 @@
             "uploadHint": "Ziehe die hochzuladenden Dateien hierher",
             "uploadInProgress": "Lade \"{{file}}\" hoch...",
             "uploadSuccessful": "Dateien erfolgreich hochgeladen.",
+            "uploadSuccessfulDetails": "Alle Dateien wurden erfolgreich hochgeladen.",
             "uploadSuccessfulForFile": "Datei \"{{file}}\" erfolgreich hochgeladen.",
             "uploadText": "Klicke oder ziehe die Dateien zum Hochladen in diesen Bereich",
-            "uploading": "Lädt hoch...",
             "uploadedFile": "Datei hochgeladen!",
             "uploadedFileFailed": "Datei-Upload fehlgeschlagen!",
-            "uploadSuccessfulDetails": "Alle Dateien wurden erfolgreich hochgeladen."
+            "uploading": "Lädt hoch..."
         }
     },
     "footer": {
@@ -507,20 +509,25 @@
         "teddycloudStatusOnline": "TeddyCloud Server online"
     },
     "settings": {
+        "certificates": {
+            "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der TeddyCloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
+            "information": "Information",
+            "invalidFileType": "Ungültiger Dateityp! Nur .der-Dateien sind erlaubt!",
+            "navigationTitle": "Zertifikate",
+            "title": "Zertifikate",
+            "uploadFailed": "Zertifikats-Upload fehlgeschlagen!",
+            "uploadFailedDetails": "Der Upload des Zertifikats {{filename}} ist fehlgeschlagen",
+            "uploadHint": "Ziehe die Client-Zertifikate (*.der) aus deiner Box hierher",
+            "uploadSuccessful": "Zertifikat erfolgreich hochgeladen.",
+            "uploadSuccessfulDetails": "Zertifikat {{filename}} erfolgreich hochgeladen.",
+            "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich"
+        },
+        "errorFetchingSetting": "Fehler beim Abrufen der Einstellung!",
+        "errorFetchingSettingDetails": "Fehler beim Abrufen der Einstellung \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Fehler beim Festlegen des Settings level",
         "errorSettingSettingsLevelDetails": "Neues Settings level konnte nicht festgelegt werden:",
         "errorWhileSavingConfig": "Fehler beim Speichern der Einstellungen",
         "errorWhileSavingConfigDetails": "Fehler beim Speichern der Einstellungen: ",
-        "certificates": {
-            "hint": "Diese sind die Zertifikate, die für die allgemeine Nutzung von der TeddyCloud genutzt werden. Für deine Tonieboxen können spezifische genutzt werden. Um diese zu ändern, gehe zu ",
-            "information": "Information",
-            "navigationTitle": "Zertifikate",
-            "title": "Zertifikate",
-            "uploadFailed": "{{filename}} Upload gescheitert! Bitte schaue einmal in die Konsole!",
-            "uploadHint": "Ziehe die Client-Zertifikate aus deiner Box hierher",
-            "uploadSuccessful": "{{filename}} erfolgreich hochgeladen.",
-            "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich"
-        },
         "general": {
             "navigationTitle": "Allgemein",
             "title": "Allgemeine Einstellungen"
@@ -562,6 +569,7 @@
         "restartFailed": "Neustart TeddyCloud Server fehlgeschlagen!",
         "restartInProgress": "TeddyCloud wird gestartet...",
         "restartServer": "Server neustarten",
+        "restartTC": "TeddyCloud wird neu gestartet",
         "rtnl": {
             "clear": "RTNL Log leeren",
             "enableRtnl": "Logging aktivieren",
@@ -575,6 +583,7 @@
         "toniesJsonReloadFailed": "Tonies(.custom).json neu laden fehlgeschlagen!",
         "toniesJsonReloadInProgress": "Lade Tonies(.custom).json...",
         "toniesJsonReloadSuccessful": "Tonies(.custom).json erfolgreich neu geladen!",
+        "tryToRestartTC": "Versuche, TeddyCloud neu zu starten",
         "warning": "Achtung! Speicherbutton + Settings level",
         "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
     },
@@ -583,7 +592,6 @@
         "failedToFetchSearchResultsDetails": "Fehler beim Abrufen der Suchergebnisse: "
     },
     "tonieboxes": {
-        "errorFetchingModels": "Fehler beim Abrufen der Toniebox-Modelle",
         "accessApiDisabled": "Zugriff auf TeddyCloud APIs deaktiviert.",
         "accessApiEnabled": "Zugriff auf TeddyCloud APIs aktiviert.",
         "availableBoxModal": {
@@ -869,6 +877,7 @@
             "flashCAreplacementLink": "Anweisungen zum Flashen findest du hier",
             "flashCAreplacementText1": "Ersetze die originale CA in deinem Flash-Dump durch die Ersatz-CA und flashe sie zurück auf deine Box.",
             "flashCAreplacementText2": "Falls die Box gar keine Verbindung herstellt (Codewort: Eule), kannst du versuchen, mit dem alten gencerts.sh neue Zertifikate zu generieren und die Box neu zu flashen.",
+            "flashCAreplacementText3": "Achtung: Die im Codeausschnitt erwähnte ca.der-Datei muss die TeddyCloud-Ersatz-CA sein!",
             "flashCollapse": {
                 "cc3235flash": "Flash-Speicher mit Pins",
                 "cc3235flashWithSMDGrippers": "Flash-Speicher mit angeschlossenen SMD-Klemmen",
@@ -924,6 +933,8 @@
             "warningText": "Wenn der serielle Monitor geöffnet ist, blockiert er den Zugriff von esptool.py auf das ESP. Wenn du einen „BROWNOUT_RST“ erhältst, überprüfe deine Stromversorgung/Batterie. „SPI_FAST_FLASH_BOOT“ zeigt einen Boot ohne den Jumper J100 an."
         },
         "delete": "Löschen",
+        "downloadC2DerFile": "CA-Ersatzzertifikat (als c2.der) herunterladen",
+        "downloadCADerFile": "CA-Ersatzzertifikat (ca.der) herunterladen",
         "editModelModal": {
             "editModel": "Toniebox \"{{name}}\" bearbeiten",
             "errorOnModelChange": "Fehler beim Speichern des Modells",
@@ -934,15 +945,17 @@
             "name": "Name",
             "placeholderSearchForAModel": "Wähle deine Farbvariante aus",
             "successOnModelChange": "Modelländerung erfolgreich gespeichert",
-            "successOnNameChange": "Namensänderung erfolgreich gespeichert",
-            "unsetBoxName": "Modell unbekannt/nicht gesetzt",
             "successOnModelChangeDetails": "Neues Modell \"{{model}}\" der Toniebox {{mac}} wurde erfolgreich gespeichert.",
-            "successOnNameChangeDetails": "Neuer Name \"{{name}}\" der Toniebox {{mac}} wurde erfolgreich gespeichert."
+            "successOnNameChange": "Namensänderung erfolgreich gespeichert",
+            "successOnNameChangeDetails": "Neuer Name \"{{name}}\" der Toniebox {{mac}} wurde erfolgreich gespeichert.",
+            "unsetBoxName": "Modell unbekannt/nicht gesetzt"
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Einstellungen der Toniebox \"{{name}}\" bearbeiten",
             "editTonieboxSettingsLabel": "Einstellungen"
         },
+        "errorFetchingModels": "Fehler beim Abrufen der Toniebox-Modelle",
+        "errorFetchingTonieboxes": "Fehler beim Abrufen der Tonieboxen",
         "esp32BoxFlashing": {
             "attention": "Achtung",
             "browserNotSupported": "Die integrierte ESP32 Box Flashing Funktionalität kann nur mit Browsern genutzt werden, die die Web Serial API unterstützen. Dein genutzter Browser unterstützt diese Funktion leider nicht. Bitte verwende einen Browser, der die Web Serial API unterstützt, wie z.B. Chrome oder Edge.",
@@ -977,8 +990,10 @@
                 "extractingCertificates409ResponseForceOverwrite": "Vorhandene Zertifikate überschreiben",
                 "extractingCertificates409ResponseForceOverwriteConfirmButton": "Dateien überschreiben",
                 "extractingCertificates409ResponseForceOverwriteContent": "Der erste Versuch, die Zertifikate zu speichern, ist fehlgeschlagen: {{error}}. Möchten Sie die vorhandenen Dateien überschreiben?",
-                "extractingCertificatesFailed": "Zertifikate aus \"{{file}}\" extrahieren fehlgeschlagen",
-                "extractingCertificatesSuccessful": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud abgelegt.",
+                "extractingCertificatesFailed": "Fehler beim Extrahieren der Zertifikate!",
+                "extractingCertificatesFailedDetails": "Zertifikate aus \"{{file}}\" extrahieren fehlgeschlagen",
+                "extractingCertificatesSuccessful": "Zertifikate erfolgreich extrahiert und gespeichert!",
+                "extractingCertificatesSuccessfulDetails": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud gespeichert.",
                 "failedToCommunicate": "Kommunikation fehlgeschlagen:",
                 "failedToConnect": "Verbindung fehlgeschlagen:",
                 "flash": "Flashen",
@@ -1091,6 +1106,7 @@
         "noNewBoxesAllowedText": "Du kannst keine neuen Tonieboxen mit TeddyCloud verbinden. Bitte aktiviere zuerst die Einstellung „Neue Boxen erlauben“. Sobald du alle deine Boxen verbunden hast, deaktiviere die Einstellung „Neue Boxen erlauben“ aus Sicherheitsgründen.",
         "offline": "offline",
         "online": "online",
+        "processing": "Verarbeite...",
         "title": "Deine Tonieboxen",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ACHTUNG: Default Pfad!)",
@@ -1110,7 +1126,8 @@
             "category": "Kategorie",
             "episode": "Episode",
             "episodeHint": "Die Episode wird innerhalb der Toniecard angezeigt",
-            "failedToCreate": "Modellerstellung fehlgeschlagen: ",
+            "failedToCreate": "Modellerstellung fehlgeschlagen!",
+            "failedToCreateDetails": "Modellerstellung {{series}} [{{model}}] fehlgeschlagen: ",
             "formfieldTitle": "Titel",
             "formfieldTitleHint": "Aktuell keine Ausgabe auf Toniecard",
             "hash": "Hash",
@@ -1126,7 +1143,8 @@
             "series": "Serie",
             "seriesHint": "Die Serie wird als Titel der Toniecard angezeigt",
             "seriesRequired": "Die Serie muss ausgefüllt werden.",
-            "successfullyCreated": "Modell erfolgreich erstellt",
+            "successfullyCreated": "Modell erfolgreich erstellt!",
+            "successfullyCreatedDetails": "Modell {{series}} [{{model}}] erfolgreich erstellt",
             "title": "Neuen Custom Tonie/Tag anlegen",
             "track": "Track"
         },
@@ -1159,24 +1177,32 @@
         },
         "encoder": {
             "clearList": "Liste leeren",
-            "errorFileProcessing": "Fehler beim Verarbeiten der Audiodatei:",
+            "errorFileProcessing": "Fehler bei der Verarbeitung der Audiodatei: ",
             "filename": "Dateiname",
             "maxFiles": "Du kannst nur maximal {{maxFiles}} Dateien hinzufügen.",
             "navigationTitle": "Audio Encoder",
             "processing": "Verarbeitung läuft...",
+            "processingDetails": "Dateien werden in \"{{file}}\" kodiert...",
+            "processingError": "Fehler bei der Verarbeitung!",
             "removeFile": "Datei entfernen",
             "saveAs": "Datei speichern unter",
             "sortAlphabetically": "Dateien alphabetisch sortieren",
             "targetDirectory": "Zielpfad auswählen",
             "title": "Audio Encoder",
+            "tooManyFilesError": "Zu viele Dateien!",
             "upload": "Hochladen",
-            "uploadFailed": "Das Hochladen ist fehlgeschlagen",
+            "uploadFailed": "Hochladen fehlgeschlagen",
+            "uploadFailedDetails": "Beim Hochladen ist ein Fehler aufgetreten: ",
             "uploadFiles": "Datei(en) auswählen",
             "uploadHint": "Ziehe die Audiodateien hier her!",
-            "uploadSuccessful": "Die Datei wurde der Bibliothek hinzugefügt",
+            "uploadSuccessful": "Dateikodierung erfolgreich!",
+            "uploadSuccessfulDetails": "Dateien wurden als \"{{file}}\" kodiert und erfolgreich zur Bibliothek hinzugefügt!",
             "uploadText": "Klicke oder ziehe bis zu {{maxFiles}} Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich",
-            "uploading": "Lädt hoch..."
+            "uploading": "Lädt hoch...",
+            "uploadingDetails": "Datei \"{{file}}\" wird hochgeladen..."
         },
+        "errorFetchingSystemSounds": "Fehler beim Abrufen der System Sounds",
+        "errorFetchingTonies": "Fehler beim Abrufen der Tonies",
         "infoModal": {
             "exists": "Existiert:",
             "model": "Modell:",
@@ -1218,8 +1244,10 @@
             "errorDuringDownloadDetails": "Fehler beim Hintergrund-Download von \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Fehler beim Abrufen der aktualisierten Karte!",
             "errorFetchingUpdatedCardDetails": "Fehler beim Abrufen der aktualisierten Karte für \"{{model}}\" [{{ruid}}]: ",
-            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen: ",
+            "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen!",
+            "hideTonieFailedDetails": "Tonie/Tag [{{ruid}}] konnte nicht ausgeblendet werden: ",
             "hideTonieSuccessful": "Tonie/Tag erfolgreich als ausgeblendet markiert!",
+            "hideTonieSuccessfulDetails": "Tonie/Tag [{{ruid}}] erfolgreich als ausgeblendet markiert!",
             "liveDisabled": "Live deaktiviert!",
             "liveDisabledDetails": "Live-Flag für \"{{model}}\" [{{ruid}}] deaktiviert",
             "liveEnabled": "Live aktiviert!",
