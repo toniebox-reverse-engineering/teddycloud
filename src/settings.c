@@ -275,6 +275,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("mqtt.identification", &settings->mqtt.identification, "", "Client identification", "Client identification", LEVEL_DETAIL)
     OPTION_STRING("mqtt.topic", &settings->mqtt.topic, "teddyCloud", "Topic prefix", "Topic prefix", LEVEL_DETAIL)
     OPTION_UNSIGNED("mqtt.qosLevel", &settings->mqtt.qosLevel, 0, 0, 2, "QoS level", "QoS level", LEVEL_DETAIL)
+    OPTION_BOOL("mqtt.retain_will", &settings->mqtt.retain_will, TRUE, "Retain last will", "Retain last will message", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("hass", "Home Assistant", LEVEL_DETAIL)
     OPTION_STRING("hass.name", &settings->hass.name, "teddyCloud - Server", "Home Assistant name", "Home Assistant name", LEVEL_DETAIL)
