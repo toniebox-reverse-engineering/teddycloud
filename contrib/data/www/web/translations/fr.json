@@ -522,6 +522,10 @@
             "uploadSuccessfulDetails": "Certificat {{filename}} téléchargé avec succès.",
             "uploadText": "Cliquez ou faites glisser les certificats clients dans cette zone pour les télécharger"
         },
+        "close": "Fermer",
+        "discard": "Ignorer les modifications",
+        "errorFetchingFieldValue": "Erreur lors de la récupération de la valeur",
+        "errorFetchingFieldValueDetails": "Erreur lors de la récupération de la valeur pour \"{{setting}}\"{{overlay}}:",
         "errorFetchingSetting": "Erreur lors de la récupération du paramètre !",
         "errorFetchingSettingDetails": "Erreur lors de la récupération du paramètre \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Erreur lors de la configuration du niveau des paramètres",
@@ -534,6 +538,7 @@
         },
         "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
         "information": "Informations",
+        "keepScrolling": "Continuez à faire défiler pour voir plus d'options.",
         "legacyGui": "Ancienne GUI Admin",
         "levelLabel": "Niveau des paramètres",
         "navigationTitle": "Paramètres",
@@ -565,6 +570,7 @@
         "overlayDisabled": "Superposition désactivée !",
         "overlayEnabled": "Superposition activée !",
         "overlayed": "superposé",
+        "resetToTCDetails": "Le paramètre \"{{setting}}\"{{overlay}} a été réinitialisée avec succès à la valeur de TeddyCloud.",
         "restartComplete": "Redémarrage du serveur TeddyCloud réussi !",
         "restartFailed": "Échec du redémarrage du serveur TeddyCloud !",
         "restartInProgress": "Redémarrage de TeddyCloud en cours...",
@@ -576,6 +582,8 @@
             "navigationTitle": "Journal RTNL",
             "title": "Journal RTNL"
         },
+        "save": "Enregister",
+        "saveDetails": "Le paramètre \"{{setting}}\"{{overlay}} a été enregistré avec succès.",
         "saved": "Paramètre enregistré !",
         "title": "Paramètres",
         "tonieboxes": "tonieboxes",
@@ -584,8 +592,8 @@
         "toniesJsonUpdateInProgress": "Chargement de Tonies(.custom).json...",
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json rechargé avec succès!",
         "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
-        "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
-        "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+        "warning": "Attention ! Niveau des paramètres",
+        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
     "tonieArticleSearch": {
         "failedToFetchSearchResults": "Erreur lors de la récupération des modèles",

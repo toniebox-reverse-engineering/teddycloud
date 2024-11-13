@@ -522,6 +522,9 @@
             "uploadSuccessfulDetails": "Certificado {{filename}} subido con éxito.",
             "uploadText": "Haz clic o arrastra los certificados del cliente a esta área para subir"
         },
+        "close": "Cerrar",
+        "errorFetchingFieldValue": "Error al obtener el valor",
+        "errorFetchingFieldValueDetails": "Error al obtener el valor para \"{{setting}}\"{{overlay}}:",
         "errorFetchingSetting": "¡Error al obtener la configuración!",
         "errorFetchingSettingDetails": "Error al obtener la configuración \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Error al configurar el nivel de configuración",
@@ -534,6 +537,7 @@
         },
         "hint": "Esta es la configuración predeterminada. Algunas de las configuraciones pueden ser reemplazadas por cada una de tus Tonieboxes. Para cambiar estas configuraciones ve a ",
         "information": "Información",
+        "keepScrolling": "Sigue desplazándote para ver más opciones.",
         "legacyGui": "Interfaz de administración heredada",
         "levelLabel": "Nivel de configuración",
         "navigationTitle": "Configuración",
@@ -565,6 +569,7 @@
         "overlayDisabled": "Superposición deshabilitada",
         "overlayEnabled": "Superposición habilitada",
         "overlayed": "superpuesto",
+        "resetToTCDetails": "La configuración \"{{setting}}\"{{overlay}}  se restableció correctamente al valor de TeddyCloud.",
         "restartComplete": "¡Reinicio del servidor TeddyCloud exitoso!",
         "restartFailed": "Error al reiniciar el servidor TeddyCloud",
         "restartInProgress": "TeddyCloud se está reiniciando...",
@@ -576,6 +581,7 @@
             "navigationTitle": "Registro RTNL",
             "title": "Registro RTNL"
         },
+        "saveDetails": "La configuración \"{{setting}}\"{{overlay}} se ha guardado con éxito.",
         "saved": "¡Configuración guardada!",
         "title": "Configuración",
         "tonieboxes": "tonieboxes",
@@ -584,7 +590,7 @@
         "toniesJsonUpdateInProgress": "Cargando Tonies(.custom).json...",
         "toniesJsonUpdateSuccessful": "¡Tonies(.custom).json recargado con éxito!",
         "tryToRestartTC": "Intentando reiniciar TeddyCloud",
-        "warning": "¡Atención! Botón Guardar + Nivel de configuración",
+        "warning": "¡Atención! Nivel de configuración",
         "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'."
     },
     "tonieArticleSearch": {

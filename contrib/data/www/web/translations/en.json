@@ -522,6 +522,10 @@
             "uploadSuccessfulDetails": "Certificate {{filename}} uploaded successfully.",
             "uploadText": "Click or drag client certificates to this area to upload"
         },
+        "close": "Close",
+        "discard": "Discard changes",
+        "errorFetchingFieldValue": "Error fetching field value",
+        "errorFetchingFieldValueDetails": "Error fetching field value for \"{{setting}}\"{{overlay}}:",
         "errorFetchingSetting": "Error fetching setting!",
         "errorFetchingSettingDetails": "Error fetching setting \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Error setting Settings level",
@@ -534,6 +538,7 @@
         },
         "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
         "information": "Information",
+        "keepScrolling": "Keep scrolling to see more options.",
         "legacyGui": "Legacy Admin GUI",
         "levelLabel": "Settings level",
         "navigationTitle": "Settings",
@@ -565,6 +570,7 @@
         "overlayDisabled": "Overlayed disabled!",
         "overlayEnabled": "Overlayed enabled!",
         "overlayed": "overlayed",
+        "resetToTCDetails": "Setting \"{{setting}}\"{{overlay}} successfully resetted to TeddyCloud value.",
         "restartComplete": "Restart TeddyCloud server successful!",
         "restartFailed": "Restart TeddyCloud server failed!",
         "restartInProgress": "TeddyCloud is rebooting...",
@@ -576,6 +582,8 @@
             "navigationTitle": "RTNL log",
             "title": "RTNL Log"
         },
+        "save": "Save",
+        "saveDetails": "Setting \"{{setting}}\"{{overlay}} successfully saved.",
         "saved": "Setting saved!",
         "title": "Settings",
         "tonieboxes": "tonieboxes",
@@ -584,8 +592,8 @@
         "toniesJsonUpdateInProgress": "Loading Tonies(.custom).json...",
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json reloaded successfully!",
         "tryToRestartTC": "Try to restart TeddyCloud",
-        "warning": "Attention! Save button + Settings level",
-        "warningHint": "Text inputs currently have to be saved explicitly until a better solution is implemented. To do this, click on the save symbol at the end of the field. If you are missing settings, increase the 'Settings level'."
+        "warning": "Attention! Settings level",
+        "warningHint": "If you are missing settings, increase the 'Settings level'."
     },
     "tonieArticleSearch": {
         "failedToFetchSearchResults": "Error fetching models",

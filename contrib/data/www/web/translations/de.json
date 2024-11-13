@@ -522,6 +522,10 @@
             "uploadSuccessfulDetails": "Zertifikat {{filename}} erfolgreich hochgeladen.",
             "uploadText": "Klicke oder ziehe die Client-Zertifikate zum Hochladen in diesen Bereich"
         },
+        "close": "Schließen",
+        "discard": "Verwerfen",
+        "errorFetchingFieldValue": "Fehler beim Abrufen des Werts",
+        "errorFetchingFieldValueDetails": "Fehler beim Abrufen des Werts für \"{{setting}}\"{{overlay}}:",
         "errorFetchingSetting": "Fehler beim Abrufen der Einstellung!",
         "errorFetchingSettingDetails": "Fehler beim Abrufen der Einstellung \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Fehler beim Festlegen des Settings level",
@@ -534,6 +538,7 @@
         },
         "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
         "information": "Information",
+        "keepScrolling": "Weiter scrollen, um weitere Optionen zu sehen.",
         "legacyGui": "Alte Admin-GUI",
         "levelLabel": "Settings level",
         "navigationTitle": "Einstellungen",
@@ -565,6 +570,7 @@
         "overlayDisabled": "Overlayed deaktiviert!",
         "overlayEnabled": "Overlayed aktiviert!",
         "overlayed": "überschrieben",
+        "resetToTCDetails": "Die Einstellung \"{{setting}}\"{{overlay}} wurde erfolgreich auf den TeddyCloud-Wert zurückgesetzt.",
         "restartComplete": "Neustart TeddyCloud Server erfolgreich!",
         "restartFailed": "Neustart TeddyCloud Server fehlgeschlagen!",
         "restartInProgress": "TeddyCloud wird gestartet...",
@@ -576,6 +582,8 @@
             "navigationTitle": "RTNL log",
             "title": "RTNL Log"
         },
+        "save": "Speichern",
+        "saveDetails": "Die Einstellung \"{{setting}}\"{{overlay}} wurde erfolgreich gespeichert.",
         "saved": "Einstellung gespeichert!",
         "title": "Einstellungen",
         "tonieboxes": "Tonieboxen",
@@ -584,8 +592,8 @@
         "toniesJsonUpdateInProgress": "Lade Tonies(.custom).json...",
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json erfolgreich neu geladen!",
         "tryToRestartTC": "Versuche, TeddyCloud neu zu starten",
-        "warning": "Achtung! Speicherbutton + Settings level",
-        "warningHint": "Texteingaben müssen derzeit explizit gespeichert werden, bis eine bessere Lösung implementiert ist. Klicke dazu auf das Speichersymbol am Ende des Feldes. Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
+        "warning": "Achtung! Settings level",
+        "warningHint": "Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
     },
     "tonieArticleSearch": {
         "failedToFetchSearchResults": "Fehler beim Abrufen der Modelle",
