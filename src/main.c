@@ -222,6 +222,7 @@ void set_settings(const char *option)
     {
         TRACE_ERROR("Invalid config-set option format. Expected name=value.\r\n");
     }
+    osFreeMem(data);
 }
 
 int_t main(int argc, char *argv[])

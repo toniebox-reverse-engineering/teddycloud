@@ -738,6 +738,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
         if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
         {
+            osFreeMem(jsonString);
             return ERROR_FAILURE;
         }
 
@@ -880,6 +881,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         }
 
         osFreeMem(pathAbsolute);
+        osFreeMem(jsonString);
         jsonString = cJSON_PrintUnformatted(json);
         cJSON_Delete(json);
     } while (0);
