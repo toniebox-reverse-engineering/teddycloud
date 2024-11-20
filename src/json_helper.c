@@ -53,7 +53,10 @@ cJSON *jsonAddByteArrayToObject(cJSON *const object, const char *const name, uin
         sprintf(&string[i * 2], "%02hhx", bytes[i]);
     }
 
-    return cJSON_AddStringToObject(object, name, string);
+    // temporary object is needed, so we can free string, because of lack of RAII
+    cJSON *tmpObject = cJSON_AddStringToObject(object, name, string);
+    osFreeMem(string);
+    return tmpObject;
 }
 
 bool_t jsonGetBool(cJSON *jsonElement, char *name)
