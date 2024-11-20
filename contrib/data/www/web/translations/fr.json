@@ -647,8 +647,25 @@
             "dnsHint": "Adaptations DNS pour TeddyCloud",
             "dnsText1": "Définissez les entrées DNS pour prod.de.tbs.toys et rtnl.bxcl.de sur l'adresse IP du serveur teddyCloud.",
             "dumpCertificates": "Extraire les certificats pour TeddyCloud",
-            "dumpCertificatesIntro1": "Tu auras besoin de flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Certificat Client) et flash:/cert/private.der (Clé privée Client). Place ces fichiers sous /certs/client/*. Tu peux alimenter la box avec la batterie (assure-toi qu'elle n'est pas vide) ou avec l'alimentation électrique (recommandé).",
+            "dumpCertificatesIntro1": "Tu auras besoin de flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Certificat Client) et flash:/cert/private.der (Clé privée Client).",
             "dumpCertificatesIntro2": "Conserve une sauvegarde des certificats, notamment du client.der et du private.der. Sans eux, tu ne pourras plus te connecter au cloud !",
+            "installCC3200Tool": {
+                "gitText1": "Installe ",
+                "gitText2": ", ajoute-le à PATH si tu veux",
+                "gitTextLink": "git",
+                "intro": "Cet outil fonctionne avec Python >=3.6 et la version récente de pySerial. Par conséquent, quelques étapes supplémentaires sont nécessaires pour installer l'outil :",
+                "link": "Dépôt GitHub de l'outil",
+                "moreInformation": "Tu peux trouver plus d'informations sur l'outil ici :",
+                "pipText1": "(Optionnel) Installe ",
+                "pipText2": ", si ce n'était pas déjà inclus avec l'installation de python",
+                "pipTextLink": "pip",
+                "pythonText1": "Installe python avec l'",
+                "pythonText2": ", veille à ajouter python à PATH",
+                "pythonTextLink": "installateur UI",
+                "text": "Maintenant, tu peux installer l'outil cc3200tool. Selon que tu aies ajouté git à PATH, utilise soit la ligne de commande, soit lance git cmd. Ensuite, entre",
+                "textAlternatively": "Si cela ne fonctionne pas, essaie ceci : ",
+                "title": "Installer l'outil CC3200"
+            },
             "openWrt": {
                 "dnsText2": "En alternative, tu peux configurer la passerelle des Toniebox sur l'IP de TeddyCloud. Avec OpenWRT, cela fonctionne de cette façon :",
                 "usingOpenWrt": "Utilisation d'OpenWRT"
@@ -725,6 +742,7 @@
                 "version": "version"
             },
             "navigationTitle": "Ajouter Toniebox",
+            "newbieGuides": "Il existe plusieurs guides pour débutants disponibles sur le forum Revvox. Tu pourrais aussi y jeter un œil :",
             "openBoxGuide": {
                 "alternativeGuidelineVideo": "Sinon, tu peux regarder le guide suivant sur YouTube :",
                 "finally": "Tu peux maintenant accéder au PCB pour identifier la version de ta Toniebox et la modifier !",
@@ -754,6 +772,10 @@
             "setupTeddyCloud": "Configurer TeddyCloud",
             "setupTeddyCloudText": "Félicitations ! En atteignant cette page, vous avez réussi à configurer TeddyCloud !",
             "title": "Ajoutez votre Toniebox à TeddyCloud",
+            "uploadCertificateButton": "Télécharger les certificats",
+            "uploadCertificateIntro": "Tu devrais télécharger les certificats extraits dans TeddyCloud si c'est ta première Toniebox ou si tu souhaites désigner cette Toniebox comme celle utilisée pour télécharger du contenu depuis le cloud original de Tonies. De plus, tu dois ajouter les certificats à la Toniebox dans TeddyCloud. Pour cela, rends-toi dans la section 'Tonieboxes', clique sur l'icône de certificat et télécharge les certificats à nouveau.",
+            "uploadCertificates": "Télécharger les certificats (ca.der, client.der et private.der)",
+            "uploadCertificatesToBox": "Si ta Toniebox est affichée, rends-toi dans la section 'Tonieboxes' et télécharge les certificats extraits lors de l'étape précédente dans la nouvelle boîte ajoutée. Utilise l'icône de certificat dans le pied de la carte de la boîte pour terminer le téléchargement: ",
             "useIt": "Utilisez-la !",
             "useItText": "Vous pouvez maintenant attribuer du contenu personnalisé à vos Tonies ou à des étiquettes personnalisées, vous détendre et profiter des possibilités infinies de votre Toniebox déverrouillée !"
         },
@@ -811,17 +833,29 @@
             "applyingPatchesWithNgCfgJsonLink": "Trouve les instructions ici",
             "bootloader": "Bootloader",
             "bootloaderInstalled": "Bootloader installé avec succès",
+            "certificates": {
+                "alreadyAvailable": "Les certificats ca.der, client.der et private.der devraient déjà être disponibles ici :",
+                "extractAgain": "Si ce n'est pas le cas, assure-toi d'avoir correctement suivi l'étape 2. Tu peux également extraire à nouveau les fichiers de la box en utilisant l'outil cc3200 (ton PC devrait toujours être connecté à la Toniebox via le port UART et le port de débogage)."
+            },
             "certificatesDumpedCAreplacementFlashed": "Certificats extraits et remplacement CA flashé",
             "checkBoxes": "Afficher les boîtes disponibles",
             "connectToToniebox": "Connecter la Toniebox pour le patchage",
+            "connectToTonieboxConnectDebugPortText1": "Tu peux utiliser un connecteur Tag dédié comme ",
+            "connectToTonieboxConnectDebugPortText2": " ou, alternativement, des fils fins pour la connexion.",
+            "connectToTonieboxConnectTableIntro": "Ensuite, connecte le port de débogage de la Toniebox au UART comme décrit dans le tableau suivant :",
+            "connectToTonieboxIntro": "Tu dois connecter ton UART au port de débogage. Commence par localiser le port de débogage sur la face non assemblée de la carte PCB, située en bas. Le schéma du port de débogage est montré dans l'image suivante.",
             "connectToTonieboxLink": "Trouve les instructions de connexion ici",
+            "connectToTonieboxProceed": "Tu es maintenant prêt à continuer !",
+            "connectToTonieboxText": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB. La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu’ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
             "createPatch": "Créer altUrl.custom.305.patch",
             "customUrlPatch": "Créer un patch URL personnalisé (altUrl.custom.305.json)",
             "customUrlPatchHint": "Veuillez créer ce patch uniquement si les patches existants altUrl.305.json et altUrl.tc.fritz.box.json ne fonctionnent pas avec votre configuration actuelle de TeddyCloud. S'ils répondent à vos besoins, vous pouvez continuer en cliquant sur 'Suivant'.",
             "dumpCertificates": "Extraire les certificats pour TeddyCloud",
             "dumpCertificatesLink": "Trouve les instructions pour extraire les certificats ici",
             "flashCAreplacement": "Flasher le remplacement CA pour TeddyCloud",
-            "flashCAreplacementLink": "Trouve les instructions de flash ici",
+            "flashCAreplacementIntro": "Il est recommandé de flasher le certificat CA de remplacement dans /cert/c2.der et d'utiliser le bootloader Hackiebox-NG avec le patch altCA.305 (plus de détails dans les étapes suivantes). Cela te permettra de basculer facilement entre le certificat original et ton certificat de remplacement.",
+            "flashCAreplacementOutro": "Assure-toi d'avoir sélectionné le bon chemin vers le fichier ca.der.",
+            "flashCAreplacementText": "Pour écrire le fichier c2.der téléchargé (voir les étapes ci-dessus) sur ta Toniebox, utilise la commande suivante :",
             "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3200 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
             "hint2": "Veuillez suivre ensuite le chemin CC3200 :",
             "hintPatchHost": "Entrez le nom d'hôte de votre instance TeddyCloud, puis cliquez sur 'Créer altUrl.custom.305.patch'. Le patch sera téléchargé automatiquement par la suite.",
@@ -829,8 +863,62 @@
             "hostnameTooLong": "Le nom d'hôte ne doit pas dépasser 12 caractères.",
             "installBootloader": "Installer le Custom Bootloader HackieboxNG",
             "installBootloaderLink": "Trouve les instructions d'installation ici",
-            "installCC3200tool": "Installer l'outil CC3200",
-            "installCC3200toolLink": "Trouve les instructions d'installation ici",
+            "installingBootloader": {
+                "downloadLink": "ici",
+                "downloadText1": "Télécharge la dernière version depuis ",
+                "downloadText2": ". Décompresse l'archive dans le répertoire de travail de ton choix. Tu trouveras un répertoire nommé 'flash' pour les fichiers à copier dans le flash et un répertoire nommé 'sd' pour les fichiers de la carte SD.",
+                "existingInstallation": {
+                    "backup": "Sauvegarde",
+                    "backupText": "Pour vérifier que tu as actuellement le bootloader ofw installé sous /sys/pre-img.bin, tu peux télécharger le fichier depuis le flash :",
+                    "copyOverPreloader": "Copier le Preloader",
+                    "copyOverPreloaderStep1": "Sélectionner la cible : \"Flash\"",
+                    "copyOverPreloaderStep2": "Sélectionner le fichier local : \"flash/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep3": "Configurer \"Écraser\" sur \"oui\"",
+                    "copyOverPreloaderStep4": "Définir le chemin SD/Flash sur \"/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep5": "Clique sur \"Télécharger\" !",
+                    "intro": "Tu peux utiliser l'ancien Hackiebox-CFW pour télécharger le Preloader. Cela te permet de l'installer sans accès direct au flash, si une version précédente du bootloader/preloader CFW est déjà installée. Lance simplement le Hackiebox-CFW et utilise l'interface web pour télécharger le nouveau fichier /sys/mcuimg.bin.",
+                    "outro": "Pour vérifier que le téléchargement a réussi, tu peux télécharger le fichier mcuimg.bin depuis le flash et le comparer avec le fichier flash/sys/mcuimg.bin que tu viens d'envoyer.",
+                    "title": "Étape 1b : Preloader, mise à jour d'une installation existante",
+                    "updatingCFWUsingOldCFWWebGui": "Téléchargement via WebGui de CFW"
+                },
+                "firstInstallation": {
+                    "installPreloader": "Installer le Preloader",
+                    "installPreloaderText1": "Assure-toi d'avoir sauvegardé le firmware original dans un endroit sûr. Vérifie bien que le fichier mcuimg.bin original est stocké en sécurité. Si tout est correct, installe le Preloader avec la commande suivante :",
+                    "installPreloaderText2": "Tu as installé le Preloader sur la Toniebox. Passe maintenant à l'Étape 2 : Installation du bootloader sur la carte SD.",
+                    "moveOriginal": "Déplacer le bootloader original",
+                    "moveOriginalText1": "Tu dois d'abord copier le bootloader original récemment sauvegardé (mcuimg.bin) de ta Toniebox vers un autre emplacement (flash:/sys/pre-img.bin) pour qu'il puisse être démarré plus tard avec le Bootloader HackieboxNG. Ne confonds pas le fichier mcuimg.bin (bootloader ofw) que tu vas sauvegarder avec le mcuimg.bin inclus dans l'archive zip de Hackiebox (/flash/sys/mcuimg.bin).",
+                    "moveOriginalText2": "Comme nous avons déjà effectué une sauvegarde complète, nous trouvons mcuimg.bin dans /currentDir/ExtractedFromBox/sys/mcuimg.bin. Comme tu travailles probablement encore dans le répertoire cc3200tool, écris le fichier sur la Toniebox :",
+                    "title": "Étape 1a : Preloader, première installation"
+                },
+                "importantTBFiles": {
+                    "caDer": "Contient l'Autorité de Certification pour vérifier la connexion HTTPS pour l'API",
+                    "clientDer": "Clé publique de la box, ne pas partager",
+                    "description": "Description",
+                    "file": "Fichier",
+                    "firstSlot": "Premier emplacement de firmware original",
+                    "mcuBootInfo": "Détermine quel emplacement de firmware démarrer",
+                    "originalBootloader": "Bootloader original",
+                    "privateDer": "Clé privée de la box, ne pas partager ; utilisée pour s'authentifier avec le cloud original",
+                    "secondSlot": "Deuxième emplacement de firmware original",
+                    "thirdSlot": "Troisième emplacement de firmware original"
+                },
+                "inCaseText": "Si certains fichiers n'existent pas sur la box, la commande peut s'arrêter avec une erreur et le fichier backup.bin ne sera pas correctement créé. Divise la commande en deux parties :",
+                "installingBootloaderStage2": {
+                    "here": "ici",
+                    "intro": "Copie tout le contenu du dossier SD sur la carte SD de la Toniebox. Copie le bootloader original (mcuimg.bin de ta sauvegarde) dans le premier emplacement ofw sd:/revvox/boot/ng-ofw1.bin. Le Bootloader HackieboxNG démarrera immédiatement le bootloader original et exécutera le firmware original.",
+                    "text1": "Remarque : Le Preloader chargera tout fichier placé dans sd:/revvox/boot/ngbootloader.bin.",
+                    "text2": "En savoir plus sur les différents emplacements de firmware et la configuration "
+                },
+                "intro": "Avant d'installer le Hackiebox NG Bootloader, effectue une sauvegarde complète des fichiers et du flash de ta Toniebox en utilisant cc3200tool. Nous utilisons COM3 comme exemple de port, mais tu peux utiliser un autre port COM ou le bon périphérique sous Linux, par exemple /dev/ttyUSB0.",
+                "preface": {
+                    "intro": "L'installation du nouveau bootloader est divisée en deux étapes et diffère selon qu'il s'agit d'une première installation ou d'une mise à jour d'une installation existante :",
+                    "title": "Préface"
+                },
+                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RTS à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l’opération sera annulée.",
+                "stage1": "Étape 1 : Installation du Preloader",
+                "stage2": "Étape 2 : Installation du Bootloader",
+                "verifyBackup": "Assure-toi que le fichier backup.bin est bien plus grand que 0 KB. Vérifie que le dump et les fichiers extraits contiennent tous les fichiers importants de la Toniebox :"
+            },
             "linkGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkSpecific": "Configuration spécifique CC3200",
             "navigationTitle": "CC3200",
@@ -840,7 +928,9 @@
             "previous": "Retour",
             "proceedWithCustomBootloader": "Procéder avec le Custom Bootloader",
             "proceedWithoutCustomBootloader": "Procéder sans le Custom Bootloader",
-            "title": "CC3200 Flashage de la boîte"
+            "tagConnector": "Connecteur Tag presque attaché",
+            "title": "CC3200 Flashage de la boîte",
+            "usingThinWiresAsTagConnector": "Fils fins utilisés comme connecteur"
         },
         "cc3235BoxFlashing": {
             "CH341AProgrammer": {
@@ -897,8 +987,6 @@
             "hint2": "Veuillez suivre ensuite le chemin CC3235 :",
             "hwToolSpecific": "Préparations Dépendantes du Matériel",
             "hwToolSpecificText": "Selon le matériel que tu prévois d'utiliser pour flasher ton Toniebox, des préparations supplémentaires sont nécessaires. Veuillez choisir l'option que tu suivras.",
-            "installCC3200tool": "Installer l'outil CC3200",
-            "installCC3200toolLink": "Trouver les instructions d'installation ici",
             "installSerprogFirmware": "Installer le firmware Serprog",
             "installflashromtool": "Installer Flashrom",
             "installflashromtoolLink": "Visite la page d'accueil de l'outil pour plus d'informations",
@@ -966,6 +1054,8 @@
         "errorFetchingTonieboxes": "Erreur lors de la récupération des Tonieboxes",
         "esp32BoxFlashing": {
             "attention": "Attention",
+            "baudRate": "Taux de baud : ",
+            "baudRateInfo": "Si tu rencontres des problèmes pour lire ou écrire dans la mémoire flash, essaie de changer le taux de baud. La valeur par défaut est 921600.",
             "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
             "esp32flasher": {
                 "automatically": "Automatiquement",
