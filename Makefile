@@ -169,6 +169,7 @@ ifneq ($(NO_WARN_FAIL),1)
 endif
 CFLAGS_linux += -ggdb
 CFLAGS_linux += -DFFMPEG_DECODING
+LFLAGS_linux += -pthread -lm
 
 # for now enable extensive error checking
 # Add flags for extensive error checking if NO_SANITIZERS is not set to 1
