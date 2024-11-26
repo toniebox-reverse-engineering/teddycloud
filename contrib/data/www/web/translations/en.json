@@ -78,6 +78,55 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Community",
+        "supportRequestGuide": {
+            "closing": "Providing this level of detail will help the community resolve your issue more effectively. Thank you!",
+            "example": {
+                "description": "Below is an example of a well-structured support request to help you get started:",
+                "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
+                "title": "Example Support Request"
+            },
+            "intro": "When requesting support, providing detailed and clear information helps the community diagnose and resolve your issue faster. Follow these steps to ensure your support request includes all necessary details:",
+            "navigationTitle": "Support Request Guide",
+            "step1": {
+                "content": "Start with a concise summary of the issue. Mention any specific error messages you received (copy and paste the exact message if possible).",
+                "title": "Step 1: Clearly Describe the Problem"
+            },
+            "step2": {
+                "intro": "Describe in detail what you did leading up to the error. Include:",
+                "list": [
+                    "Actions performed (e.g., 'I logged in and tried to upload a file').",
+                    "Expected outcome (e.g., 'The file should upload successfully').",
+                    "Actual outcome (e.g., 'I got an error message: Upload failed')."
+                ],
+                "title": "Step 2: Provide a Step-by-Step Description"
+            },
+            "step3": {
+                "list": [
+                    "Operating system and version (e.g., Windows 10, Ubuntu 20.04).",
+                    "Whether you're using Docker, and its version.",
+                    "Any other relevant configuration details."
+                ],
+                "title": "Step 3: Include Technical Information"
+            },
+            "step4": {
+                "intro": "Provide logs to help diagnose the issue. Here's how:",
+                "list": [
+                    "Include the log output from the time the issue occurred.",
+                    "Make sure to redact sensitive information before sharing."
+                ],
+                "listFirstEntry": "Run this command to collect logs:",
+                "title": "Step 4: Attach Relevant Logs"
+            },
+            "step5": {
+                "content": "If possible, include screenshots or a short screen recording to visually demonstrate the issue.",
+                "title": "Step 5: Screenshots or Videos (Optional)"
+            },
+            "step6": {
+                "content": "Let us know if you've already tried troubleshooting steps, such as restarting the service or checking the logs.",
+                "title": "Step 6: Steps You've Taken to Resolve the Issue"
+            },
+            "title": "How to Create a Good Support Request"
+        },
         "title": "Community",
         "translations": {
             "allTranslationStrings": "All Translation strings",
@@ -673,6 +722,14 @@
             "preparations": "Preparations"
         },
         "boxSetup": {
+            "UARTHint": {
+                "description": "Please double-check if your UART supports both 3.3V and 5V. In this case, you should find a jumper on the board to select the correct mode. You can see examples of such jumpers here (but there are others):",
+                "imageAlt1": "Jumper Example 1",
+                "imageAlt2": "Jumper Example 2",
+                "imageAlt3": "Jumper Example 3",
+                "title": "Important",
+                "warning": "In any case, make absolutely sure that 3.3V (often labelled 3v3) is set! If you are using the 5V setting, there is a high risk that you will break your Toniebox!"
+            },
             "boxSetupIntro1": "This page provides a complete overview of the steps required to add your Toniebox to TeddyCloud. If you encounter any issues, feel free to visit the",
             "boxSetupIntro2": "or join the",
             "boxSetupIntro3": "for community support.",
@@ -1053,6 +1110,8 @@
         "errorFetchingModels": "Error fetching Tonieboxes Models",
         "errorFetchingTonieboxes": "Error fetching Tonieboxes",
         "esp32BoxFlashing": {
+            "adaptBaudrateOnProblems": "Hint",
+            "adaptBaudrateOnProblemsText": "If the progress freezes or gets stuck while reading or writing flash memory, try adjusting the baud rate using the select field \"Baudrate\" at the top.",
             "attention": "Attention",
             "baudRate": "Baudrate: ",
             "baudRateInfo": "If you encounter issues reading or writing to the flash, try changing the baud rate. The default is 921600.",
@@ -1194,6 +1253,10 @@
             "deleteSuccessfulDetails": "Deleted Toniebox {{mac}} from TeddyCloud successful!",
             "deleting": "Deleting...",
             "deletingDetails": "Deleting Toniebox {{mac}} from TeddyCloud"
+        },
+        "modelHint": {
+            "action": "to select the right model of your Toniebox",
+            "text": "Click on"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "New Tonieboxes allowed",

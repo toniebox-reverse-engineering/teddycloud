@@ -78,6 +78,55 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Communauté",
+        "supportRequestGuide": {
+            "closing": "Fournir ce niveau de détail aidera la communauté à résoudre ton problème de manière plus efficace. Merci !",
+            "example": {
+                "description": "Voici un exemple de demande de support bien structurée pour t'aider à démarrer :",
+                "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
+                "title": "Exemple de Demande de Support"
+            },
+            "intro": "Lorsque tu demandes du support, fournir des informations détaillées et claires aide la communauté à diagnostiquer et résoudre ton problème plus rapidement. Suis ces étapes pour t'assurer que ta demande de support contient tous les détails nécessaires. Merci de formuler ta demande en anglais afin que le plus grand nombre possible de membres de la communauté puissent t'aider.",
+            "navigationTitle": "Guide de Demande de Support",
+            "step1": {
+                "content": "Commence par un résumé concis du problème. Mentionne tous les messages d'erreur spécifiques que tu as reçus (copie et colle le message exact si possible).",
+                "title": "Étape 1 : Décrire Clairment le Problème"
+            },
+            "step2": {
+                "intro": "Décris en détail ce que tu as fait avant que l'erreur se produise. Inclut :",
+                "list": [
+                    "Actions réalisées (par exemple, 'Je me suis connecté et j'ai essayé de télécharger un fichier').",
+                    "Résultat attendu (par exemple, 'Le fichier devrait être téléchargé avec succès').",
+                    "Résultat réel (par exemple, 'J'ai reçu un message d'erreur : téléchargement échoué')."
+                ],
+                "title": "Étape 2 : Fournir une Description Étape par Étape"
+            },
+            "step3": {
+                "list": [
+                    "Système d'exploitation et version (par exemple, Windows 10, Ubuntu 20.04).",
+                    "Si tu utilises Docker, et sa version.",
+                    "Tout autre détail pertinent de configuration."
+                ],
+                "title": "Étape 3 : Ajouter des Informations Techniques"
+            },
+            "step4": {
+                "intro": "Fournis des journaux pour aider à diagnostiquer le problème. Voici comment :",
+                "list": [
+                    "Inclut la sortie du journal depuis le moment où l'erreur s'est produite.",
+                    "Assure-toi de masquer les informations sensibles avant de les partager."
+                ],
+                "listFirstEntry": "Exécute cette commande pour collecter les journaux :",
+                "title": "Étape 4 : Joindre les Journaux Pertinents"
+            },
+            "step5": {
+                "content": "Si possible, ajoute des captures d'écran ou un enregistrement court de l'écran pour démontrer visuellement le problème.",
+                "title": "Étape 5 : Captures d'Écran ou Vidéos (Optionnel)"
+            },
+            "step6": {
+                "content": "Fais-nous savoir si tu as déjà essayé des étapes de dépannage, telles que redémarrer le service ou vérifier les journaux.",
+                "title": "Étape 6 : Les Étapes que Tu As Entreprises pour Résoudre le Problème"
+            },
+            "title": "Comment Créer une Bonne Demande de Support"
+        },
         "title": "Communauté",
         "translations": {
             "allTranslationStrings": "Toutes les chaînes de traduction",
@@ -673,6 +722,14 @@
             "preparations": "Préparations"
         },
         "boxSetup": {
+            "UARTHint": {
+                "description": "Veuillez vérifier si votre UART prend en charge à la fois 3,3V et 5V. Dans ce cas, tu devrais trouver un cavalier sur la carte pour sélectionner le mode correct. Voici des exemples de ces cavaliers (mais il y en a d'autres) :",
+                "imageAlt1": "Exemple de cavalier 1",
+                "imageAlt2": "Exemple de cavalier 2",
+                "imageAlt3": "Exemple de cavalier 3",
+                "title": "Important",
+                "warning": "Assure-toi absolument que 3,3V (souvent étiqueté 3v3) est réglé ! Si tu utilises le réglage 5V, il y a un grand risque que tu endommages ta Toniebox."
+            },
             "boxSetupIntro1": "Cette page fournit un aperçu complet des étapes nécessaires pour ajouter votre Toniebox à TeddyCloud. Si vous rencontrez des problèmes, n'hésitez pas à visiter le",
             "boxSetupIntro2": "ou à rejoindre le",
             "boxSetupIntro3": "pour obtenir de l'aide de la communauté.",
@@ -1053,6 +1110,8 @@
         "errorFetchingModels": "Erreur lors de la récupération des modèles de Tonieboxes",
         "errorFetchingTonieboxes": "Erreur lors de la récupération des Tonieboxes",
         "esp32BoxFlashing": {
+            "adaptBaudrateOnProblems": "Astuce",
+            "adaptBaudrateOnProblemsText": "Si le processus se fige ou reste bloqué lors de la lecture ou de l'écriture de la mémoire flash, essaie de modifier le débit en bauds avec le champ de sélection \"Taux de baud\" en haut.",
             "attention": "Attention",
             "baudRate": "Taux de baud : ",
             "baudRateInfo": "Si tu rencontres des problèmes pour lire ou écrire dans la mémoire flash, essaie de changer le taux de baud. La valeur par défaut est 921600.",
@@ -1194,6 +1253,10 @@
             "deleteSuccessfulDetails": "La Toniebox {{mac}} a été supprimée avec succès de TeddyCloud!",
             "deleting": "Suppression...",
             "deletingDetails": "Suppression de la Toniebox {{mac}} de TeddyCloud"
+        },
+        "modelHint": {
+            "action": "pour sélectionner le bon modèle de ta Toniebox",
+            "text": "Clique sur"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "Nouvelles Tonieboxes autorisées",

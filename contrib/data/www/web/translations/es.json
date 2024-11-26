@@ -78,6 +78,55 @@
             "navigationTitle": "Foro"
         },
         "navigationTitle": "Comunidad",
+        "supportRequestGuide": {
+            "closing": "Proporcionar este nivel de detalle ayudará a la comunidad a resolver tu problema de manera más efectiva. ¡Gracias!",
+            "example": {
+                "description": "A continuación, se muestra un ejemplo de una solicitud de soporte bien estructurada para ayudarte a comenzar:",
+                "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
+                "title": "Ejemplo de Solicitud de Soporte"
+            },
+            "intro": "Cuando solicitas soporte, proporcionar información detallada y clara ayuda a la comunidad a diagnosticar y resolver tu problema más rápidamente. Sigue estos pasos para asegurarte de que tu solicitud de soporte incluya todos los detalles necesarios. Por favor, formula tu solicitud en inglés para que la mayor cantidad de miembros de la comunidad puedan ayudarte.",
+            "navigationTitle": "Guía de Solicitudes de Soporte",
+            "step1": {
+                "content": "Comienza con un resumen conciso del problema. Menciona cualquier mensaje de error específico que hayas recibido (copia y pega el mensaje exacto si es posible).",
+                "title": "Paso 1: Describe Claramente el Problema"
+            },
+            "step2": {
+                "intro": "Describe con detalle lo que hiciste hasta que ocurrió el error. Incluye:",
+                "list": [
+                    "Acciones realizadas (por ejemplo, 'Inicié sesión e intenté subir un archivo').",
+                    "Resultado esperado (por ejemplo, 'El archivo debería subirse correctamente').",
+                    "Resultado real (por ejemplo, 'Recibí un mensaje de error: Subida fallida')."
+                ],
+                "title": "Paso 2: Proporciona una Descripción Paso a Paso"
+            },
+            "step3": {
+                "list": [
+                    "Sistema operativo y versión (por ejemplo, Windows 10, Ubuntu 20.04).",
+                    "Si estás utilizando Docker, y su versión.",
+                    "Cualquier otro detalle relevante de configuración."
+                ],
+                "title": "Paso 3: Incluye Información Técnica"
+            },
+            "step4": {
+                "intro": "Proporciona registros para ayudar a diagnosticar el problema. Aquí está cómo:",
+                "list": [
+                    "Incluye la salida del registro desde el momento en que ocurrió el problema.",
+                    "Asegúrate de ocultar la información sensible antes de compartirla."
+                ],
+                "listFirstEntry": "Ejecuta este comando para recopilar registros:",
+                "title": "Paso 4: Adjunta los Registros Relevantes"
+            },
+            "step5": {
+                "content": "Si es posible, incluye capturas de pantalla o una grabación corta de pantalla para demostrar visualmente el problema.",
+                "title": "Paso 5: Capturas de Pantalla o Videos (Opcional)"
+            },
+            "step6": {
+                "content": "Avísanos si ya has intentado pasos de solución de problemas, como reiniciar el servicio o revisar los registros.",
+                "title": "Paso 6: Pasos que Has Tomado para Resolver el Problema"
+            },
+            "title": "Cómo Crear una Buena Solicitud de Soporte"
+        },
         "title": "Comunidad",
         "translations": {
             "allTranslationStrings": "Todas las cadenas de traducción",
@@ -673,6 +722,14 @@
             "preparations": "Preparativos"
         },
         "boxSetup": {
+            "UARTHint": {
+                "description": "Por favor, verifica si tu UART admite tanto 3,3V como 5V. En este caso, deberías encontrar un puente en la placa para seleccionar el modo correcto. Aquí puedes ver ejemplos de esos puentes (aunque hay otros):",
+                "imageAlt1": "Ejemplo de puente 1",
+                "imageAlt2": "Ejemplo de puente 2",
+                "imageAlt3": "Ejemplo de puente 3",
+                "title": "Importante",
+                "warning": "¡Asegúrate absolutamente de que está configurado en 3,3V (a menudo etiquetado como 3v3)! Si usas la configuración de 5V, existe un alto riesgo de que dañes tu Toniebox."
+            },
             "boxSetupIntro1": "Esta página proporciona una visión general completa de los pasos necesarios para añadir tu Toniebox a TeddyCloud. Si encuentras algún problema, no dudes en visitar el",
             "boxSetupIntro2": "o unirte al",
             "boxSetupIntro3": "para recibir soporte de la comunidad.",
@@ -1053,6 +1110,8 @@
         "errorFetchingModels": "Error al obtener los modelos de Tonieboxes",
         "errorFetchingTonieboxes": "Error al obtener las Tonieboxes",
         "esp32BoxFlashing": {
+            "adaptBaudrateOnProblems": "Consejo",
+            "adaptBaudrateOnProblemsText": "Si el progreso se congela o se queda atascado mientras lees o escribes en la memoria flash, intenta ajustar la velocidad en baudios usando el campo de selección \"Velocidad de transmisión\" en la parte superior.",
             "attention": "Atención",
             "baudRate": "Velocidad de transmisión: ",
             "baudRateInfo": "Si tienes problemas para leer o escribir en la memoria flash, prueba a cambiar la velocidad de transmisión. El valor predeterminado es 921600.",
@@ -1194,6 +1253,10 @@
             "deleteSuccessfulDetails": "¡Toniebox {{mac}} eliminada exitosamente de TeddyCloud!",
             "deleting": "Eliminando...",
             "deletingDetails": "Eliminando Toniebox {{mac}} de TeddyCloud"
+        },
+        "modelHint": {
+            "action": "para seleccionar el modelo correcto de tu Toniebox",
+            "text": "Haz clic en"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "Nuevas Tonieboxes permitidas",
