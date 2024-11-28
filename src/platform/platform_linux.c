@@ -263,6 +263,7 @@ error_t socketReceive(Socket *socket, void *data_in,
         buff->buffer_used = 0;
         buff->buffer_size = size;
         buff->buffer = osAllocMem(buff->buffer_size);
+        buff->buffer[buff->buffer_size - 1] = '\0';
         socket->interface = (NetInterface *)buff;
     }
 
@@ -281,7 +282,7 @@ error_t socketReceive(Socket *socket, void *data_in,
             const char *ptr = NULL;
 
             /* First, check for the null terminator (0x00) in the buffer */
-            const char *null_pos = memchr(buff->buffer, 0x00, buff->buffer_used);
+            const char *null_pos = memchr(buff->buffer, 0x00, max_size);
             if (null_pos)
             {
                 /* If null terminator is found, use strchr up to the null */
@@ -291,7 +292,7 @@ error_t socketReceive(Socket *socket, void *data_in,
             {
                 TRACE_WARNING("buffer does not contain null terminator\r\n");
                 /* If no null terminator, safely use memchr over the whole buffer */
-                ptr = memchr(buff->buffer, flags & 0xFF, buff->buffer_used);
+                // ptr = memchr(buff->buffer, flags & 0xFF, max_size);
             }
 
             if (ptr)
