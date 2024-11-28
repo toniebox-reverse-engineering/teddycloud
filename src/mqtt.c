@@ -431,9 +431,12 @@ void mqtt_thread()
                 osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
                 if (++errors > 10)
                 {
-                    TRACE_INFO("Too many errors, disabling MQTT\r\n");
                     errors = 0;
-                    settings_set_bool("mqtt.enabled", false);
+                    if (get_settings()->mqtt.disable_on_error)
+                    {
+                        TRACE_INFO("Too many errors, disabling MQTT\r\n");
+                        settings_set_bool("mqtt.enabled", false);
+                    }
                 }
                 continue;
             }
