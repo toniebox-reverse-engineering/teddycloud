@@ -189,6 +189,8 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
         char source[99][PATH_LEN];
         if (tap->filesCount == 0)
         {
+            osFreeMem(tmp_taf);
+            freeTonieInfo(tonieInfo);
             return ERROR_INVALID_FILE;
         }
 

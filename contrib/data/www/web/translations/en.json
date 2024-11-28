@@ -78,6 +78,55 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Community",
+        "supportRequestGuide": {
+            "closing": "Providing this level of detail will help the community resolve your issue more effectively. Thank you!",
+            "example": {
+                "description": "Below is an example of a well-structured support request to help you get started:",
+                "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
+                "title": "Example Support Request"
+            },
+            "intro": "When requesting support, providing detailed and clear information helps the community diagnose and resolve your issue faster. Follow these steps to ensure your support request includes all necessary details:",
+            "navigationTitle": "Support Request Guide",
+            "step1": {
+                "content": "Start with a concise summary of the issue. Mention any specific error messages you received (copy and paste the exact message if possible).",
+                "title": "Step 1: Clearly Describe the Problem"
+            },
+            "step2": {
+                "intro": "Describe in detail what you did leading up to the error. Include:",
+                "list": [
+                    "Actions performed (e.g., 'I logged in and tried to upload a file').",
+                    "Expected outcome (e.g., 'The file should upload successfully').",
+                    "Actual outcome (e.g., 'I got an error message: Upload failed')."
+                ],
+                "title": "Step 2: Provide a Step-by-Step Description"
+            },
+            "step3": {
+                "list": [
+                    "Operating system and version (e.g., Windows 10, Ubuntu 20.04).",
+                    "Whether you're using Docker, and its version.",
+                    "Any other relevant configuration details."
+                ],
+                "title": "Step 3: Include Technical Information"
+            },
+            "step4": {
+                "intro": "Provide logs to help diagnose the issue. Here's how:",
+                "list": [
+                    "Include the log output from the time the issue occurred.",
+                    "Make sure to redact sensitive information before sharing."
+                ],
+                "listFirstEntry": "Run this command to collect logs:",
+                "title": "Step 4: Attach Relevant Logs"
+            },
+            "step5": {
+                "content": "If possible, include screenshots or a short screen recording to visually demonstrate the issue.",
+                "title": "Step 5: Screenshots or Videos (Optional)"
+            },
+            "step6": {
+                "content": "Let us know if you've already tried troubleshooting steps, such as restarting the service or checking the logs.",
+                "title": "Step 6: Steps You've Taken to Resolve the Issue"
+            },
+            "title": "How to Create a Good Support Request"
+        },
         "title": "Community",
         "translations": {
             "allTranslationStrings": "All Translation strings",
@@ -647,8 +696,25 @@
             "dnsHint": "DNS Adaptions for TeddyCloud",
             "dnsText1": "Set the DNS entries for prod.de.tbs.toys and rtnl.bxcl.de to the teddyCloud servers ip-address.",
             "dumpCertificates": "Dump certificates for TeddyCloud",
-            "dumpCertificatesIntro1": "You`ll need the flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Client Cert) and flash:/cert/private.der (Client private key). Place those files under /certs/client/*. You can either power the box with the battery (be sure it is not empty) or with the power supply (recommended).",
+            "dumpCertificatesIntro1": "You`ll need the flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Client Cert) and flash:/cert/private.der (Client private key).",
             "dumpCertificatesIntro2": "Keep a backup of the certificates, especially the client.der and private.der. Without it you won`t be able to connect to the cloud anymore!",
+            "installCC3200Tool": {
+                "gitText1": "Install ",
+                "gitText2": ", add to path if you want",
+                "gitTextLink": "git",
+                "intro": "This tool runs on Python >=3.6 with recent pySerial. So some more preparations are necessary to get the tool installed:",
+                "link": "GitHub Repository of the tool",
+                "moreInformation": "You can find more information about the tool here:",
+                "pipText1": "(Optionally) install ",
+                "pipText2": ", if it was not already included with the python installation",
+                "pipTextLink": "pip",
+                "pythonText1": "Install python with the ",
+                "pythonText2": ", check to add python to PATH",
+                "pythonTextLink": "UI installer",
+                "text": "Now you can install the cc3200tool. Depending on whether you added git to PATH either use the command line or launch git cmd. Then enter",
+                "textAlternatively": "If that's not working try the following: ",
+                "title": "Install the CC3200 Tool"
+            },
             "openWrt": {
                 "dnsText2": "As an alternative you can set the gateway for the tonieboxes to the ip of teddyCloud. With OpenWRT it works this way:",
                 "usingOpenWrt": "Using openWRT"
@@ -656,6 +722,14 @@
             "preparations": "Preparations"
         },
         "boxSetup": {
+            "UARTHint": {
+                "description": "Please double-check if your UART supports both 3.3V and 5V. In this case, you should find a jumper on the board to select the correct mode. You can see examples of such jumpers here (but there are others):",
+                "imageAlt1": "Jumper Example 1",
+                "imageAlt2": "Jumper Example 2",
+                "imageAlt3": "Jumper Example 3",
+                "title": "Important",
+                "warning": "In any case, make absolutely sure that 3.3V (often labelled 3v3) is set! If you are using the 5V setting, there is a high risk that you will break your Toniebox!"
+            },
             "boxSetupIntro1": "This page provides a complete overview of the steps required to add your Toniebox to TeddyCloud. If you encounter any issues, feel free to visit the",
             "boxSetupIntro2": "or join the",
             "boxSetupIntro3": "for community support.",
@@ -725,6 +799,7 @@
                 "version": "version"
             },
             "navigationTitle": "Add Toniebox",
+            "newbieGuides": "There are several 'Newbie' guides available in the Revvox Forum. You may want to check them out as well:",
             "openBoxGuide": {
                 "alternativeGuidelineVideo": "Alternativly you can watch the following guide in Youtube:",
                 "finally": "Now you can access the PCB to identify your Toniebox version and modify your Toniebox!",
@@ -754,6 +829,10 @@
             "setupTeddyCloud": "Setup TeddyCloud",
             "setupTeddyCloudText": "Congratulations! By reaching this page, you've successfully set up TeddyCloud!",
             "title": "Add your Toniebox to TeddyCloud",
+            "uploadCertificateButton": "Upload certificates",
+            "uploadCertificateIntro": "You should upload the extracted certificates to TeddyCloud if this is your first Toniebox or if you want to designate this Toniebox as the one used to download content from the original Tonies cloud. Additionally, you need to add the certificates to the Toniebox within TeddyCloud. To do this, navigate to the Tonieboxes section, click on the Certificate icon, and upload the certificates again.",
+            "uploadCertificates": "Upload certificates (ca.der, client.der and private.der)",
+            "uploadCertificatesToBox": "If your Toniebox is displayed, navigate to the Tonieboxes section and upload the certificates extracted during the previous certificate step to the newly added box. Use the certificate icon in the card footer of the box to complete the upload: ",
             "useIt": "Use it!",
             "useItText": "Now you can assign custom content to your Tonies or custom tags, sit back, and enjoy the endless possibilities of your unlocked Toniebox!"
         },
@@ -811,17 +890,29 @@
             "applyingPatchesWithNgCfgJsonLink": "Find instructions here",
             "bootloader": "Bootloader",
             "bootloaderInstalled": "Bootloader successfully installed",
+            "certificates": {
+                "alreadyAvailable": "The certificates ca.der, client.der and private.der should be already available in:",
+                "extractAgain": "If not, ensure you have done step 2 correctly. You can also extract the files from the box using the cc3200 tool once more (your PC should still be connected via UART and debug port to the Toniebox)"
+            },
             "certificatesDumpedCAreplacementFlashed": "Certificates dumped and CA replacement flashed",
             "checkBoxes": "Show available boxes",
             "connectToToniebox": "Connect the Toniebox for patching",
+            "connectToTonieboxConnectDebugPortText1": "You can use a dedicated Tag Connector like ",
+            "connectToTonieboxConnectDebugPortText2": " or alternatively use thin wires for the connection.",
+            "connectToTonieboxConnectTableIntro": "Next, connect the Toniebox debug port to the UART as described in the following table:",
+            "connectToTonieboxIntro": "You need to connect your UART to the Debug Port. Start by locating the debug port on the unpopulated side of the PCB, which is on the bottom. The layout of the debug port is shown in the following image.",
             "connectToTonieboxLink": "Find connection instructions here",
+            "connectToTonieboxProceed": "You are now ready to proceed!",
+            "connectToTonieboxText": "Ensure that the UART is configured to 3.3V before connecting the UART programmer to your computer via USB. The green LED on the Toniebox mainboard should stay steadily lit (no flashing or blinking). If it does not, your connections might be loose or incorrect. Disconnect the programmer, double-check all connections, and try again. If you are working with thin wires, consider applying hot glue to secure them in place and prevent any movement. Additionally, ensure that the Toniebox is powered using its charger.",
             "createPatch": "Create altUrl.custom.305.patch",
             "customUrlPatch": "Create a custom URL Patch (altUrl.custom.305.json)",
             "customUrlPatchHint": "Please create this patch only if the existing altUrl.305.json and altUrl.tc.fritz.box.json patches are not functioning with your current TeddyCloud setup. If they do meet your needs you can proceed by clicking 'Next'.",
             "dumpCertificates": "Dump certificates for TeddyCloud",
             "dumpCertificatesLink": "Find instructions for dumping certificates here",
             "flashCAreplacement": "Flash CA replacement for TeddyCloud",
-            "flashCAreplacementLink": "Find flashing instructions here",
+            "flashCAreplacementIntro": "It is recommended to flash the replacement CA to /cert/c2.der and use the Hackiebox-NG bootloader with the altCA.305 patch (more details provided in the next steps). This setup enables you to switch seamlessly between the original certificate and your replacement certificate.",
+            "flashCAreplacementOutro": "Ensure that you have selected the correct path to the ca.der file.",
+            "flashCAreplacementText": "To write the downloaded c2.der file (refer to the steps above) to your Toniebox, use the following command:",
             "hint": "There is currently no direct support of flashing your CC3200 Toniebox with TeddyCloud, but you will find a step by step guidance here:",
             "hint2": "Please follow then the CC3200 path:",
             "hintPatchHost": "Enter the hostname of your TeddyCloud instance and then click 'Create altUrl.custom.305.patch'. The patch will automatically download afterwards.",
@@ -829,8 +920,62 @@
             "hostnameTooLong": "The hostname must not exceed 12 characters.",
             "installBootloader": "Install the HackieboxNG custom bootloader",
             "installBootloaderLink": "Find installation instructions here",
-            "installCC3200tool": "Install the CC3200 Tool",
-            "installCC3200toolLink": "Find installation instructions here",
+            "installingBootloader": {
+                "downloadLink": "here",
+                "downloadText1": "Download the latest version from ",
+                "downloadText2": ". Please unzip the release to your desired working directory. You will find a directory called flash there for the file(s) that need to be copied to the flash and a directory called sd for the sd files.",
+                "existingInstallation": {
+                    "backup": "Backup",
+                    "backupText": "To verify that you have currently installed the ofw bootloader to /sys/pre-img.bin you may download the file from flash:",
+                    "copyOverPreloader": "Copy over preloader",
+                    "copyOverPreloaderStep1": "Select Target \"Flash\"",
+                    "copyOverPreloaderStep2": "Select Local file \"flash/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep3": "Set Overwrite to \"on\"",
+                    "copyOverPreloaderStep4": "Set SD/Flash path to \"/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep5": "Press Upload!",
+                    "intro": "You may use the (old) Hackiebox CFW to upload the preloader. This way you can install it over the air without direct access to the flash if you have already installed a previous version of the cfw bootloader/preloader. Just run the Hackiebox CFW and use the webinterface to upload the new /sys/mcuimg.bin.",
+                    "outro": "To verify that the upload was successful you can download the mcuimg.bin from flash afterwards and compare it with the flash/sys/mcuimg.bin you have just uploaded.",
+                    "title": "Stage 1b: Preloader, updating existing installation",
+                    "updatingCFWUsingOldCFWWebGui": "CFW WebGui Fileupload"
+                },
+                "firstInstallation": {
+                    "installPreloader": "Install preloader",
+                    "installPreloaderText1": "Please ensure that you have backed up the original firmware in a safe location. Double check that you have the original mcuimg.bin stored somewhere safe. If everything is fine, then install the preloader with the following command",
+                    "installPreloaderText2": "You've installed the Preloader onto the Toniebox. Please continue with Stage 2: Installing the bootloader onto the SD card.",
+                    "moveOriginal": "Move original bootloader",
+                    "moveOriginalText1": "First of all you need to copy your just backuped original mcuimg.bin (original bootloader) from your toniebox to a different location (flash:/sys/pre-img.bin) to boot it with the HackieboxNG Bootloader later on. Please don't confuse the mcuimg.bin (ofw bootloader) you are going to dump with the mcuimg.bin within the hackiebox zip package. (/flash/sys/mcuimg.bin)",
+                    "moveOriginalText2": "We already made a full backup so we can find mcuimg.bin under /currentDir/ExtractedFromBox/sys/mcuimg.bin since you should still be running cc3200tool from that directory write the file to the toniebox:",
+                    "title": "Stage 1a: Preloader, first time installation"
+                },
+                "importantTBFiles": {
+                    "caDer": "Contains the Certificate Authority to check the https connection for the API",
+                    "clientDer": "Public key of the box, don't share",
+                    "description": "Description",
+                    "file": "File",
+                    "firstSlot": "First original firmware slot",
+                    "mcuBootInfo": "Decides which firmware slot to boot",
+                    "originalBootloader": "Original bootloader",
+                    "privateDer": "Private key of the box, don't share; it is used to authenticate against the original cloud",
+                    "secondSlot": "Second original firmware slot",
+                    "thirdSlot": "Third original firmware slot"
+                },
+                "inCaseText": "In case that there are some files that do not exist on the box, the command may exit with an error and thus never will properly create the backup.bin, split the command into two: ",
+                "installingBootloaderStage2": {
+                    "here": "here",
+                    "intro": "Copy over all the contents of the sd folder to the sd card of the toniebox. Copy over the original bootloader (mcuimg.bin from your backup) to the first ofw slot sd:/revvox/boot/ng-ofw1.bin. Now the HackieboxNG bootloader will instantly boot the original bootloader and run the original firmware.",
+                    "text1": "Note: The preloader will load any file placed to sd:/revvox/boot/ngbootloader.bin.",
+                    "text2": "More about the different firmware slots and the configuration "
+                },
+                "intro": "Before installing the Hackiebox NG Bootloader, please make a full file based + flash backup of your toniebox's flash with cc3200tool. We use COM3 as example port, but you may use a different COM port or the right device on linux ex. /dev/ttyUSB0.",
+                "preface": {
+                    "intro": "Installing the new bootloader is split into two stages and differs whether it's a first install or and update to an existing installation: ",
+                    "title": "Preface"
+                },
+                "resetCommand": "If your UART programmer has a DTR pin, use `--reset dtr` before each command (e.g., `cc3200tool -p COM3 --reset dtr ...`). Otherwise, you'll need to briefly connect the RTS pin to GND before each command. If you skip this step, the console will display \"timed out while waiting for ack\" and abort the operation.",
+                "stage1": "Stage 1: Installing the Preloader",
+                "stage2": "Stage 2: Installing the Bootloader",
+                "verifyBackup": "Ensure the backup.bin is a way bigger than 0 kb. Please check if the dump and the dumped files contain all important Toniebox files:"
+            },
             "linkGeneral": "Patching your Toniebox for using with TeddyCloud",
             "linkSpecific": "CC3200 specific setup",
             "navigationTitle": "CC3200",
@@ -840,7 +985,9 @@
             "previous": "Back",
             "proceedWithCustomBootloader": "Proceed with the custom bootloader",
             "proceedWithoutCustomBootloader": "Proceed without the custom bootloader",
-            "title": "CC3200 Box Flashing"
+            "tagConnector": "Nearly attached Tag Connector",
+            "title": "CC3200 Box Flashing",
+            "usingThinWiresAsTagConnector": "Thin wires used as a connector"
         },
         "cc3235BoxFlashing": {
             "CH341AProgrammer": {
@@ -897,8 +1044,6 @@
             "hint2": "Please follow then the CC3235 path:",
             "hwToolSpecific": "Hardware-Dependent Preparations",
             "hwToolSpecificText": "Depending on the hardware you plan to use for flashing your Toniebox, additional preparations are required. Please select the option you will follow:",
-            "installCC3200tool": "Install the CC3200 Tool",
-            "installCC3200toolLink": "Find installation instructions here",
             "installSerprogFirmware": "Install serprog firmware",
             "installflashromtool": "Install Flashrom",
             "installflashromtoolLink": "Visit the tool's homepage for more information",
@@ -965,7 +1110,11 @@
         "errorFetchingModels": "Error fetching Tonieboxes Models",
         "errorFetchingTonieboxes": "Error fetching Tonieboxes",
         "esp32BoxFlashing": {
+            "adaptBaudrateOnProblems": "Hint",
+            "adaptBaudrateOnProblemsText": "If the progress freezes or gets stuck while reading or writing flash memory, try adjusting the baud rate using the select field \"Baudrate\" at the top.",
             "attention": "Attention",
+            "baudRate": "Baudrate: ",
+            "baudRateInfo": "If you encounter issues reading or writing to the flash, try changing the baud rate. The default is 921600.",
             "browserNotSupported": "The integrated ESP32 Box flashing functionality can only be used with browsers that support the Web Serial API. Unfortunately, your current browser does not support this feature. Please use a browser that supports the Web Serial API, such as Chrome or Edge.",
             "esp32flasher": {
                 "automatically": "Automatically",
@@ -1104,6 +1253,10 @@
             "deleteSuccessfulDetails": "Deleted Toniebox {{mac}} from TeddyCloud successful!",
             "deleting": "Deleting...",
             "deletingDetails": "Deleting Toniebox {{mac}} from TeddyCloud"
+        },
+        "modelHint": {
+            "action": "to select the right model of your Toniebox",
+            "text": "Click on"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "New Tonieboxes allowed",

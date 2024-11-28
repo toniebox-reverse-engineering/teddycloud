@@ -231,7 +231,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
     {
         if (pos->original_url && osStrcmp(pos->original_url, url) == 0)
         {
-            TRACE_ERROR("Cache entry found for URL: %s\r\n", url);
+            TRACE_DEBUG("Cache entry found for URL: %s\r\n", url);
             cache_fetch_entry(pos);
             return pos;
         }
@@ -239,7 +239,7 @@ cache_entry_t *cache_fetch_by_url(const char *url)
         pos = pos->next;
     }
 
-    TRACE_ERROR("No cache entry found for URL: %s\r\n", url);
+    TRACE_DEBUG("No cache entry found for URL: %s\r\n", url);
     return NULL;
 }
 
