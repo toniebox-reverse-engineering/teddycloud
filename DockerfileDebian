@@ -47,6 +47,7 @@ VOLUME \
     "/teddycloud/data/library" \
     "/teddycloud/data/firmware" \
     "/teddycloud/data/cache" \
+    "/teddycloud/data/www/custom_img" \
     "/teddycloud/certs" \
     "/teddycloud/config"
 

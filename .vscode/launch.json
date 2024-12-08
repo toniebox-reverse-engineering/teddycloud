@@ -58,9 +58,8 @@
             "program": "${workspaceFolder}/bin/teddycloud",
             "args": [
                 "--encode",
-                "https://download.samplelib.com/mp3/sample-15s.mp3",
-                "--destination",
                 "data/library/test-encode.taf",
+                "https://download.samplelib.com/mp3/sample-15s.mp3",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/",
@@ -153,7 +152,9 @@
             "request": "launch",
             "module": "cProfile",
             "args": [
-                "-o", "${workspaceFolder}/fake-server/server.py.prof", "${workspaceFolder}/fake-server/server.py"
+                "-o",
+                "${workspaceFolder}/fake-server/server.py.prof",
+                "${workspaceFolder}/fake-server/server.py"
             ],
             "justMyCode": true
         }

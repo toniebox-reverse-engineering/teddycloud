@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include <math.h>
 
 #include "platform.h"
 #include "debug.h"
@@ -9,6 +10,20 @@
 #include "mqtt.h"
 
 #include "cJSON.h"
+
+static int32_t coerce_int32(float value, int32_t min, int32_t max)
+{
+    if (value >= max)
+    {
+        return max;
+    }
+    if (value <= min)
+    {
+        return min;
+    }
+
+    return value;
+}
 
 void ha_addstrarray(cJSON *json_obj, const char *name, const char *value)
 {
@@ -60,7 +75,7 @@ void ha_addfloat(cJSON *json_obj, const char *name, float value)
     cJSON_AddNumberToObject(json_obj, name, value);
 }
 
-void ha_addint(cJSON *json_obj, const char *name, int value)
+void ha_addint(cJSON *json_obj, const char *name, int32_t value)
 {
     cJSON_AddNumberToObject(json_obj, name, value);
 }
@@ -149,8 +164,8 @@ void ha_publish(t_ha_info *ha_info)
         switch (ha_info->entities[pos].type)
         {
         case ha_number:
-            ha_addint(json_obj, "min", ha_info->entities[pos].min);
-            ha_addint(json_obj, "max", ha_info->entities[pos].max);
+            ha_addint(json_obj, "min", coerce_int32(ha_info->entities[pos].min, INT32_MIN, INT32_MAX));
+            ha_addint(json_obj, "max", coerce_int32(ha_info->entities[pos].max, INT32_MIN, INT32_MAX));
             break;
         case ha_switch:
             ha_addstr(json_obj, "pl_on", "TRUE");
@@ -173,15 +188,14 @@ void ha_publish(t_ha_info *ha_info)
         ha_addstr(json_dev_obj, "sw", ha_info->sw);
         ha_addstr(json_dev_obj, "hw", ha_info->hw);
 
-        // TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
-        // TRACE_INFO("[HA]    content '%s'\n", json_str);
-
         char *json_str = cJSON_PrintUnformatted(json_obj);
         cJSON_Delete(json_obj);
         if (!mqtt_publish(mqtt_path, json_str))
         {
             TRACE_INFO("[HA] publish failed\n");
         }
+        TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
+        TRACE_INFO("[HA]    content '%s'\n", json_str);
         osFreeMem(json_str);
     }
 }

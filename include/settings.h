@@ -114,6 +114,8 @@ typedef struct
     char *identification;
     char *topic;
     uint32_t qosLevel;
+    bool retain_will;
+    bool disable_on_error;
 } settings_mqtt_t;
 
 typedef struct
