@@ -192,10 +192,10 @@ void ha_publish(t_ha_info *ha_info)
         cJSON_Delete(json_obj);
         if (!mqtt_publish(mqtt_path, json_str))
         {
-            TRACE_INFO("[HA] publish failed\n");
+            TRACE_WARNING("[HA] publish failed\n");
         }
-        TRACE_INFO("[HA]    topic '%s'\n", mqtt_path);
-        TRACE_INFO("[HA]    content '%s'\n", json_str);
+        TRACE_DEBUG("[HA]    topic '%s'\n", mqtt_path);
+        TRACE_DEBUG("[HA]    content '%s'\n", json_str);
         osFreeMem(json_str);
     }
 }
