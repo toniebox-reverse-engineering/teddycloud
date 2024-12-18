@@ -68,6 +68,16 @@
             30,
             1.33
         ]
+    },    
+    {
+        "id": "11001754",
+        "name": "Navy Blue",
+        "img_src": "https://images.cdn.europe-west1.gcp.commercetools.com/cffb5678-47af-495c-9f19-1c2ccfc5910c/BOX11001754_5_a-kXLCXBb4.png",
+        "crop": [
+            6,
+            37,
+            1.27
+        ]
     },
     {
         "id": "99-0001",

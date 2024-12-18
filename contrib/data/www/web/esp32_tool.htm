@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 flash checker</title>
+    <style>
+        /* Dark Mode Styling */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            color: #f5f5f5;
+            text-align: center;
+        }
+
+        label {
+            color: #f5f5f5;
+        }
+
+        button {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #333;
+            transform: translateY(-2px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        select {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 10px;
+        }
+
+        pre {
+            background-color: #1f1f1f;
+            color: #00ff00;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: auto;
+            margin-top: 20px;
+        }
+
+        #graphicsCanvas {
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+
+
+<body>
+    <h1>ESP32 flash checker</h1>
+    <button id="connectButton">Open Serial Port</button>
+    <br>
+    <button id="syncButton" disabled="disabled" hidden="">Sync</button>
+    <br>
+    <button id="testButton" disabled="disabled" hidden="">Test reliability</button>
+    <button id="readMacButton" disabled="disabled" hidden="">Read MAC</button>
+    <button id="downloadStubButton" disabled="disabled" hidden="">Download Stub</button>
+    <button id="blankCheckButton" disabled="disabled" hidden="">Blank Check Flash</button>
+    <button id="readFlashButton" disabled="disabled" hidden="">Read Flash</button>
+    <pre id="output">Open serial port and this tool will automatically check flash</pre>
+
+    <div id="overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000;">
+    </div>
+    <div id="progressContainer"
+        style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 75%; background: #ccc; padding: 10px; border-radius: 8px; z-index: 1100;">
+        <div id="progressBar" style="width: 0%; height: 20px; background: #4caf50;"></div>
+        <div id="progressText" style="text-align: center; margin-top: 5px; color: #000000;"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <canvas id="graphicsCanvas" hidden="" width="400" height="100"></canvas>
+        </div>
+    </div>
+
+    <script src="revvox_flasher.js"></script>
+
+    <script>
+        var currentAddress = 0;
+        const flasher = new RevvoxFlasher();
+
+        flasher.logDebug = logDebug;
+        flasher.logError = logError;
+        flasher.disconnected = () => {
+            document.getElementById('connectButton').disabled = false;
+            document.getElementById('syncButton').disabled = true;
+            document.getElementById('testButton').disabled = true;
+            document.getElementById('readMacButton').disabled = true;
+            document.getElementById('downloadStubButton').disabled = true;
+            document.getElementById('readFlashButton').disabled = true;
+            document.getElementById('blankCheckButton').disabled = true;
+        }
+
+        /**
+         * Updates the bar plot with averaged percentage values for memory blocks.
+         * @param {number} xPosition - The x-coordinate for the memory block bar (0 to 800).
+         * @param {number} percent - The current percentage value for the memory block.
+         */
+        var lastMemoryBarPosition = { posX: -1, totalPercent: 0, count: 0 };
+
+        function updateMemoryBlockProgress(xPosition, percent) {
+            const ctx = graphicsCanvas.getContext('2d');
+            const barWidth = 1;
+            var posX = Math.floor(xPosition * graphicsCanvas.width / 100);
+
+            graphicsCanvas.removeAttribute("hidden");
+
+            if (lastMemoryBarPosition.posX != posX) {
+                if (lastMemoryBarPosition.posX == -1 || posX == 0) {
+                    ctx.fillStyle = 'grey';
+                    ctx.fillRect(0, 0, graphicsCanvas.width, graphicsCanvas.height);
+                }
+                lastMemoryBarPosition = { posX: posX, totalPercent: 0, count: 0 };
+            }
+
+            lastMemoryBarPosition.totalPercent += percent;
+            lastMemoryBarPosition.count += 1;
+
+            const averagePercent = lastMemoryBarPosition.totalPercent / lastMemoryBarPosition.count;
+            const barHeight = (averagePercent / 100) * graphicsCanvas.height;
+
+            ctx.clearRect(posX, 0, barWidth, graphicsCanvas.height);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(posX, graphicsCanvas.height - barHeight, barWidth, barHeight);
+
+            return averagePercent;
+        }
+
+        function logError(message) {
+            graphicsCanvas.setAttribute("hidden", "");
+
+            overlay.style.display = 'block';
+            progressBar.style.display = 'none';
+            progressContainer.style.display = 'block';
+
+            progressText.innerHTML = `<h1 style="color: red;">${message}</h1><br>`;
+
+            output.textContent += "\n";
+            output.textContent += "ERROR:\n";
+            output.textContent += message;
+            output.textContent += "\n";
+        }
+
+        function logDebug(message) {
+            output.textContent += `[Debug] ${message}\n`;
+        }
+
+        async function reliabilityTest() {
+
+            /* show progress bar */
+            overlay.style.display = 'block';
+            progressContainer.style.display = 'block';
+            progressBar.style.display = 'block';
+            progressText.innerHTML = `Reliability test`;
+
+            const cbr = (pct) => {
+                progressBar.style.width = `${pct}%`;
+            }
+            const ret = await flasher.testReliability(cbr);
+
+            /* hide progress bar */
+            overlay.style.display = 'none';
+            progressContainer.style.display = 'none';
+
+            return ret;
+        }
+
+        async function blankCheck() {
+
+            const blankUpdate = (currentAddress, startAddress, endAddress, blockSize, erasedBytes, erasedBytesTotal) => {
+                const progressPct = Math.min(100, (currentAddress / (endAddress - startAddress)) * 100);
+                const erasedPct = erasedBytesTotal * 100 / (currentAddress - startAddress);
+                const blockPct = (erasedBytes * 100 / blockSize);
+                const blockxPos = currentAddress * 100 / endAddress;
+
+                updateMemoryBlockProgress(blockxPos, blockPct);
+                progressBar.style.width = `${progressPct}%`;
+                if (currentAddress > 0) {
+                    if (erasedPct >= 99) {
+                        progressText.innerHTML = `<h1 style="color: red;">Your flash is empty</h1><br>`;
+                    } else if (erasedPct > 90) {
+                        progressText.innerHTML = `<h1 style="color: orange;">Your flash is partially erased</h1><br>`;
+                    } else {
+                        progressText.innerHTML = `<h1 style="color: green;">Your flash is fine</h1><br>`;
+                    }
+                    progressText.innerHTML += `Out of ${currentAddress} bytes, ${erasedBytesTotal} bytes were 0xFF, this is ${erasedPct.toFixed(2)}%`;
+                }
+            }
+
+            overlay.style.display = 'block';
+            progressContainer.style.display = 'block';
+
+            await flasher.blankCheck(blankUpdate);
+
+            overlay.style.display = 'none';
+            progressContainer.style.display = 'none';
+        }
+
+        document.getElementById('connectButton').addEventListener('contextmenu', async (event) => {
+            event.preventDefault();
+            const buttons = document.querySelectorAll("button[hidden]");
+            buttons.forEach((button) => {
+                button.removeAttribute("hidden");
+            });
+            flasher.devMode = true;
+        });
+
+        document.getElementById('connectButton').addEventListener('click', async () => {
+            output.textContent = ``;
+
+            try {
+                await flasher.openPort();
+            } catch (error) {
+
+                switch (error.name) {
+                    case 'NotFoundError':
+                        return;
+                    case 'NetworkError':
+                        logError('The selected port is not accessible or already in use.');
+                        break;
+                    case 'InvalidStateError':
+                        logError('The port is in an invalid state and cannot be opened.');
+                        break;
+                    case 'SecurityError':
+                        logError('Access to the serial port was denied due to security restrictions.');
+                        break;
+                    default:
+                        logError(`An unexpected error occurred: ${error.message}`);
+                        break;
+                }
+                return;
+            }
+            currentAddress = 0;
+
+            document.getElementById('connectButton').disabled = true;
+            document.getElementById('syncButton').disabled = false;
+
+            output.textContent += 'Serial port connected.\n';
+
+            if (!flasher.devMode) {
+                try {
+                    await flasher.sync();
+                } catch (error) {
+                    logError(`Synchronizing failed with error. ${error}`);
+                    return;
+                }
+                output.textContent += `Device identified as ${flasher.chip.name}\n`;
+                document.getElementById('syncButton').disabled = true;
+                document.getElementById('testButton').disabled = false;
+                document.getElementById('readMacButton').disabled = false;
+                document.getElementById('downloadStubButton').disabled = false;
+
+                try {
+                    if (!await reliabilityTest()) {
+                        return;
+                    }
+                } catch (error) {
+                    logError(`Reliability check failed with error. ${error}`);
+                    return;
+                }
+
+                try {
+                    if (!await flasher.downloadStub()) {
+                        return;
+                    }
+                    document.getElementById('readFlashButton').disabled = false;
+                    document.getElementById('blankCheckButton').disabled = false;
+                } catch (error) {
+                    logError(`Stub loading failed with error. ${error}`);
+                    return;
+                }
+
+                try {
+                    await blankCheck();
+                } catch (error) {
+                    logError(`Blank check failed with error. ${error}`);
+                    return;
+                }
+            }
+        });
+
+        document.getElementById('syncButton').addEventListener('click', async () => {
+            try {
+                await flasher.sync();
+            } catch (error) {
+                logError(`Synchronizing failed with error. ${error}`);
+                return;
+            }
+
+            output.textContent += `Device identified as ${flasher.chip.name}\n`;
+            document.getElementById('syncButton').disabled = true;
+            document.getElementById('testButton').disabled = false;
+            document.getElementById('readMacButton').disabled = false;
+            document.getElementById('downloadStubButton').disabled = false;
+        });
+
+        document.getElementById('testButton').addEventListener('click', async () => {
+            await reliabilityTest();
+        });
+
+        document.getElementById('readMacButton').addEventListener('click', async () => {
+            const mac = await flasher.readMac();
+            output.textContent += `MAC ${mac}\n`;
+        });
+
+        document.getElementById('downloadStubButton').addEventListener('click', async () => {
+            try {
+                await flasher.downloadStub();
+            } catch (error) {
+                logError(`Synchronizing failed with error. ${error}`);
+                return;
+            }
+            document.getElementById('readFlashButton').disabled = false;
+            document.getElementById('blankCheckButton').disabled = false;
+        });
+
+        document.getElementById('blankCheckButton').addEventListener('click', async () => {
+            await blankCheck();
+        });
+
+        document.getElementById('readFlashButton').addEventListener('click', async () => {
+
+            var rawData = await flasher.readFlash(currentAddress, 0x100);
+
+            const output = document.getElementById('output');
+            const bytes = new Uint8Array(rawData);
+            let hexdump = '';
+
+            if (currentAddress == 0) {
+                hexdump += `\nDumping flash content\n`;
+                hexdump += `-----------------------------------------------------------------------------\n`;
+            }
+
+            for (let row = 0; row < bytes.length; row += 16) {
+                const addressPart = (currentAddress + row).toString(16).padStart(8, '0');
+                const hexPart = Array.from(bytes.slice(row, row + 16))
+                    .map(byte => byte.toString(16).padStart(2, '0'))
+                    .join(' ');
+
+                const asciiPart = Array.from(bytes.slice(row, row + 16))
+                    .map(byte => {
+                        if (byte >= 0x20 && byte <= 0x7e) {
+                            return String.fromCharCode(byte);  // Printable characters
+                        } else {
+                            return '.';  // Non-printable characters
+                        }
+                    })
+                    .join('');
+
+                hexdump += `${addressPart}  ${hexPart.padEnd(48)} | ${asciiPart}\n`;
+            }
+
+            output.textContent += `${hexdump}`;
+
+            currentAddress += rawData.length;
+        });
+
+
+    </script>
+
+
+</body>
+
+</html>
