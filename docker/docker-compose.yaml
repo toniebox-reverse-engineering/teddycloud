@@ -1,4 +1,3 @@
-version: '3'
 services:
   teddycloud:
     container_name: teddycloud
