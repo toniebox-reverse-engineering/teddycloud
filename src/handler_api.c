@@ -648,6 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
             cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
+            cJSON_AddBoolToObject(tafHeaderEntry, "valid", tafInfo->valid);
             cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "trackSeconds");
             for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
