@@ -292,6 +292,7 @@ typedef struct
     settings_level settings_level;
 
     bool tonies_json_auto_update;
+    bool full_taf_validation;
 } settings_core_t;
 
 typedef struct

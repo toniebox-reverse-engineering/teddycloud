@@ -96,7 +96,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 if (osStrlen(content_json->source) > 0)
                 {
                     resolveSpecialPathPrefix(&content_json->_source_resolved, settings);
-                    if (isValidTaf(content_json->_source_resolved))
+                    if (isValidTaf(content_json->_source_resolved, settings->core.full_taf_validation))
                     {
                         content_json->_source_type = CT_SOURCE_TAF;
                     }

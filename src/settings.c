@@ -116,6 +116,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.flex_uid", &settings->core.flex_uid, "", "Flex-Tonie UID", "UID which shall get selected audio files assigned", LEVEL_DETAIL)
     OPTION_UNSIGNED("core.settings_level", &settings->core.settings_level, 1, 1, 3, "Settings level", "1: Basic, 2: Detail, 3: Expert", LEVEL_BASIC)
     OPTION_BOOL("core.tonies_json_auto_update", &settings->core.tonies_json_auto_update, TRUE, "Auto-Update tonies.json", "Auto-Update tonies.json for Tonies information and images.", LEVEL_DETAIL)
+    OPTION_BOOL("core.full_taf_validation", &settings->core.full_taf_validation, FALSE, "Full TAF validation", "Validate TAFs by checking the audio length and the SHA1 hash. (may be slow, as file needs to be fully read!)", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("security_mit", "Security mitigation", LEVEL_EXPERT)
     OPTION_BOOL("security_mit.warnAccess", &settings->security_mit.warnAccess, TRUE, "Warning on unwanted access", "If teddyCloud detects unusal access, warn on frontend until restart. (See on*)", LEVEL_EXPERT)
