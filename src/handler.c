@@ -507,33 +507,33 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             if (error != NO_ERROR)
             {
                 hasError = true;
-                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
                 break;
             }
             error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
             if (error != NO_ERROR)
             {
                 hasError = true;
-                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
                 break;
             }
 
             if (!osMemcmp(buffer, "OggS", 4) == 0)
             {
                 hasError = true;
-                TRACE_ERROR("Invalid OggS header at %" PRIuSIZE "\r\n", filePos);
+                TRACE_ERROR("Invalid OggS header at %" PRIuSIZE ", %s\r\n", filePos, tonieInfo->contentPath);
                 break;
             }
             if (buffer[4] != 0)
             { // Opus Version
                 hasError = true;
-                TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[4], filePos);
+                TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE ", %s\r\n", buffer[4], filePos, tonieInfo->contentPath);
                 break;
             }
             if (buffer[5] != 0)
             { // Header Type
                 hasError = true;
-                TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[5], filePos);
+                TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE ", %s\r\n", buffer[5], filePos, tonieInfo->contentPath);
                 break;
             }
             uint64_t granulePosition = 0;
