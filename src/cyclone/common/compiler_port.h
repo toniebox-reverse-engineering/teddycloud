@@ -64,9 +64,15 @@ typedef unsigned int uint_t;
    #define PRIuTIME "lu"
 //Microchip XC32 compiler?
 #elif defined(__XC32)
-   #define PRIuSIZE "u"
-   #define PRIXSIZE "X"
-   #define PRIuTIME "u"
+   #if defined(__C32_LEGACY_LIBC__)
+      #define PRIuSIZE "lu"
+      #define PRIXSIZE "lX"
+      #define PRIuTIME "lu"
+   #else
+      #define PRIuSIZE "u"
+      #define PRIXSIZE "X"
+      #define PRIuTIME "u"
+   #endif
 //NXP MCUXpresso compiler?
 #elif defined(__MCUXPRESSO)
    #undef PRIu64
@@ -105,8 +111,8 @@ typedef unsigned int uint_t;
    #define PRIuSIZE "u"
    #define PRIXSIZE "X"
    #define PRIuTIME "lu"
-//Linux GCC compiler
-#elif defined(__linux__)
+//Linux/FreeBSD GCC compiler
+#elif defined(__linux__) || defined(__FreeBSD__)
    #define PRIuSIZE "zu"
    #define PRIXSIZE "zX"
    #define PRIuTIME "lu"

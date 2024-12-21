@@ -648,6 +648,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             }
             cJSON_AddStringToObject(tafHeaderEntry, "sha1Hash", sha1Hash);
             cJSON_AddNumberToObject(tafHeaderEntry, "size", tafInfo->tafHeader->num_bytes);
+            cJSON_AddBoolToObject(tafHeaderEntry, "valid", tafInfo->valid);
             cJSON *tracksArray = cJSON_AddArrayToObject(tafHeaderEntry, "trackSeconds");
             for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
@@ -700,6 +701,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 load_content_json(filePathAbsolute, &contentJson, false, client_ctx->settings);
                 item = tonies_byModel(contentJson.tonie_model);
 
+                cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
                 if (contentJson._has_cloud_auth)
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
@@ -738,6 +740,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
 
         if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
         {
+            osFreeMem(jsonString);
             return ERROR_FAILURE;
         }
 
@@ -880,6 +883,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
         }
 
         osFreeMem(pathAbsolute);
+        osFreeMem(jsonString);
         jsonString = cJSON_PrintUnformatted(json);
         cJSON_Delete(json);
     } while (0);
@@ -1141,6 +1145,16 @@ error_t file_save_end_suffix(void *in_ctx)
     ctx->file = NULL;
 
     return NO_ERROR;
+}
+
+error_t handleApiGetCaDer(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    settings_t *settings = get_settings();
+    char *ca_path = custom_asprintf("%s%c%s", settings->internal.basedirfull, PATH_SEPARATOR, settings->core.server_cert.file.ca_der);
+
+    error_t err = httpSendResponseUnsafe(connection, uri, ca_path);
+    osFreeMem(ca_path);
+    return err;
 }
 
 error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -2342,14 +2356,154 @@ error_t handleApiToniesCustomJson(HttpConnection *connection, const char_t *uri,
     return err;
 }
 
+static char *getJsonString(cJSON *jsonElement, char *name)
+{
+    cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
+    if (cJSON_IsString(attr))
+    {
+        return strdup(attr->valuestring);
+    }
+    return strdup("");
+}
+
 error_t handleApiTonieboxJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, path);
-    osFreeMem(path);
-    return err;
+    size_t fileSize = 0;
+    fsGetFileSize(path, (uint32_t *)(&fileSize));
+    TRACE_INFO("Trying to read %s with size %zu\r\n", path, fileSize);
+
+    FsFile *fsFile = fsOpenFile(path, FS_FILE_MODE_READ);
+    if (fsFile == NULL)
+    {
+        httpWriteResponseString(connection, "Failed to open file", false);
+        return ERROR_FAILURE;
+    }
+    size_t sizeRead;
+    char *data = osAllocMem(fileSize);
+    size_t pos = 0;
+
+    while (pos < fileSize)
+    {
+        fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead);
+        pos += sizeRead;
+    }
+    fsCloseFile(fsFile);
+    cJSON *inputJson = cJSON_ParseWithLengthOpts(data, fileSize, 0, 0);
+    osFreeMem(data);
+
+    /* Create a cJSON array to hold the output */
+    cJSON *outputJson = cJSON_CreateArray();
+
+    cJSON *tonieJson;
+    cJSON_ArrayForEach(tonieJson, inputJson)
+    {
+        /* Create a cJSON object for the current item */
+        cJSON *jsonObject = cJSON_CreateObject();
+        if (jsonObject == NULL)
+        {
+            cJSON_Delete(outputJson);
+            cJSON_Delete(inputJson);
+            return ERROR_FAILURE;
+        }
+
+        /* Add "id" and "name" to the object */
+        char *id = getJsonString(tonieJson, "id");
+        char *name = getJsonString(tonieJson, "name");
+        cJSON_AddStringToObject(jsonObject, "id", id);
+        cJSON_AddStringToObject(jsonObject, "name", name);
+
+        TRACE_DEBUG("Adding box '%s'\r\n", name);
+
+        /* Handle "img_src" and caching logic */
+        char *img_src = getJsonString(tonieJson, "img_src");
+        if (osStrlen(img_src) > 0 && settings_get_bool("tonie_json.cache_images"))
+        {
+            cache_entry_t *cache = NULL;
+            /* try to get existing cache entry */
+            cache = cache_fetch_by_url(img_src);
+
+            /* none existing, create one */
+            if (!cache)
+            {
+                cache = cache_add(img_src);
+            }
+
+            /* if that failed as well, use external URL */
+            if (cache)
+            {
+                osFreeMem(img_src);
+                img_src = strdup(cache->cached_url);
+
+                TRACE_DEBUG("Cache URL would be: '%s'\r\n", cache->cached_url);
+
+                if (settings_get_bool("tonie_json.cache_preload"))
+                {
+                    /* try to download and cache the file */
+                    cache_fetch_entry(cache);
+                }
+            }
+        }
+        cJSON_AddStringToObject(jsonObject, "img_src", img_src);
+
+        /* Handle the crop array */
+        cJSON *cropArray = cJSON_GetObjectItem(tonieJson, "crop");
+        if (cropArray != NULL && cJSON_IsArray(cropArray))
+        {
+            cJSON *newCropArray = cJSON_CreateArray();
+            if (newCropArray != NULL)
+            {
+                int cropCount = cJSON_GetArraySize(cropArray);
+                for (int index = 0; index < 3; index++)
+                {
+                    if (index < cropCount)
+                    {
+                        cJSON *cropElem = cJSON_GetArrayItem(cropArray, index);
+                        if (cJSON_IsNumber(cropElem))
+                        {
+                            cJSON_AddItemToArray(newCropArray, cJSON_CreateNumber(cropElem->valuedouble));
+                        }
+                        else
+                        {
+                            /* default value when parsing failed */
+                            cJSON_AddItemToArray(newCropArray, cJSON_CreateNumber(0.0));
+                        }
+                    }
+                    else
+                    {
+                        /* default value */
+                        cJSON_AddItemToArray(newCropArray, cJSON_CreateNumber(0.0));
+                    }
+                }
+                cJSON_AddItemToObject(jsonObject, "crop", newCropArray);
+            }
+        }
+
+        /* Add the jsonObject to the output array */
+        cJSON_AddItemToArray(outputJson, jsonObject);
+
+        osFreeMem(id);
+        osFreeMem(name);
+        osFreeMem(img_src);
+    }
+
+    /* Convert the cJSON array to a JSON string */
+    char *jsonString = cJSON_PrintUnformatted(outputJson);
+    if (jsonString != NULL)
+    {
+        httpPrepareHeader(connection, "application/json; charset=utf-8", strlen(jsonString));
+        httpWriteResponseString(connection, jsonString, false);
+        osFreeMem(jsonString);
+    }
+
+    /* Clean up */
+    cJSON_Delete(inputJson);
+    cJSON_Delete(outputJson);
+
+    return NO_ERROR;
 }
+
 error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_CUSTOM_JSON_FILE);
@@ -2918,9 +3072,17 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         tonie_info_t *tonieInfo;
         tonieInfo = getTonieInfoFromRuid(ruid, false, client_ctx->settings);
 
-        if (tonieInfo->valid && tonieInfo->json._source_type == CT_SOURCE_NONE)
+        if (tonieInfo->valid)
         {
-            error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            if (tonieInfo->json._source_type != CT_SOURCE_NONE)
+            {
+                error = ERROR_FILE_NOT_FOUND;
+                TRACE_WARNING("Source already set, cannot migrate %s\n", ruid);
+            }
+            else
+            {
+                error = moveTAF2Lib(tonieInfo, client_ctx->settings, lib_root);
+            }
         }
         else
         {
