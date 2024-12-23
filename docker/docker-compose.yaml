@@ -1,4 +1,3 @@
-version: '3'
 services:
   teddycloud:
     container_name: teddycloud
@@ -22,5 +21,6 @@ volumes:
   config:
   content:
   library:
+  custom_img:
   firmware:
   cache:
