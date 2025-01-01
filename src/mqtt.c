@@ -17,6 +17,7 @@ typedef struct
     char *username;
     char *password;
     char *topic;
+    bool retain_will;
 
 } mqtt_ctx_t;
 
@@ -306,7 +307,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
 
     mqttClientSetIdentifier(mqtt_context, mqtt_context->mqtt_ctx->identification);
     mqttClientSetAuthInfo(mqtt_context, mqtt_context->mqtt_ctx->username, mqtt_context->mqtt_ctx->password);
-    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "offline", 7, MQTT_QOS_LEVEL_2, TRUE);
+    mqttClientSetWillMessage(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "offline", 7, MQTT_QOS_LEVEL_2, mqtt_context->mqtt_ctx->retain_will);
 
     do
     {
@@ -346,7 +347,7 @@ error_t mqttConnect(MqttClientContext *mqtt_context)
         if (error)
             break;
 
-        error = mqttClientPublish(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "online", 6, MQTT_QOS_LEVEL_2, TRUE, NULL);
+        error = mqttClientPublish(mqtt_context, mqtt_prefix("status", mqtt_context->mqtt_ctx->topic), "online", 6, MQTT_QOS_LEVEL_2, mqtt_context->mqtt_ctx->retain_will, NULL);
         if (error)
             break;
 
@@ -394,6 +395,7 @@ void mqtt_get_settings(mqtt_ctx_t *mqtt_ctx)
     mqtt_ctx->username = strdup(settings_get_string("mqtt.username"));
     mqtt_ctx->password = strdup(settings_get_string("mqtt.password"));
     mqtt_ctx->topic = strdup(settings_get_string("mqtt.topic"));
+    mqtt_ctx->retain_will = settings_get_bool("mqtt.retain_will");
 }
 
 void mqtt_thread()
@@ -429,9 +431,12 @@ void mqtt_thread()
                 osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
                 if (++errors > 10)
                 {
-                    TRACE_INFO("Too many errors, disabling MQTT\r\n");
                     errors = 0;
-                    settings_set_bool("mqtt.enabled", false);
+                    if (get_settings()->mqtt.disable_on_error)
+                    {
+                        TRACE_INFO("Too many errors, disabling MQTT\r\n");
+                        settings_set_bool("mqtt.enabled", false);
+                    }
                 }
                 continue;
             }

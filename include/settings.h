@@ -114,6 +114,8 @@ typedef struct
     char *identification;
     char *topic;
     uint32_t qosLevel;
+    bool retain_will;
+    bool disable_on_error;
 } settings_mqtt_t;
 
 typedef struct
@@ -290,6 +292,7 @@ typedef struct
     settings_level settings_level;
 
     bool tonies_json_auto_update;
+    bool full_taf_validation;
 } settings_core_t;
 
 typedef struct
