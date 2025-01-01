@@ -848,6 +848,14 @@ void setLastRuid(char ruid[17], settings_t *settings)
             settings_set_unsigned_id("internal.last_ruid_time", time(NULL), settings->internal.overlayNumber);
         }
     }
+    tonie_info_t *tonieInfo = getTonieInfoFromRuid(ruid, true, settings);
+    if (tonieInfo->json.hide)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json._updated = true;
+    }
+    saveTonieInfo(tonieInfo, true);
+    freeTonieInfo(tonieInfo);
 }
 
 char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)
