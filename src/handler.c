@@ -448,7 +448,7 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->led = settings->toniebox.led;
 }
 
-bool_t isValidTaf(const char *contentPath)
+bool_t isValidTaf(const char *contentPath, bool checkHashAndSize)
 {
     bool_t valid = false;
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
@@ -470,7 +470,41 @@ bool_t isValidTaf(const char *contentPath)
                     {
                         if (tafHeader->sha1_hash.len == 20)
                         {
-                            valid = true;
+                            if (checkHashAndSize)
+                            {
+                                Sha1Context sha1Ctx;
+                                size_t audio_length = 0;
+                                sha1Init(&sha1Ctx);
+                                char buffer[TONIEFILE_FRAME_SIZE];
+                                uint8_t sha1[SHA1_DIGEST_SIZE];
+                                while (true)
+                                {
+                                    error_t error = fsReadFile(file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
+                                    if (error != NO_ERROR && error != ERROR_END_OF_FILE)
+                                    {
+                                        TRACE_ERROR("Cannot read file, error=%" PRIu16 "\n", error);
+                                        break;
+                                    }
+                                    if (read_length == 0)
+                                    {
+                                        break;
+                                    }
+                                    audio_length += read_length;
+                                    sha1Update(&sha1Ctx, buffer, read_length);
+                                }
+                                sha1Final(&sha1Ctx, sha1);
+                                if (osMemcmp(tafHeader->sha1_hash.data, sha1, SHA1_DIGEST_SIZE) == 0)
+                                {
+                                    if (audio_length == tafHeader->num_bytes)
+                                    {
+                                        valid = true;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                valid = true;
+                            }
                         }
                         toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
                     }
@@ -507,33 +541,33 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             if (error != NO_ERROR)
             {
                 hasError = true;
-                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
                 break;
             }
             error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
             if (error != NO_ERROR)
             {
                 hasError = true;
-                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s\r\n", filePos, error2text(error));
+                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
                 break;
             }
 
             if (!osMemcmp(buffer, "OggS", 4) == 0)
             {
                 hasError = true;
-                TRACE_ERROR("Invalid OggS header at %" PRIuSIZE "\r\n", filePos);
+                TRACE_ERROR("Invalid OggS header at %" PRIuSIZE ", %s\r\n", filePos, tonieInfo->contentPath);
                 break;
             }
             if (buffer[4] != 0)
             { // Opus Version
                 hasError = true;
-                TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[4], filePos);
+                TRACE_ERROR("Invalid Opus Version %" PRIu8 " at %" PRIuSIZE ", %s\r\n", buffer[4], filePos, tonieInfo->contentPath);
                 break;
             }
             if (buffer[5] != 0)
             { // Header Type
                 hasError = true;
-                TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE "\r\n", buffer[5], filePos);
+                TRACE_ERROR("Invalid Header Type %" PRIu8 " at %" PRIuSIZE ", %s\r\n", buffer[5], filePos, tonieInfo->contentPath);
                 break;
             }
             uint64_t granulePosition = 0;
@@ -551,6 +585,11 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             trackPos->count = 0;
             osFreeMem(trackPos->pos);
             trackPos->pos = NULL;
+
+            if (!isValidTaf(tonieInfo->contentPath, true))
+            {
+                TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", tonieInfo->contentPath);
+            }
         }
     }
 }
@@ -632,7 +671,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                         {
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
-                                tonieInfo->valid = true;
+                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation);
                                 readTrackPositions(tonieInfo, file);
                                 if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
@@ -809,6 +848,14 @@ void setLastRuid(char ruid[17], settings_t *settings)
             settings_set_unsigned_id("internal.last_ruid_time", time(NULL), settings->internal.overlayNumber);
         }
     }
+    tonie_info_t *tonieInfo = getTonieInfoFromRuid(ruid, true, settings);
+    if (tonieInfo->json.hide)
+    {
+        tonieInfo->json.hide = false;
+        tonieInfo->json._updated = true;
+    }
+    saveTonieInfo(tonieInfo, true);
+    freeTonieInfo(tonieInfo);
 }
 
 char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)

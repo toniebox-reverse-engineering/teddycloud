@@ -25,9 +25,9 @@
             "getInvolved": "Participe",
             "getInvolvedText1": "Faites partie de notre communauté mondiale de contributeurs en écrivant du code, en commentant des problèmes ou en participant aux discussions dans notre groupe Telegram.",
             "getInvolvedText2": "Vos meilleurs points de contact sont les lieux suivants :",
-            "github": "L’endroit où toutes les sources sont stockées pour ce projet et les projets associés. Vous pouvez y forker les dépôts, apporter de nouvelles fonctionnalités ou des améliorations, créer des issues ou simplement donner votre avis sur les issues existants.",
+            "github": "L'endroit où toutes les sources sont stockées pour ce projet et les projets associés. Vous pouvez y forker les dépôts, apporter de nouvelles fonctionnalités ou des améliorations, créer des issues ou simplement donner votre avis sur les issues existants.",
             "teddyCloudWiki": "Un Wiki qui contient, entre autres, comment installer TeddyCloud et comment résoudre des problèmes éventuels.",
-            "telegram": "Le support de premier niveau si vous avez besoin d’aide ou si vous êtes intéressé(e) à participer au développement de TeddyCloud."
+            "telegram": "Le support de premier niveau si vous avez besoin d'aide ou si vous êtes intéressé(e) à participer au développement de TeddyCloud."
         },
         "contribution": {
             "communityValues": "Valeurs de la communauté",
@@ -62,6 +62,9 @@
             "contributorsIntro": "Ce projet repose sur les contributeurs infatigables qui offrent leur temps libre et leurs compétences. Directement liés à TeddyCloud sont les contributeurs des deux projets teddycloud et teddycloud_web :",
             "navigationTitle": "Contributeurs",
             "others": "Vous pouvez trouver d'autres contributeurs à l'ensemble du thème dans les autres dépôts GitHub sous",
+            "supportTeam": "Soutiens l'équipe",
+            "supportTeamLink": "Parraine TeddyCloud sur GitHub",
+            "supportTeamText": "Si tu apprécies TeddyCloud, envisage de nous soutenir avec un parrainage ou un pourboire !",
             "teddyCloud": "La partie la plus nécessaire mais souvent invisible de votre serveur TeddyCloud.",
             "teddyCloudWeb": "L'interface que vous utilisez et voyez ici.",
             "title": "Contributeurs"
@@ -75,6 +78,55 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Communauté",
+        "supportRequestGuide": {
+            "closing": "Fournir ce niveau de détail aidera la communauté à résoudre ton problème de manière plus efficace. Merci !",
+            "example": {
+                "description": "Voici un exemple de demande de support bien structurée pour t'aider à démarrer :",
+                "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
+                "title": "Exemple de Demande de Support"
+            },
+            "intro": "Lorsque tu demandes du support, fournir des informations détaillées et claires aide la communauté à diagnostiquer et résoudre ton problème plus rapidement. Suis ces étapes pour t'assurer que ta demande de support contient tous les détails nécessaires. Merci de formuler ta demande en anglais afin que le plus grand nombre possible de membres de la communauté puissent t'aider.",
+            "navigationTitle": "Guide de Demande de Support",
+            "step1": {
+                "content": "Commence par un résumé concis du problème. Mentionne tous les messages d'erreur spécifiques que tu as reçus (copie et colle le message exact si possible).",
+                "title": "Étape 1 : Décrire Clairment le Problème"
+            },
+            "step2": {
+                "intro": "Décris en détail ce que tu as fait avant que l'erreur se produise. Inclut :",
+                "list": [
+                    "Actions réalisées (par exemple, 'Je me suis connecté et j'ai essayé de télécharger un fichier').",
+                    "Résultat attendu (par exemple, 'Le fichier devrait être téléchargé avec succès').",
+                    "Résultat réel (par exemple, 'J'ai reçu un message d'erreur : téléchargement échoué')."
+                ],
+                "title": "Étape 2 : Fournir une Description Étape par Étape"
+            },
+            "step3": {
+                "list": [
+                    "Système d'exploitation et version (par exemple, Windows 10, Ubuntu 20.04).",
+                    "Si tu utilises Docker, et sa version.",
+                    "Tout autre détail pertinent de configuration."
+                ],
+                "title": "Étape 3 : Ajouter des Informations Techniques"
+            },
+            "step4": {
+                "intro": "Fournis des journaux pour aider à diagnostiquer le problème. Voici comment :",
+                "list": [
+                    "Inclut la sortie du journal depuis le moment où l'erreur s'est produite.",
+                    "Assure-toi de masquer les informations sensibles avant de les partager."
+                ],
+                "listFirstEntry": "Exécute cette commande pour collecter les journaux :",
+                "title": "Étape 4 : Joindre les Journaux Pertinents"
+            },
+            "step5": {
+                "content": "Si possible, ajoute des captures d'écran ou un enregistrement court de l'écran pour démontrer visuellement le problème.",
+                "title": "Étape 5 : Captures d'Écran ou Vidéos (Optionnel)"
+            },
+            "step6": {
+                "content": "Fais-nous savoir si tu as déjà essayé des étapes de dépannage, telles que redémarrer le service ou vérifier les journaux.",
+                "title": "Étape 6 : Les Étapes que Tu As Entreprises pour Résoudre le Problème"
+            },
+            "title": "Comment Créer une Bonne Demande de Support"
+        },
         "title": "Communauté",
         "translations": {
             "allTranslationStrings": "Toutes les chaînes de traduction",
@@ -148,7 +200,10 @@
             "cancel": "Annuler",
             "create": "Créer",
             "createDirectory": "Créer un nouveau dossier",
+            "directoryCreateFailed": "Échec de la création du dossier !",
+            "directoryCreateFailedDetails": "Échec de la création du dossier \"{{directory}}\" : ",
             "directoryCreated": "Le nouveau dossier a été créé !",
+            "directoryCreatedDetails": "Nouveau dossier \"{{directory}}\" créé !",
             "inDirectory": "dans le dossier ",
             "modalTitle": "Créer un nouveau dossier",
             "parentPath": "Répertoire parent:",
@@ -162,28 +217,133 @@
             "cancel": "Annuler",
             "encode": "Encoder",
             "encodeFiles": "Encoder les fichiers sélectionnés en un fichier taf. Seuls les types de fichiers suivants seront pris en compte : ",
+            "encoding": "Encodage",
             "encodingFailed": "Échec de l'encodage !",
+            "encodingFailedDetails": "Échec de l'encodage des fichiers \"{{file}}\" : ",
             "encodingInProgress": "Les fichiers sont en cours d'encodage...",
             "encodingSuccessful": "Fichiers encodés avec succès !",
+            "encodingSuccessfulDetails": "Fichiers encodés avec succès dans \"{{file}}\"",
             "modalTitle": "Encoder les fichiers audio",
             "noSupportedFiletypesChoosen": "Aucun type de fichier pris en charge sélectionné. Les types de fichiers suivants sont pris en charge : "
         },
         "episode": "Épisode",
+        "fileTypesWarning": "Sélectionne uniquement des types de fichiers pris en charge !",
         "filter": "Filtrer dans le dossier actuel",
+        "help": {
+            "actionItems": {
+                "deleteFileFolder": {
+                    "text": "Supprime le fichier ou le dossier (seulement si le dossier est vide). Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour.",
+                    "title": "Supprimer le fichier/dossier"
+                },
+                "duplicateTAPFile": {
+                    "text": "Crée une copie du fichier TAP sélectionné.",
+                    "title": "Dupliquer le fichier TAP"
+                },
+                "editTAFMetadata": {
+                    "text": "Ouvre l'éditeur de métadonnées pour modifier les détails du fichier TAF. Les modifications sont enregistrées dans tonies.custom.json. (WIP)",
+                    "title": "Modifier les métadonnées TAF"
+                },
+                "editTAPPlaylist": {
+                    "text": "Ouvre l'éditeur de liste de lecture audio Tonie pour gérer les fichiers TAP. (WIP)",
+                    "title": "Modifier la liste de lecture TAP"
+                },
+                "migrateToAudioIdFolder": {
+                    "text": "Déplace le fichier TAF dans le dossier 'by/audioId' de la bibliothèque et met à jour la source dans le fichier JSON.",
+                    "title": "Migrer le fichier TAF dans la bibliothèque par AudioId"
+                },
+                "migrateToLibraryRoot": {
+                    "text": "Déplace le fichier TAF vers le dossier racine de la bibliothèque et met à jour la source dans le fichier JSON correspondant.",
+                    "title": "Migrer le fichier TAF vers la racine de la bibliothèque"
+                },
+                "moveFile": {
+                    "text": "Déplace le fichier vers un nouvel emplacement. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour.",
+                    "title": "Déplacer le fichier"
+                },
+                "playAudioFile": {
+                    "text": "Ouvre le lecteur audio et lance la lecture du fichier.",
+                    "title": "Lire le fichier audio"
+                },
+                "renameFile": {
+                    "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
+                    "title": "Renommer le fichier"
+                }
+            },
+            "actionItemsMulti": {
+                "deleteSelectedFiles": {
+                    "text": "Supprime les fichiers ou dossiers sélectionnés (seulement s'ils sont vides). Remarque : les références aux fichiers supprimés dans tout Tonie/Tag ne seront pas mises à jour.",
+                    "title": "Supprimer les fichiers/dossiers sélectionnés"
+                },
+                "encodeFilesToTAF": {
+                    "text": "Ajoute les fichiers pris en charge à une file d'attente d'encodage. Vous pouvez sélectionner plusieurs fichiers pour les encoder dans un fichier TAF, qui peut ensuite être attribué à un Tonie/Tag.",
+                    "title": "Encoder les fichiers en TAF"
+                },
+                "moveSelectedFiles": {
+                    "text": "Déplace les fichiers sélectionnés vers un nouvel emplacement. Remarque : les références à ces fichiers dans tout Tonie/Tag ne seront pas mises à jour. Les dossiers sélectionnés seront ignorés.",
+                    "title": "Déplacer les fichiers sélectionnés"
+                }
+            },
+            "closeButton": "Fermer",
+            "instructions": {
+                "fileActions": {
+                    "title": "Actions de fichiers"
+                },
+                "multiSelection": {
+                    "text": "Pour effectuer des actions sur plusieurs fichiers, cochez leurs cases. De nouvelles icônes d'action apparaîtront dans l'en-tête, vous permettant de déplacer, supprimer ou encoder plusieurs fichiers :",
+                    "title": "Actions de sélection multiple"
+                },
+                "openDirectory": {
+                    "text": "Double-cliquez sur un répertoire pour l'ouvrir. Les répertoires ont une icône de dossier devant et affichent <DIR> comme taille.",
+                    "title": "Ouvrir le répertoire"
+                },
+                "openTAFViewer": {
+                    "text": "Double-cliquez sur un fichier TAF pour afficher son en-tête. Le visualiseur d'en-tête TAF montre des détails tels que l'AudioId, le hachage SHA1 et la taille du fichier. L'AudioId et le hachage SHA1 sont nécessaires pour les entrées dans tonies.custom.json.",
+                    "title": "Ouvrir le visualiseur d'en-tête TAF"
+                },
+                "openTAPJSONViewer": {
+                    "text": "Double-cliquez sur un fichier TAP ou JSON pour ouvrir le visualiseur JSON.",
+                    "title": "Ouvrir le visualiseur TAP/JSON"
+                },
+                "viewTonieInfoModal": {
+                    "text": "Cliquez sur l'image d'un Tonie/Tag dans la ligne pour ouvrir la fenêtre d'informations Tonie. Cela affiche des informations détaillées, y compris une image agrandie et une liste de pistes (si disponible).",
+                    "title": "Afficher la fenêtre d'informations Tonie"
+                }
+            },
+            "showHelp": "Aide",
+            "title": "Aide"
+        },
+        "hidden": "Caché",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
+        "maxSelectedRowsWarning": "Trop de fichiers sélectionnés !",
         "messages": {
-            "deleteFailed": "La suppression du fichier {{file}} a échoué",
-            "deleteSuccessful": "Le fichier {{file}} a été supprimé avec succès !",
+            "deleteFailed": "Échec de la suppression",
+            "deleteFailedDetails": "Échec de la suppression du fichier \"{{file}}\"",
+            "deleteSuccessful": "Suppression réussie!",
+            "deleteSuccessfulDetails": "Fichier \"{{file}}\" supprimé avec succès!",
             "deleting": "Suppression...",
+            "deletingDetails": "Suppression du fichier \"{{file}}\"...",
+            "errorFetchingDirContent": "Échec du chargement du contenu du répertoire",
+            "errorFetchingDirContentDetails": "Échec du chargement du contenu du répertoire \"{{path}}\" : ",
             "migrationFailed": "Échec de la migration",
+            "migrationFailedDetails": "Échec de la migration de {{ruid}} : ",
             "migrationOngoing": "Migration en cours...",
+            "migrationOngoingDetails": "Migration {{ruid}} en cours...",
             "migrationSuccessful": "Migration réussie!",
-            "moving": "Déplacement en cours...",
-            "movingFailed": "Le déplacement du fichier {{file}} a échoué",
-            "movingSuccessful": "Le fichier {{file}} a été déplacé avec succès !",
+            "migrationSuccessfulDetails": "Migration de {{ruid}} réussie!",
+            "moving": "Déplacement...",
+            "movingDetails": "Déplacement du fichier \"{{file}}\"...",
+            "movingFailed": "Échec du déplacement",
+            "movingFailedDetails": "Échec du déplacement du fichier \"{{fileSource}}\" vers \"{{fileTarget}}\" : ",
+            "movingSuccessful": "Fichier déplacé avec succès!",
+            "movingSuccessfulDetails": "Fichier \"{{fileSource}}\" déplacé vers \"{{fileTarget}}\" avec succès!",
+            "noRowsSelected": "Aucune ligne sélectionnée",
+            "noRowsSelectedForDeletion": "Aucune ligne sélectionnée pour suppression",
+            "noRowsSelectedForMoving": "Aucune ligne sélectionnée pour déplacement",
             "renaming": "Renommage en cours...",
-            "renamingFailed": "Le renommage du fichier {{file}} a échoué",
-            "renamingSuccessful": "Le fichier {{file}} a été renommé avec succès !"
+            "renamingDetails": "Renommage du fichier \"{{file}}\"...",
+            "renamingFailed": "Échec du renommage",
+            "renamingFailedDetails": "Échec du renommage du fichier \"{{fileSource}}\" en \"{{fileTarget}}\" : ",
+            "renamingSuccessful": "Fichier renommé avec succès!",
+            "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!"
         },
         "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
         "migrateContentToLibRoot": "Migrer TAF vers la bibliothèque (racine)",
@@ -219,6 +379,7 @@
             "copy": "(WIP - non implémenté) Dupliquer la playlist audio Tonie",
             "edit": "(WIP - non implémenté) Modifier la playlist audio Tonie"
         },
+        "title": "Navigateur de fichiers",
         "upload": {
             "cancel": "Annuler",
             "hideUploadFilesDragNDrop": "Masquer le téléversement de fichiers",
@@ -230,10 +391,17 @@
             "uploadHint": "Faites glisser les fichiers ici pour les téléverser",
             "uploadInProgress": "Téléversement de \"{{file}}\"...",
             "uploadSuccessful": "Fichiers téléversés avec succès.",
+            "uploadSuccessfulDetails": "Tous les fichiers ont été téléchargés avec succès.",
             "uploadSuccessfulForFile": "Fichier \"{{file}}\" téléversé avec succès.",
             "uploadText": "Cliquez ou faites glisser les fichiers dans cette zone pour les téléverser",
+            "uploadedFile": "Fichier téléchargé!",
+            "uploadedFileFailed": "Échec du téléchargement du fichier!",
             "uploading": "Téléversement en cours..."
         }
+    },
+    "footer": {
+        "sponsor": "Parraine maintenant !",
+        "sponsorText": "Tu aimes TeddyCloud ?"
     },
     "home": {
         "error": "Erreur - L'interface utilisateur n'est pas dans l'état attendu.",
@@ -330,6 +498,9 @@
         "helpfulLinks": "Liens utiles",
         "intro": "TeddyCloud est un serveur alternatif pour votre Toniebox, vous permettant d'héberger les services cloud localement. Cela vous donne le contrôle sur les données envoyées au cloud du fabricant d'origine et vous permet d'héberger vos propres fichiers audio de figurines.",
         "navigationTitle": "Accueil",
+        "sponsor": {
+            "navigationTitle": "Faire un don"
+        },
         "stats": {
             "cloud_blocked": "Requêtes cloud bloquées",
             "cloud_failed": "Requêtes cloud échouées",
@@ -371,7 +542,8 @@
         "undefined": "Autre/indéfini"
     },
     "radioStreamSearch": {
-        "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche : ",
+        "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche des stations de radio",
+        "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche des stations de radio : ",
         "searchLabel": "[Optionnel] Rechercher un flux radio"
     },
     "security": {
@@ -379,6 +551,7 @@
         "incident_detected": "Incident de sécurité détecté ! Veuillez vérifier vos journaux !"
     },
     "server": {
+        "boxineDisabled": "Boxine/Toniecloud est actuellement désactivé. Active le paramètre 'Cloud enabled' pour te reconnecter à Boxine/Toniecloud.",
         "boxineStatusOffline": "Non connecté à Boxine/Toniecloud",
         "boxineStatusOnline": "Connecté à Boxine/Toniecloud",
         "teddycloudStatusOffline": "Serveur TeddyCloud hors ligne",
@@ -388,47 +561,92 @@
         "certificates": {
             "hint": "Voici les certificats utilisés pour l'utilisation générale de TeddyCloud. Des certificats spécifiques peuvent être utilisés pour vos Tonieboxes. Pour les changer, allez à ",
             "information": "Informations",
+            "invalidFileType": "Type de fichier invalide ! Seuls les fichiers .der sont autorisés !",
             "navigationTitle": "Certificats",
             "title": "Certificats",
-            "uploadFailed": "Échec du téléchargement du fichier {{filename}}. Consultez la console",
-            "uploadHint": "Glissez-déposez les certificats clients de votre box ici",
-            "uploadSuccessful": "Fichier {{filename}} téléchargé avec succès.",
+            "uploadFailed": "Échec du téléchargement du certificat !",
+            "uploadFailedDetails": "Le téléchargement du certificat {{filename}} a échoué",
+            "uploadHint": "Glissez-déposez les certificats clients (*.der) de votre box ici",
+            "uploadSuccessful": "Certificat téléchargé avec succès.",
+            "uploadSuccessfulDetails": "Certificat {{filename}} téléchargé avec succès.",
             "uploadText": "Cliquez ou faites glisser les certificats clients dans cette zone pour les télécharger"
         },
+        "close": "Fermer",
+        "discard": "Ignorer les modifications",
+        "errorFetchingFieldValue": "Erreur lors de la récupération de la valeur",
+        "errorFetchingFieldValueDetails": "Erreur lors de la récupération de la valeur pour \"{{setting}}\"{{overlay}}:",
+        "errorFetchingSetting": "Erreur lors de la récupération du paramètre !",
+        "errorFetchingSettingDetails": "Erreur lors de la récupération du paramètre \"{{setting}}\": ",
+        "errorSettingSettingsLevel": "Erreur lors de la configuration du niveau des paramètres",
+        "errorSettingSettingsLevelDetails": "Impossible de définir le nouveau niveau de paramètres :",
+        "errorWhileSavingConfig": "Échec de la sauvegarde de la configuration dans le fichier",
+        "errorWhileSavingConfigDetails": "Erreur lors de la sauvegarde de la configuration dans le fichier : ",
         "general": {
             "navigationTitle": "Général",
             "title": "Paramètres généraux"
         },
         "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
         "information": "Informations",
+        "keepScrolling": "Continuez à faire défiler pour voir plus d'options.",
         "legacyGui": "Ancienne GUI Admin",
         "levelLabel": "Niveau des paramètres",
         "navigationTitle": "Paramètres",
+        "notifications": {
+            "clickToConfirm": "Cliquez pour confirmer",
+            "colContext": "Contexte",
+            "colDate": "Date",
+            "colDetails": "Détails/Description",
+            "colStatus": "Statut",
+            "colTitle": "Titre",
+            "colType": "Type",
+            "confirmSelectedNotifications": "Confirmer les notifications sélectionnées",
+            "confirmed": "confirmé",
+            "endDate": "Date de fin",
+            "error": "Erreur",
+            "filterBy": "Filtrer par",
+            "info": "Info",
+            "navigationTitle": "Notifications",
+            "pageSelector": "notifications/page",
+            "removeAll": "Tout supprimer",
+            "removeSelectedNotifications": "Supprimer les notifications sélectionnées",
+            "searchIn": "Rechercher dans",
+            "startDate": "Date de début",
+            "success": "Succès",
+            "title": "Notifications",
+            "unconfirmed": "non confirmé",
+            "warning": "Avertissement"
+        },
         "overlayDisabled": "Superposition désactivée !",
         "overlayEnabled": "Superposition activée !",
         "overlayed": "superposé",
+        "resetToTCDetails": "Le paramètre \"{{setting}}\"{{overlay}} a été réinitialisée avec succès à la valeur de TeddyCloud.",
         "restartComplete": "Redémarrage du serveur TeddyCloud réussi !",
         "restartFailed": "Échec du redémarrage du serveur TeddyCloud !",
         "restartInProgress": "Redémarrage de TeddyCloud en cours...",
         "restartServer": "Redémarrer le serveur",
+        "restartTC": "Redémarrage de TeddyCloud",
         "rtnl": {
             "clear": "Effacer le journal RTNL",
             "enableRtnl": "Activer la journalisation",
             "navigationTitle": "Journal RTNL",
             "title": "Journal RTNL"
         },
+        "save": "Enregister",
+        "saveDetails": "Le paramètre \"{{setting}}\"{{overlay}} a été enregistré avec succès.",
         "saved": "Paramètre enregistré !",
         "title": "Paramètres",
         "tonieboxes": "tonieboxes",
-        "toniesJsonReload": "Recharger Tonies.json",
-        "toniesJsonReloadFailed": "Échec du rechargement de Tonies(.custom).json!",
-        "toniesJsonReloadInProgress": "Chargement de Tonies(.custom).json...",
-        "toniesJsonReloadSuccessful": "Tonies(.custom).json rechargé avec succès!",
-        "warning": "Attention ! Bouton de sauvegarde + Niveau des paramètres",
-        "warningHint": "Les entrées de texte doivent actuellement être enregistrées explicitement jusqu'à ce qu'une meilleure solution soit mise en œuvre. Pour ce faire, cliquez sur le symbole de sauvegarde à la fin du champ. Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+        "toniesJsonUpdate": "Recharger Tonies.json",
+        "toniesJsonUpdateFailed": "Échec du rechargement de Tonies(.custom).json!",
+        "toniesJsonUpdateInProgress": "Chargement de Tonies(.custom).json...",
+        "toniesJsonUpdateSuccessful": "Tonies(.custom).json rechargé avec succès!",
+        "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
+        "warning": "Attention ! Niveau des paramètres",
+        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
     "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche : "
+        "failedToFetchSearchResults": "Erreur lors de la récupération des modèles",
+        "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche de modèles : "
     },
     "tonieboxes": {
         "accessApiDisabled": "Accès aux API de TeddyCloud désactivé.",
@@ -446,6 +664,30 @@
             "troubleShooting": "Dépannage"
         },
         "boxFlashingCommon": {
+            "adguard": {
+                "adGuardRequirement": "AdGuard : Assure-toi qu'AdGuard Home est installé et configuré sur un appareil de ton réseau.",
+                "clientExplanation": "Limite cette règle aux requêtes provenant spécifiquement de l'adresse IP YYY.YYY.YYY.YYY (IP de la Toniebox).",
+                "dnsRewriteExplanation": "Spécifie que la réponse DNS doit être un enregistrement A réussi (NOERROR) pointant vers XXX.XXX.XXX.XXX (IP de TeddyCloud).",
+                "explanationTitle": "Explication de chaque composant :",
+                "ipReservationInstructions": "Réservations d'adresses IP : Assure-toi que ton instance de TeddyCloud et la Toniebox ont des IP statiques sur le réseau, soit en les assignant manuellement, soit en utilisant des réservations DHCP dans les paramètres de ton routeur.",
+                "loggingMonitoringInstructions": "Journalisation et surveillance : Dans AdGuard Home, active la journalisation des requêtes pour surveiller et confirmer que les requêtes de la Toniebox sont résolues correctement.",
+                "moreInformation": "Plus d'informations sur AdGuard :",
+                "prerequisitesTitle": "Prérequis",
+                "prodDomainExplanation": "Correspond à tout sous-domaine de prod.de.tbs.toys.",
+                "setupInstructionsTitle": "Pour configurer AdGuard comme serveur DNS avec des règles de réécriture DNS personnalisées pour ton instance TeddyCloud et ta Toniebox, suis ces étapes :",
+                "step1Instructions": "Connecte-toi au tableau de bord d'AdGuard Home. Va dans Paramètres > Paramètres généraux. Dans les paramètres DNS, active AdGuard comme résolveur DNS principal en le configurant comme serveur DNS sur ton réseau/routeur ou pour des appareils individuels.",
+                "step1Title": "1. Configure AdGuard Home comme serveur DNS",
+                "step2Instructions": "Dans le tableau de bord d'AdGuard Home, va dans Filtres > Règles de filtrage personnalisées. Ajoute les règles personnalisées suivantes pour réécrire les requêtes DNS de certains domaines vers ton IP de TeddyCloud, uniquement lorsque la demande vient de la Toniebox.",
+                "step2Title": "2. Ajouter des règles de réécriture DNS personnalisées",
+                "step3Instructions": "Redémarre le service AdGuard Home pour appliquer les modifications. Teste les réécritures DNS pour confirmer que les demandes de ta Toniebox vers prod.de.tbs.toys et rtnl.bxcl.de sont résolues vers l'IP de ta TeddyCloud. Les autres appareils sur le réseau devraient résoudre ces domaines via la résolution DNS régulière (sauf indication contraire).",
+                "step3Title": "3. Vérifier et tester la configuration",
+                "step4Title": "4. Sécurité et gestion supplémentaires (optionnel)",
+                "stepsTitle": "Étapes",
+                "teddyCloudIp": "IP de TeddyCloud : Obtiens l'adresse IP statique de ton instance TeddyCloud (remplace XXX.XXX.XXX.XXX).",
+                "tonieboxIp": "IP de la Toniebox : Trouve l'adresse IP statique de ta Toniebox (remplace YYY.YYY.YYY.YYY).",
+                "usingAdGuard": "Utilisation d'AdGuard"
+            },
+            "alternativeDNSSolutions": "Autres solutions sans interruption",
             "certificates": "Certificats",
             "certificatesIntro": "Lors du premier démarrage, teddyCloud générera la CA et les certificats avec la date de début 2015-11-03. Ceux-ci seront placés dans /certs/server/. Cela générera également le remplacement de la CA pour les certificats de la toniebox dans certs/server/ca.der.",
             "dns": "DNS",
@@ -453,18 +695,81 @@
             "dnsBewareText": "Cela coupera la connexion de toutes les tonieboxes de votre réseau qui ne sont pas patchées avec votre CA de remplacement !",
             "dnsHint": "Adaptations DNS pour TeddyCloud",
             "dnsText1": "Définissez les entrées DNS pour prod.de.tbs.toys et rtnl.bxcl.de sur l'adresse IP du serveur teddyCloud.",
-            "dnsText2": "En alternative, vous pouvez définir la passerelle pour les tonieboxes sur l'IP de teddyCloud. Avec OpenWRT, cela fonctionne de cette manière :",
             "dumpCertificates": "Extraire les certificats pour TeddyCloud",
-            "dumpCertificatesIntro1": "Tu auras besoin de flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Certificat Client) et flash:/cert/private.der (Clé privée Client). Place ces fichiers sous /certs/client/*. Tu peux alimenter la box avec la batterie (assure-toi qu'elle n'est pas vide) ou avec l'alimentation électrique (recommandé).",
+            "dumpCertificatesIntro1": "Tu auras besoin de flash:/cert/ca.der (Boxine CA), flash:/cert/client.der (Certificat Client) et flash:/cert/private.der (Clé privée Client).",
             "dumpCertificatesIntro2": "Conserve une sauvegarde des certificats, notamment du client.der et du private.der. Sans eux, tu ne pourras plus te connecter au cloud !",
+            "installCC3200Tool": {
+                "gitText1": "Installe ",
+                "gitText2": ", ajoute-le à PATH si tu veux",
+                "gitTextLink": "git",
+                "intro": "Cet outil fonctionne avec Python >=3.6 et la version récente de pySerial. Par conséquent, quelques étapes supplémentaires sont nécessaires pour installer l'outil :",
+                "link": "Dépôt GitHub de l'outil",
+                "moreInformation": "Tu peux trouver plus d'informations sur l'outil ici :",
+                "pipText1": "(Optionnel) Installe ",
+                "pipText2": ", si ce n'était pas déjà inclus avec l'installation de python",
+                "pipTextLink": "pip",
+                "pythonText1": "Installe python avec l'",
+                "pythonText2": ", veille à ajouter python à PATH",
+                "pythonTextLink": "installateur UI",
+                "text": "Maintenant, tu peux installer l'outil cc3200tool. Selon que tu aies ajouté git à PATH, utilise soit la ligne de commande, soit lance git cmd. Ensuite, entre",
+                "textAlternatively": "Si cela ne fonctionne pas, essaie ceci : ",
+                "title": "Installer l'outil CC3200"
+            },
+            "openWrt": {
+                "dnsText2": "En alternative, tu peux configurer la passerelle des Toniebox sur l'IP de TeddyCloud. Avec OpenWRT, cela fonctionne de cette façon :",
+                "usingOpenWrt": "Utilisation d'OpenWRT"
+            },
             "preparations": "Préparations"
         },
         "boxSetup": {
+            "UARTHint": {
+                "description": "Veuillez vérifier si votre UART prend en charge à la fois 3,3V et 5V. Dans ce cas, tu devrais trouver un cavalier sur la carte pour sélectionner le mode correct. Voici des exemples de ces cavaliers (mais il y en a d'autres) :",
+                "imageAlt1": "Exemple de cavalier 1",
+                "imageAlt2": "Exemple de cavalier 2",
+                "imageAlt3": "Exemple de cavalier 3",
+                "title": "Important",
+                "warning": "Assure-toi absolument que 3,3V (souvent étiqueté 3v3) est réglé ! Si tu utilises le réglage 5V, il y a un grand risque que tu endommages ta Toniebox."
+            },
             "boxSetupIntro1": "Cette page fournit un aperçu complet des étapes nécessaires pour ajouter votre Toniebox à TeddyCloud. Si vous rencontrez des problèmes, n'hésitez pas à visiter le",
             "boxSetupIntro2": "ou à rejoindre le",
             "boxSetupIntro3": "pour obtenir de l'aide de la communauté.",
             "boxSetupIntroForum": "forum",
             "boxSetupIntroTelegram": "groupe Telegram",
+            "boxVersion": {
+                "cc3200con1": "Il s'agit de la version la plus ancienne disponible",
+                "cc3200pro1": "Flashage via ligne de commande + adaptateur UART",
+                "cc3200pro2": "Prend en charge le bootloader personnalisé (HackieboxNG) et le firmware (Hackiebox)",
+                "cc3200pro3": "Changement facile entre différentes versions du firmware (jusqu'à 9 emplacements, y compris le firmware d'origine) si le bootloader personnalisé est installé",
+                "cc3200pro4": "Permet de changer l'IP/nom d'hôte de TeddyCloud lorsque le bootloader personnalisé est installé",
+                "cc3200pro5": "Patches supplémentaires disponibles, y compris la prise en charge des étiquettes NFC autres que SLIX-L avec le bootloader personnalisé",
+                "cc3235con1": "Le flashage est difficile et nécessite un accès direct à la mémoire",
+                "cc3235con2": "Firmware signé et chiffré",
+                "cc3235con3": "Le remplacement de CA peut être peu fiable, nécessitant souvent plusieurs tentatives",
+                "cons": "Inconvénients",
+                "countryOfManufacture": "Pays de fabrication :",
+                "countryOfManufactureText": "Vérifie le dessous de la boîte pour voir si elle a été fabriquée en Chine ou en Hongrie. Les Toniebox fabriquées en Chine (à partir de 01/2024) sont probablement basées sur l'ESP32.",
+                "emptyCons": "Aucun inconvénient significatif",
+                "emptyPros": "Aucun avantage significatif",
+                "esp32con1": "Firmware personnalisé en développement, actuellement en pause et non fonctionnel dans son état actuel",
+                "esp32con2": "Les modifications de l'IP/nom d'hôte de TeddyCloud ou le retour au firmware original nécessitent un nouveau flashage",
+                "esp32pro1": "Dernière version disponible",
+                "esp32pro2": "Méthode de flashage la plus simple via navigateur + adaptateur UART",
+                "esp32pro3": "Large communauté de développeurs pour ESP32",
+                "howToIdentify": "Comment identifier la version de ta Toniebox sans ouvrir l'emballage",
+                "howToIdentifyIntro": "Comme il n'y a pas d'étiquette indiquant la version exacte, identifier la version de la Toniebox nécessite de suivre quelques indices mineurs :",
+                "howToIdentifyOutro": "Pour plus de détails, voir ",
+                "intro": "Actuellement, il existe quatre versions connues de la Toniebox, qui diffèrent principalement par le MCU (Microcontroller Unit) utilisé :",
+                "macAddressCheck": "Vérification de l'adresse MAC :",
+                "macAddressCheckText": "La méthode la plus fiable pour déterminer la version est de vérifier la présence d'une adresse MAC imprimée, qui peut être sur l'emballage ou directement sur la Toniebox. Utilise macvendors.com pour vérifier l'adresse MAC et trouver le fabricant du MCU, ce qui peut t'aider à identifier la version de la Toniebox.",
+                "navigationTitle": "Versions",
+                "pros": "Avantages",
+                "title": "À propos des différentes versions de Toniebox",
+                "uses": "Utilise le",
+                "whatVersion": "Quelle version de Toniebox devrais-je choisir ?",
+                "whatVersionConclusion": "Nous ne recommandons pas la version V3 CC3235 en raison des difficultés de flashage et du support limité. Actuellement, la version V1/V2 (TI CC3200) offre le plus de fonctionnalités, y compris la prise en charge d'un bootloader et d'un firmware personnalisés. Cependant, pour l'avenir, nous recommandons la version V4 basée sur ESP32.",
+                "whatVersionConclusionHeader": "Conclusion",
+                "whatVersionIntro": "Si tu n'as pas encore choisi de Toniebox, voici les avantages et inconvénients de chaque version pour t'aider dans ta décision. En fin de compte, le choix dépend de tes besoins et préférences personnels. Toutes les versions sont au moins compatibles avec TeddyCloud."
+            },
             "flashBox": "Flasher la Toniebox",
             "flashBoxText": "Pour ajouter votre Toniebox à TeddyCloud, certaines modifications sont nécessaires. Selon la version de votre Toniebox, il existe trois directives spécifiques à suivre :",
             "identifyTonieboxVersion": "Identifiez la version de votre Toniebox",
@@ -480,11 +785,11 @@
                 "generalInstruction2": "et en vérifiant la puce principale sur le circuit imprimé (PCB). Clique sur l'onglet de chaque version pour obtenir plus de détails.",
                 "generalInstructionLinkText": "l'ouvrant",
                 "identify": "Identifier",
-                "identifyUsingMac": "Identifie ta version avec l'adresse MAC de ta Toniebox. Tu trouves l’adresse MAC au bas de ta Toniebox.",
+                "identifyUsingMac": "Identifie ta version avec l'adresse MAC de ta Toniebox. Tu trouves l'adresse MAC au bas de ta Toniebox.",
                 "mac": "Merci d'entrer l'adresse MAC :",
                 "macvendors": "Vérifier utilise l'API fournie par",
                 "macvendorsLink": "macvendors.com",
-                "navigationTitle": "Version de la Toniebox",
+                "navigationTitle": "Identifier la version",
                 "or": "ou",
                 "proceedToFlash1": "Accédez à la page de flashage pour la version sélectionnée :",
                 "proceedToFlashLinkText": "Flashage de la boîte",
@@ -494,6 +799,7 @@
                 "version": "version"
             },
             "navigationTitle": "Ajouter Toniebox",
+            "newbieGuides": "Il existe plusieurs guides pour débutants disponibles sur le forum Revvox. Tu pourrais aussi y jeter un œil :",
             "openBoxGuide": {
                 "alternativeGuidelineVideo": "Sinon, tu peux regarder le guide suivant sur YouTube :",
                 "finally": "Tu peux maintenant accéder au PCB pour identifier la version de ta Toniebox et la modifier !",
@@ -523,6 +829,10 @@
             "setupTeddyCloud": "Configurer TeddyCloud",
             "setupTeddyCloudText": "Félicitations ! En atteignant cette page, vous avez réussi à configurer TeddyCloud !",
             "title": "Ajoutez votre Toniebox à TeddyCloud",
+            "uploadCertificateButton": "Télécharger les certificats",
+            "uploadCertificateIntro": "Tu devrais télécharger les certificats extraits dans TeddyCloud si c'est ta première Toniebox ou si tu souhaites désigner cette Toniebox comme celle utilisée pour télécharger du contenu depuis le cloud original de Tonies. De plus, tu dois ajouter les certificats à la Toniebox dans TeddyCloud. Pour cela, rends-toi dans la section 'Tonieboxes', clique sur l'icône de certificat et télécharge les certificats à nouveau.",
+            "uploadCertificates": "Télécharger les certificats (ca.der, client.der et private.der)",
+            "uploadCertificatesToBox": "Si ta Toniebox est affichée, rends-toi dans la section 'Tonieboxes' et télécharge les certificats extraits lors de l'étape précédente dans la nouvelle boîte ajoutée. Utilise l'icône de certificat dans le pied de la carte de la boîte pour terminer le téléchargement: ",
             "useIt": "Utilisez-la !",
             "useItText": "Vous pouvez maintenant attribuer du contenu personnalisé à vos Tonies ou à des étiquettes personnalisées, vous détendre et profiter des possibilités infinies de votre Toniebox déverrouillée !"
         },
@@ -580,17 +890,29 @@
             "applyingPatchesWithNgCfgJsonLink": "Trouve les instructions ici",
             "bootloader": "Bootloader",
             "bootloaderInstalled": "Bootloader installé avec succès",
+            "certificates": {
+                "alreadyAvailable": "Les certificats ca.der, client.der et private.der devraient déjà être disponibles ici :",
+                "extractAgain": "Si ce n'est pas le cas, assure-toi d'avoir correctement suivi l'étape 2. Tu peux également extraire à nouveau les fichiers de la box en utilisant l'outil cc3200 (ton PC devrait toujours être connecté à la Toniebox via le port UART et le port de débogage)."
+            },
             "certificatesDumpedCAreplacementFlashed": "Certificats extraits et remplacement CA flashé",
             "checkBoxes": "Afficher les boîtes disponibles",
             "connectToToniebox": "Connecter la Toniebox pour le patchage",
+            "connectToTonieboxConnectDebugPortText1": "Tu peux utiliser un connecteur Tag dédié comme ",
+            "connectToTonieboxConnectDebugPortText2": " ou, alternativement, des fils fins pour la connexion.",
+            "connectToTonieboxConnectTableIntro": "Ensuite, connecte le port de débogage de la Toniebox au UART comme décrit dans le tableau suivant :",
+            "connectToTonieboxIntro": "Tu dois connecter ton UART au port de débogage. Commence par localiser le port de débogage sur la face non assemblée de la carte PCB, située en bas. Le schéma du port de débogage est montré dans l'image suivante.",
             "connectToTonieboxLink": "Trouve les instructions de connexion ici",
+            "connectToTonieboxProceed": "Tu es maintenant prêt à continuer !",
+            "connectToTonieboxText": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB. La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu’ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
             "createPatch": "Créer altUrl.custom.305.patch",
             "customUrlPatch": "Créer un patch URL personnalisé (altUrl.custom.305.json)",
             "customUrlPatchHint": "Veuillez créer ce patch uniquement si les patches existants altUrl.305.json et altUrl.tc.fritz.box.json ne fonctionnent pas avec votre configuration actuelle de TeddyCloud. S'ils répondent à vos besoins, vous pouvez continuer en cliquant sur 'Suivant'.",
             "dumpCertificates": "Extraire les certificats pour TeddyCloud",
             "dumpCertificatesLink": "Trouve les instructions pour extraire les certificats ici",
             "flashCAreplacement": "Flasher le remplacement CA pour TeddyCloud",
-            "flashCAreplacementLink": "Trouve les instructions de flash ici",
+            "flashCAreplacementIntro": "Il est recommandé de flasher le certificat CA de remplacement dans /cert/c2.der et d'utiliser le bootloader Hackiebox-NG avec le patch altCA.305 (plus de détails dans les étapes suivantes). Cela te permettra de basculer facilement entre le certificat original et ton certificat de remplacement.",
+            "flashCAreplacementOutro": "Assure-toi d'avoir sélectionné le bon chemin vers le fichier ca.der.",
+            "flashCAreplacementText": "Pour écrire le fichier c2.der téléchargé (voir les étapes ci-dessus) sur ta Toniebox, utilise la commande suivante :",
             "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3200 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
             "hint2": "Veuillez suivre ensuite le chemin CC3200 :",
             "hintPatchHost": "Entrez le nom d'hôte de votre instance TeddyCloud, puis cliquez sur 'Créer altUrl.custom.305.patch'. Le patch sera téléchargé automatiquement par la suite.",
@@ -598,8 +920,62 @@
             "hostnameTooLong": "Le nom d'hôte ne doit pas dépasser 12 caractères.",
             "installBootloader": "Installer le Custom Bootloader HackieboxNG",
             "installBootloaderLink": "Trouve les instructions d'installation ici",
-            "installCC3200tool": "Installer l'outil CC3200",
-            "installCC3200toolLink": "Trouve les instructions d'installation ici",
+            "installingBootloader": {
+                "downloadLink": "ici",
+                "downloadText1": "Télécharge la dernière version depuis ",
+                "downloadText2": ". Décompresse l'archive dans le répertoire de travail de ton choix. Tu trouveras un répertoire nommé 'flash' pour les fichiers à copier dans le flash et un répertoire nommé 'sd' pour les fichiers de la carte SD.",
+                "existingInstallation": {
+                    "backup": "Sauvegarde",
+                    "backupText": "Pour vérifier que tu as actuellement le bootloader ofw installé sous /sys/pre-img.bin, tu peux télécharger le fichier depuis le flash :",
+                    "copyOverPreloader": "Copier le Preloader",
+                    "copyOverPreloaderStep1": "Sélectionner la cible : \"Flash\"",
+                    "copyOverPreloaderStep2": "Sélectionner le fichier local : \"flash/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep3": "Configurer \"Écraser\" sur \"oui\"",
+                    "copyOverPreloaderStep4": "Définir le chemin SD/Flash sur \"/sys/mcuimg.bin\"",
+                    "copyOverPreloaderStep5": "Clique sur \"Télécharger\" !",
+                    "intro": "Tu peux utiliser l'ancien Hackiebox-CFW pour télécharger le Preloader. Cela te permet de l'installer sans accès direct au flash, si une version précédente du bootloader/preloader CFW est déjà installée. Lance simplement le Hackiebox-CFW et utilise l'interface web pour télécharger le nouveau fichier /sys/mcuimg.bin.",
+                    "outro": "Pour vérifier que le téléchargement a réussi, tu peux télécharger le fichier mcuimg.bin depuis le flash et le comparer avec le fichier flash/sys/mcuimg.bin que tu viens d'envoyer.",
+                    "title": "Étape 1b : Preloader, mise à jour d'une installation existante",
+                    "updatingCFWUsingOldCFWWebGui": "Téléchargement via WebGui de CFW"
+                },
+                "firstInstallation": {
+                    "installPreloader": "Installer le Preloader",
+                    "installPreloaderText1": "Assure-toi d'avoir sauvegardé le firmware original dans un endroit sûr. Vérifie bien que le fichier mcuimg.bin original est stocké en sécurité. Si tout est correct, installe le Preloader avec la commande suivante :",
+                    "installPreloaderText2": "Tu as installé le Preloader sur la Toniebox. Passe maintenant à l'Étape 2 : Installation du bootloader sur la carte SD.",
+                    "moveOriginal": "Déplacer le bootloader original",
+                    "moveOriginalText1": "Tu dois d'abord copier le bootloader original récemment sauvegardé (mcuimg.bin) de ta Toniebox vers un autre emplacement (flash:/sys/pre-img.bin) pour qu'il puisse être démarré plus tard avec le Bootloader HackieboxNG. Ne confonds pas le fichier mcuimg.bin (bootloader ofw) que tu vas sauvegarder avec le mcuimg.bin inclus dans l'archive zip de Hackiebox (/flash/sys/mcuimg.bin).",
+                    "moveOriginalText2": "Comme nous avons déjà effectué une sauvegarde complète, nous trouvons mcuimg.bin dans /currentDir/ExtractedFromBox/sys/mcuimg.bin. Comme tu travailles probablement encore dans le répertoire cc3200tool, écris le fichier sur la Toniebox :",
+                    "title": "Étape 1a : Preloader, première installation"
+                },
+                "importantTBFiles": {
+                    "caDer": "Contient l'Autorité de Certification pour vérifier la connexion HTTPS pour l'API",
+                    "clientDer": "Clé publique de la box, ne pas partager",
+                    "description": "Description",
+                    "file": "Fichier",
+                    "firstSlot": "Premier emplacement de firmware original",
+                    "mcuBootInfo": "Détermine quel emplacement de firmware démarrer",
+                    "originalBootloader": "Bootloader original",
+                    "privateDer": "Clé privée de la box, ne pas partager ; utilisée pour s'authentifier avec le cloud original",
+                    "secondSlot": "Deuxième emplacement de firmware original",
+                    "thirdSlot": "Troisième emplacement de firmware original"
+                },
+                "inCaseText": "Si certains fichiers n'existent pas sur la box, la commande peut s'arrêter avec une erreur et le fichier backup.bin ne sera pas correctement créé. Divise la commande en deux parties :",
+                "installingBootloaderStage2": {
+                    "here": "ici",
+                    "intro": "Copie tout le contenu du dossier SD sur la carte SD de la Toniebox. Copie le bootloader original (mcuimg.bin de ta sauvegarde) dans le premier emplacement ofw sd:/revvox/boot/ng-ofw1.bin. Le Bootloader HackieboxNG démarrera immédiatement le bootloader original et exécutera le firmware original.",
+                    "text1": "Remarque : Le Preloader chargera tout fichier placé dans sd:/revvox/boot/ngbootloader.bin.",
+                    "text2": "En savoir plus sur les différents emplacements de firmware et la configuration "
+                },
+                "intro": "Avant d'installer le Hackiebox NG Bootloader, effectue une sauvegarde complète des fichiers et du flash de ta Toniebox en utilisant cc3200tool. Nous utilisons COM3 comme exemple de port, mais tu peux utiliser un autre port COM ou le bon périphérique sous Linux, par exemple /dev/ttyUSB0.",
+                "preface": {
+                    "intro": "L'installation du nouveau bootloader est divisée en deux étapes et diffère selon qu'il s'agit d'une première installation ou d'une mise à jour d'une installation existante :",
+                    "title": "Préface"
+                },
+                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RST (Toniebox) à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l’opération sera annulée.",
+                "stage1": "Étape 1 : Installation du Preloader",
+                "stage2": "Étape 2 : Installation du Bootloader",
+                "verifyBackup": "Assure-toi que le fichier backup.bin est bien plus grand que 0 KB. Vérifie que le dump et les fichiers extraits contiennent tous les fichiers importants de la Toniebox :"
+            },
             "linkGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkSpecific": "Configuration spécifique CC3200",
             "navigationTitle": "CC3200",
@@ -609,9 +985,33 @@
             "previous": "Retour",
             "proceedWithCustomBootloader": "Procéder avec le Custom Bootloader",
             "proceedWithoutCustomBootloader": "Procéder sans le Custom Bootloader",
-            "title": "CC3200 Flashage de la boîte"
+            "tagConnector": "Connecteur Tag presque attaché",
+            "title": "CC3200 Flashage de la boîte",
+            "usingThinWiresAsTagConnector": "Fils fins utilisés comme connecteur"
         },
         "cc3235BoxFlashing": {
+            "CH341AProgrammer": {
+                "CH341AProgrammer": "Configurer la connexion du programmeur CH341A",
+                "CH341Sop8remove": "Raccourcis ici jusqu'à ce qu'elle s'ajuste correctement.",
+                "flashMemoryDumpText1": "Connecte la pince à la mémoire flash IS25LP032D. Assure-toi que le câble rouge de la pince est aligné avec le point sur la puce marquant la broche 1.",
+                "flashMemoryDumpText2": "Si la pince ne tient pas, elle peut entrer en collision avec un bloc noir à proximité. Raccourcis plus de plastique si nécessaire. Ne connecte pas encore le CH341A. Vérifie à nouveau les positions des câbles.",
+                "flashMemoryDumpText3": "Quand tu es prêt, branche le CH341A dans le port USB de ton ordinateur. La lumière de la Toniebox doit être verte fixe. Si elle clignote, la pince peut ne pas être bien positionnée. Débranche le CH341A, ajuste la pince et réessaie pour assurer une bonne connexion.",
+                "flashMemoryDumpText4": "Une fois que la LED est verte fixe, la connexion est bonne. Ouvre un terminal sur ton ordinateur et tape les commandes suivantes :",
+                "flashMemoryDumpText5": "Répète ce processus au moins trois fois.",
+                "flashMemoryDumpText6": "Après trois lectures, compare tous les vidages pour confirmer la cohérence.",
+                "flashMemoryDumpText7": "Une fois que tu confirmes que toutes les versions sont cohérentes, procède à l'extraction des certificats.",
+                "flashMemoryDumpText8": "Retire le CH341A du port USB et enlève la pince pour éviter d'éventuels courts-circuits ou problèmes si la pince se déplace accidentellement.",
+                "prep1": "Obtiens un programmeur CH341A (achète uniquement la version noire avec une ligne dorée et des bords arrondis).",
+                "prep2": "Raccourcis le plastique sur la pince CH341A si nécessaire, afin qu'elle puisse s'adapter à la mémoire flash IS25LP032D.",
+                "prep3": "Assure-toi que la carte PCB et la batterie sont déconnectées.",
+                "prep4": "Connecte le CH341A à l'ordinateur et confirme qu'il est reconnu. Tu peux le faire de la manière suivante :",
+                "prepConclusions1": "Si la sortie diffère, il se peut que le petit pont entre les broches 1 et 2 du CH341A ne soit pas en place. Une fois confirmé, débranche le CH341A du port USB. Cette vérification assure que tout est correctement connecté.",
+                "prepConclusions2": "Assure-toi que le module SOP8 dans le kit CH341A et la pince sont connectés comme indiqué sur l'image.",
+                "prepConclusions3": "Ce n'est que lorsque les préparatifs sont complets que nous pouvons procéder au processus d'extraction.",
+                "preparation": "Uniquement nécessaire si tu prévois de flasher avec un programmeur CH341A",
+                "readingFlash": "Lire la mémoire flash avec le programmeur CH341A",
+                "writingFlash": "Écrire la mémoire flash avec le programmateur CH341A"
+            },
             "certificatesDumpedCAreplacementFlashed": "Certificats extraits et remplacement de CA flashé",
             "checkBoxes": "Afficher les boxes disponibles",
             "dnsBeware": "Attention!",
@@ -624,30 +1024,46 @@
             "dumpCertificatesCC3235": "Tu devras l'extraire manuellement du flash de la boîte avec une pince SOP8 directement depuis la mémoire ou en la dessoudant. La lecture en circuit peut être délicate, mais c'est possible. Nous te recommandons d'utiliser Flashrom comme outil pour cela. Il pourrait être nécessaire d'utiliser une version plus récente.",
             "dumpCertificatesLink": "Trouver les instructions pour extraire les certificats ici",
             "extractCertificates": "Extraire les certificats",
+            "flashCAReplacementDescription1": "Malheureusement, le certificat CA généré par TeddyCloud lors de sa configuration initiale peut parfois entraîner une erreur `BAD_CERTIFICATE` lors de la connexion d'une Toniebox CC3235 à TeddyCloud. Pour résoudre ce problème, vous pouvez générer le certificat manuellement en utilisant l'ancien",
+            "flashCAReplacementDescription2": "avec faketime installé. Copiez les fichiers générés dans le répertoire `certs/server` au sein du dossier d'installation de TeddyCloud.",
+            "flashCAReplacementDescription3": "Veuillez noter que les nouveaux certificats de serveur, y compris le nouveau certificat CA généré, peuvent perturber les connexions avec les Tonieboxes déjà connectées. Pour garantir un service ininterrompu, veuillez mettre à jour le fichier de remplacement CA sur toutes vos Tonieboxes avec le certificat nouvellement généré.",
+            "flashCAReplacementTitle": "Attention : Problèmes de compatibilité du certificat CA de TeddyCloud",
             "flashCAreplacement": "Flasher le remplacement de CA pour TeddyCloud",
             "flashCAreplacementLink": "Trouver les instructions de flashage ici",
             "flashCAreplacementText1": "Remplace la CA originale dans ton dump flash par la CA de remplacement et reflash ta boîte.",
             "flashCAreplacementText2": "Si la boîte ne se connecte pas du tout (mot-clé: chouette), tu peux essayer l'ancien gencerts.sh pour générer de nouveaux certificats et reflasher la boîte.",
+            "flashCAreplacementText3": "Attention : Le fichier ca.der mentionné dans l'extrait de code doit être le CA de remplacement de TeddyCloud!",
             "flashCollapse": {
-                "cc3235flash": "Flash avec des broches",
-                "cc3235flashWithSMDGrippers": "Flash avec pinces SMD connectées",
-                "collapseTitle": "Aide : Flash du firmware du CC3235"
+                "cc3235flash": "Mémoire flash avec broches",
+                "cc3235flashWithSMDGrippers": "Mémoire flash avec pinces SMD connectées",
+                "collapseTitle": "Aide : Mémoire Flash IS25LP032D sur CC3235",
+                "sop8Clamp": "Mémoire flash avec pince SOP8 connectée"
             },
+            "gencertLinkText": "gencert.sh",
             "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3235 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
             "hint2": "Veuillez suivre ensuite le chemin CC3235 :",
-            "installCC3200tool": "Installer l'outil CC3200",
-            "installCC3200toolLink": "Trouver les instructions d'installation ici",
+            "hwToolSpecific": "Préparations Dépendantes du Matériel",
+            "hwToolSpecificText": "Selon le matériel que tu prévois d'utiliser pour flasher ton Toniebox, des préparations supplémentaires sont nécessaires. Veuillez choisir l'option que tu suivras.",
             "installSerprogFirmware": "Installer le firmware Serprog",
+            "installflashromtool": "Installer Flashrom",
+            "installflashromtoolLink": "Visite la page d'accueil de l'outil pour plus d'informations",
+            "installflashromtoolText": "Assure-toi que l'ordinateur que tu utilises pour flasher a Flashrom installé. Sinon, installe-le en utilisant les commandes suivantes :",
             "linkGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkSpecific": "Configuration spécifique CC3235",
+            "locateFlashMemory": "Localiser la puce de mémoire flash",
+            "locateFlashMemoryText": "Identifie la puce de mémoire flash IS25LP032D sur la carte ; elle est située à droite du dock de chargement.",
             "navigationTitle": "CC3235",
             "next": "Suivant",
+            "pico": {
+                "preparation": "Uniquement nécessaire si tu prévois de flasher avec un Raspberry Pi Pico",
+                "readingFlash": "Lire la mémoire flash avec Raspberry Pi Pico",
+                "readingFlashText1": "Comme sonde, tu peux utiliser un Raspberry Pi Pico avec un firmware qui prend en charge le protocole serprog.",
+                "readingFlashText2": "Il est recommandé d'effectuer plusieurs lectures et de comparer les résultats.",
+                "writingFlash": "Écrire la mémoire flash avec le Raspberry Pi Pico"
+            },
             "preparationText": "Connecte ta Toniebox à ton Wi-Fi et mets à jour son firmware. De nombreuses boxes sont expédiées avec un firmware de production qui doit être mis à jour. Sinon, la box ne fonctionnera pas correctement. Il n'est pas nécessaire de connecter la box à l'application ou au compte mytonies.",
             "preparationTextLink": "Connecter la box sans l'assistant de configuration.",
             "previous": "Retour",
-            "readingFlashPico": "Lire la mémoire flash avec Pico",
-            "readingFlashPicoText1": "Tu peux utiliser un Raspberry Pi Pico avec le firmware du protocole Serprog comme sonde.",
-            "readingFlashPicoText2": "Tu peux effectuer plusieurs lectures et comparer les résultats.",
             "serprogFirmwareLink": "Trouver les instructions d'installation ici",
             "title": "CC3235 Flashage de la boîte",
             "useCC3200ToolToExtract": "Tu peux utiliser l'outil CC3200 pour extraire tes certificats à partir du dump de la mémoire flash ensuite."
@@ -670,24 +1086,35 @@
             "warningText": "Si le moniteur série est ouvert, cela bloquera l'accès de esptool.py à l'esp. Si vous obtenez un “BROWNOUT_RST”, vérifiez votre alimentation/batterie. “SPI_FAST_FLASH_BOOT” indique un démarrage sans le jumper J100."
         },
         "delete": "Supprimer",
+        "downloadC2DerFile": "Télécharger le certificat de remplacement CA (sous le nom c2.der)",
+        "downloadCADerFile": "Télécharger le certificat de remplacement CA (ca.der)",
         "editModelModal": {
-            "editModel": "Modifier le modèle de la Toniebox \"{{name}}\"",
-            "errorOnModelChange": "Erreur lors de l'enregistrement du modèle: {{error}}",
-            "errorOnNameChange": "Erreur lors de l'enregistrement du nom: {{error}}",
-            "errorWhileSavingConfig": "Erreur lors de la sauvegarde de la configuration.",
+            "editModel": "Modifier la Toniebox \"{{name}}\"",
+            "errorOnModelChange": "Erreur lors de la sauvegarde du modèle",
+            "errorOnModelChangeDetails": "Erreur lors de la sauvegarde du modèle de la Toniebox {{mac}} : {{error}}",
+            "errorOnNameChange": "Erreur lors de la sauvegarde du nom",
+            "errorOnNameChangeDetails": "Erreur lors de la sauvegarde du nom de la Toniebox {{mac}} : {{error}}",
             "model": "Modèle",
             "name": "Nom",
-            "placeholderSearchForAModel": "Sélectionnez la variante de couleur de votre Toniebox",
-            "successOnModelChange": "Le modèle de la Toniebox a été modifié",
-            "successOnNameChange": "Le nom de la Toniebox a été modifié",
+            "placeholderSearchForAModel": "Sélectionne la variante de couleur de ta Toniebox",
+            "successOnModelChange": "Modification du modèle enregistrée avec succès",
+            "successOnModelChangeDetails": "Le nouveau modèle \"{{model}}\" de la Toniebox {{mac}} a été enregistré avec succès.",
+            "successOnNameChange": "Modification du nom enregistrée avec succès",
+            "successOnNameChangeDetails": "Le nouveau nom \"{{name}}\" de la Toniebox {{mac}} a été enregistré avec succès.",
             "unsetBoxName": "Modèle inconnu/non défini"
         },
         "editTonieboxSettingsModal": {
             "editTonieboxSettings": "Modifier les paramètres pour la Toniebox \"{{name}}\"",
             "editTonieboxSettingsLabel": "Paramètres"
         },
+        "errorFetchingModels": "Erreur lors de la récupération des modèles de Tonieboxes",
+        "errorFetchingTonieboxes": "Erreur lors de la récupération des Tonieboxes",
         "esp32BoxFlashing": {
+            "adaptBaudrateOnProblems": "Astuce",
+            "adaptBaudrateOnProblemsText": "Si le processus se fige ou reste bloqué lors de la lecture ou de l'écriture de la mémoire flash, essaie de modifier le débit en bauds avec le champ de sélection \"Taux de baud\" en haut.",
             "attention": "Attention",
+            "baudRate": "Taux de baud : ",
+            "baudRateInfo": "Si tu rencontres des problèmes pour lire ou écrire dans la mémoire flash, essaie de changer le taux de baud. La valeur par défaut est 921600.",
             "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
             "esp32flasher": {
                 "automatically": "Automatiquement",
@@ -720,10 +1147,13 @@
                 "extractingCertificates409ResponseForceOverwrite": "Écraser les certificats existants",
                 "extractingCertificates409ResponseForceOverwriteConfirmButton": "Écraser les fichiers",
                 "extractingCertificates409ResponseForceOverwriteContent": "La tentative initiale de stockage des certificats a échoué : {{error}}. Voulez-vous écraser les fichiers existants ?",
-                "extractingCertificatesFailed": "Échec de l'extraction des certificats à partir de \"{{file}}\"",
-                "extractingCertificatesSuccessful": "Certificats extraits avec succès de \"{{file}}\" et enregistrés dans TeddyCloud.",
+                "extractingCertificatesFailed": "Échec de l'extraction des certificats!",
+                "extractingCertificatesFailedDetails": "Échec de l'extraction des certificats depuis \"{{file}}\".",
+                "extractingCertificatesSuccessful": "Certificats extraits et stockés avec succès!",
+                "extractingCertificatesSuccessfulDetails": "Certificats extraits avec succès depuis \"{{file}}\" et stockés dans TeddyCloud.",
                 "failedToCommunicate": "Échec de la communication :",
                 "failedToConnect": "Échec de la connexion :",
+                "flagPreviousHostname": "L'image flash contient un nom d'hôte TeddyCloud défini précédemment (WIP, non traité actuellement)",
                 "flash": "Flasher",
                 "flashDevice": "Périphérique flash",
                 "flashEsp32": "Flasher l'ESP32",
@@ -732,6 +1162,7 @@
                 "flashSize": "Taille du flash",
                 "flashSizeError": "Erreur de taille du flash",
                 "hintESP32FirmwareFlashed": "Le patchage est terminé. Déconnecte la Toniebox de l'UART, retire le court-circuit du J100 et redémarre la box. Elle devrait maintenant pouvoir se connecter à TeddyCloud !",
+                "hintESP32FirmwareReseted": "La réinitialisation devrait être terminée. Veuillez déconnecter la Toniebox du UART, retirer le court-circuit de J100 et redémarrer la box. Elle ne devrait plus être connectée à ton Teddycloud. Fais une vérification de fraîcheur pour tester si tout fonctionne correctement.",
                 "hintFlashESP32": "Déconnecte l'alimentation de ta Toniebox une fois de plus. Clique sur \"Flasher l'ESP32\", choisis le port COM si nécessaire. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
                 "hintPatchFlash": "Pour appliquer le flash sélectionné/lu avec le certificat CA de votre TeddyCloud et éventuellement effectuer d'autres ajustements tels que le nom d'hôte de TeddyCloud et/ou les identifiants WiFi, cliquez sur 'Patch' après avoir entré les informations ou passez à l'étape suivante sans patch.",
                 "hintPatchHost": "Entrez le nom d'hôte souhaité pour votre instance TeddyCloud.",
@@ -754,10 +1185,13 @@
                 "portOpenFailedInUse": "Échec de l'ouverture de ce port. Déjà en cours d'utilisation ?",
                 "preparingFlash": "Préparation du flash de {{size}} MiB",
                 "previous": "Précédent",
+                "previousHostname": "Ancien nom d'hôte TeddyCloud :",
                 "readFlash": "Lire le flash",
                 "readingFinished": "Lecture terminée",
                 "readingFlash": "Lecture du flash...",
                 "readyToProceed": ", prêt à continuer.",
+                "resetBoxine": "Réinitialiser la box",
+                "resetBoxineTooltip": "Pour réinitialiser ta Toniebox à son firmware d'origine, appuie sur ce bouton pour commencer le processus. Tu devras sélectionner la sauvegarde originale du firmware, qui sera ensuite installée sur ta Toniebox dans son état d'origine. Malheureusement, si tu n'as pas de sauvegarde du firmware d'origine, il ne sera pas possible de réinitialiser ta Toniebox.",
                 "retrievingMac": "Récupération de l'adresse MAC...",
                 "titleESP32FirmwareFlashed": "ESP32 flashé",
                 "titleFlashESP32": "Flasher l'ESP32",
@@ -773,7 +1207,7 @@
                 "writingFinished": "Écriture terminée",
                 "writingFlash": "Écriture de {{size}} MiB de mémoire flash..."
             },
-            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l’avertissement.",
+            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l'avertissement.",
             "hintLegacyApproach": "Si vous préférez ne pas utiliser un navigateur prenant en charge WebSerial, vous pouvez toujours utiliser l'approche héritée via votre ligne de commande.",
             "httpsSettings": "Paramètres HTTPS",
             "legacy": {
@@ -812,12 +1246,22 @@
         "lastPlayedTonie": "Dernier Tonie joué: ",
         "linkToBoxCFW": "Ouvrir l'interface web de la Toniebox",
         "messages": {
-            "apiAccessDisabled": "Accès aux API de TeddyCloud désactivé!",
-            "apiAccessEnabled": "Accès aux API de TeddyCloud activé!",
-            "apiAccessNotChangedError": "Échec du changement d'accès à l'API de TeddyCloud: ",
-            "deleteFailed": "Échec de la suppression:",
+            "apiAccessDisabled": "Accès aux APIs de TeddyCloud désactivé!",
+            "apiAccessDisabledDetails": "Accès aux APIs de TeddyCloud désactivé pour la Toniebox {{mac}}",
+            "apiAccessEnabled": "Accès aux APIs de TeddyCloud activé!",
+            "apiAccessEnabledDetails": "Accès aux APIs de TeddyCloud activé pour la Toniebox {{mac}}",
+            "apiAccessNotChangedError": "Échec du changement d'accès à l'API de TeddyCloud",
+            "apiAccessNotChangedErrorDetails": "Échec du changement d'accès à l'API de TeddyCloud pour la Toniebox {{mac}}: ",
+            "deleteFailed": "Échec de la suppression",
+            "deleteFailedDetails": "Échec de la suppression de la Toniebox {{mac}}",
             "deleteSuccessful": "Supprimé avec succès!",
-            "deleting": "Suppression..."
+            "deleteSuccessfulDetails": "La Toniebox {{mac}} a été supprimée avec succès de TeddyCloud!",
+            "deleting": "Suppression...",
+            "deletingDetails": "Suppression de la Toniebox {{mac}} de TeddyCloud"
+        },
+        "modelHint": {
+            "action": "pour sélectionner le bon modèle de ta Toniebox",
+            "text": "Clique sur"
         },
         "navigationTitle": "Tonieboxes",
         "newBoxesAllowed": "Nouvelles Tonieboxes autorisées",
@@ -828,6 +1272,7 @@
         "noNewBoxesAllowedText": "Tu ne peux pas connecter de nouvelles Tonieboxes à TeddyCloud. Veuillez activer le paramètre \"Autoriser de nouvelles boxes\". Une fois que tu as connecté toutes tes boxes, désactive le paramètre \"Autoriser de nouvelles boxes\" pour des raisons de sécurité.",
         "offline": "hors ligne",
         "online": "en ligne",
+        "processing": "Traitement en cours...",
         "title": "Vos Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(ATTENTION: Chemin par défaut!)",
@@ -847,7 +1292,8 @@
             "category": "Catégorie",
             "episode": "Épisode",
             "episodeHint": "Sera affiché sur la Toniecard",
-            "failedToCreate": "Échec de la création du modèle: ",
+            "failedToCreate": "Échec de la création du modèle!",
+            "failedToCreateDetails": "Échec de la création du modèle {{series}} [{{model}}]: ",
             "formfieldTitle": "Titre",
             "formfieldTitleHint": "Actuellement pas de sortie sur Toniecard",
             "hash": "Hash",
@@ -864,6 +1310,7 @@
             "seriesHint": "Sera affiché comme titre de la Toniecard",
             "seriesRequired": "La série doit être remplie.",
             "successfullyCreated": "Modèle créé avec succès!",
+            "successfullyCreatedDetails": "Modèle {{series}} [{{model}}] créé avec succès!",
             "title": "Créer un nouveau Tonie/Tag personnalisé",
             "track": "Piste"
         },
@@ -896,24 +1343,32 @@
         },
         "encoder": {
             "clearList": "Vider la liste",
-            "errorFileProcessing": "Échec du traitement du fichier audio :",
+            "errorFileProcessing": "Échec du traitement du fichier audio : ",
             "filename": "Nom du fichier",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
             "processing": "Traitement...",
+            "processingDetails": "Encodage des fichiers dans \"{{file}}\" en cours...",
+            "processingError": "Erreur lors du traitement !",
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
             "sortAlphabetically": "Trier les fichiers par ordre alphabétique",
             "targetDirectory": "Choisir le répertoire cible",
             "title": "Encodeur audio",
+            "tooManyFilesError": "Trop de fichiers !",
             "upload": "Télécharger",
-            "uploadFailed": "Le téléchargement a rencontré une erreur",
+            "uploadFailed": "Échec du téléchargement",
+            "uploadFailedDetails": "Le téléchargement a rencontré une erreur : ",
             "uploadFiles": "Sélectionner le(s) fichier(s)",
             "uploadHint": "Faites glisser les fichiers audio ici !",
-            "uploadSuccessful": "Le fichier a été ajouté avec succès à la bibliothèque",
+            "uploadSuccessful": "Encodage du fichier réussi !",
+            "uploadSuccessfulDetails": "Les fichiers ont été encodés en tant que \"{{file}}\" et ajoutés à la bibliothèque avec succès !",
             "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone",
-            "uploading": "Téléchargement..."
+            "uploading": "Téléchargement...",
+            "uploadingDetails": "Téléchargement du fichier \"{{file}}\"..."
         },
+        "errorFetchingSystemSounds": "Erreur lors de la récupération des sons du système",
+        "errorFetchingTonies": "Erreur lors de la récupération des Tonies",
         "infoModal": {
             "exists": "Existe:",
             "model": "Modèle:",
@@ -938,26 +1393,44 @@
         },
         "messages": {
             "cloudAccessBlocked": "Accès au cloud bloqué!",
+            "cloudAccessBlockedDetails": "Accès au cloud bloqué pour \"{{model}}\" [{{ruid}}]",
             "cloudAccessEnabled": "Accès au cloud activé!",
-            "couldNotChangeCloudFlag": "Impossible de changer le drapeau d'accès au cloud (nocloud)! ",
-            "couldNotChangeLiveFlag": "Impossible de changer le drapeau en direct! ",
+            "cloudAccessEnabledDetails": "Accès au cloud activé pour \"{{model}}\" [{{ruid}}]",
+            "couldNotChangeCloudFlag": "Impossible de changer le drapeau d'accès au cloud (nocloud)!",
+            "couldNotChangeCloudFlagDetails": "Impossible de changer le drapeau d'accès au cloud (nocloud) pour \"{{model}}\" [{{ruid}}]: ",
+            "couldNotChangeLiveFlag": "Impossible de changer le drapeau en direct!",
+            "couldNotChangeLiveFlagDetails": "Impossible de changer le drapeau en direct pour \"{{model}}\" [{{ruid}}]: ",
             "couldNotEmptySource": "Impossible de vider la source!",
-            "couldNotSetSource": "Impossible de définir la source! ",
+            "couldNotSetSource": "Impossible de définir la source!",
             "downloadedFile": "Fichier téléchargé",
+            "downloadedFileDetails": "Fichier source de \"{{model}}\" [{{ruid}}] téléchargé",
             "downloading": "Téléchargement...",
-            "errorDuringDownload": "Erreur lors du téléchargement en arrière-plan: ",
-            "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag: ",
+            "downloadingDetails": "Téléchargement de \"{{model}}\" [{{ruid}}]...",
+            "errorDuringDownload": "Erreur lors du téléchargement en arrière-plan",
+            "errorDuringDownloadDetails": "Erreur lors du téléchargement en arrière-plan de \"{{model}}\" [{{ruid}}]: ",
+            "errorFetchingUpdatedCard": "Erreur lors de la récupération de la carte mise à jour!",
+            "errorFetchingUpdatedCardDetails": "Erreur lors de la récupération de la carte mise à jour pour \"{{model}}\" [{{ruid}}]: ",
+            "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag!",
+            "hideTonieFailedDetails": "Échec de l'opération pour cacher le Tonie/Tag [{{ruid}}] : ",
             "hideTonieSuccessful": "Tonie/Tag masqué avec succès!",
+            "hideTonieSuccessfulDetails": "Tonie/Tag [{{ruid}}] marqué comme caché avec succès !",
             "liveDisabled": "En direct désactivé!",
+            "liveDisabledDetails": "Drapeau en direct désactivé pour \"{{model}}\" [{{ruid}}]",
             "liveEnabled": "En direct activé!",
+            "liveEnabledDetails": "Drapeau en direct activé pour \"{{model}}\" [{{ruid}}]",
             "setToEmptyValue": "vide",
             "setTonieToModelFailed": "Impossible de changer le modèle de Tonie!",
-            "setTonieToModelSuccessful": "Le modèle a été changé pour: ",
-            "setTonieToSourceFailed": "Impossible de changer la source du tonie !",
-            "setTonieToSourceSuccessful": "Source du tonie définie sur {{selectedSource}} !",
-            "sourceSetSuccessful": "Source définie sur {{selectedFile}} !"
+            "setTonieToModelFailedDetails": "Impossible de changer le modèle de Tonie pour [{{ruid}}]: ",
+            "setTonieToModelSuccessful": "Le modèle de Tonie a été modifié avec succès.",
+            "setTonieToModelSuccessfulDetails": "Le modèle de Tonie est défini sur {{selectedModel}} pour [{{ruid}}]",
+            "setTonieToSourceFailed": "Impossible de changer la source du Tonie!",
+            "setTonieToSourceFailedDetails": "Impossible de changer la source du Tonie pour [{{ruid}}]: ",
+            "setTonieToSourceSuccessful": "Source du Tonie définie avec succès!",
+            "setTonieToSourceSuccessfulDetails": "Source du Tonie définie sur {{selectedSource}} pour [{{ruid}}]"
         },
         "navigationTitle": "Tonies",
+        "noData": "Aucun Tonies/Tags personnalisés trouvé.",
+        "noDataText": "Les Tonies/Tags personnalisés n'apparaîtront qu'après qu'une Toniebox ait établi une connexion réussie et ait déjà des Tonies/Tags personnalisés sur sa carte SD. Assure-toi que ta Toniebox est correctement connectée et contient quelques Tonies/Tags personnalisés, ou place ton premier Tonie/Tag personnalisé sur ta Toniebox et rafraîchis cette page.",
         "selectFileModal": {
             "cancel": "Annuler",
             "ok": "OK",
@@ -974,15 +1447,20 @@
         },
         "tapEditor": {
             "addFile": "Ajouter un fichier",
+            "audioId": "ID audio",
+            "audioIdTooltip": "Définit l'ID audio si le fichier est mis en cache. Définissez-le à 0 pour forcer la recréation du fichier mis en cache",
             "cancel": "Annuler",
             "create": "Créer",
             "fileNameContentFile": "Description",
             "filePath": "Chemin du fichier Playlist",
             "filePathContentFile": "Chemin du fichier",
             "filePathContentFileRequired": "Le chemin du fichier doit être défini",
+            "filePathContentFileTooltip": "Définit le chemin vers la ressource audio (doit être compatible avec ffmpeg)",
             "filePathRequired": "Le chemin du fichier Playlist doit être défini",
+            "filePathTooltip": "Définit un chemin pour le fichier TAF, qui sera généré par ffmpeg",
             "name": "Nom TAP",
             "nameRequired": "Le nom TAP doit être défini",
+            "nameTooltip": "Définit le nom de la playlist",
             "save": "Enregistrer",
             "titleCreate": "Créer un nouveau TAP",
             "titleEdit": "Modifier le TAP"

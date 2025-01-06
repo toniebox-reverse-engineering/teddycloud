@@ -222,6 +222,14 @@ void set_settings(const char *option)
     {
         TRACE_ERROR("Invalid config-set option format. Expected name=value.\r\n");
     }
+    osFreeMem(data);
+}
+
+void exit_cleanup(int exit_code)
+{   
+    platform_deinit();
+    settings_deinit();
+    exit(exit_code);
 }
 
 int_t main(int argc, char *argv[])
@@ -382,28 +390,28 @@ int_t main(int argc, char *argv[])
         if (!options.destination)
         {
             TRACE_ERROR("Missing --destination\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
 
         if (osStrlen(options.generate_client_cert) != 12)
         {
             TRACE_ERROR("MAC address must be in format 001122334455\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
         if (!fsDirExists(options.destination))
         {
             TRACE_ERROR("Destination directory must exist\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
 
         int_t error = cert_generate_mac(options.generate_client_cert, options.destination);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.generate_server_certs)
     {
         int_t error = cert_generate_default();
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.encode)
@@ -413,12 +421,12 @@ int_t main(int argc, char *argv[])
         if (options.multisource_size == 0)
         {
             TRACE_ERROR("Missing source files\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
         else if (options.multisource_size > 99)
         {
             TRACE_ERROR("Not more than 99 source files allowed!\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
 
         for (size_t i = 0; i < options.multisource_size; i++)
@@ -444,7 +452,7 @@ int_t main(int argc, char *argv[])
         if (!options.hostname)
         {
             TRACE_ERROR("Missing --hostname\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
         if (options.oldrtnlhost)
         {
@@ -460,13 +468,13 @@ int_t main(int argc, char *argv[])
         {
             error = esp32_fixup(options.esp32_hostpatch, true);
         }
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.esp32_fixup)
     {
         int_t error = esp32_fixup(options.esp32_fixup, true);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.esp32_inject)
@@ -477,7 +485,7 @@ int_t main(int argc, char *argv[])
             exit(-1);
         }
         int_t error = esp32_fat_inject(options.esp32_inject, "CERT", options.source);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.esp32_extract)
@@ -485,10 +493,10 @@ int_t main(int argc, char *argv[])
         if (!options.destination)
         {
             TRACE_ERROR("Missing --destination\r\n");
-            exit(-1);
+            exit_cleanup(-1);
         }
         int_t error = esp32_fat_extract(options.esp32_extract, "CERT", options.destination);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.url_test)
@@ -510,7 +518,7 @@ int_t main(int argc, char *argv[])
 
         if (!parse_url(options.url_test, &hostname, &port, &uri, &protocol))
         {
-            exit(EXIT_FAILURE);
+            exit_cleanup(EXIT_FAILURE);
         }
 
         TRACE_WARNING("Hostname: %s\n", hostname);
@@ -533,7 +541,7 @@ int_t main(int argc, char *argv[])
 
         free(hostname);
         free(uri);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.cloud_test)
@@ -551,7 +559,7 @@ int_t main(int argc, char *argv[])
         tls_init();
 
         int_t error = cloud_request_get(NULL, 0, options.cloud_test, "", (uint8_t *)options.hash, NULL);
-        exit(error);
+        exit_cleanup(error);
     }
 
     if (options.encode_test)
@@ -593,7 +601,7 @@ int_t main(int argc, char *argv[])
         }
         toniefile_close(taf);
 
-        exit(1);
+        exit_cleanup(1);
     }
 
     tls_init();

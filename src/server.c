@@ -123,6 +123,8 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/dirDelete", SERTY_WEB, &handleApiDirectoryDelete},
     {REQ_POST, "/api/dirCreate", SERTY_WEB, &handleApiDirectoryCreate},
     {REQ_POST, "/api/uploadCert", SERTY_WEB, &handleApiUploadCert},
+    {REQ_GET, "/api/getFile/ca.der", SERTY_WEB, &handleApiGetCaDer},
+    {REQ_GET, "/api/getFile/c2.der", SERTY_WEB, &handleApiGetCaDer},
     {REQ_POST, "/api/esp32/uploadFirmware", SERTY_WEB, &handleApiESP32UploadFirmware},
     {REQ_POST, "/api/esp32/extractCerts", SERTY_WEB, &handleApiESP32ExtractCerts},
     {REQ_GET, "/api/esp32/patchFirmware", SERTY_WEB, &handleApiESP32PatchFirmware},

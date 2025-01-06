@@ -96,7 +96,7 @@ error_t tap_load(char *filename, tonie_audio_playlist_t *tap)
     cJSON_Delete(tapJson);
     if (error == NO_ERROR)
     {
-        if (isValidTaf(tap->_filepath_resolved))
+        if (isValidTaf(tap->_filepath_resolved, true))
         {
             tap->_cached = true;
             // TODO check audio id if different and check settings.
@@ -189,6 +189,8 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
         char source[99][PATH_LEN];
         if (tap->filesCount == 0)
         {
+            osFreeMem(tmp_taf);
+            freeTonieInfo(tonieInfo);
             return ERROR_INVALID_FILE;
         }
 

@@ -362,6 +362,11 @@ error_t toniefile_close(toniefile_t *ctx)
 
     fsCloseFile(ctx->file);
 
+    if (!isValidTaf(ctx->fullPath, true))
+    {
+        TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", ctx->fullPath);
+    }
+
     osFreeMem(ctx->taf.sha1_hash.data);
     osFreeMem(ctx->taf.track_page_nums);
     opus_encoder_destroy(ctx->enc);
