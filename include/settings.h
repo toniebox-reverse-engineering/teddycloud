@@ -293,6 +293,8 @@ typedef struct
 
     bool tonies_json_auto_update;
     bool full_taf_validation;
+    bool tap_taf_validation;
+    bool track_pos_taf_validation;
 } settings_core_t;
 
 typedef struct

@@ -586,9 +586,12 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             osFreeMem(trackPos->pos);
             trackPos->pos = NULL;
 
-            if (!isValidTaf(tonieInfo->contentPath, true))
+            if (get_settings()->core.track_pos_taf_validation)
             {
-                TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", tonieInfo->contentPath);
+                if (!isValidTaf(tonieInfo->contentPath, true))
+                {
+                    TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", tonieInfo->contentPath);
+                }
             }
         }
     }
