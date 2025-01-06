@@ -971,7 +971,7 @@
                     "intro": "L'installation du nouveau bootloader est divisée en deux étapes et diffère selon qu'il s'agit d'une première installation ou d'une mise à jour d'une installation existante :",
                     "title": "Préface"
                 },
-                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RTS à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l’opération sera annulée.",
+                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RST (Toniebox) à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l’opération sera annulée.",
                 "stage1": "Étape 1 : Installation du Preloader",
                 "stage2": "Étape 2 : Installation du Bootloader",
                 "verifyBackup": "Assure-toi que le fichier backup.bin est bien plus grand que 0 KB. Vérifie que le dump et les fichiers extraits contiennent tous les fichiers importants de la Toniebox :"
