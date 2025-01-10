@@ -604,6 +604,7 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
             if (*((char **)opt->ptr))
             {
                 osFreeMem(*((char **)opt->ptr));
+                *((char **)opt->ptr) = NULL;
             }
             break;
         case TYPE_U64_ARRAY:
