@@ -541,17 +541,6 @@ static void settings_generate_internal_dirs(settings_t *settings)
 
     settings_resolve_dir(&settings->internal.librarydirfull, settings->core.librarydir, settings->internal.datadirfull);
 
-    settings_get_by_name_id("internal.basedirfull", settings->internal.overlayNumber)->ptr = &settings->internal.basedirfull;
-    settings_get_by_name_id("internal.certdirfull", settings->internal.overlayNumber)->ptr = &settings->internal.certdirfull;
-    settings_get_by_name_id("internal.configdirfull", settings->internal.overlayNumber)->ptr = &settings->internal.configdirfull;
-    settings_get_by_name_id("internal.contentdirrel", settings->internal.overlayNumber)->ptr = &settings->internal.contentdirrel;
-    settings_get_by_name_id("internal.contentdirfull", settings->internal.overlayNumber)->ptr = &settings->internal.contentdirfull;
-    settings_get_by_name_id("internal.librarydirfull", settings->internal.overlayNumber)->ptr = &settings->internal.librarydirfull;
-    settings_get_by_name_id("internal.datadirfull", settings->internal.overlayNumber)->ptr = &settings->internal.datadirfull;
-    settings_get_by_name_id("internal.wwwdirfull", settings->internal.overlayNumber)->ptr = &settings->internal.wwwdirfull;
-    settings_get_by_name_id("internal.firmwaredirfull", settings->internal.overlayNumber)->ptr = &settings->internal.firmwaredirfull;
-    settings_get_by_name_id("internal.cachedirfull", settings->internal.overlayNumber)->ptr = &settings->internal.cachedirfull;
-
     osFreeMem(tmpPath);
 }
 
