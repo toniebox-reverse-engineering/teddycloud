@@ -501,16 +501,16 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
 
 static void settings_generate_internal_dirs(settings_t *settings)
 {
-    free(settings->internal.basedirfull);
-    free(settings->internal.certdirfull);
-    free(settings->internal.configdirfull);
-    free(settings->internal.contentdirrel);
-    free(settings->internal.contentdirfull);
-    free(settings->internal.librarydirfull);
-    free(settings->internal.datadirfull);
-    free(settings->internal.wwwdirfull);
-    free(settings->internal.firmwaredirfull);
-    free(settings->internal.cachedirfull);
+    osFreeMem(settings->internal.basedirfull);
+    osFreeMem(settings->internal.certdirfull);
+    osFreeMem(settings->internal.configdirfull);
+    osFreeMem(settings->internal.contentdirrel);
+    osFreeMem(settings->internal.contentdirfull);
+    osFreeMem(settings->internal.librarydirfull);
+    osFreeMem(settings->internal.datadirfull);
+    osFreeMem(settings->internal.wwwdirfull);
+    osFreeMem(settings->internal.firmwaredirfull);
+    osFreeMem(settings->internal.cachedirfull);
 
     settings->internal.basedirfull = osAllocMem(256);
     settings->internal.certdirfull = osAllocMem(256);
@@ -541,7 +541,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
 
     settings_resolve_dir(&settings->internal.librarydirfull, settings->core.librarydir, settings->internal.datadirfull);
 
-    free(tmpPath);
+    osFreeMem(tmpPath);
 }
 
 static void settings_changed()
@@ -966,7 +966,7 @@ static error_t settings_load_ovl(bool overlay)
                             TRACE_DEBUG("%s=%f\r\n", opt->option_name, *((float *)opt->ptr));
                             break;
                         case TYPE_STRING:
-                            free(*((char **)opt->ptr));
+                            osFreeMem(*((char **)opt->ptr));
                             *((char **)opt->ptr) = strdup(value_str);
                             TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((char **)opt->ptr));
                             break;
@@ -1426,7 +1426,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
 
     if (old_ptr)
     {
-        free(old_ptr);
+        osFreeMem(old_ptr);
     }
 
     return true;
