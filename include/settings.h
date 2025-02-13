@@ -133,6 +133,8 @@ typedef struct
     bool slap_enabled;
     bool slap_back_left;
     uint32_t led;
+    uint32_t field2;
+    uint32_t field6;
 } settings_toniebox_t;
 
 typedef struct
