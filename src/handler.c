@@ -328,6 +328,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         {
             TonieFreshnessCheckResponse *freshResp = (TonieFreshnessCheckResponse *)ctx->customData;
             TonieFreshnessCheckResponse *freshRespCloud = tonie_freshness_check_response__unpack(NULL, ctx->bufferLen, (const uint8_t *)ctx->buffer);
+
             if (ctx->client_ctx->settings->toniebox.overrideCloud)
             {
                 setTonieboxSettings(freshResp, ctx->client_ctx->settings);
@@ -341,6 +342,23 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 freshResp->led = freshRespCloud->led;
                 freshResp->field2 = freshRespCloud->field2;
                 freshResp->field6 = freshRespCloud->field6;
+            }
+            TRACE_INFO("FreshnessCheck data from cloud / to box\r\n");
+            TRACE_INFO(" max_vol_spk: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->max_vol_spk, freshResp->max_vol_spk);
+            TRACE_INFO(" max_vol_hdp: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->max_vol_hdp, freshResp->max_vol_hdp);
+            TRACE_INFO(" slap_en: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->slap_en, freshResp->slap_en);
+            TRACE_INFO(" slap_dir: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->slap_dir, freshResp->slap_dir);
+            TRACE_INFO(" led: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->led, freshResp->led);
+            TRACE_INFO(" field2: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->field2, freshResp->field2);
+            TRACE_INFO(" field6: %" PRIu32 " / %" PRIu32 "\r\n", freshRespCloud->field6, freshResp->field6);
+
+            if (freshRespCloud->field2 != 7)
+            {
+                TRACE_WARNING("Field 2 has not the expected value 7. Value=%" PRIu32 "\r\n", freshRespCloud->field2);
+            }
+            if (freshRespCloud->field6 != 1)
+            {
+                TRACE_WARNING("Field 6 has not the expected value 1. Value=%" PRIu32 "\r\n", freshRespCloud->field6);
             }
 
             for (size_t i = 0; i < freshRespCloud->n_tonie_marked; i++)
