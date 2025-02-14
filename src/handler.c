@@ -464,8 +464,10 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->slap_en = settings->toniebox.slap_enabled;
     freshResp->slap_dir = settings->toniebox.slap_back_left;
     freshResp->led = settings->toniebox.led;
-    freshResp->field2 = settings->toniebox.field2;
-    freshResp->field6 = settings->toniebox.field6;
+    if (settings->toniebox.overrideFields) {
+        freshResp->field2 = settings->toniebox.field2;
+        freshResp->field6 = settings->toniebox.field6;
+    }
 }
 
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize)
