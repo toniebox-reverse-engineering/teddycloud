@@ -8,4 +8,4 @@ assignees: ''
 ---
 
 **This is no place for general problems installing or using teddyCloud**
-Please use our telegram or our forum for that.  Otherwise, it will be closed immediately!
+Please use our telegram or our forum for that.  Otherwise, it will be closed immediately! #autocloseme
