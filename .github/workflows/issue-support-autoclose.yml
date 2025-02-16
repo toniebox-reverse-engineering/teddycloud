@@ -1,0 +1,31 @@
+name: Auto-Close Support Issues
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+jobs:
+  check-issue-content:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check for closure triggers
+        id: check-content
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body;
+            const patterns = [/Otherwise, it will be closed immediately!/i, /#autocloseme/i];
+            const shouldClose = patterns.some(pattern => pattern.test(body));
+            return shouldClose;
+          result-encoding: string
+
+      - name: Close issue if triggered
+        if: steps.check-content.outputs.result == 'true'
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
+            -f state='closed' \
+            -F state_reason='completed'
