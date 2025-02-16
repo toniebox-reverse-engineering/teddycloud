@@ -21,6 +21,8 @@ jobs:
           result-encoding: string
 
       - name: Close issue if triggered
+        env:
+          GH_TOKEN: ${{ github.token }}
         if: steps.check-content.outputs.result == 'true'
         run: |
           gh api \
