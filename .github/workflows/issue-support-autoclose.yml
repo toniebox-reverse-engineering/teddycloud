@@ -25,5 +25,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         if: steps.check-content.outputs.result == 'true'
         run: |
-          gh issue close ${{ github.event.issue.number }} --comment "This issue has been automatically closed due to detected #autocloseme."
-          gh issue lock ${{ github.event.issue.number }} --reason resolved
+          # Close the issue
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
+            -f state='closed' \
+            -F state_reason='completed'
+
+          # Add a comment
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            -f body='This issue has been automatically closed due to detected content #autocloseme.'
+
+          # Lock the issue
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock \
+            -f lock_reason='resolved'
