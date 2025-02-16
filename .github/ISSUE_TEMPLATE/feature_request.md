@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **This is no place for general problems installing or using teddyCloud**
-Please use our telegram or our forum for that. If you are sure, you want to create a feature request, please remove this section. Otherwise, it will be closed immediately!
+Please use our telegram or our forum for that. If you are sure, you want to create a feature request, please remove this section. Otherwise, it will be closed immediately! #autocloseme
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
