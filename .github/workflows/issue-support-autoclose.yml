@@ -25,9 +25,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         if: steps.check-content.outputs.result == 'true'
         run: |
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
-            -f state='closed' \
-            -F state_reason='completed'
+          gh issue close ${{ github.event.issue.number }} --comment "This issue has been automatically closed due to detected #autocloseme."
+          gh issue lock ${{ github.event.issue.number }} --reason resolved
