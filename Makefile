@@ -69,11 +69,11 @@ CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
 endif
 endif
 
-#ifeq ($(build_os_id),"ubuntu")
-#ifeq ($(build_arch_bits),32)
-#CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-#endif
-#endif
+ifeq ($(build_os_id),"ubuntu")
+ifeq ($(build_arch_bits),32)
+CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
+endif
+endif
 
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
 ifeq ($(build_gitTagPrefix),tc)
