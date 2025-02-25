@@ -88,6 +88,7 @@ void tbs_playback(client_ctx_t *client_ctx, toniebox_state_playback_t playback)
 
         sse_sendEvent("playback", "stopped", true);
         mqtt_sendBoxEvent("Playback", "OFF", client_ctx);
+        mqtt_sendBoxEvent("TagValid", "", client_ctx);
         mqtt_sendBoxEvent("ContentAudioId", "", client_ctx);
         mqtt_sendBoxEvent("ContentTitle", "", client_ctx);
         char *url = custom_asprintf("%s/img_empty.png", settings_get_string("core.host_url"));
@@ -97,6 +98,7 @@ void tbs_playback(client_ctx_t *client_ctx, toniebox_state_playback_t playback)
     default:
         break;
     }
+    mqtt_sendBoxEvent("TagInvalid", "", client_ctx);
 }
 
 void tbs_playback_file(client_ctx_t *client_ctx, char *filepath)
