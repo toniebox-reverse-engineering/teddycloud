@@ -181,6 +181,9 @@ typedef struct
     uint64_t lastEarpress;
     bool wasDoubleEarpress;
     uint32_t multipressTime;
+
+    char *prodDomain;
+    char *rtnlDomain;
 } settings_internal_rtnl_t;
 
 typedef struct

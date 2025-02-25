@@ -167,6 +167,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_UNSIGNED("internal.rtnl.lastEarpress", &settings->internal.rtnl.lastEarpress, 0, 0, UINT64_MAX, "Timestamp of the last pressed ear", LEVEL_NONE)
     OPTION_INTERNAL_BOOL("internal.rtnl.wasDoubleEarpress", &settings->internal.rtnl.wasDoubleEarpress, FALSE, "Was double Earpress?", LEVEL_NONE)
     OPTION_INTERNAL_UNSIGNED("internal.rtnl.multipressTime", &settings->internal.rtnl.multipressTime, 300, 0, UINT16_MAX, "Multipress time", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.rtnl.prodDomain", &settings->internal.rtnl.prodDomain, "", "prod domain sent by the box", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.rtnl.rtnlDomain", &settings->internal.rtnl.rtnlDomain, "", "rtnl domain sent by the box", LEVEL_NONE)
 
     OPTION_INTERNAL_STRING("internal.version.id", &settings->internal.version.id, "", "Version id", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.version.git_sha_short", &settings->internal.version.git_sha_short, "", "Short Git SHA-1 hash of the build version", LEVEL_NONE)
