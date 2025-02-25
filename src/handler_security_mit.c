@@ -44,7 +44,7 @@ bool isSecMitIncident(HttpConnection *connection)
     {
         TRACE_WARNING("Security incident detected, there is information, that you are hosting teddyCloud on a public instance\r\n");
         TRACE_WARNING("Please protect the webinterface on ports 80 / 443.\r\n");
-        TRACE_WARNING("Ohterwise, anybody could extract your box certificates and tonies. This could render your tonies and/or box useless\r\n");
+        TRACE_WARNING("Otherwise, anybody could extract your box certificates and tonies. This could render your tonies and/or box useless\r\n");
         TRACE_WARNING("Feel free to ask for help on https://forum.revvox.de or https://t.me/toniebox_reverse_engineering\r\n");
         settings->internal.security_mit.incident = true;
     }
