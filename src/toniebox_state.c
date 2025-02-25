@@ -52,7 +52,7 @@ void tbs_tag_unplaced(client_ctx_t *client_ctx, uint64_t uid, bool valid)
     osSprintf((char *)cuid, "-%016" PRIX64 "", (int64_t)uid);
 
     mqtt_sendBoxEvent(valid ? "TagValid" : "TagInvalid", cuid, client_ctx);
-    mqtt_sendBoxEvent(!valid ? "TagValid" : "TagInvalid", "-", client_ctx);
+    mqtt_sendBoxEvent(!valid ? "TagValid" : "TagInvalid", "", client_ctx);
 }
 
 void tbs_knock(client_ctx_t *client_ctx, bool forward)
