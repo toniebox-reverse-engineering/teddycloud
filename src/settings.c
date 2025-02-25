@@ -128,6 +128,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("security_mit.onCrawler", &settings->security_mit.onCrawler, TRUE, "Detect crawlers", "Lock/Warn, if crawler is detected (User-Agent).", LEVEL_EXPERT)
     // OPTION_BOOL("security_mit.onExternal", &settings->security_mit.onExternal, TRUE, "Detect external access", "Lock/Warn, if external access is detected.", LEVEL_EXPERT)
     OPTION_BOOL("security_mit.onRobotsTxt", &settings->security_mit.onRobotsTxt, TRUE, "Detect robots.txt", "Lock/Warn, if robots.txt is accessed.", LEVEL_EXPERT)
+    OPTION_BOOL("security_mit.hardLock", &settings->security_mit.hardLock, FALSE, "Disable teddyCloud", "Disable teddyCloud due to ignored security warnings.", LEVEL_SECRET)
 
     OPTION_TREE_DESC("internal", "Internal", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.server.ca", &settings->internal.server.ca, "", "CA certificate data", LEVEL_SECRET)

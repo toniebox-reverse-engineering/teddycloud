@@ -309,6 +309,7 @@ typedef struct
     bool onCrawler;
     bool onExternal;
     bool onRobotsTxt;
+    bool hardLock;
 } settings_security_mit_t;
 
 typedef struct
