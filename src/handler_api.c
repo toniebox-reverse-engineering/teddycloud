@@ -686,6 +686,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
+                        cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
                         free_content_json(&contentJson);
                     }
                 }
