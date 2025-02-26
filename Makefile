@@ -186,7 +186,7 @@ LFLAGS_linux += -pthread -lm
 # for now enable extensive error checking
 # Add flags for extensive error checking if NO_SANITIZERS is not set to 1
 ifneq ($(NO_SANITIZERS),1)
-	CFLAGS_linux += -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer -DSANITIZER_CAN_USE_ALLOCATOR64=0
+	CFLAGS_linux += -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer
 	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 endif
 
