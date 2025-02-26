@@ -1370,11 +1370,13 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
 
     bool generate_certs = false;
     bool inject_ca = true;
+    char old_patch_host[32] = {0};
     char patch_host[32] = {0};
     char wifi_ssid[64] = {0};
     char wifi_pass[64] = {0};
     char filename[255] = {0};
     char mac[13] = {0};
+    osStrcpy(old_patch_host, "");
     osStrcpy(patch_host, "");
     osStrcpy(filename, "");
     osStrcpy(mac, "");
@@ -1387,6 +1389,11 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
     {
         TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
+    }
+
+    if (queryGet(queryString, "hostname_old", old_patch_host, sizeof(old_patch_host)))
+    {
+        TRACE_INFO("Patch hostnames with old hostname '%s'\r\n", old_patch_host);
     }
 
     if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
@@ -1448,6 +1455,12 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     {
         char *oldrtnl = "rtnl.bxcl.de";
         char *oldapi = "prod.de.tbs.toys";
+
+        if (osStrlen(old_patch_host) > 0) {
+            oldrtnl = old_patch_host;
+            oldapi = old_patch_host;
+        }
+
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
