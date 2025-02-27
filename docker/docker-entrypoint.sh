@@ -14,8 +14,13 @@ if [ -n "${DOCKER_TEST:-}" ]; then
 else
   while true
   do
-    echo "Running teddycloud..."
-    teddycloud
+    if [ -n "${STRACE:-}" ]; then
+      echo "Running teddycloud with strace..."
+      strace -t -T teddycloud
+    else 
+      echo "Running teddycloud..."
+      teddycloud
+    fi
     retVal=$?
     echo "teddycloud exited with code $retVal"
     if [ $retVal -ne -2 ]; then

@@ -19,7 +19,7 @@ FROM alpine:latest
 EXPOSE 80 443 8443
 
 # Install necessary runtime dependencies
-RUN apk --no-cache add ffmpeg curl ca-certificates bash
+RUN apk --no-cache add strace ffmpeg curl ca-certificates bash
 
 # Update CA certificates
 RUN update-ca-certificates
