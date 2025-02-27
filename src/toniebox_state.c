@@ -39,7 +39,7 @@ void tbs_tag_placed(client_ctx_t *client_ctx, uint64_t uid, bool valid)
     mqtt_sendBoxEvent(!valid ? "TagValid" : "TagInvalid", "", client_ctx);
 }
 
-void tbs_tag_unplaced(client_ctx_t *client_ctx, uint64_t uid, bool valid)
+void tbs_tag_removed(client_ctx_t *client_ctx, uint64_t uid, bool valid)
 {
     client_ctx->state->tag.uid = uid;
     client_ctx->state->tag.valid = valid;
