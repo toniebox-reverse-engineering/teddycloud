@@ -26,17 +26,41 @@ jobs:
             console.log(`Repository: ${owner}/${repo}`);
             
             try {
-              console.log('Fetching collaborators...');
-              const { data: collaborators } = await github.rest.repos.listCollaborators({
-                owner: owner,
-                repo: repo,
-                permission: 'push'
-              });
+              // Check if owner is an organization
+              console.log('Checking if owner is an organization...');
+              let isOrg = false;
+              try {
+                await github.rest.orgs.get({ org: owner });
+                isOrg = true;
+                console.log(`${owner} is an organization.`);
+              } catch (error) {
+                if (error.status === 404) {
+                  console.log(`${owner} is not an organization, assuming it's a user.`);
+                } else {
+                  throw error;
+                }
+              }
               
-              console.log('Collaborators with push access:');
-              collaborators.forEach(c => console.log(` - ${c.login}`));
+              // Get collaborators or org members with push access
+              let usersWithPushAccess = [];
+              if (isOrg) {
+                console.log('Fetching organization members...');
+                const { data: members } = await github.rest.orgs.listMembers({ org: owner });
+                usersWithPushAccess = members.map(m => m.login);
+              } else {
+                console.log('Fetching repository collaborators...');
+                const { data: collaborators } = await github.rest.repos.listCollaborators({
+                  owner: owner,
+                  repo: repo,
+                  permission: 'push'
+                });
+                usersWithPushAccess = collaborators.map(c => c.login);
+              }
               
-              const canPush = collaborators.some(collaborator => collaborator.login === creator);
+              console.log('Users with push access:');
+              usersWithPushAccess.forEach(u => console.log(` - ${u}`));
+              
+              const canPush = usersWithPushAccess.includes(creator);
               console.log(`Can creator push? ${canPush}`);
               
               if (canPush) {
