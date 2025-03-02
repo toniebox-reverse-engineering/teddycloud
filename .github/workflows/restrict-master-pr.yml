@@ -31,7 +31,7 @@ jobs:
               
               const canPush = collaborators.some(collaborator => collaborator.login === creator);
               
-              if (!canPush) {
+              if (canPush) {
                 await github.rest.issues.createComment({
                   owner: owner,
                   repo: repo,
