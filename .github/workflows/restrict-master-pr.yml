@@ -1,0 +1,53 @@
+name: Restrict PRs to Master
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [master]
+
+jobs:
+  check_pr_creator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR creator's permissions
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            const repo = context.repo.repo;
+            const owner = context.repo.owner;
+            
+            try {
+              await github.rest.repos.getBranchProtection({
+                owner: owner,
+                repo: repo,
+                branch: 'master'
+              });
+              
+              const { data: collaborators } = await github.rest.repos.listCollaborators({
+                owner: owner,
+                repo: repo,
+                permission: 'push'
+              });
+              
+              const canPush = collaborators.some(collaborator => collaborator.login === creator);
+              
+              if (!canPush) {
+                await github.rest.issues.createComment({
+                  owner: owner,
+                  repo: repo,
+                  issue_number: context.issue.number,
+                  body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+                });
+                
+                await github.rest.pulls.update({
+                  owner: owner,
+                  repo: repo,
+                  pull_number: context.issue.number,
+                  state: 'closed'
+                });
+              }
+            } catch (error) {
+              console.error('Error:', error);
+            }
