@@ -26,41 +26,16 @@ jobs:
             console.log(`Repository: ${owner}/${repo}`);
             
             try {
-              // Check if owner is an organization
-              console.log('Checking if owner is an organization...');
-              let isOrg = false;
-              try {
-                await github.rest.orgs.get({ org: owner });
-                isOrg = true;
-                console.log(`${owner} is an organization.`);
-              } catch (error) {
-                if (error.status === 404) {
-                  console.log(`${owner} is not an organization, assuming it's a user.`);
-                } else {
-                  throw error;
-                }
-              }
+              console.log('Checking creator\'s permission level...');
+              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: owner,
+                repo: repo,
+                username: creator
+              });
               
-              // Get collaborators or org members with push access
-              let usersWithPushAccess = [];
-              if (isOrg) {
-                console.log('Fetching organization members...');
-                const { data: members } = await github.rest.orgs.listMembers({ org: owner });
-                usersWithPushAccess = members.map(m => m.login);
-              } else {
-                console.log('Fetching repository collaborators...');
-                const { data: collaborators } = await github.rest.repos.listCollaborators({
-                  owner: owner,
-                  repo: repo,
-                  permission: 'push'
-                });
-                usersWithPushAccess = collaborators.map(c => c.login);
-              }
+              console.log(`Creator's permission level: ${permission.permission}`);
               
-              console.log('Users with push access:');
-              usersWithPushAccess.forEach(u => console.log(` - ${u}`));
-              
-              const canPush = usersWithPushAccess.includes(creator);
+              const canPush = ['admin', 'write'].includes(permission.permission);
               console.log(`Can creator push? ${canPush}`);
               
               if (canPush) {
@@ -85,4 +60,22 @@ jobs:
             } catch (error) {
               console.error('Error occurred:');
               console.error(error);
+              
+              if (error.status === 404) {
+                console.log('Creator is not a collaborator. Closing PR...');
+                await github.rest.issues.createComment({
+                  owner: owner,
+                  repo: repo,
+                  issue_number: context.issue.number,
+                  body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+                });
+                
+                await github.rest.pulls.update({
+                  owner: owner,
+                  repo: repo,
+                  pull_number: context.issue.number,
+                  state: 'closed'
+                });
+                console.log('PR closed and comment added.');
+              }
             }
