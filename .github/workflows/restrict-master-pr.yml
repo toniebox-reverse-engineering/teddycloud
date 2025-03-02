@@ -40,25 +40,22 @@ jobs:
               
               if (!canPush) {
                 console.log('Creator does not have push access.');
-                console.log('false');
+                return false;
               } else {
                 console.log('Creator has push access.');
-                console.log('true');
+                return true;
               }
             } catch (error) {
               console.error('Error occurred:', error);
               if (error.status === 404) {
                 console.log('Creator is not a collaborator.');
                 console.log('false');
+                return false;
               }
             }
 
-      - name: Capture output
-        run: |
-          echo "result=$(tail -n 1 <<< \"$(cat /dev/stdin)\")" >> $GITHUB_ENV
-
       - name: Close PR and add comment
-        if: env.result == 'false'
+        if: env.result == false
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
