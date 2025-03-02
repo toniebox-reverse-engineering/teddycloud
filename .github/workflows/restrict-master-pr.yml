@@ -7,6 +7,7 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
   contents: read
 
 jobs:
@@ -40,12 +41,16 @@ jobs:
               
               if (!canPush) {
                 console.log('Creator does not have push access. Closing PR...');
-                await github.rest.issues.createComment({
-                  owner: owner,
-                  repo: repo,
-                  issue_number: context.issue.number,
-                  body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
-                });
+                try {
+                  await github.rest.issues.createComment({
+                    owner: owner,
+                    repo: repo,
+                    issue_number: context.issue.number,
+                    body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+                  });
+                } catch (error) {
+                  console.error('Failed to create comment:', error);
+                }
                 
                 await github.rest.pulls.update({
                   owner: owner,
@@ -53,22 +58,24 @@ jobs:
                   pull_number: context.issue.number,
                   state: 'closed'
                 });
-                console.log('PR closed and comment added.');
+                console.log('PR closed.');
               } else {
                 console.log('Creator has push access. No action taken.');
               }
             } catch (error) {
-              console.error('Error occurred:');
-              console.error(error);
-              
+              console.error('Error occurred:', error);
               if (error.status === 404) {
                 console.log('Creator is not a collaborator. Closing PR...');
-                await github.rest.issues.createComment({
-                  owner: owner,
-                  repo: repo,
-                  issue_number: context.issue.number,
-                  body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
-                });
+                try {
+                  await github.rest.issues.createComment({
+                    owner: owner,
+                    repo: repo,
+                    issue_number: context.issue.number,
+                    body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+                  });
+                } catch (error) {
+                  console.error('Failed to create comment:', error);
+                }
                 
                 await github.rest.pulls.update({
                   owner: owner,
@@ -76,6 +83,6 @@ jobs:
                   pull_number: context.issue.number,
                   state: 'closed'
                 });
-                console.log('PR closed and comment added.');
+                console.log('PR closed.');
               }
             }
