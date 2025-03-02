@@ -7,9 +7,7 @@ on:
 
 jobs:
   check_pr_creator:
-    permissions:
-      pull-requests: write
-      issues: write
+    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
