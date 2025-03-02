@@ -60,7 +60,7 @@ jobs:
         run: echo "${{steps.check-pr.outputs.result}}"
         
       - name: Close PR and add comment
-        if: steps.check-pr.outputs.result == false
+        if: steps.check-pr.outputs.result == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
