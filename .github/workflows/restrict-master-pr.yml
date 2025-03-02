@@ -1,10 +1,14 @@
 name: Restrict PRs to Master
-
+  
 on:
   pull_request:
     types: [opened, reopened]
     branches: [master]
-
+    
+permissions:
+  pull-requests: write
+  contents: read
+    
 jobs:
   check_pr_creator:
     runs-on: ubuntu-latest
