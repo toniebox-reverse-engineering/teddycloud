@@ -14,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check PR creator's permissions
+        id: check-pr
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
+          result-encoding: string
           script: |
             const creator = context.payload.pull_request.user.login;
             const repo = context.repo.repo;
@@ -53,9 +55,12 @@ jobs:
                 return false;
               }
             }
-
+            
+      - name: Get result
+        run: echo "${{steps.check-pr.outputs.result}}"
+        
       - name: Close PR and add comment
-        if: env.result == false
+        if: steps.check-pr.outputs.result == false
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
