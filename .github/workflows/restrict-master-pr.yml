@@ -22,16 +22,25 @@ jobs:
             const repo = context.repo.repo;
             const owner = context.repo.owner;
             
+            console.log(`PR created by: ${creator}`);
+            console.log(`Repository: ${owner}/${repo}`);
+            
             try {
+              console.log('Fetching collaborators...');
               const { data: collaborators } = await github.rest.repos.listCollaborators({
                 owner: owner,
                 repo: repo,
                 permission: 'push'
               });
               
+              console.log('Collaborators with push access:');
+              collaborators.forEach(c => console.log(` - ${c.login}`));
+              
               const canPush = collaborators.some(collaborator => collaborator.login === creator);
+              console.log(`Can creator push? ${canPush}`);
               
               if (canPush) {
+                console.log('Creator does not have push access. Closing PR...');
                 await github.rest.issues.createComment({
                   owner: owner,
                   repo: repo,
@@ -45,7 +54,11 @@ jobs:
                   pull_number: context.issue.number,
                   state: 'closed'
                 });
+                console.log('PR closed and comment added.');
+              } else {
+                console.log('Creator has push access. No action taken.');
               }
             } catch (error) {
-              console.error('Error:', error);
+              console.error('Error occurred:');
+              console.error(error);
             }
