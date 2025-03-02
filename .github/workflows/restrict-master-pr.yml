@@ -64,5 +64,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh auth login --with-token $GH_TOKEN
-          gh pr close --comment "Please use the develop branch as base! This PR will be closed, as the master is only used for releases." ${{ github.event.pull_request.number }}
+          # Close the PR
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
+            -f state='closed'
+
+          # Add a comment
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            -f body='Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+
+          # Lock the conversation (Note: PRs don't have a direct lock API like issues)
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/lock \
+            -f lock_reason='resolved'
