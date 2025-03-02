@@ -5,9 +5,12 @@ on:
     types: [opened, reopened]
     branches: [master]
 
+permissions:
+  issues: write
+  pull-requests: write
+  
 jobs:
   check_pr_creator:
-    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -28,6 +31,17 @@ jobs:
             echo "::set-output name=result::true"
           fi
 
+      - name: Comment PR
+        if: steps.check_permissions.outputs.result == 'false'
+        run: gh issue comment "$NUMBER" --body "$COMMENT" --repo "$GH_REPO"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT: >
+            Please use the develop branch as base! 
+            This PR will be closed, as the master is only used for releases.
+            
       - name: Close PR
         if: steps.check_permissions.outputs.result == 'false'
         run: gh pr close "$NUMBER" --repo "$GH_REPO"
