@@ -4,13 +4,13 @@ on:
   pull_request:
     types: [opened, reopened]
     branches: [master]
-
-permissions:
-  issues: write
-  pull-requests: write
   
 jobs:
   check_pr_creator:
+    permissions:
+      issues: write
+      pull-requests: write
+  
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,14 +33,15 @@ jobs:
 
       - name: Comment PR
         if: steps.check_permissions.outputs.result == 'false'
-        run: gh issue comment "$NUMBER" --body "$COMMENT" --repo "$GH_REPO"
+        run: |
+          # Add a comment
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            -f body='Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.pull_request.number }}
-          COMMENT: >
-            Please use the develop branch as base! 
-            This PR will be closed, as the master is only used for releases.
             
       - name: Close PR
         if: steps.check_permissions.outputs.result == 'false'
