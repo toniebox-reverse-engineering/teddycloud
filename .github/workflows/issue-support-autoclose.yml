@@ -1,48 +1,47 @@
-name: Auto-Close Support Issues
+name: Restrict PRs to Master
+
 on:
-  issues:
-    types: [opened, edited, reopened]
+  pull_request:
+    types: [opened, reopened]
+    branches: [master]
+
+permissions:
+  pull-requests: write
+  issues: write
 
 jobs:
-  check-issue-content:
+  check_pr_creator:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - name: Check for closure triggers
-        id: check-content
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = context.payload.issue.body;
-            const patterns = [/Otherwise, it will be closed immediately!/i, /#autocloseme/i];
-            const shouldClose = patterns.some(pattern => pattern.test(body));
-            return shouldClose;
-          result-encoding: string
+      - name: Check PR creator's permissions
+        id: check_permissions
+        run: |
+          curl -s -X GET \
+          https://api.github.com/repos/${GITHUB_REPOSITORY}/collaborators/${GITHUB_ACTOR}/permission \
+          -H 'Authorization: Bearer $GITHUB_TOKEN' \
+          -H 'Accept: application/vnd.github.v3+json' \
+          | jq '.permission' > permission.txt 2>/dev/null || echo "read" > permission.txt
 
-      - name: Close issue if triggered
+          if [ "$(cat permission.txt)" != "admin" ] && [ "$(cat permission.txt)" != "write" ]; then
+            echo "::set-output name=result::false"
+          else
+            echo "::set-output name=result::true"
+          fi
+
+      - name: Close PR
+        if: steps.check_permissions.outputs.result == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-        if: steps.check-content.outputs.result == 'true'
         run: |
-          # Close the issue
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }} \
-            -f state='closed' \
-            -F state_reason='completed'
+          gh pr close --comment "Please use the develop branch as base! This PR will be closed, as the master is only used for releases." ${{ github.event.pull_request.number }}
 
-          # Add a comment
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
-            -f body='This issue has been automatically closed due to detected content #autocloseme.'
-
-          # Lock the issue
+      - name: Lock conversation
+        if: steps.check_permissions.outputs.result == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh api \
             --method PUT \
             -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/lock \
+            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/lock \
             -f lock_reason='resolved'
