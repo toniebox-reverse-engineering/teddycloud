@@ -13,74 +13,53 @@ jobs:
   check_pr_creator:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Check PR creator's permissions
-        id: check-pr
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          result-encoding: string
-          script: |
-            const creator = context.payload.pull_request.user.login;
-            const repo = context.repo.repo;
-            const owner = context.repo.owner;
-            
-            console.log(`PR created by: ${creator}`);
-            console.log(`Repository: ${owner}/${repo}`);
-            
-            try {
-              console.log('Checking creator\'s permission level...');
-              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
-                owner: owner,
-                repo: repo,
-                username: creator
-              });
-              
-              console.log(`Creator's permission level: ${permission.permission}`);
-              
-              const canPush = ['admin', 'write'].includes(permission.permission);
-              console.log(`Can creator push? ${canPush}`);
-              
-              if (!canPush) {
-                console.log('Creator does not have push access.');
-                return false;
-              } else {
-                console.log('Creator has push access.');
-                return true;
-              }
-            } catch (error) {
-              console.error('Error occurred:', error);
-              if (error.status === 404) {
-                console.log('Creator is not a collaborator.');
-                console.log('false');
-                return false;
-              }
-            }
-            
-      - name: Get result
-        run: echo "${{steps.check-pr.outputs.result}}"
-        
-      - name: Close PR and add comment
-        if: steps.check-pr.outputs.result == 'false'
+        id: check_permissions
+        run: |
+          curl -s -X GET \
+          https://api.github.com/repos/${GITHUB_REPOSITORY}/collaborators/${GITHUB_ACTOR}/permission \
+          -H 'Authorization: Bearer $GITHUB_TOKEN' \
+          -H 'Accept: application/vnd.github.v3+json' \
+          | jq '.permission' > permission.txt 2>/dev/null || echo "read" > permission.txt
+
+          if [ "$(cat permission.txt)" != "admin" ] && [ "$(cat permission.txt)" != "write" ]; then
+            echo "::set-output name=result::false"
+          else
+            echo "::set-output name=result::true"
+          fi
+
+      - name: Close PR
+        if: steps.check_permissions.outputs.result == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Close the PR
           gh api \
             --method PATCH \
             -H "Accept: application/vnd.github+json" \
             /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
             -f state='closed'
 
-          # Add a comment
+      - name: Add comment
+        if: steps.check_permissions.outputs.result == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            -f body='Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
+            -f body='Please use the develop branch as base! This PR will be closed, as the master is only used for releases.' || echo "Failed to add comment, continuing..."
 
-          # Lock the conversation (Note: PRs don't have a direct lock API like issues)
+      - name: Lock conversation
+        if: steps.check_permissions.outputs.result == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh api \
             --method PUT \
             -H "Accept: application/vnd.github+json" \
             /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/lock \
-            -f lock_reason='resolved'
+            -f lock_reason='resolved' || echo "Failed to lock conversation, continuing..."
