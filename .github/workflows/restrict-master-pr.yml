@@ -38,7 +38,7 @@ jobs:
               const canPush = ['admin', 'write'].includes(permission.permission);
               console.log(`Can creator push? ${canPush}`);
               
-              if (canPush) {
+              if (!canPush) {
                 console.log('Creator does not have push access. Closing PR...');
                 await github.rest.issues.createComment({
                   owner: owner,
