@@ -1,9 +1,10 @@
 name: Restrict PRs to Master
-
+# Doesnt work, permissions?! 
+# I won't use a PAT for that!
 on:
-  pull_request:
-    types: [opened, reopened]
-    branches: [master]
+  #pull_request:
+  #  types: [opened, reopened]
+  #  branches: [master]
   
 jobs:
   check_pr_creator:
