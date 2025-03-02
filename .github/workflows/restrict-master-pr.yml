@@ -33,33 +33,11 @@ jobs:
 
       - name: Close PR
         if: steps.check_permissions.outputs.result == 'false'
+        run: gh pr close "$NUMBER" --comment "$COMMENT"
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
-            -f state='closed'
-
-      - name: Add comment
-        if: steps.check_permissions.outputs.result == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            -f body='Please use the develop branch as base! This PR will be closed, as the master is only used for releases.' || echo "Failed to add comment, continuing..."
-
-      - name: Lock conversation
-        if: steps.check_permissions.outputs.result == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            --method PUT \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/lock \
-            -f lock_reason='resolved' || echo "Failed to lock conversation, continuing..."
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.number }}
+          COMMENT: >
+            Please use the develop branch as base! 
+            This PR will be closed, as the master is only used for releases.
