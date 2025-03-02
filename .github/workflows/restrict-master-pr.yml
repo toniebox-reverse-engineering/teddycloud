@@ -35,7 +35,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.number }}
+          NUMBER: ${{ github.event.pull_request.number }}
           COMMENT: >
             Please use the develop branch as base! 
             This PR will be closed, as the master is only used for releases.
