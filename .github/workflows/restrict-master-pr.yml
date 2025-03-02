@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check PR creator's permissions
-        id: check_permissions
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -41,21 +40,25 @@ jobs:
               
               if (!canPush) {
                 console.log('Creator does not have push access.');
-                return 'false';
+                console.log('false');
               } else {
                 console.log('Creator has push access.');
-                return 'true';
+                console.log('true');
               }
             } catch (error) {
               console.error('Error occurred:', error);
               if (error.status === 404) {
                 console.log('Creator is not a collaborator.');
-                return 'false';
+                console.log('false');
               }
             }
 
+      - name: Capture output
+        run: |
+          echo "result=$(tail -n 1 <<< \"$(cat /dev/stdin)\")" >> $GITHUB_ENV
+
       - name: Close PR and add comment
-        if: steps.check_permissions.outputs.result == 'false'
+        if: env.result == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
