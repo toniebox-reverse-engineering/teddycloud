@@ -31,6 +31,14 @@ jobs:
 
       - name: Close PR
         if: steps.check_permissions.outputs.result == 'false'
+        run: gh pr close "$NUMBER"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+            
+      - name: Close Comment PR
+        if: steps.check_permissions.outputs.result == 'false'
         run: gh pr close "$NUMBER" --comment "$COMMENT"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
