@@ -5,12 +5,10 @@ on:
     types: [opened, reopened]
     branches: [master]
 
-permissions:
-  pull-requests: write
-  issues: write
-
 jobs:
   check_pr_creator:
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
