@@ -9,6 +9,7 @@ jobs:
   check_pr_creator:
     permissions:
       pull-requests: write
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -31,7 +32,7 @@ jobs:
 
       - name: Close PR
         if: steps.check_permissions.outputs.result == 'false'
-        run: gh pr close "$NUMBER"
+        run: gh pr close "$NUMBER" --repo "$GH_REPO"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -39,7 +40,7 @@ jobs:
             
       - name: Close Comment PR
         if: steps.check_permissions.outputs.result == 'false'
-        run: gh pr close "$NUMBER" --comment "$COMMENT"
+        run: gh pr close "$NUMBER" --comment "$COMMENT" --repo "$GH_REPO"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
