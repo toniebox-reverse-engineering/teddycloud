@@ -1,14 +1,14 @@
 name: Restrict PRs to Master
-  
+
 on:
   pull_request:
     types: [opened, reopened]
     branches: [master]
-    
+
 permissions:
   pull-requests: write
   contents: read
-    
+
 jobs:
   check_pr_creator:
     runs-on: ubuntu-latest
@@ -23,12 +23,6 @@ jobs:
             const owner = context.repo.owner;
             
             try {
-              await github.rest.repos.getBranchProtection({
-                owner: owner,
-                repo: repo,
-                branch: 'master'
-              });
-              
               const { data: collaborators } = await github.rest.repos.listCollaborators({
                 owner: owner,
                 repo: repo,
