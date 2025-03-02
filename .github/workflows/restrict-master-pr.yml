@@ -8,13 +8,13 @@ on:
 permissions:
   pull-requests: write
   issues: write
-  contents: read
 
 jobs:
   check_pr_creator:
     runs-on: ubuntu-latest
     steps:
       - name: Check PR creator's permissions
+        id: check_permissions
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -40,49 +40,24 @@ jobs:
               console.log(`Can creator push? ${canPush}`);
               
               if (!canPush) {
-                console.log('Creator does not have push access. Closing PR...');
-                try {
-                  await github.rest.issues.createComment({
-                    owner: owner,
-                    repo: repo,
-                    issue_number: context.issue.number,
-                    body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
-                  });
-                } catch (error) {
-                  console.error('Failed to create comment:', error);
-                }
-                
-                await github.rest.pulls.update({
-                  owner: owner,
-                  repo: repo,
-                  pull_number: context.issue.number,
-                  state: 'closed'
-                });
-                console.log('PR closed.');
+                console.log('Creator does not have push access.');
+                return 'false';
               } else {
-                console.log('Creator has push access. No action taken.');
+                console.log('Creator has push access.');
+                return 'true';
               }
             } catch (error) {
               console.error('Error occurred:', error);
               if (error.status === 404) {
-                console.log('Creator is not a collaborator. Closing PR...');
-                try {
-                  await github.rest.issues.createComment({
-                    owner: owner,
-                    repo: repo,
-                    issue_number: context.issue.number,
-                    body: 'Please use the develop branch as base! This PR will be closed, as the master is only used for releases.'
-                  });
-                } catch (error) {
-                  console.error('Failed to create comment:', error);
-                }
-                
-                await github.rest.pulls.update({
-                  owner: owner,
-                  repo: repo,
-                  pull_number: context.issue.number,
-                  state: 'closed'
-                });
-                console.log('PR closed.');
+                console.log('Creator is not a collaborator.');
+                return 'false';
               }
             }
+
+      - name: Close PR and add comment
+        if: steps.check_permissions.outputs.result == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth login --with-token $GH_TOKEN
+          gh pr close --comment "Please use the develop branch as base! This PR will be closed, as the master is only used for releases." ${{ github.event.pull_request.number }}
