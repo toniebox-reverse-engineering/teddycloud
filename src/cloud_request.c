@@ -267,6 +267,13 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
             // Create an HTTP request
             httpClientCreateRequest(&httpClientContext);
+            if (isCloud)
+            {
+                // Disable keep-alive for cloud requests.
+                // Quick and dirty solution for slow cloud communication https://github.com/toniebox-reverse-engineering/teddycloud/issues/310
+                httpClientContext.keepAlive = false;
+            }
+
             httpClientSetMethod(&httpClientContext, method);
             httpClientSetUri(&httpClientContext, uri);
             httpClientSetQueryString(&httpClientContext, queryString);

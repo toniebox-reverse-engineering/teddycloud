@@ -30,9 +30,9 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
     error_t error = NO_ERROR;
     osMemset(post_data, 0, buffer_size);
     size_t size;
-    if (buffer_size <= connection->request.byteCount)
+    if (buffer_size > 0 && buffer_size <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size  %zu bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %" PRIuSIZE " bytes\r\n", connection->request.byteCount, buffer_size);
         return ERROR_BUFFER_OVERFLOW;
     }
     error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
@@ -686,6 +686,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
+                        cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
                         free_content_json(&contentJson);
                     }
                 }
@@ -1370,11 +1371,13 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
 
     bool generate_certs = false;
     bool inject_ca = true;
+    char old_patch_host[32] = {0};
     char patch_host[32] = {0};
     char wifi_ssid[64] = {0};
     char wifi_pass[64] = {0};
     char filename[255] = {0};
     char mac[13] = {0};
+    osStrcpy(old_patch_host, "");
     osStrcpy(patch_host, "");
     osStrcpy(filename, "");
     osStrcpy(mac, "");
@@ -1387,6 +1390,11 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     if (queryGet(queryString, "hostname", patch_host, sizeof(patch_host)))
     {
         TRACE_INFO("Patch hostnames '%s'\r\n", patch_host);
+    }
+
+    if (queryGet(queryString, "hostname_old", old_patch_host, sizeof(old_patch_host)))
+    {
+        TRACE_INFO("Patch hostnames with old hostname '%s'\r\n", old_patch_host);
     }
 
     if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
@@ -1448,6 +1456,12 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     {
         char *oldrtnl = "rtnl.bxcl.de";
         char *oldapi = "prod.de.tbs.toys";
+
+        if (osStrlen(old_patch_host) > 0) {
+            oldrtnl = old_patch_host;
+            oldapi = old_patch_host;
+        }
+
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
@@ -1925,7 +1939,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     }
 
     char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         TRACE_ERROR("parsePostData failed with error %s\r\n", error2text(error));
@@ -2269,8 +2283,8 @@ error_t handleApiFileMove(HttpConnection *connection, const char_t *uri, const c
         return ERROR_FAILURE;
     }
 
-    char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    char_t post_data[POST_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -2610,8 +2624,8 @@ error_t handleApiContentJsonSet(HttpConnection *connection, const char_t *uri, c
         return error;
     }
 
-    char_t post_data[BODY_BUFFER_SIZE];
-    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    char_t post_data[POST_BUFFER_SIZE];
+    error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         osFreeMem(contentPath);
@@ -2977,8 +2991,8 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
 
 error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    char_t post_data[POST_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -3016,8 +3030,8 @@ error_t handleApiAuthLogout(HttpConnection *connection, const char_t *uri, const
 }
 error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    char_t post_data[BODY_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    char_t post_data[POST_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
@@ -3049,9 +3063,9 @@ error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *ur
         return ERROR_FAILURE;
     }
 
-    char_t post_data[BODY_BUFFER_SIZE];
+    char_t post_data[POST_BUFFER_SIZE];
     error_t error = ERROR_FILE_NOT_FOUND;
-    error = parsePostData(connection, post_data, BODY_BUFFER_SIZE);
+    error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
         return error;
