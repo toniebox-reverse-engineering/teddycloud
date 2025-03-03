@@ -212,6 +212,7 @@
         "date": "Datum",
         "delete": "Löschen",
         "deleteMultiple": "{{selectedRowCount}} markierte Zeilen löschen",
+        "downloadFile": "Download TAF als *.ogg",
         "encodeFiles": {
             "addFiles": "Dateien hinzufügen",
             "cancel": "Abbrechen",
@@ -899,6 +900,7 @@
             "connectToToniebox": "Toniebox zum Patchen verbinden",
             "connectToTonieboxConnectDebugPortText1": "Du kannst dafür einen speziellen Tag-Connector wie ",
             "connectToTonieboxConnectDebugPortText2": " verwenden oder alternativ dünne Drähte für die Verbindung nutzen.",
+            "connectToTonieboxConnectTableExplanation": "*Pin SOP2 der Toniebox sollte mit dem VCC der Toniebox überbrückt werden.",
             "connectToTonieboxConnectTableIntro": "Als Nächstes verbindest du den Debug-Port der Toniebox mit dem UART wie in der folgenden Tabelle beschrieben:",
             "connectToTonieboxIntro": "Du musst deinen UART mit dem Debug-Port verbinden. Beginne damit, den Debug-Port auf der unbestückten Seite der Platine (die Unterseite der Platine) zu lokalisieren. Das Layout des Debug-Ports ist im folgenden Bild dargestellt.",
             "connectToTonieboxLink": "Hier findest du die Verbindungsanleitung",
@@ -1153,7 +1155,7 @@
                 "extractingCertificatesSuccessfulDetails": "Zertifikate erfolgreich aus \"{{file}}\" extrahiert und in TeddyCloud gespeichert.",
                 "failedToCommunicate": "Kommunikation fehlgeschlagen:",
                 "failedToConnect": "Verbindung fehlgeschlagen:",
-                "flagPreviousHostname": "Das Flash-Image enthält einen zuvor festgelegten TeddyCloud-Hostname (WIP, wird derzeit nicht verarbeitet)",
+                "flagPreviousHostname": "Das Flash-Image enthält einen zuvor festgelegten TeddyCloud-Hostname",
                 "flash": "Flashen",
                 "flashDevice": "Flash-Gerät",
                 "flashEsp32": "ESP32 flashen",
@@ -1375,7 +1377,8 @@
             "no": "Nein",
             "tracklist": "Trackliste:",
             "valid": "Gültig:",
-            "yes": "Ja"
+            "yes": "Ja",
+            "download": "Download TAF als *.ogg"
         },
         "informationModal": {
             "hideTag": "Tonie/Tag ausblenden",
@@ -1440,8 +1443,8 @@
             "navigationTitle": "System Sounds",
             "title": "System Sounds"
         },
-        "tafHeaderOf": "TAF-Header von ",
         "tafHeaderInvalid": "Ungültige TAF",
+        "tafHeaderOf": "TAF-Header von ",
         "tap": {
             "navigationTitle": "WIP: Audio Playlists",
             "title": "WIP: Tonie Audio Playlists"

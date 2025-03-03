@@ -212,6 +212,7 @@
         "date": "Date",
         "delete": "Supprimer",
         "deleteMultiple": "{{selectedRowCount}} lignes sélectionnées à supprimer",
+        "downloadFile": "Télécharger TAF en *.ogg",
         "encodeFiles": {
             "addFiles": "Ajouter des fichiers",
             "cancel": "Annuler",
@@ -899,6 +900,7 @@
             "connectToToniebox": "Connecter la Toniebox pour le patchage",
             "connectToTonieboxConnectDebugPortText1": "Tu peux utiliser un connecteur Tag dédié comme ",
             "connectToTonieboxConnectDebugPortText2": " ou, alternativement, des fils fins pour la connexion.",
+            "connectToTonieboxConnectTableExplanation": "*La broche SOP2 de la Toniebox doit être pontée avec le VCC de la Toniebox.",
             "connectToTonieboxConnectTableIntro": "Ensuite, connecte le port de débogage de la Toniebox au UART comme décrit dans le tableau suivant :",
             "connectToTonieboxIntro": "Tu dois connecter ton UART au port de débogage. Commence par localiser le port de débogage sur la face non assemblée de la carte PCB, située en bas. Le schéma du port de débogage est montré dans l'image suivante.",
             "connectToTonieboxLink": "Trouve les instructions de connexion ici",
@@ -1153,7 +1155,7 @@
                 "extractingCertificatesSuccessfulDetails": "Certificats extraits avec succès depuis \"{{file}}\" et stockés dans TeddyCloud.",
                 "failedToCommunicate": "Échec de la communication :",
                 "failedToConnect": "Échec de la connexion :",
-                "flagPreviousHostname": "L'image flash contient un nom d'hôte TeddyCloud défini précédemment (WIP, non traité actuellement)",
+                "flagPreviousHostname": "L'image flash contient un nom d'hôte TeddyCloud défini précédemment",
                 "flash": "Flasher",
                 "flashDevice": "Périphérique flash",
                 "flashEsp32": "Flasher l'ESP32",
@@ -1375,7 +1377,8 @@
             "no": "Non",
             "tracklist": "Liste des pistes:",
             "valid": "Valide:",
-            "yes": "Oui"
+            "yes": "Oui",
+            "download": "Télécharger TAF en *.ogg"
         },
         "informationModal": {
             "hideTag": "Masquer le Tonie/Tag",
@@ -1440,8 +1443,8 @@
             "navigationTitle": "Sons du système",
             "title": "Sons du système"
         },
-        "tafHeaderOf": "En-tête TAF de ",
         "tafHeaderInvalid": "TAF invalide",
+        "tafHeaderOf": "En-tête TAF de ",
         "tap": {
             "navigationTitle": "WIP: Listes de lecture audio",
             "title": "WIP: Listes de lecture audio de Tonie"

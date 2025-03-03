@@ -212,6 +212,7 @@
         "date": "Fecha",
         "delete": "Eliminar",
         "deleteMultiple": "{{selectedRowCount}} filas seleccionadas para eliminar",
+        "downloadFile": "Descargar TAF como *.ogg",
         "encodeFiles": {
             "addFiles": "Agregar archivos",
             "cancel": "Cancelar",
@@ -899,6 +900,7 @@
             "connectToToniebox": "Conectar la Toniebox para parchar",
             "connectToTonieboxConnectDebugPortText1": "Puedes usar un conector Tag dedicado como ",
             "connectToTonieboxConnectDebugPortText2": " o alternativamente usar cables delgados para la conexión.",
+            "connectToTonieboxConnectTableExplanation": "*El pin SOP2 de la Toniebox debe estar puenteado con el VCC de la Toniebox.",
             "connectToTonieboxConnectTableIntro": "A continuación, conecta el puerto de depuración de la Toniebox con el UART como se describe en la siguiente tabla:",
             "connectToTonieboxIntro": "Necesitas conectar tu UART al puerto de depuración. Empieza localizando el puerto de depuración en la parte inferior de la PCB, en el lado no ensamblado. El diseño del puerto de depuración se muestra en la siguiente imagen.",
             "connectToTonieboxLink": "Encuentra las instrucciones de conexión aquí",
@@ -1153,7 +1155,7 @@
                 "extractingCertificatesSuccessfulDetails": "Certificados extraídos con éxito de \"{{file}}\" y almacenados en TeddyCloud.",
                 "failedToCommunicate": "Error de comunicación:",
                 "failedToConnect": "Error al conectar:",
-                "flagPreviousHostname": "La imagen de flash contiene un nombre de host de TeddyCloud establecido previamente (WIP, actualmente no procesado)",
+                "flagPreviousHostname": "La imagen de flash contiene un nombre de host de TeddyCloud establecido previamente",
                 "flash": "Flashear",
                 "flashDevice": "Flashear dispositivo",
                 "flashEsp32": "Flashear ESP32",
@@ -1375,7 +1377,8 @@
             "no": "No",
             "tracklist": "Lista de pistas:",
             "valid": "Válido:",
-            "yes": "Sí"
+            "yes": "Sí",
+            "download": "Descargar TAF como *.ogg"
         },
         "informationModal": {
             "hideTag": "Ocultar Tonie/Etiqueta",
@@ -1440,8 +1443,8 @@
             "navigationTitle": "Sonidos del sistema",
             "title": "Sonidos del sistema"
         },
-        "tafHeaderOf": "TAF-Header de ",
         "tafHeaderInvalid": "TAF no válido",
+        "tafHeaderOf": "TAF-Header de ",
         "tap": {
             "navigationTitle": "WIP: Listas de reproducción de audio",
             "title": "WIP: Listas de reproducción de audio de Tonie"
