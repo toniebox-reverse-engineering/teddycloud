@@ -364,7 +364,7 @@ error_t toniefile_close(toniefile_t *ctx)
 
     if (!isValidTaf(ctx->fullPath, true))
     {
-        TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", ctx->fullPath);
+        TRACE_ERROR("SHA1 not valid or length different for TAF %s. File may be corrupted!\r\n", ctx->fullPath);
     }
 
     osFreeMem(ctx->taf.sha1_hash.data);

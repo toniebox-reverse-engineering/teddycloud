@@ -464,7 +464,8 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     freshResp->slap_en = settings->toniebox.slap_enabled;
     freshResp->slap_dir = settings->toniebox.slap_back_left;
     freshResp->led = settings->toniebox.led;
-    if (settings->toniebox.overrideFields) {
+    if (settings->toniebox.overrideFields)
+    {
         freshResp->field2 = settings->toniebox.field2;
         freshResp->field6 = settings->toniebox.field6;
     }
@@ -612,7 +613,7 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             {
                 if (!isValidTaf(tonieInfo->contentPath, true))
                 {
-                    TRACE_ERROR("SHA1 not valid or length different for TAF %s\r\n", tonieInfo->contentPath);
+                    TRACE_ERROR("SHA1 not valid or length different for TAF %s. File may be corrupted!\r\n", tonieInfo->contentPath);
                 }
             }
         }
