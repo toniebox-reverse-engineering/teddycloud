@@ -913,7 +913,7 @@
             "dumpCertificatesLink": "Find instructions for dumping certificates here",
             "flashCAreplacement": "Flash CA replacement for TeddyCloud",
             "flashCAreplacementIntro": "It is recommended to flash the replacement CA to /cert/c2.der and use the Hackiebox-NG bootloader with the altCA.305 patch (more details provided in the next steps). This setup enables you to switch seamlessly between the original certificate and your replacement certificate.",
-            "flashCAreplacementOutro": "Ensure that you have selected the correct path to the ca.der file.",
+            "flashCAreplacementOutro": "Ensure that you have selected the correct path to the c2.der file.",
             "flashCAreplacementText": "To write the downloaded c2.der file (refer to the steps above) to your Toniebox, use the following command:",
             "hint": "There is currently no direct support of flashing your CC3200 Toniebox with TeddyCloud, but you will find a step by step guidance here:",
             "hint2": "Please follow then the CC3200 path:",
