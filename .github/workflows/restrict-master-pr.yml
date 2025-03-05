@@ -2,6 +2,7 @@ name: Restrict PRs to Master
 # Doesnt work, permissions?! 
 # I won't use a PAT for that!
 on:
+  workflow_call:
   #pull_request:
   #  types: [opened, reopened]
   #  branches: [master]
