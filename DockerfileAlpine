@@ -1,5 +1,5 @@
 # Use Alpine Linux as base image
-FROM alpine:latest as buildenv
+FROM alpine:latest AS buildenv
 
 # Install necessary dependencies
 RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl
@@ -19,7 +19,7 @@ FROM alpine:latest
 EXPOSE 80 443 8443
 
 # Install necessary runtime dependencies
-RUN apk --no-cache add ffmpeg curl ca-certificates bash
+RUN apk --no-cache add strace ffmpeg curl ca-certificates bash
 
 # Update CA certificates
 RUN update-ca-certificates

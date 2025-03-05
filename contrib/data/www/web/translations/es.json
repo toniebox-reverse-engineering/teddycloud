@@ -211,12 +211,13 @@
         },
         "date": "Fecha",
         "delete": "Eliminar",
-        "deleteMultiple": "Eliminar filas seleccionadas",
+        "deleteMultiple": "{{selectedRowCount}} filas seleccionadas para eliminar",
+        "downloadFile": "Descargar TAF como *.ogg",
         "encodeFiles": {
             "addFiles": "Agregar archivos",
             "cancel": "Cancelar",
             "encode": "Codificar",
-            "encodeFiles": "Codificar los archivos seleccionados en un archivo taf. Solo se considerarán los siguientes tipos de archivos: ",
+            "encodeFiles": "{{selectedRowCount}} archivos seleccionados para codificar en un archivo taf. Solo se considerarán los siguientes tipos de archivos: ",
             "encoding": "Codificación",
             "encodingFailed": "¡Falló la codificación!",
             "encodingFailedDetails": "Error al codificar los archivos \"{{file}}\": ",
@@ -358,7 +359,7 @@
             "move": "Mover",
             "moveTo": "a"
         },
-        "moveMultiple": "Mover archivos seleccionados (¡solo archivos, se omiten las carpetas!)",
+        "moveMultiple": "{{selectedRowCount}} archivos seleccionados para mover (¡solo archivos, se omiten las carpetas!)",
         "name": "Nombre",
         "playFile": "Reproducir",
         "rename": "Renombrar",
@@ -899,6 +900,7 @@
             "connectToToniebox": "Conectar la Toniebox para parchar",
             "connectToTonieboxConnectDebugPortText1": "Puedes usar un conector Tag dedicado como ",
             "connectToTonieboxConnectDebugPortText2": " o alternativamente usar cables delgados para la conexión.",
+            "connectToTonieboxConnectTableExplanation": "*El pin SOP2 de la Toniebox debe estar puenteado con el VCC de la Toniebox.",
             "connectToTonieboxConnectTableIntro": "A continuación, conecta el puerto de depuración de la Toniebox con el UART como se describe en la siguiente tabla:",
             "connectToTonieboxIntro": "Necesitas conectar tu UART al puerto de depuración. Empieza localizando el puerto de depuración en la parte inferior de la PCB, en el lado no ensamblado. El diseño del puerto de depuración se muestra en la siguiente imagen.",
             "connectToTonieboxLink": "Encuentra las instrucciones de conexión aquí",
@@ -911,7 +913,7 @@
             "dumpCertificatesLink": "Encuentra las instrucciones para extraer certificados aquí",
             "flashCAreplacement": "Flashear reemplazo CA para TeddyCloud",
             "flashCAreplacementIntro": "Se recomienda flashear el certificado CA de reemplazo en /cert/c2.der y usar el bootloader Hackiebox-NG con el parche altCA.305 (más detalles en los siguientes pasos). Esto te permitirá cambiar fácilmente entre el certificado original y tu certificado de reemplazo.",
-            "flashCAreplacementOutro": "Asegúrate de haber seleccionado la ruta correcta al archivo ca.der.",
+            "flashCAreplacementOutro": "Asegúrate de haber seleccionado la ruta correcta al archivo c2.der.",
             "flashCAreplacementText": "Para escribir el archivo c2.der descargado (consulta los pasos anteriores) en tu Toniebox, utiliza el siguiente comando:",
             "hint": "Actualmente no hay soporte directo para flashear tu Toniebox CC3200 con TeddyCloud, pero encontrarás una guía paso a paso aquí:",
             "hint2": "Sigue luego el camino para CC3200:",
@@ -1153,7 +1155,7 @@
                 "extractingCertificatesSuccessfulDetails": "Certificados extraídos con éxito de \"{{file}}\" y almacenados en TeddyCloud.",
                 "failedToCommunicate": "Error de comunicación:",
                 "failedToConnect": "Error al conectar:",
-                "flagPreviousHostname": "La imagen de flash contiene un nombre de host de TeddyCloud establecido previamente (WIP, actualmente no procesado)",
+                "flagPreviousHostname": "La imagen de flash contiene un nombre de host de TeddyCloud establecido previamente",
                 "flash": "Flashear",
                 "flashDevice": "Flashear dispositivo",
                 "flashEsp32": "Flashear ESP32",
@@ -1375,7 +1377,8 @@
             "no": "No",
             "tracklist": "Lista de pistas:",
             "valid": "Válido:",
-            "yes": "Sí"
+            "yes": "Sí",
+            "download": "Descargar TAF como *.ogg"
         },
         "informationModal": {
             "hideTag": "Ocultar Tonie/Etiqueta",
@@ -1440,6 +1443,7 @@
             "navigationTitle": "Sonidos del sistema",
             "title": "Sonidos del sistema"
         },
+        "tafHeaderInvalid": "TAF no válido",
         "tafHeaderOf": "TAF-Header de ",
         "tap": {
             "navigationTitle": "WIP: Listas de reproducción de audio",

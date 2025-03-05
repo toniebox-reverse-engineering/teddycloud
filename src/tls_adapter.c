@@ -312,6 +312,11 @@ static void keylog_write(TlsContext *context, const char_t *key)
     if (!logfile || !osStrlen(logfile))
         return;
 
+    char buf[256]; // key is at most 194 chars. see tlsDumpSecret
+    size_t len = osStrlen(key);
+    if (len > sizeof(buf) - 2)
+        return;
+
     FsFile *keyLogFile = fsOpenFileEx(logfile, "a");
     if (keyLogFile == NULL)
     {
@@ -322,11 +327,6 @@ static void keylog_write(TlsContext *context, const char_t *key)
         }
         return;
     }
-
-    char buf[256]; // key is at most 194 chars. see tlsDumpSecret
-    size_t len = osStrlen(key);
-    if (len > sizeof(buf) - 2)
-        return;
     osMemcpy(buf, key, len);
     buf[len++] = '\n';
     buf[len] = '\0';
