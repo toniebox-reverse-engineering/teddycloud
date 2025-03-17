@@ -293,6 +293,8 @@ typedef struct
     char *flex_uid;
     char *bind_ip;
 
+    uint32_t http_client_timeout;
+
     bool new_webgui_as_default;
 
     settings_level settings_level;

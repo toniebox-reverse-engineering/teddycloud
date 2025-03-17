@@ -221,7 +221,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
     {
         return error;
     }
-    error = httpClientSetTimeout(&httpClientContext, 1000);
+    error = httpClientSetTimeout(&httpClientContext, settings->core.http_client_timeout);
     if (error)
     {
         return error;
@@ -348,7 +348,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
             if (error)
             {
                 // Debug message
-                TRACE_ERROR("Failed to read HTTP response header!\r\n");
+                TRACE_ERROR("Failed to read HTTP response header, error=%s!\r\n", error2text(error));
                 if (isCloud)
                     stats_update("cloud_failed", 1);
                 break;
