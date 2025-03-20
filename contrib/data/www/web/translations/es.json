@@ -200,10 +200,10 @@
             "cancel": "Cancelar",
             "create": "Crear",
             "createDirectory": "Crear nuevo directorio",
-            "directoryCreateFailed": "¡Error al crear el directorio!",
-            "directoryCreateFailedDetails": "Error al crear el directorio \"{{directory}}\": ",
             "directoryCreated": "¡Nuevo directorio creado!",
             "directoryCreatedDetails": "Nuevo directorio \"{{directory}}\" ha sido creado!",
+            "directoryCreateFailed": "¡Error al crear el directorio!",
+            "directoryCreateFailedDetails": "Error al crear el directorio \"{{directory}}\": ",
             "inDirectory": "en el directorio",
             "modalTitle": "Crear nuevo directorio",
             "parentPath": "Directorio principal:",
@@ -387,17 +387,17 @@
             "modalTitle": "Subir archivo(s)",
             "showUploadFilesDragNDrop": "Carga de archivos",
             "upload": "Subir",
+            "uploadedFile": "¡Archivo subido!",
+            "uploadedFileFailed": "¡Error al subir el archivo!",
             "uploadFailed": "Algunos archivos no pudieron subirse. Por favor, inténtalo de nuevo.",
             "uploadFailedForFile": "Error al subir \"{{file}}\".",
             "uploadHint": "Arrastra archivos aquí para subir",
+            "uploading": "Subiendo...",
             "uploadInProgress": "Subiendo \"{{file}}\"...",
             "uploadSuccessful": "Archivos subidos con éxito.",
             "uploadSuccessfulDetails": "Todos los archivos se han subido con éxito.",
             "uploadSuccessfulForFile": "Archivo \"{{file}}\" subido con éxito.",
-            "uploadText": "Haz clic o arrastra archivos a esta área para subir",
-            "uploadedFile": "¡Archivo subido!",
-            "uploadedFileFailed": "¡Error al subir el archivo!",
-            "uploading": "Subiendo..."
+            "uploadText": "Haz clic o arrastra archivos a esta área para subir"
         }
     },
     "footer": {
@@ -512,10 +512,12 @@
             "title": "Estadísticas"
         },
         "title": "¡Bienvenido a TeddyCloud!",
+        "toAllYourTonieboxes": "A todas las Tonieboxes",
         "toAllYourTonies": "A todos los Tonies",
         "tonieMeeting": {
             "navigationTitle": "Reunión de Tonies"
         },
+        "yourTonieboxes": "Tus Tonieboxes",
         "yourTonies": "Tus Tonies"
     },
     "inputValidator": {
@@ -600,8 +602,8 @@
             "colStatus": "Estado",
             "colTitle": "Título",
             "colType": "Tipo",
-            "confirmSelectedNotifications": "Confirmar notificaciones seleccionadas",
             "confirmed": "confirmado",
+            "confirmSelectedNotifications": "Confirmar notificaciones seleccionadas",
             "endDate": "Fecha de fin",
             "error": "Error",
             "filterBy": "Filtrar por",
@@ -618,8 +620,8 @@
             "warning": "Advertencia"
         },
         "overlayDisabled": "Superposición deshabilitada",
-        "overlayEnabled": "Superposición habilitada",
         "overlayed": "superpuesto",
+        "overlayEnabled": "Superposición habilitada",
         "resetToTCDetails": "La configuración \"{{setting}}\"{{overlay}}  se restableció correctamente al valor de TeddyCloud.",
         "restartComplete": "¡Reinicio del servidor TeddyCloud exitoso!",
         "restartFailed": "Error al reiniciar el servidor TeddyCloud",
@@ -633,8 +635,8 @@
             "title": "Registro RTNL"
         },
         "save": "Guardar",
-        "saveDetails": "La configuración \"{{setting}}\"{{overlay}} se ha guardado con éxito.",
         "saved": "¡Configuración guardada!",
+        "saveDetails": "La configuración \"{{setting}}\"{{overlay}} se ha guardado con éxito.",
         "title": "Configuración",
         "tonieboxes": "tonieboxes",
         "toniesJsonUpdate": "Recargar Tonies.json",
@@ -723,14 +725,6 @@
             "preparations": "Preparativos"
         },
         "boxSetup": {
-            "UARTHint": {
-                "description": "Por favor, verifica si tu UART admite tanto 3,3V como 5V. En este caso, deberías encontrar un puente en la placa para seleccionar el modo correcto. Aquí puedes ver ejemplos de esos puentes (aunque hay otros):",
-                "imageAlt1": "Ejemplo de puente 1",
-                "imageAlt2": "Ejemplo de puente 2",
-                "imageAlt3": "Ejemplo de puente 3",
-                "title": "Importante",
-                "warning": "¡Asegúrate absolutamente de que está configurado en 3,3V (a menudo etiquetado como 3v3)! Si usas la configuración de 5V, existe un alto riesgo de que dañes tu Toniebox."
-            },
             "boxSetupIntro1": "Esta página proporciona una visión general completa de los pasos necesarios para añadir tu Toniebox a TeddyCloud. Si encuentras algún problema, no dudes en visitar el",
             "boxSetupIntro2": "o unirte al",
             "boxSetupIntro3": "para recibir soporte de la comunidad.",
@@ -830,6 +824,14 @@
             "setupTeddyCloud": "Configurar TeddyCloud",
             "setupTeddyCloudText": "¡Felicidades! Al llegar a esta página, ¡has configurado TeddyCloud con éxito!",
             "title": "Añade tu Toniebox a TeddyCloud",
+            "UARTHint": {
+                "description": "Por favor, verifica si tu UART admite tanto 3,3V como 5V. En este caso, deberías encontrar un puente en la placa para seleccionar el modo correcto. Aquí puedes ver ejemplos de esos puentes (aunque hay otros):",
+                "imageAlt1": "Ejemplo de puente 1",
+                "imageAlt2": "Ejemplo de puente 2",
+                "imageAlt3": "Ejemplo de puente 3",
+                "title": "Importante",
+                "warning": "¡Asegúrate absolutamente de que está configurado en 3,3V (a menudo etiquetado como 3v3)! Si usas la configuración de 5V, existe un alto riesgo de que dañes tu Toniebox."
+            },
             "uploadCertificateButton": "Subir certificados",
             "uploadCertificateIntro": "Debes subir los certificados extraídos a TeddyCloud si esta es tu primera Toniebox o si quieres designar esta Toniebox como la que descarga contenido desde la nube original de Tonies. Además, necesitas añadir los certificados a la Toniebox dentro de TeddyCloud. Para hacerlo, ve a la sección 'Tonieboxes', haz clic en el icono de certificado y sube los certificados nuevamente.",
             "uploadCertificates": "Subir certificados (ca.der, client.der y private.der)",
@@ -872,8 +874,8 @@
                     "ofwFixValueDesc": "Bytes mágicos que se colocarán en la imagen OFW durante el arranque (se pueden extraer de los datos del BL OFW[-8:-4])",
                     "ofwSimBLDesc": "Leer imagen para iniciar desde flash:/sys/mcubootinfo.bin y cargar la imagen desde flash:/sys/mcuimgN.bin en lugar de leer desde sd (como el bootloader ofw)",
                     "patchDirectory": "directorio de parches",
-                    "patchWiki": "wiki de parches",
                     "patchesDesc": "Lista de parches a cargar, ver:",
+                    "patchWiki": "wiki de parches",
                     "section1_link": "sd:/revvox/boot/ngCfg.json",
                     "section1_part1": "La configuración para el bootloader se guarda en",
                     "section1_part2": ". Todas las secciones o claves que comienzan con un guion bajo \"_\" son comentarios y serán ignoradas.",
@@ -992,6 +994,7 @@
             "usingThinWiresAsTagConnector": "Cables delgados utilizados como conector"
         },
         "cc3235BoxFlashing": {
+            "certificatesDumpedCAreplacementFlashed": "Certificados extraídos y CA de reemplazo flasheado",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Configurar conexión del programador CH341A",
                 "CH341Sop8remove": "Recorta aquí hasta que encaje correctamente.",
@@ -1007,14 +1010,13 @@
                 "prep2": "Recorta el plástico en la pinza del CH341A si es necesario para que pueda ajustarse a la memoria flash IS25LP032D.",
                 "prep3": "Asegúrate de que tanto el PCB como la batería estén desconectados.",
                 "prep4": "Conecta el CH341A al ordenador y confirma que es reconocido. Puedes hacerlo de la siguiente manera:",
+                "preparation": "Solo necesario si planeas realizar el flasheo con un Programador CH341A",
                 "prepConclusions1": "Si la salida es diferente, es posible que el pequeño puente entre los pines 1 y 2 del CH341A no esté configurado. Una vez confirmado, desconecta el CH341A del puerto USB. Esta verificación asegura que todo esté conectado correctamente.",
                 "prepConclusions2": "Asegúrate de que el módulo SOP8 en el kit CH341A y la pinza estén conectados como se muestra en la imagen.",
                 "prepConclusions3": "Solo cuando se completen las preparaciones podemos proceder con el proceso de extracción.",
-                "preparation": "Solo necesario si planeas realizar el flasheo con un Programador CH341A",
                 "readingFlash": "Leer memoria flash con el Programador CH341A",
                 "writingFlash": "Escribir en la memoria flash con el programador CH341A"
             },
-            "certificatesDumpedCAreplacementFlashed": "Certificados extraídos y CA de reemplazo flasheado",
             "checkBoxes": "Mostrar Tonieboxes disponibles",
             "dnsBeware": "¡Cuidado!",
             "dnsBewareText": "¡Esto desconectará todas las Tonieboxes en tu red que no estén parcheadas con tu CA de reemplazo!",
@@ -1026,15 +1028,15 @@
             "dumpCertificatesCC3235": "Tendrás que extraerlo manualmente del flash de la caja con una pinza SOP8 directamente de la memoria o desoldándola. Leer en circuito puede ser complicado, pero es posible. Te recomendamos Flashrom como herramienta para eso. Puede ser necesario usar una versión más reciente.",
             "dumpCertificatesLink": "Encuentra las instrucciones para extraer los certificados aquí",
             "extractCertificates": "Extraer certificados",
+            "flashCAreplacement": "Flashear el reemplazo de CA para TeddyCloud",
             "flashCAReplacementDescription1": "Desafortunadamente, el certificado CA generado por TeddyCloud durante su configuración inicial puede ocasionar ocasionalmente un error de `BAD_CERTIFICATE` al conectar una Toniebox CC3235 a TeddyCloud. Para resolver este problema, puedes generar el certificado manualmente utilizando el antiguo",
             "flashCAReplacementDescription2": "script con faketime instalado. Copia los archivos generados en el directorio `certs/server` dentro de la carpeta de instalación de TeddyCloud.",
             "flashCAReplacementDescription3": "Tenga en cuenta que los nuevos certificados de servidor, incluido el nuevo certificado CA generado, pueden interrumpir las conexiones con las Tonieboxes ya conectadas. Para garantizar un servicio ininterrumpido, actualice el archivo de reemplazo CA en todas sus Tonieboxes con el certificado recién generado.",
-            "flashCAReplacementTitle": "Atención: Problemas de compatibilidad del certificado CA de TeddyCloud",
-            "flashCAreplacement": "Flashear el reemplazo de CA para TeddyCloud",
             "flashCAreplacementLink": "Encuentra las instrucciones para flashear aquí",
             "flashCAreplacementText1": "Reemplaza la CA original en tu volcado de flash con la CA de reemplazo y reflashea tu caja.",
             "flashCAreplacementText2": "Si la caja no se conecta en absoluto (palabra clave: búho), puedes intentar usar el antiguo gencerts.sh para generar nuevos certificados y reflashear la caja.",
             "flashCAreplacementText3": "Atención: El archivo ca.der mencionado en el fragmento de código debe ser el CA de reemplazo de TeddyCloud!",
+            "flashCAReplacementTitle": "Atención: Problemas de compatibilidad del certificado CA de TeddyCloud",
             "flashCollapse": {
                 "cc3235flash": "Memoria flash con pines",
                 "cc3235flashWithSMDGrippers": "Memoria flash con pinzas SMD conectadas",
@@ -1046,10 +1048,10 @@
             "hint2": "Sigue luego el camino para CC3235:",
             "hwToolSpecific": "Preparaciones Dependientes del Hardware",
             "hwToolSpecificText": "Dependiendo del hardware que planees usar para flashear tu Toniebox, se requieren preparaciones adicionales. Por favor, elige la opción que seguirás.",
-            "installSerprogFirmware": "Instalar firmware Serprog",
             "installflashromtool": "Instala Flashrom",
             "installflashromtoolLink": "Visita la página principal de la herramienta para más información",
             "installflashromtoolText": "Asegúrate de que el ordenador que estás usando para el flasheo tenga flashrom instalado. Si no, instálalo con los siguientes comandos:",
+            "installSerprogFirmware": "Instalar firmware Serprog",
             "linkGeneral": "Parchear tu Toniebox para usar con TeddyCloud",
             "linkSpecific": "Configuración específica para CC3235",
             "locateFlashMemory": "Localizar el chip de memoria flash",
@@ -1126,8 +1128,8 @@
                 "confirmFlashDialog": "¿Realmente quieres flashear tu Toniebox? ¡Asegúrate de tener una conexión estable y no interrumpas el proceso!",
                 "confirmFlashDialogHint": "Para garantizar que tu Toniebox funcione correctamente, la instancia especificada de TeddyCloud es absolutamente necesaria. Si tu TeddyCloud está desconectado, ¡tu Toniebox no podrá acceder al nuevo contenido!",
                 "confirmFlashModal": "Flashear Toniebox con firmware parcheado",
-                "connectESPCollapseTitle": "Ayuda: Conectar UART con Toniebox",
                 "connected": "Conectado",
+                "connectESPCollapseTitle": "Ayuda: Conectar UART con Toniebox",
                 "connectingReadFlash": "Conectando para leer Flash...",
                 "connectingReadMac": "Conectando para leer la dirección MAC...",
                 "connectingTo": "Conectando a",
@@ -1200,12 +1202,12 @@
                 "titlePatchFlash": "Parchear Flash",
                 "titleReadESP32ImportFlash": "Leer ESP32/Importar Flash",
                 "uploadFailed": "Error al subir",
-                "uploadSuccessful": "Subida exitosa, guardado como",
                 "uploading": "Subiendo...",
+                "uploadSuccessful": "Subida exitosa, guardado como",
                 "wifiCredentialsIncomplete": "¡Credenciales WiFi incompletas! Por favor, introduce tanto el SSID como la contraseña, o deja ambos campos vacíos.",
                 "wifiPassword": "Contraseña WiFi:",
-                "wifiSSID": "SSID de WiFi:",
                 "wifiSettings": "Datos WiFi (opcional):",
+                "wifiSSID": "SSID de WiFi:",
                 "writingFinished": "Escritura finalizada",
                 "writingFlash": "Escribiendo flash de {{size}} MiB..."
             },
@@ -1278,8 +1280,8 @@
         "title": "Tus Tonieboxes",
         "uploadTonieboxCertificatesModal": {
             "AttentionGeneralPath": "(¡ATENCIÓN: Ruta predeterminada!)",
-            "Label": "Certificados",
             "boxSpecific": " (superpuesto para Toniebox)",
+            "Label": "Certificados",
             "uploadPath": "Ruta de carga (certDir):",
             "uploadTonieboxCertificates": "Subir certificados para Toniebox \"{{name}}\""
         }
@@ -1363,22 +1365,22 @@
             "uploadFailedDetails": "La carga encontró un error: ",
             "uploadFiles": "Seleccionar archivo(s)",
             "uploadHint": "¡Arrastra los archivos de audio aquí!",
+            "uploading": "Subiendo...",
+            "uploadingDetails": "Subiendo el archivo \"{{file}}\"...",
             "uploadSuccessful": "¡Codificación de archivos exitosa!",
             "uploadSuccessfulDetails": "Los archivos se codificaron como \"{{file}}\" y se agregaron exitosamente a la biblioteca.",
-            "uploadText": "Haz clic o arrastra hasta {{maxFiles}} archivos de audio que deseas convertir en un archivo taf para subirlos a esta área",
-            "uploading": "Subiendo...",
-            "uploadingDetails": "Subiendo el archivo \"{{file}}\"..."
+            "uploadText": "Haz clic o arrastra hasta {{maxFiles}} archivos de audio que deseas convertir en un archivo taf para subirlos a esta área"
         },
         "errorFetchingSystemSounds": "Error al obtener los sonidos del sistema",
         "errorFetchingTonies": "Error al obtener los Tonies",
         "infoModal": {
+            "download": "Descargar TAF como *.ogg",
             "exists": "Existe:",
             "model": "Modelo:",
             "no": "No",
             "tracklist": "Lista de pistas:",
             "valid": "Válido:",
-            "yes": "Sí",
-            "download": "Descargar TAF como *.ogg"
+            "yes": "Sí"
         },
         "informationModal": {
             "hideTag": "Ocultar Tonie/Etiqueta",
