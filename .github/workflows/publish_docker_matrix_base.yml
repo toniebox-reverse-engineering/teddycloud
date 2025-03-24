@@ -114,6 +114,7 @@ jobs:
           echo "platform=$platform"
           echo "platform=$platform" >> $GITHUB_OUTPUT
       - name: Run docker image test
+        id: docker-test
         run: |
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
@@ -125,6 +126,7 @@ jobs:
         continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
 
       - name: Export digest
+        if: ${{ steps.docker-test.conclusion == 'success' }}
         run: |
           mkdir -p /tmp/digests/${{ github.sha }}
           digest="${{ steps.build.outputs.digest }}"
