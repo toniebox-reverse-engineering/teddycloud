@@ -31,6 +31,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         connection->response.contentLength = 0;
         connection->response.statusCode = 503; // Service Unavailable
         connection->response.keepAlive = FALSE;
+        connection->response.chunkedEncoding = FALSE;
         return httpWriteHeader(connection);
     }
 
@@ -46,7 +47,8 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
 
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/event-stream";
-    connection->response.contentLength = CONTENT_LENGTH_UNKNOWN;
+    connection->response.keepAlive = TRUE;
+    connection->response.chunkedEncoding = TRUE;
 
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
@@ -59,8 +61,6 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     while (true)
     {
         mutex_lock(MUTEX_SSE_CTX);
-        //(connection->socket != NULL && (connection->socket->state == TCP_STATE_CLOSED)) ||
-        //(connection->tlsContext != NULL && (connection->tlsContext->state == TLS_STATE_CLOSED)) ||
         if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
             httpFlushStream(connection);
