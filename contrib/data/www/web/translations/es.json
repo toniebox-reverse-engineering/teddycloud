@@ -1735,6 +1735,8 @@
             "placeholder": "¡Introduce un término de búsqueda!",
             "diameter": "Diámetro interior de la moneda",
             "textFontSize": "Tamaño de texto",
+            "showLanguageFlag": "Mostrar bandera de idioma",
+            "showModelNo": "Imprimir número de modelo",
             "empty": "Vacío - ¡Por favor, selecciona primero Tonies o Etiquetas!",
             "clear": "Limpiar hoja",
             "printPage": "Imprimir hoja",

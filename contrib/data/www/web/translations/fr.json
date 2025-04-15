@@ -1735,6 +1735,8 @@
             "placeholder": "Entrez un terme de recherche !",
             "diameter": "Diamètre intérieur de la pièce",
             "textFontSize": "Taille du texte",
+            "showLanguageFlag": "Afficher le drapeau de langue",
+            "showModelNo": "Imprimer le numéro de modèle",
             "empty": "Vide - Veuillez d'abord sélectionner des Tonies ou des Étiquettes !",
             "clear": "Effacer la feuille",
             "printPage": "Imprimer la feuille",

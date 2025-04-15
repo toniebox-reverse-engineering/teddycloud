@@ -1735,6 +1735,8 @@
             "placeholder": "Enter a search term!",
             "diameter": "Coin inner diameter",
             "textFontSize": "Text size",
+            "showModelNo": "Print model-no.",
+            "showLanguageFlag": "Print language flag",
             "empty": "Empty - Please select Tonies or Tags first!",
             "clear": "Clear sheet",
             "printPage": "Print sheet",

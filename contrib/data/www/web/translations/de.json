@@ -1735,6 +1735,8 @@
             "placeholder": "Gib einen Suchbegriff ein!",
             "diameter": "Innen-Durchmesser der Münze",
             "textFontSize": "Textgröße",
+            "showLanguageFlag": "Sprachflagge drucken",
+            "showModelNo": "Modellnummer drucken",
             "empty": "Leer - Bitte wähle zuerst Tonies oder Tags aus!",
             "clear": "Blatt löschen",
             "printPage": "Blatt drucken",
