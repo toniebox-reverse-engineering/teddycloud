@@ -291,6 +291,14 @@ LIBOPUS_SOURCES = \
 	$(addprefix opus/,$(OPUS_SOURCES)) \
 	$(addprefix opus/,$(OPUS_SOURCES_FLOAT)) 
 
+LIBOPUS_SOURCES := \
+	$(filter-out \
+	opus/src/repacketizer.c \
+	, $(LIBOPUS_SOURCES))
+
+LIBOPUS_SOURCES += \
+	src/opus/src/repacketizer.c
+
 LIBOPUS_HEADERS = \
 	$(addprefix opus/,$(SILK_HEAD)) \
 	$(addprefix opus/,$(CELT_HEAD)) \
