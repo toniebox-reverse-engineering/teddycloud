@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneCRYPTO Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.4.4
  **/
 
 #ifndef _AES_H
@@ -64,6 +64,24 @@ typedef struct
 
 
 //AES related constants
+extern const uint8_t AES128_ECB_OID[9];
+extern const uint8_t AES128_CBC_OID[9];
+extern const uint8_t AES128_OFB_OID[9];
+extern const uint8_t AES128_CFB_OID[9];
+extern const uint8_t AES128_GCM_OID[9];
+extern const uint8_t AES128_CCM_OID[9];
+extern const uint8_t AES192_ECB_OID[9];
+extern const uint8_t AES192_CBC_OID[9];
+extern const uint8_t AES192_OFB_OID[9];
+extern const uint8_t AES192_CFB_OID[9];
+extern const uint8_t AES192_GCM_OID[9];
+extern const uint8_t AES192_CCM_OID[9];
+extern const uint8_t AES256_ECB_OID[9];
+extern const uint8_t AES256_CBC_OID[9];
+extern const uint8_t AES256_OFB_OID[9];
+extern const uint8_t AES256_CFB_OID[9];
+extern const uint8_t AES256_GCM_OID[9];
+extern const uint8_t AES256_CCM_OID[9];
 extern const CipherAlgo aesCipherAlgo;
 
 //AES related functions

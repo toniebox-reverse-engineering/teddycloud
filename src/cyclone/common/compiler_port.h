@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.4.4
  **/
 
 #ifndef _COMPILER_PORT_H
@@ -168,21 +168,26 @@ typedef unsigned int uint_t;
 //Tasking compiler?
 #elif defined(__TASKING__)
    char *strtok_r(char *s, const char *delim, char **last);
+//Microchip XC32 compiler?
+#elif defined(__XC32)
+   #define sprintf _sprintf
+   int sprintf(char *str, const char *format, ...);
+   int strcasecmp(const char *s1, const char *s2);
+   int strncasecmp(const char *s1, const char *s2, size_t n);
+   char *strtok_r(char *s, const char *delim, char **last);
 //NXP CodeWarrior compiler?
 #elif defined(__CWCC__)
    typedef uint32_t time_t;
    int strcasecmp(const char *s1, const char *s2);
    int strncasecmp(const char *s1, const char *s2, size_t n);
    char *strtok_r(char *s, const char *delim, char **last);
-//TI ARM compiler?
-#elif defined(__TI_ARM__)
+//Renesas CC-RX compiler?
+#elif defined(__CCRX__)
    int strcasecmp(const char *s1, const char *s2);
    int strncasecmp(const char *s1, const char *s2, size_t n);
    char *strtok_r(char *s, const char *delim, char **last);
-//Microchip XC32 compiler?
-#elif defined(__XC32)
-   #define sprintf _sprintf
-   int sprintf(char * str, const char * format, ...);
+//TI ARM compiler?
+#elif defined(__TI_ARM__)
    int strcasecmp(const char *s1, const char *s2);
    int strncasecmp(const char *s1, const char *s2, size_t n);
    char *strtok_r(char *s, const char *delim, char **last);
@@ -225,6 +230,12 @@ typedef unsigned int uint_t;
    #define __packed_struct struct
    #undef __packed_union
    #define __packed_union union
+//Renesas CC-RX compiler?
+#elif defined(__CCRX__)
+   #undef __packed_struct
+   #define __packed_struct struct
+   #undef __packed_union
+   #define __packed_union union
 //TI ARM compiler?
 #elif defined(__TI_ARM__)
    #undef __packed_struct
@@ -258,6 +269,9 @@ typedef unsigned int uint_t;
       #define __weak_func __attribute__((weak))
    //NXP CodeWarrior compiler?
    #elif defined(__CWCC__)
+      #define __weak_func
+   //Renesas CC-RX compiler?
+   #elif defined(__CCRX__)
       #define __weak_func
    //TI ARM compiler?
    #elif defined(__TI_ARM__)

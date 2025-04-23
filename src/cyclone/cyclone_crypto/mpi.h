@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneCRYPTO Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 #ifndef _MPI_H
@@ -35,8 +35,18 @@
 #include <stdio.h>
 #include "core/crypto.h"
 
+//Maximum size, in bits, of a multiple precision integer (static memory allocation)
+#ifndef MPI_MAX_BIT_SIZE
+   #define MPI_MAX_BIT_SIZE 4096
+#elif (MPI_MAX_BIT_SIZE < 0)
+   #error MPI_MAX_BIT_SIZE parameter is not valid
+#endif
+
 //Size of the sub data type
 #define MPI_INT_SIZE sizeof(uint_t)
+
+//Maximum size, in words, of a multiple precision integer
+#define MPI_MAX_INT_SIZE ((MPI_MAX_BIT_SIZE + (MPI_INT_SIZE * 8) - 1) / (MPI_INT_SIZE * 8))
 
 //Error code checking
 #define MPI_CHECK(f) if((error = f) != NO_ERROR) goto end
@@ -70,7 +80,11 @@ typedef struct
 {
    int_t sign;
    uint_t size;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    uint_t *data;
+#else
+   uint_t data[MPI_MAX_INT_SIZE];
+#endif
 } Mpi;
 
 

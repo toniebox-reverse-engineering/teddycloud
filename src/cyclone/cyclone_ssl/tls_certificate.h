@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneSSL Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 #ifndef _TLS_CERTIFICATE_H
@@ -53,20 +53,20 @@ error_t tlsParseCertificateList(TlsContext *context, const uint8_t *p,
 error_t tlsParseRawPublicKey(TlsContext *context, const uint8_t *p,
    size_t length);
 
-bool_t tlsIsCertificateAcceptable(TlsContext *context, const TlsCertDesc *cert,
-   const uint8_t *certTypes, size_t numCertTypes, const TlsSignHashAlgos *signHashAlgos,
-   const TlsSignHashAlgos *certSignHashAlgos, const TlsSupportedGroupList *curveList,
+bool_t tlsIsCertificateAcceptable(TlsContext *context,
+   const TlsCertDesc *cert, const uint8_t *certTypes, size_t numCertTypes,
+   const TlsSupportedGroupList *curveList,
+   const TlsSignSchemeList *certSignAlgoList,
    const TlsCertAuthorities *certAuthorities);
 
 error_t tlsValidateCertificate(TlsContext *context,
-   const X509CertInfo *certInfo, uint_t pathLen,
-   const char_t *subjectName);
+   const X509CertInfo *certInfo, uint_t pathLen, const char_t *subjectName);
 
 error_t tlsGetCertificateType(const X509CertInfo *certInfo,
    TlsCertificateType *certType, TlsNamedGroup *namedCurve);
 
 error_t tlsGetCertificateSignAlgo(const X509CertInfo *certInfo,
-   TlsSignatureAlgo *signAlgo, TlsHashAlgo *hashAlgo);
+   TlsSignatureScheme *signScheme);
 
 error_t tlsReadSubjectPublicKey(TlsContext *context,
    const X509SubjectPublicKeyInfo *subjectPublicKeyInfo);
