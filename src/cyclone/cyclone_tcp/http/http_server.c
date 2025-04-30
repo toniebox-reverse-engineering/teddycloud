@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,14 +35,13 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 // Switch to the appropriate trace level
 #define TRACE_LEVEL HTTP_TRACE_LEVEL
 
 // Dependencies
-#include <stdlib.h>
 #include "core/net.h"
 #include "http/http_server.h"
 #include "http/http_server_auth.h"
@@ -55,6 +54,7 @@
 // Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
 
+
 /**
  * @brief Initialize settings with default values
  * @param[out] settings Structure that contains HTTP server settings
@@ -62,6 +62,22 @@
 
 void httpServerGetDefaultSettings(HttpServerSettings *settings)
 {
+   uint_t i;
+
+   //Initialize listener task parameters
+   settings->listenerTask = OS_TASK_DEFAULT_PARAMS;
+   settings->listenerTask.stackSize = HTTP_SERVER_STACK_SIZE;
+   settings->listenerTask.priority = HTTP_SERVER_PRIORITY;
+
+   //Initialize connection task parameters
+   for(i = 0; i < HTTP_SERVER_MAX_CONNECTIONS; i++)
+   {
+      //Default task parameters
+      settings->connectionTask[i] = OS_TASK_DEFAULT_PARAMS;
+      settings->connectionTask[i].stackSize = HTTP_SERVER_STACK_SIZE;
+      settings->connectionTask[i].priority = HTTP_SERVER_PRIORITY;
+   }
+
    // The HTTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -101,6 +117,7 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
    settings->uriNotFoundCallback = NULL;
 }
 
+
 /**
  * @brief HTTP server initialization
  * @param[in] context Pointer to the HTTP server context
@@ -122,11 +139,18 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
       return ERROR_INVALID_PARAMETER;
 
    // Check settings
-   if (settings->maxConnections == 0 || settings->connections == NULL)
+   if(settings->connections == NULL || settings->maxConnections < 1 ||
+      settings->maxConnections > HTTP_SERVER_MAX_CONNECTIONS)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    // Clear the HTTP server context
    osMemset(context, 0, sizeof(HttpServerContext));
+
+   //Initialize task parameters
+   context->taskParams = settings->listenerTask;
+   context->taskId = OS_INVALID_TASK_ID;
 
    // Save user settings
    context->settings = *settings;
@@ -145,6 +169,10 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
       // Initialize the structure
       osMemset(connection, 0, sizeof(HttpConnection));
+
+      //Initialize task parameters
+      connection->taskParams = settings->connectionTask[i];
+      connection->taskId = OS_INVALID_TASK_ID;
 
       // Create an event object to manage connection lifetime
       if (!osCreateEvent(&connection->startEvent))
@@ -199,6 +227,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
    return NO_ERROR;
 }
 
+
 /**
  * @brief Start HTTP server
  * @param[in] context Pointer to the HTTP server context
@@ -223,32 +252,18 @@ error_t httpServerStart(HttpServerContext *context)
       // Point to the current session
       connection = &context->connections[i];
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-      // Create a task using statically allocated memory
-      connection->taskId = osCreateStaticTask("HTTP Connection",
-                                              (OsTaskCode)httpConnectionTask, connection, &connection->taskTcb,
-                                              connection->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#else
       // Create a task
       connection->taskId = osCreateTask("HTTP Connection", httpConnectionTask,
-                                        &context->connections[i], HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#endif
+         connection, &connection->taskParams);
 
       // Unable to create the task?
       if (connection->taskId == OS_INVALID_TASK_ID)
          return ERROR_OUT_OF_RESOURCES;
    }
 
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   // Create a task using statically allocated memory
-   context->taskId = osCreateStaticTask("HTTP Listener",
-                                        (OsTaskCode)httpListenerTask, context, &context->taskTcb,
-                                        context->taskStack, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#else
    // Create a task
    context->taskId = osCreateTask("HTTP Listener", httpListenerTask,
-                                  context, HTTP_SERVER_STACK_SIZE, HTTP_SERVER_PRIORITY);
-#endif
+      context, &context->taskParams);
 
    // Unable to create the task?
    if (context->taskId == OS_INVALID_TASK_ID)
@@ -257,6 +272,7 @@ error_t httpServerStart(HttpServerContext *context)
    // The HTTP server has successfully started
    return NO_ERROR;
 }
+
 
 /**
  * @brief HTTP server listener task
@@ -303,6 +319,9 @@ void httpListenerTask(void *param)
             // Make sure the socket handle is valid
             if (socket != NULL)
             {
+               //Just for sanity
+               (void) counter;
+
                // Debug message
                TRACE_INFO("Connection #%u established with client %s port %" PRIu16 "...\r\n",
                           counter, ipAddrToString(&clientIpAddr, NULL), clientPort);
@@ -326,8 +345,6 @@ void httpListenerTask(void *param)
             {
                // Just for sanity
                osReleaseSemaphore(&context->semaphore);
-               /* original code releases connection->serverContext, which is not set yet */
-               // osReleaseSemaphore(&connection->serverContext->semaphore);
             }
 
             // We are done
@@ -336,6 +353,7 @@ void httpListenerTask(void *param)
       }
    }
 }
+
 
 /**
  * @brief Task that services requests from an active connection
@@ -665,6 +683,7 @@ void httpConnectionTask(void *param)
    }
 }
 
+
 /**
  * @brief Send HTTP response header
  * @param[in] connection Structure representing an HTTP connection
@@ -698,6 +717,7 @@ error_t httpWriteHeader(HttpConnection *connection)
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Read data from client request
@@ -765,7 +785,7 @@ error_t httpReadStream(HttpConnection *connection,
 
          // The HTTP_FLAG_BREAK_CHAR flag causes the function to stop reading
          // data as soon as the specified break character is encountered
-         if ((flags & HTTP_FLAG_BREAK_CRLF) != 0)
+         if((flags & HTTP_FLAG_BREAK_CHAR) != 0)
          {
             // Check whether a break character has been received
             if (p[n - 1] == LSB(flags))
@@ -773,7 +793,7 @@ error_t httpReadStream(HttpConnection *connection,
          }
          // The HTTP_FLAG_WAIT_ALL flag causes the function to return
          // only when the requested number of bytes have been read
-         else if (!(flags & HTTP_FLAG_WAIT_ALL))
+         else if((flags & HTTP_FLAG_WAIT_ALL) == 0)
          {
             break;
          }
@@ -805,6 +825,7 @@ error_t httpReadStream(HttpConnection *connection,
    // Successful read operation
    return NO_ERROR;
 }
+
 
 /**
  * @brief Write data to the client
@@ -872,6 +893,7 @@ error_t httpWriteStream(HttpConnection *connection,
    return error;
 }
 
+
 /**
  * @brief Close output stream
  * @param[in] connection Structure representing an HTTP connection
@@ -897,6 +919,7 @@ error_t httpCloseStream(HttpConnection *connection)
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Send HTTP response
@@ -980,6 +1003,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       if (error)
          return ERROR_NOT_FOUND;
    }
+
    // Open the file for reading
    file = fsOpenFile(connection->buffer, FS_FILE_MODE_READ);
    // Failed to open the file?
@@ -1183,6 +1207,7 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    return error;
 }
 
+
 /**
  * @brief Send error response to the client
  * @param[in] connection Structure representing an HTTP connection
@@ -1212,9 +1237,9 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    length = osStrlen(template) + osStrlen(message) - 4;
 
    // Check whether the HTTP request has a body
-   if (osStrcasecmp(connection->request.method, "GET") &&
-       osStrcasecmp(connection->request.method, "HEAD") &&
-       osStrcasecmp(connection->request.method, "DELETE"))
+   if (osStrcasecmp(connection->request.method, "GET") != 0 &&
+      osStrcasecmp(connection->request.method, "HEAD") != 0 &&
+      osStrcasecmp(connection->request.method, "DELETE") != 0)
    {
       // Drop the HTTP request body and close the connection after sending
       // the HTTP response
@@ -1248,6 +1273,7 @@ error_t httpSendErrorResponse(HttpConnection *connection,
    return error;
 }
 
+
 /**
  * @brief Send redirect response to the client
  * @param[in] connection Structure representing an HTTP connection
@@ -1277,9 +1303,9 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
    length = osStrlen(template) + 2 * osStrlen(uri) - 4;
 
    // Check whether the HTTP request has a body
-   if (osStrcasecmp(connection->request.method, "GET") &&
-       osStrcasecmp(connection->request.method, "HEAD") &&
-       osStrcasecmp(connection->request.method, "DELETE"))
+   if(osStrcasecmp(connection->request.method, "GET") != 0 &&
+      osStrcasecmp(connection->request.method, "HEAD") != 0 &&
+      osStrcasecmp(connection->request.method, "DELETE") != 0)
    {
       // Drop the HTTP request body and close the connection after sending
       // the HTTP response
@@ -1313,6 +1339,7 @@ error_t httpSendRedirectResponse(HttpConnection *connection,
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Check whether the client's handshake is valid
@@ -1361,6 +1388,7 @@ bool_t httpCheckWebSocketHandshake(HttpConnection *connection)
    return FALSE;
 #endif
 }
+
 
 /**
  * @brief Upgrade an existing HTTP connection to a WebSocket
@@ -1421,5 +1449,6 @@ WebSocket *httpUpgradeToWebSocket(HttpConnection *connection)
    // Return a handle to the freshly created WebSocket
    return webSocket;
 }
+
 
 #endif

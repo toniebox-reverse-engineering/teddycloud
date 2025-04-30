@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,14 +25,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
 #define TRACE_LEVEL HTTP_TRACE_LEVEL
 
 //Dependencies
-#include <stdlib.h>
 #include <limits.h>
 #include "core/net.h"
 #include "http/http_server.h"
@@ -46,6 +45,7 @@
 
 //Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
+
 
 /**
  * @brief Read HTTP request header and parse its contents
@@ -139,7 +139,7 @@ error_t httpReadRequestHeader(HttpConnection *connection)
          TRACE_DEBUG("%s", connection->buffer);
 
          //An empty line indicates the end of the header fields
-         if(!osStrcmp(connection->buffer, "\r\n"))
+         if(osStrcmp(connection->buffer, "\r\n") == 0)
             break;
 
          //Check whether a separator is present
@@ -248,7 +248,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
    }
 
    //Redirect to the default home page if necessary
-   if(!osStrcasecmp(connection->request.uri, "/"))
+   if(osStrcasecmp(connection->request.uri, "/") == 0)
       osStrcpy(connection->request.uri, connection->settings->defaultDocument);
 
    //Clean the resulting path
@@ -266,7 +266,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       connection->request.keepAlive = FALSE;
    }
    //HTTP version 1.0?
-   else if(!osStrcasecmp(token, "HTTP/1.0"))
+   else if(osStrcasecmp(token, "HTTP/1.0") == 0)
    {
       //Save version number
       connection->request.version = HTTP_VERSION_1_0;
@@ -274,7 +274,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
       connection->request.keepAlive = FALSE;
    }
    //HTTP version 1.1?
-   else if(!osStrcasecmp(token, "HTTP/1.1"))
+   else if(osStrcasecmp(token, "HTTP/1.1") == 0)
    {
       //Save version number
       connection->request.version = HTTP_VERSION_1_1;
@@ -362,7 +362,7 @@ error_t httpReadHeaderField(HttpConnection *connection,
       buffer[length] = '\0';
 
       //An empty line indicates the end of the header fields
-      if(!osStrcmp(buffer, "\r\n"))
+      if(osStrcmp(buffer, "\r\n") == 0)
          break;
 
       //Read the next character to detect if the CRLF is immediately
@@ -408,51 +408,51 @@ void httpParseHeaderField(HttpConnection *connection,
    const char_t *name, char_t *value)
 {
    //Host header field?
-   if(!osStrcasecmp(name, "Host"))
+   if(osStrcasecmp(name, "Host") == 0)
    {
       //Save host name
       strSafeCopy(connection->request.host, value,
          HTTP_SERVER_HOST_MAX_LEN);
    }
    //Connection header field?
-   else if(!osStrcasecmp(name, "Connection"))
+   else if(osStrcasecmp(name, "Connection") == 0)
    {
       //Parse Connection header field
       httpParseConnectionField(connection, value);
    }
    //Transfer-Encoding header field?
-   else if(!osStrcasecmp(name, "Transfer-Encoding"))
+   else if(osStrcasecmp(name, "Transfer-Encoding") == 0)
    {
       //Check whether chunked encoding is used
-      if(!osStrcasecmp(value, "chunked"))
+      if(osStrcasecmp(value, "chunked") == 0)
          connection->request.chunkedEncoding = TRUE;
    }
    //Content-Type field header?
-   else if(!osStrcasecmp(name, "Content-Type"))
+   else if(osStrcasecmp(name, "Content-Type") == 0)
    {
       //Parse Content-Type header field
       httpParseContentTypeField(connection, value);
    }
    //Content-Length header field?
-   else if(!osStrcasecmp(name, "Content-Length"))
+   else if(osStrcasecmp(name, "Content-Length") == 0)
    {
       //Get the length of the body data
       connection->request.contentLength = atoi(value);
    }
    //Accept-Encoding field header?
-   else if(!osStrcasecmp(name, "Accept-Encoding"))
+   else if(osStrcasecmp(name, "Accept-Encoding") == 0)
    {
       //Parse Content-Type header field
       httpParseAcceptEncodingField(connection, value);
    }
    //Authorization header field?
-   else if(!osStrcasecmp(name, "Authorization"))
+   else if(osStrcasecmp(name, "Authorization") == 0)
    {
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
    // Range header field?
-   else if (!osStrcasecmp(name, "Range"))
+   else if (osStrcasecmp(name, "Range") == 0)
    {
       sscanf(value, "bytes=%" PRIu32 "-%" PRIu32, &connection->request.Range.start, &connection->request.Range.end);
       if (connection->request.Range.start < 0)
@@ -461,21 +461,21 @@ void httpParseHeaderField(HttpConnection *connection,
          connection->request.Range.end = 0;
    }
    // If-Range header field?
-   else if (!osStrcasecmp(name, "If-Range"))
+   else if (osStrcasecmp(name, "If-Range") == 0)
    {
       strSafeCopy(connection->request.ifRange, value,
                   HTTP_SERVER_IFRANGE_MAX_LEN);
    }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
-   else if(!osStrcasecmp(name, "Upgrade"))
+   else if(osStrcasecmp(name, "Upgrade") == 0)
    {
       //WebSocket support?
-      if(!osStrcasecmp(value, "websocket"))
+      if(osStrcasecmp(value, "websocket") == 0)
          connection->request.upgradeWebSocket = TRUE;
    }
    //Sec-WebSocket-Key header field?
-   else if(!osStrcasecmp(name, "Sec-WebSocket-Key"))
+   else if(osStrcasecmp(name, "Sec-WebSocket-Key") == 0)
    {
       //Save the contents of the Sec-WebSocket-Key header field
       strSafeCopy(connection->request.clientKey, value,
@@ -484,18 +484,19 @@ void httpParseHeaderField(HttpConnection *connection,
 #endif
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    //Cookie header field?
-   else if(!osStrcasecmp(name, "Cookie"))
+   else if(osStrcasecmp(name, "Cookie") == 0)
    {
       //Parse Cookie header field
       httpParseCookieField(connection, value);
    }
 #endif
-   else if (!osStrcasecmp(name, "User-Agent"))
+   else if (osStrcasecmp(name, "User-Agent") == 0)
    {
       strSafeCopy(connection->request.userAgent, value,
                   sizeof(connection->request.userAgent) + 1);
    }
 }
+
 
 /**
  * @brief Parse Connection header field
@@ -519,18 +520,18 @@ void httpParseConnectionField(HttpConnection *connection,
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!osStrcasecmp(value, "keep-alive"))
+      if(osStrcasecmp(value, "keep-alive") == 0)
       {
          //The connection is persistent
          connection->request.keepAlive = TRUE;
       }
-      else if(!osStrcasecmp(value, "close"))
+      else if(osStrcasecmp(value, "close") == 0)
       {
          //The connection will be closed after completion of the response
          connection->request.keepAlive = FALSE;
       }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
-      else if(!osStrcasecmp(value, "upgrade"))
+      else if(osStrcasecmp(value, "upgrade") == 0)
       {
          //Upgrade the connection
          connection->request.connectionUpgrade = TRUE;
@@ -564,7 +565,7 @@ void httpParseContentTypeField(HttpConnection *connection,
       return;
 
    //The boundary parameter makes sense only for the multipart content-type
-   if(!osStrcasecmp(token, "multipart"))
+   if(osStrcasecmp(token, "multipart") == 0)
    {
       //Skip subtype
       token = osStrtok_r(NULL, ";", &p);
@@ -582,7 +583,7 @@ void httpParseContentTypeField(HttpConnection *connection,
       token = strTrimWhitespace(token);
 
       //Check parameter name
-      if(!osStrcasecmp(token, "boundary"))
+      if(osStrcasecmp(token, "boundary") == 0)
       {
          //Retrieve parameter value
          token = osStrtok_r(NULL, ";", &p);
@@ -599,7 +600,7 @@ void httpParseContentTypeField(HttpConnection *connection,
          if(n < HTTP_SERVER_BOUNDARY_MAX_LEN)
          {
             //Copy the boundary string
-            osStrcpy(connection->request.boundary, token);
+            osStrncpy(connection->request.boundary, token, n);
             //Properly terminate the string
             connection->request.boundary[n] = '\0';
 
@@ -635,7 +636,7 @@ void httpParseAcceptEncodingField(HttpConnection *connection,
       value = strTrimWhitespace(token);
 
       //Check current value
-      if(!osStrcasecmp(value, "gzip"))
+      if(osStrcasecmp(value, "gzip") == 0)
       {
          //gzip compression is supported
          connection->request.acceptGzipEncoding = TRUE;
@@ -693,7 +694,7 @@ error_t httpReadChunkSize(HttpConnection *connection)
       s[n] = '\0';
 
       //The chunk data must be terminated by CRLF
-      if(osStrcmp(s, "\r\n"))
+      if(osStrcmp(s, "\r\n") != 0)
          return ERROR_WRONG_ENCODING;
    }
 
@@ -734,7 +735,7 @@ error_t httpReadChunkSize(HttpConnection *connection)
          s[n] = '\0';
 
          //The trailer is terminated by an empty line
-         if(!osStrcmp(s, "\r\n"))
+         if(osStrcmp(s, "\r\n") == 0)
             break;
       }
    }
@@ -1152,7 +1153,7 @@ bool_t httpCompExtension(const char_t *filename, const char_t *extension)
       return FALSE;
 
    //Compare extensions
-   if(!osStrncasecmp(filename + n - m, extension, m))
+   if(osStrncasecmp(filename + n - m, extension, m) == 0)
    {
       return TRUE;
    }

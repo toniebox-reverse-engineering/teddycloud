@@ -334,7 +334,9 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_ssl/tls_common.c \
 	cyclone/cyclone_ssl/tls_extensions.c \
 	cyclone/cyclone_ssl/tls_certificate.c \
-	cyclone/cyclone_ssl/tls_signature.c \
+	cyclone/cyclone_ssl/tls_sign_generate.c \
+	cyclone/cyclone_ssl/tls_sign_misc.c \
+	cyclone/cyclone_ssl/tls_sign_verify.c \
 	cyclone/cyclone_ssl/tls_key_material.c \
 	cyclone/cyclone_ssl/tls_transcript_hash.c \
 	cyclone/cyclone_ssl/tls_cache.c \
