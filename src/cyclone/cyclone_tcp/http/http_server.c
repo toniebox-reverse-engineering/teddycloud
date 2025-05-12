@@ -150,7 +150,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
    //Initialize task parameters
    context->taskParams = settings->listenerTask;
-   context->taskId = OS_INVALID_TASK_ID;
+   context->taskId = (OsTaskId) OS_INVALID_TASK_ID;
 
    // Save user settings
    context->settings = *settings;
@@ -172,7 +172,7 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 
       //Initialize task parameters
       connection->taskParams = settings->connectionTask[i];
-      connection->taskId = OS_INVALID_TASK_ID;
+      connection->taskId = (OsTaskId) OS_INVALID_TASK_ID;
 
       // Create an event object to manage connection lifetime
       if (!osCreateEvent(&connection->startEvent))
@@ -257,7 +257,7 @@ error_t httpServerStart(HttpServerContext *context)
          connection, &connection->taskParams);
 
       // Unable to create the task?
-      if (connection->taskId == OS_INVALID_TASK_ID)
+      if (connection->taskId == (OsTaskId) OS_INVALID_TASK_ID)
          return ERROR_OUT_OF_RESOURCES;
    }
 
@@ -266,7 +266,7 @@ error_t httpServerStart(HttpServerContext *context)
       context, &context->taskParams);
 
    // Unable to create the task?
-   if (context->taskId == OS_INVALID_TASK_ID)
+   if (context->taskId == (OsTaskId) OS_INVALID_TASK_ID)
       return ERROR_OUT_OF_RESOURCES;
 
    // The HTTP server has successfully started
