@@ -127,6 +127,78 @@
             },
             "title": "How to Create a Good Support Request"
         },
+        "plugins": {
+            "errorLoadingPlugin": "Failed to load metadata for plugin {{pluginname}}",
+            "error": {
+                "title": "Error on loading plugin",
+                "pluginNotFound": "Plugin index.html not found - please check the plugin!",
+                "notification": {
+                    "title": "Error on loading plugin",
+                    "message": "Missing description json - element \"pluginName\" in plugin \"{{pluginId}}\", skipping.",
+                    "missingPluginIndexHtml": "Missing index.html in plugin \"{{pluginId}}\"!"
+                }
+            },
+            "navigationTitle": "TC Plugins",
+            "title": "TeddyCloud Plugins",
+            "intro": "Here you find your added TeddyCloud plugins and you can add new plugins provided by you or the TeddyCloud community!",
+            "installedPlugins": "Installed plugins",
+            "helpTextCreatePlugin": "Some Text about how to create a plugin",
+            "helpButton": "Help",
+            "addButton": "Add",
+            "addButtonTooltip": "Click here to add new Plugins or update existing plugins",
+            "available": "Available Plugins",
+            "by": "by",
+            "filter": {
+                "unknown": "Section unset"
+            },
+            "visitHomepage": "Visit Plugins Homepage",
+            "empty": "No plugin available",
+            "plugin": "Plugin",
+            "help": {
+                "popoverTitle": "Plugin Help",
+                "title": "Plugin Folder Structure & Requirements",
+                "intro": "To make your plugin discoverable and listed in the Community navigation, it must follow this structure and include a valid index.html and plugin.json file. An optional preview.png will be shown as an image in the plugins card.",
+                "folderStructureTitle": "Plugin Folder Structure:",
+                "descriptionTitle": "plugin.json — Required Metadata",
+                "descriptionIntro": "Every plugin must include a plugin.json file in its root. This file describes the plugin and allows it to be displayed properly in the UI.",
+                "exampleTitle": "Example:",
+                "fieldsTitle": "Fields:",
+                "fields": {
+                    "pluginName": "The title shown in menus (mandatory)",
+                    "description": "Short summary of the plugin",
+                    "author": "Author of the plugin",
+                    "version": "Version of the plugin",
+                    "pluginHomepage": "Homepage of the plugin",
+                    "teddyCloudSection": "Desired section where plugin shall be added to navigation (valid values:  home, tonies, tonieboxes, settings, community)"
+                },
+                "exampleFolderTitle": "Example Folder:",
+                "descriptionExampleTitle": "plugin.json for example above:"
+            },
+            "open": "Open Plugin",
+            "delete": "Delete",
+            "deletion": {
+                "delete": "Delete",
+                "confirmDeleteModal": "Confirm delete",
+                "confirmDeleteDialog": "Do you really want to delete the plugin \"{{pluginId}}\"?",
+                "errorDeletingPlugin": "Deletion of plugin failed",
+                "errorDeletingPluginDetails": "Deletion of plugin \"{{filename}}\" failed: ",
+                "successDeletingPlugin": "Deletion of plugin successful",
+                "successDeletingPluginDetails": "Deletion of plugin \"{{filename}}\" was successful"
+            },
+            "cancel": "Cancel",
+            "upload": {
+                "add": "Add Plugin",
+                "selectPluginZip": "Select the zipped plugin file",
+                "uploadModal": "Upload a zipped plugin file",
+                "uploadModalHint": "Upload a new or an existing plugin. If the uploaded zipped plugin is already existing in TeddyCloud, it will be overwritten.",
+                "errorUploadingPlugin": "Upload of new plugin failed",
+                "errorUploadingPluginDetails": "Upload of new plugin \"{{filename}}\" failed: ",
+                "successUploadingPlugin": "Upload of new plugin successful",
+                "successUploadingPluginDetails": "Upload of new plugin \"{{filename}}\" was successful",
+                "warningUploadingPlugin": "Please select a file",
+                "warningUploadingPluginDetails": "Please select a zipped plugin file before hitting \"Add Plugin\""
+            }
+        },
         "title": "Community",
         "translations": {
             "allTranslationStrings": "All Translation strings",
@@ -1389,7 +1461,9 @@
                 "connectingTo": "Connecting to",
                 "connectingToESP": "Connecting to ESP...",
                 "connectingWriteFlash": "Connecting to write Flash...",
-                "downloadFlashFilesHint": "The firmware images are stored in your server's data directory in case you want to reflash them. In case you want to save your firmware images somewhere else, you can download them and move them to a safe place:",
+                "downloadFlashFilesHint": "The firmware images are stored in your server's data directory in case you want to reflash them. If you haven't done so already, make sure to download and securely store a copy of the original firmware now! This ensures you can always restore your Toniebox to its factory state if something goes wrong. Save the backup in multiple locations — such as your main computer or laptop, an external hard drive or USB stick, and/or a trusted cloud storage service (e.g. Google Drive, Dropbox, OneDrive). Do not rely on the copy stored on the TeddyCloud server alone.",
+                "backupFlash": "Important: Backup your original unpatched firmware",
+                "importanceBackup": "Before making any changes of your Toniebox, download and securely store a copy of the original firmware. This ensures you can always restore your Toniebox to its factory state if something goes wrong. Save it in multiple locations, such as your main computer or laptop, an external hard drive or USB stick and/or a trusted cloud storage service (e.g. Google Drive, Dropbox, OneDrive). Never store your only copy on the TeddyCloud-Server.",
                 "downloadLink": "Download unpatched firmware",
                 "downloadLinkPatched": "Download patched firmware",
                 "error": "Error",
@@ -1543,6 +1617,7 @@
         }
     },
     "tonies": {
+        "connectionToBoxineNotAvailable": "Unable to connect to Boxine/Toniecloud. Please enable access to allow downloading.",
         "noPlayableContentHint": "There is no content available to play. Either it's not assigned or data is missing from the Boxine/Tonies cloud. Place the figurine on the box to fix this.",
         "addNewCustomTonie": "Create new model",
         "addNewCustomTonieHint": "Create a new model and assign it to the current tag",
@@ -1617,6 +1692,8 @@
             "targetDirectory": "Choose target directory",
             "title": "Audio Encoder",
             "tooManyFilesError": "Too many files!",
+            "unsupportedFileType": "Unsupported file type!",
+            "unsupportedFileTypeDetails": "The file \"{{file}}\" has an unsupported file type!",
             "upload": "Upload",
             "uploadFailed": "Upload failed",
             "uploadFailedDetails": "The upload encountered an error: ",
@@ -1630,6 +1707,94 @@
         },
         "errorFetchingSystemSounds": "Error fetching system sounds",
         "errorFetchingTonies": "Error fetching Tonies",
+        "help": {
+            "title": "Help",
+            "closeButton": "Close",
+            "modelImage": {
+                "title": "Tonie/Tag Model Image",
+                "text": "Displays the visual representation of the Tonie/Tag if it's recognized. Unknown Tonies/Tags will show a question mark. If the 'Frontend' → 'Split content / model' setting is enabled, two images may appear:",
+                "bigImage": {
+                    "title": "Big Image",
+                    "text": "Represents the visual appearance of the Tonie/Tag.",
+                    "description": "This image reflects the selected model assigned to the Tonie/Tag. To change it, assign a different model."
+                },
+                "smallImage": {
+                    "title": "Small Image",
+                    "text": "Visual indicator of the actual source if it differs from the assigned model.",
+                    "description": "Displayed when the assigned source is different from the selected model."
+                }
+            },
+            "blueTopBorder": {
+                "title": "Blue Top Border",
+                "text": "Indicates that this Tonie/Tag was the last one played on at least one of your Tonieboxes."
+            },
+            "actionItems": {
+                "infoIcon": {
+                    "title": "Tonie/Tag Information",
+                    "text": "Opens a modal displaying key details of the Tonie/Tag, including title, image, UID, tracklist and various status indicators:",
+                    "valid": {
+                        "title": "Valid",
+                        "text": "Shows whether the assigned source of the Tonie/Tag is valid.",
+                        "description": "A Tonie/Tag is considered valid if its assigned source is a valid TAF file."
+                    },
+                    "exists": {
+                        "title": "Exists",
+                        "text": "Shows whether the assigned source of the Tonie/Tag exists on the system.",
+                        "description": "The 'exists' status is set to 'yes' if the assigned source file is present."
+                    },
+                    "download": {
+                        "title": "Download TAF as .ogg",
+                        "text": "Enables downloading the TAF file as an .ogg audio file.",
+                        "description": "If available, the linked TAF file can be downloaded as a single .ogg file."
+                    },
+                    "hide": {
+                        "title": "Hide Tonie/Tag",
+                        "text": "Removes the Tonie/Tag from the overview display.",
+                        "description": "Use this option to hide a Tonie/Tag. To show it again, place the Tonie/Tag on one of your Tonieboxes."
+                    }
+                },
+                "editIcon": {
+                    "title": "Edit Tonie/Tag",
+                    "text": "Opens the edit modal with the following configuration options:",
+                    "source": {
+                        "title": "Source",
+                        "text": "Displays the currently assigned content source.",
+                        "description": "You can assign content from your library (e.g., TAF or TAP files) or enter a stream URL."
+                    },
+                    "radioStreamSearch": {
+                        "title": "Radio Stream Search",
+                        "text": "Search online radio streams (available if the radio-browser.info API is accessible).",
+                        "description": "Use the search field to find and assign a stream from the radio-browser database."
+                    },
+                    "model": {
+                        "title": "Model",
+                        "text": "Represents the visual model assigned to the Tonie/Tag.",
+                        "description": "Search for a model and assign it to the Tonie/Tag. The image will be shown in the overview."
+                    },
+                    "createNewModel": {
+                        "title": "Create New Model (WIP)",
+                        "text": "Create a new custom model for your Tonie/Tag.",
+                        "description": "Opens a modal to enter the required details for a new model. This feature is still under development and may not be functional yet."
+                    }
+                },
+                "downloadIcon": {
+                    "title": "Download Content",
+                    "text": "If cloud access is enabled and authorized, clicking this icon will download content from the Boxine/Toniecloud."
+                },
+                "playIcon": {
+                    "title": "Play Content",
+                    "text": "Plays the content assigned to the Tonie/Tag. If the icon appears light gray, no playable content is assigned."
+                },
+                "cloudIcon": {
+                    "title": "Cloud Status",
+                    "text": "A grey icon indicates cloud sync is enabled; red means it's disabled. When enabled, the Tonie/Tag can sync with Boxine/Toniecloud. Click the icon to toggle."
+                },
+                "liveIcon": {
+                    "title": "Live Status",
+                    "text": "A red icon indicates 'live' mode, meaning content will always start from the beginning and re-download. This is automatically enabled for radio streams. Click to toggle."
+                }
+            }
+        },
         "infoModal": {
             "download": "Download TAF as *.ogg",
             "exists": "Exists:",
@@ -1733,7 +1898,7 @@
             "title": "TeddyStudio",
             "intro": "Search all Tonies and tags - both official and your custom ones - to create your printable Traveltonies (coin) sheet.",
             "placeholder": "Enter a search term!",
-            "diameter": "Coin inner diameter",
+            "diameter": "inner diameter",
             "textFontSize": "Text size",
             "showModelNo": "Print model-no.",
             "showLanguageFlag": "Print language flag",
@@ -1741,7 +1906,17 @@
             "clear": "Clear sheet",
             "printPage": "Print sheet",
             "printSheet": "Your print sheet",
-            "settings": "Settings"
+            "settings": "Settings",
+            "round": "Round",
+            "square": "Square",
+            "width": "width",
+            "height": "height",
+            "labelShape": "Label shape",
+            "labelSpacing": "spacing",
+            "labelSpacingY": "Y spacing",
+            "labelSpacingX": "X spacing",
+            "clearSettings": "Clear",
+            "saveSettings": "Save"
         },
         "title": "Tonies",
         "tonies": {

@@ -78,6 +78,78 @@
             "navigationTitle": "Forum"
         },
         "navigationTitle": "Community",
+        "plugins": {
+            "errorLoadingPlugin": "Fehler beim Laden der Metadaten für Plugin {{pluginname}}",
+            "error": {
+                "title": "Fehler beim Laden des Plugins",
+                "pluginNotFound": "Plugin index.html nicht gefunden – bitte überprüfe das Plugin!",
+                "notification": {
+                    "title": "Fehler beim Laden des Plugins",
+                    "message": "Fehlende Beschreibung json – Element \"pluginName\" im Plugin \"{{pluginId}}\", wird übersprungen.",
+                    "missingPluginIndexHtml": "Fehlende index.html im Plugin \"{{pluginId}}\"!"
+                }
+            },
+            "navigationTitle": "TC Plugins",
+            "title": "TeddyCloud Plugins",
+            "intro": "Hier findest du deine hinzugefügten TeddyCloud Plugins und kannst neue Plugins von dir oder der TeddyCloud Community hinzufügen!",
+            "installedPlugins": "Installierte Plugins",
+            "helpTextCreatePlugin": "Ein Text darüber, wie man ein Plugin erstellt",
+            "helpButton": "Hilfe",
+            "addButton": "Hinzufügen",
+            "addButtonTooltip": "Klicke hier, um neue Plugins hinzuzufügen oder bestehende Plugins zu aktualisieren",
+            "available": "Verfügbare Plugins",
+            "by": "von",
+            "filter": {
+                "unknown": "Bereich nicht gesetzt"
+            },
+            "visitHomepage": "Plugin-Homepage besuchen",
+            "empty": "Kein Plugin verfügbar",
+            "plugin": "Plugin",
+            "help": {
+                "popoverTitle": "Plugin-Hilfe",
+                "title": "Plugin-Ordnerstruktur & Anforderungen",
+                "intro": "Damit dein Plugin auffindbar ist und in der Community-Navigation erscheint, muss es dieser Struktur folgen und eine gültige index.html und plugin.json Datei enthalten. Eine optionale preview.png wird als Bild in der Plugin-Karte angezeigt.",
+                "folderStructureTitle": "Plugin-Ordnerstruktur:",
+                "descriptionTitle": "plugin.json — Erforderliche Metadaten",
+                "descriptionIntro": "Jedes Plugin muss eine plugin.json-Datei im Hauptverzeichnis enthalten. Diese Datei beschreibt das Plugin und ermöglicht die richtige Anzeige in der Benutzeroberfläche.",
+                "exampleTitle": "Beispiel:",
+                "fieldsTitle": "Felder:",
+                "fields": {
+                    "pluginName": "Der Titel, der in Menüs angezeigt wird (erforderlich)",
+                    "description": "Kurze Zusammenfassung des Plugins",
+                    "author": "Autor des Plugins",
+                    "version": "Version des Plugins",
+                    "pluginHomepage": "Homepage des Plugins",
+                    "teddyCloudSection": "Gewünschter Bereich, in dem das Plugin zur Navigation hinzugefügt wird (gültige Werte: home, tonies, tonieboxes, settings, community)"
+                },
+                "exampleFolderTitle": "Beispielordner:",
+                "descriptionExampleTitle": "plugin.json zum obigen Beispiel:"
+            },
+            "open": "Plugin öffnen",
+            "delete": "Löschen",
+            "deletion": {
+                "delete": "Löschen",
+                "confirmDeleteModal": "Löschen bestätigen",
+                "confirmDeleteDialog": "Möchtest du das Plugin \"{{pluginId}}\" wirklich löschen?",
+                "errorDeletingPlugin": "Löschen des Plugins fehlgeschlagen",
+                "errorDeletingPluginDetails": "Löschen des Plugins \"{{filename}}\" fehlgeschlagen: ",
+                "successDeletingPlugin": "Löschen des Plugins erfolgreich",
+                "successDeletingPluginDetails": "Löschen des Plugins \"{{filename}}\" war erfolgreich"
+            },
+            "cancel": "Abbrechen",
+            "upload": {
+                "add": "Plugin hinzufügen",
+                "selectPluginZip": "Zip-Datei des Plugins auswählen",
+                "uploadModal": "Eine gezippte Plugin-Datei hochladen",
+                "uploadModalHint": "Lade ein neues oder bestehendes Plugin hoch. Wenn das hochgeladene gezippte Plugin bereits in TeddyCloud vorhanden ist, wird es überschrieben.",
+                "errorUploadingPlugin": "Hochladen des neuen Plugins fehlgeschlagen",
+                "errorUploadingPluginDetails": "Hochladen des neuen Plugins \"{{filename}}\" fehlgeschlagen: ",
+                "successUploadingPlugin": "Hochladen des neuen Plugins erfolgreich",
+                "successUploadingPluginDetails": "Hochladen des neuen Plugins \"{{filename}}\" war erfolgreich",
+                "warningUploadingPlugin": "Bitte eine Datei auswählen",
+                "warningUploadingPluginDetails": "Bitte wähle eine gezippte Plugin-Datei aus, bevor du auf \"Plugin hinzufügen\" klickst"
+            }
+        },
         "supportRequestGuide": {
             "closing": "Diese Detailgenauigkeit wird der Community helfen, dein Problem effektiver zu lösen. Vielen Dank!",
             "example": {
@@ -1389,7 +1461,9 @@
                 "connectingTo": "Verbinde zu",
                 "connectingToESP": "Verbinde zum ESP...",
                 "connectingWriteFlash": "Verbinde zum Schreiben des Flash...",
-                "downloadFlashFilesHint": "Die Firmware Images sind im Datenverzeichnis deines Servers gespeichert, falls du sie nochmal flashen möchtest. Wenn du deine Firmware Images woanders speichern willst, kannst du sie herunterladen und an einem sicheren Ort ablegen:",
+                "downloadFlashFilesHint": "Die Firmware-Images werden im Datenverzeichnis deines Servers gespeichert, falls du sie erneut flashen möchtest. Falls du das noch nicht getan hast, lade jetzt unbedingt eine Kopie der Original-Firmware herunter und speichere sie sicher! So kannst du deine Toniebox im Notfall jederzeit in den Werkszustand zurückversetzen. Sichere die Firmware an mehreren Orten – zum Beispiel auf deinem Hauptrechner oder Laptop, einem externen Laufwerk oder USB-Stick und/oder in einem vertrauenswürdigen Cloud-Dienst (z. B. Google Drive, Dropbox, OneDrive). Verlasse dich niemals nur auf die Kopie auf dem TeddyCloud-Server.",
+                "backupFlash": "Wichtig: Sichere deine originale, ungepatchte Firmware",
+                "importanceBackup": "Bevor du Änderungen an deiner Toniebox vornimmst, lade eine Kopie der Original-Firmware herunter und speichere sie sicher. So kannst du deine Toniebox im Notfall jederzeit auf den Werkszustand zurücksetzen. Speichere sie an mehreren Orten, zum Beispiel auf deinem Hauptrechner oder Laptop, einem externen Laufwerk oder USB-Stick und/oder einem vertrauenswürdigen Cloud-Dienst (z. B. Google Drive, Dropbox, OneDrive). Speichere deine einzige Kopie niemals nur auf dem TeddyCloud-Server.",
                 "downloadLink": "Download ungepachte Firmware",
                 "downloadLinkPatched": "Download gepachte Firmware",
                 "error": "Fehler",
@@ -1543,6 +1617,7 @@
         }
     },
     "tonies": {
+        "connectionToBoxineNotAvailable": "Verbindung zu Boxine/Toniecloud nicht möglich. Bitte erlaube den Zugriff, um den Download zu ermöglichen.",
         "noPlayableContentHint": "Es ist kein Inhalt zum Abspielen verfügbar. Entweder ist er nicht zugewiesen oder es fehlen Daten von der Tonies/Boxine-Cloud. Stelle die Figur auf die Box, um dies zu beheben.",
         "addNewCustomTonie": "Neues Modell anlegen",
         "addNewCustomTonieHint": "Lege ein neues Modell an und weise es dem aktuellen Tag zu",
@@ -1617,6 +1692,8 @@
             "targetDirectory": "Zielpfad auswählen",
             "title": "Audio Encoder",
             "tooManyFilesError": "Zu viele Dateien!",
+            "unsupportedFileType": "Nicht unterstützter Dateityp!",
+            "unsupportedFileTypeDetails": "Die Datei \"{{file}}\" hat einen nicht unterstützten Dateityp!",
             "upload": "Hochladen",
             "uploadFailed": "Hochladen fehlgeschlagen",
             "uploadFailedDetails": "Beim Hochladen ist ein Fehler aufgetreten: ",
@@ -1630,6 +1707,94 @@
         },
         "errorFetchingSystemSounds": "Fehler beim Abrufen der System Sounds",
         "errorFetchingTonies": "Fehler beim Abrufen der Tonies",
+        "help": {
+            "title": "Hilfe",
+            "closeButton": "Schließen",
+            "modelImage": {
+                "title": "Tonie/Tag-Modellbild",
+                "text": "Zeigt die visuelle Darstellung des Tonie/Tags, wenn er erkannt wird. Unbekannte Tonies/Tags zeigen ein Fragezeichen. Wenn die Einstellung 'Frontend' → 'Split content / model' aktiviert ist, können zwei Bilder angezeigt werden:",
+                "bigImage": {
+                    "title": "Großes Bild",
+                    "text": "Stellt das Aussehen des Tonie/Tags dar.",
+                    "description": "Dieses Bild zeigt das ausgewählte Modell, das dem Tonie/Tag zugewiesen ist. Um es zu ändern, musst du ein anderes Modell zuweisen."
+                },
+                "smallImage": {
+                    "title": "Kleines Bild",
+                    "text": "Zeigt die tatsächliche Quelle, wenn sie sich vom Modell unterscheidet.",
+                    "description": "Wird angezeigt, wenn die zugewiesene Quelle vom gewählten Modell abweicht."
+                }
+            },
+            "blueTopBorder": {
+                "title": "Blauer oberer Rand",
+                "text": "Zeigt an, dass dieser Tonie/Tag zuletzt auf mindestens einer deiner Tonieboxen abgespielt wurde."
+            },
+            "actionItems": {
+                "infoIcon": {
+                    "title": "Tonie/Tag-Informationen",
+                    "text": "Öffnet ein Modal mit wichtigen Details zum Tonie/Tag, einschließlich Titel, Bild, UID, Titelliste und verschiedenen Statusanzeigen:",
+                    "valid": {
+                        "title": "Gültig",
+                        "text": "Zeigt an, ob die zugewiesene Quelle des Tonie/Tags gültig ist.",
+                        "description": "Ein Tonie/Tag gilt als gültig, wenn seine zugewiesene Quelle eine gültige TAF-Datei ist."
+                    },
+                    "exists": {
+                        "title": "Existiert",
+                        "text": "Zeigt an, ob die zugewiesene Quelle des Tonie/Tags im System vorhanden ist.",
+                        "description": "Der Status 'Existiert' wird auf 'ja' gesetzt, wenn die zugewiesene Quelldatei existiert."
+                    },
+                    "download": {
+                        "title": "TAF als .ogg herunterladen",
+                        "text": "Ermöglicht das Herunterladen der TAF-Datei als .ogg-Audiodatei.",
+                        "description": "Wenn verfügbar, kann die verlinkte TAF-Datei als einzelne .ogg-Datei heruntergeladen werden."
+                    },
+                    "hide": {
+                        "title": "Tonie/Tag verbergen",
+                        "text": "Entfernt den Tonie/Tag aus der Übersicht.",
+                        "description": "Du kannst diese Option nutzen, um einen Tonie/Tag auszublenden. Um ihn wieder sichtbar zu machen, platziere ihn auf einer deiner Tonieboxen."
+                    }
+                },
+                "editIcon": {
+                    "title": "Tonie/Tag bearbeiten",
+                    "text": "Öffnet das Bearbeitungsfenster mit folgenden Optionen:",
+                    "source": {
+                        "title": "Quelle",
+                        "text": "Zeigt die aktuell zugewiesene Inhaltsquelle an.",
+                        "description": "Du kannst Inhalte aus deiner Bibliothek (z. B. TAF- oder TAP-Dateien) zuweisen oder eine Stream-URL eingeben."
+                    },
+                    "radioStreamSearch": {
+                        "title": "Radio-Stream-Suche",
+                        "text": "Suche nach Online-Radio-Streams (falls die API von radio-browser.info verfügbar ist).",
+                        "description": "Verwende das Suchfeld, um einen Stream aus der radio-browser-Datenbank zu finden und zuzuweisen."
+                    },
+                    "model": {
+                        "title": "Modell",
+                        "text": "Zeigt das aktuell zugewiesene Modellbild des Tonie/Tags.",
+                        "description": "Suche ein Modell und weise es zu. Das Bild wird in der Übersicht angezeigt."
+                    },
+                    "createNewModel": {
+                        "title": "Neues Modell erstellen (WIP)",
+                        "text": "Erstelle ein neues benutzerdefiniertes Modell für deinen Tonie/Tag.",
+                        "description": "Öffnet ein Fenster, um alle nötigen Details für ein neues Modell einzugeben. Diese Funktion ist noch in Entwicklung."
+                    }
+                },
+                "downloadIcon": {
+                    "title": "Inhalt herunterladen",
+                    "text": "Wenn Cloud-Zugriff aktiviert und autorisiert ist, kannst du hier Inhalte aus der Boxine/Toniecloud herunterladen."
+                },
+                "playIcon": {
+                    "title": "Inhalt abspielen",
+                    "text": "Spielt den dem Tonie/Tag zugewiesenen Inhalt ab. Ist das Symbol grau, ist kein abspielbarer Inhalt zugewiesen."
+                },
+                "cloudIcon": {
+                    "title": "Cloud-Status",
+                    "text": "Grau bedeutet Cloud-Synchronisation ist aktiv, Rot bedeutet deaktiviert. Klicke, um den Status zu ändern."
+                },
+                "liveIcon": {
+                    "title": "Live-Status",
+                    "text": "Rot zeigt den 'Live'-Modus an: Inhalte starten immer von vorne und werden erneut geladen. Wird bei Radiosendern automatisch aktiviert. Klicke zum Umschalten."
+                }
+            }
+        },
         "infoModal": {
             "download": "Download TAF als *.ogg",
             "exists": "Existiert:",
@@ -1733,7 +1898,7 @@
             "title": "TeddyStudio",
             "intro": "Durchsuche alle Tonies und Tags - sowohl offizielle als auch deine eigenen - um dein druckbares Traveltonies (Münze) Blatt zu erstellen.",
             "placeholder": "Gib einen Suchbegriff ein!",
-            "diameter": "Innen-Durchmesser der Münze",
+            "diameter": "Innen-Durchmesser",
             "textFontSize": "Textgröße",
             "showLanguageFlag": "Sprachflagge drucken",
             "showModelNo": "Modellnummer drucken",
@@ -1741,7 +1906,17 @@
             "clear": "Blatt löschen",
             "printPage": "Blatt drucken",
             "printSheet": "Dein Druckblatt",
-            "settings": "Einstellungen"
+            "settings": "Einstellungen",
+            "round": "Rund",
+            "square": "Eckig",
+            "width": "Breite",
+            "height": "Höhe",
+            "labelShape": "Etikettenform",
+            "labelSpacing": "Abstand",
+            "labelSpacingY": "Y",
+            "labelSpacingX": "X",
+            "clearSettings": "Zurücksetzen",
+            "saveSettings": "Speichern"
         },
         "title": "Tonies",
         "tonies": {
