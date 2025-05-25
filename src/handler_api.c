@@ -1938,7 +1938,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         return ERROR_FAILURE;
     }
 
-    char_t post_data[BODY_BUFFER_SIZE];
+    char_t post_data[POST_BUFFER_SIZE];
     error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
