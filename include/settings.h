@@ -102,6 +102,7 @@ typedef struct
     bool split_model_content;
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
+    bool check_cc3200_cfw;
 } settings_frontend_t;
 
 typedef struct
