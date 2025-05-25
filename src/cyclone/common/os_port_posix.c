@@ -99,7 +99,7 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg,
    }
    else
    {
-      return OS_INVALID_TASK_ID;
+      return (OsTaskId) OS_INVALID_TASK_ID;
    }
 }
 
@@ -112,7 +112,7 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg,
 void osDeleteTask(OsTaskId taskId)
 {
    //Delete the calling thread?
-   if(taskId == OS_SELF_TASK_ID)
+   if(taskId == (OsTaskId) OS_SELF_TASK_ID)
    {
       //Kill ourselves
       pthread_exit(NULL);
