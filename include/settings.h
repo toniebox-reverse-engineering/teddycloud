@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 13
+#define CONFIG_VERSION 14
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -102,6 +102,7 @@ typedef struct
     bool split_model_content;
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
+    bool check_cc3200_cfw;
 } settings_frontend_t;
 
 typedef struct
@@ -292,6 +293,8 @@ typedef struct
     bool flex_enabled;
     char *flex_uid;
     char *bind_ip;
+
+    uint32_t http_client_timeout;
 
     bool new_webgui_as_default;
 

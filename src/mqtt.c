@@ -928,7 +928,11 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 
 void mqtt_init()
 {
-    osCreateTask("MQTT", &mqtt_thread, NULL, 1024, 0);
+    OsTaskParameters taskParams;
+    taskParams.priority = 0;
+    taskParams.stackSize = 1024;
+
+    osCreateTask("MQTT", &mqtt_thread, NULL, &taskParams);
 
     t_ha_entity entity;
 

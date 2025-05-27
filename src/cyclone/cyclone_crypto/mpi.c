@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneCRYPTO Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 // Switch to the appropriate trace level
@@ -43,6 +43,7 @@
 // Check crypto library configuration
 #if (MPI_SUPPORT == ENABLED)
 
+
 /**
  * @brief Initialize a multiple precision integer
  * @param[in,out] r Pointer to the multiple precision integer to be initialized
@@ -53,8 +54,11 @@ void mpiInit(Mpi *r)
    // Initialize structure
    r->sign = 1;
    r->size = 0;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    r->data = NULL;
+#endif
 }
+
 
 /**
  * @brief Release a multiple precision integer
@@ -63,18 +67,26 @@ void mpiInit(Mpi *r)
 
 void mpiFree(Mpi *r)
 {
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    // Any memory previously allocated?
    if (r->data != NULL)
    {
-      // Erase contents before releasing memory
+      // Erase contents
       osMemset(r->data, 0, r->size * MPI_INT_SIZE);
+
+      //Release memory buffer
       cryptoFreeMem(r->data);
+      r->data = NULL;
    }
+#else
+   //Erase contents
+   osMemset(r->data, 0, r->size * MPI_INT_SIZE);
+#endif
 
    // Set size to zero
    r->size = 0;
-   r->data = NULL;
 }
+
 
 /**
  * @brief Adjust the size of multiple precision integer
@@ -85,40 +97,71 @@ void mpiFree(Mpi *r)
 
 error_t mpiGrow(Mpi *r, uint_t size)
 {
+   error_t error;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    uint_t *data;
+#endif
+
+   // Initialize status code
+   error = NO_ERROR;
 
    // Ensure the parameter is valid
    size = MAX(size, 1);
 
-   // Check the current size
-   if (r->size >= size)
-      return NO_ERROR;
-
-   // Allocate a memory buffer
-   data = cryptoAllocMem(size * MPI_INT_SIZE);
-   // Failed to allocate memory?
-   if (data == NULL)
-      return ERROR_OUT_OF_MEMORY;
-
-   // Clear buffer contents
-   osMemset(data, 0, size * MPI_INT_SIZE);
-
-   // Any data to copy?
-   if (r->size > 0)
+   // Check whether the size of the multiple precision integer must be increased
+   if(size > r->size)
    {
-      // Copy original data
-      osMemcpy(data, r->data, r->size * MPI_INT_SIZE);
-      // Free previously allocated memory
-      cryptoFreeMem(r->data);
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
+      // Allocate a new memory buffer
+      data = cryptoAllocMem(size * MPI_INT_SIZE);
+
+      // Successful memory allocation?
+      if(data != NULL)
+      {
+         // Any data to copy?
+         if(r->size > 0)
+         {
+            // Copy original data
+            osMemcpy(data, r->data, r->size * MPI_INT_SIZE);
+
+            // Release old memory buffer
+            osMemset(r->data, 0, r->size * MPI_INT_SIZE);
+            cryptoFreeMem(r->data);
+         }
+
+         // Clear upper words
+         osMemset(data + r->size, 0, (size - r->size) * MPI_INT_SIZE);
+         //Attach new memory buffer
+         r->data = data;
+         // Update the size of the multiple precision integer
+         r->size = size;
+      }
+      else
+      {
+         // Failed to allocate memory
+         error = ERROR_OUT_OF_MEMORY;
+      }
+#else
+      // Check parameter
+      if(size <= MPI_MAX_INT_SIZE)
+      {
+         // Clear upper words
+         osMemset(r->data + r->size, 0, (size - r->size) * MPI_INT_SIZE);
+         // Update the size of the multiple precision integer
+         r->size = size;
+      }
+      else
+      {
+         //Report an error
+         error = ERROR_BUFFER_OVERFLOW;
+      }
+#endif
    }
 
-   // Update the size of the multiple precision integer
-   r->size = size;
-   r->data = data;
-
-   // Successful operation
-   return NO_ERROR;
+   // Return status code
+   return error;
 }
+
 
 /**
  * @brief Get the actual length in words
@@ -145,6 +188,7 @@ uint_t mpiGetLength(const Mpi *a)
    // Return the actual length
    return i + 1;
 }
+
 
 /**
  * @brief Get the actual length in bytes
@@ -184,6 +228,7 @@ uint_t mpiGetByteLength(const Mpi *a)
    return n;
 }
 
+
 /**
  * @brief Get the actual length in bits
  * @param[in] a Pointer to a multiple precision integer
@@ -222,6 +267,7 @@ uint_t mpiGetBitLength(const Mpi *a)
    return n;
 }
 
+
 /**
  * @brief Set the bit value at the specified index
  * @param[in] r Pointer to a multiple precision integer
@@ -247,14 +293,19 @@ error_t mpiSetBitValue(Mpi *r, uint_t index, uint_t value)
       return error;
 
    // Set bit value
-   if (value)
+   if(value)
+   {
       r->data[n1] |= (1U << n2);
+   }
    else
+   {
       r->data[n1] &= ~(1U << n2);
+   }
 
    // No error to report
    return NO_ERROR;
 }
+
 
 /**
  * @brief Get the bit value at the specified index
@@ -279,6 +330,7 @@ uint_t mpiGetBitValue(const Mpi *a, uint_t index)
    // Return the actual bit value
    return (a->data[n1] >> n2) & 0x01;
 }
+
 
 /**
  * @brief Compare two multiple precision integers
@@ -323,6 +375,7 @@ int_t mpiComp(const Mpi *a, const Mpi *b)
    return 0;
 }
 
+
 /**
  * @brief Compare a multiple precision integer with an integer
  * @param[in] a Multiple precision integer to be compared
@@ -339,11 +392,16 @@ int_t mpiCompInt(const Mpi *a, int_t b)
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    t.data = &value;
+#else
+   t.data[0] = value;
+#endif
 
    // Return comparison result
    return mpiComp(a, &t);
 }
+
 
 /**
  * @brief Compare the absolute value of two multiple precision integers
@@ -382,6 +440,7 @@ int_t mpiCompAbs(const Mpi *a, const Mpi *b)
    return 0;
 }
 
+
 /**
  * @brief Copy a multiple precision integer
  * @param[out] r Pointer to a multiple precision integer (destination)
@@ -418,6 +477,7 @@ error_t mpiCopy(Mpi *r, const Mpi *a)
    return NO_ERROR;
 }
 
+
 /**
  * @brief Set the value of a multiple precision integer
  * @param[out] r Pointer to a multiple precision integer
@@ -445,6 +505,7 @@ error_t mpiSetValue(Mpi *r, int_t a)
    // Successful operation
    return NO_ERROR;
 }
+
 
 /**
  * @brief Generate a random value
@@ -487,12 +548,13 @@ error_t mpiRand(Mpi *r, uint_t length, const PrngAlgo *prngAlgo,
    // Remove the meaningless bits in the most significant word
    if (n > 0 && m > 0)
    {
-      r->data[n - 1] &= (1 << m) - 1;
+      r->data[n - 1] &= (1U << m) - 1;
    }
 
    // Successful operation
    return NO_ERROR;
 }
+
 
 /**
  * @brief Generate a random value in the range 1 to p-1
@@ -803,6 +865,7 @@ error_t mpiImport(Mpi *r, const uint8_t *data, uint_t length, MpiFormat format)
    return error;
 }
 
+
 /**
  * @brief Integer to octet string conversion
  *
@@ -884,6 +947,7 @@ error_t mpiExport(const Mpi *a, uint8_t *data, uint_t length, MpiFormat format)
    return error;
 }
 
+
 /**
  * @brief Multiple precision addition
  * @param[out] r Resulting integer R = A + B
@@ -932,6 +996,7 @@ error_t mpiAdd(Mpi *r, const Mpi *a, const Mpi *b)
    return error;
 }
 
+
 /**
  * @brief Add an integer to a multiple precision integer
  * @param[out] r Resulting integer R = A + B
@@ -949,11 +1014,16 @@ error_t mpiAddInt(Mpi *r, const Mpi *a, int_t b)
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    t.data = &value;
+#else
+   t.data[0] = value;
+#endif
 
    // Perform addition
    return mpiAdd(r, a, &t);
 }
+
 
 /**
  * @brief Multiple precision subtraction
@@ -1003,6 +1073,7 @@ error_t mpiSub(Mpi *r, const Mpi *a, const Mpi *b)
    return error;
 }
 
+
 /**
  * @brief Subtract an integer from a multiple precision integer
  * @param[out] r Resulting integer R = A - B
@@ -1020,11 +1091,16 @@ error_t mpiSubInt(Mpi *r, const Mpi *a, int_t b)
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    t.data = &value;
+#else
+   t.data[0] = value;
+#endif
 
    // Perform subtraction
    return mpiSub(r, a, &t);
 }
+
 
 /**
  * @brief Helper routine for multiple precision addition
@@ -1073,13 +1149,11 @@ error_t mpiAddAbs(Mpi *r, const Mpi *a, const Mpi *b)
       // Add carry bit
       d = r->data[i] + c;
       // Update carry bit
-      if (d != 0)
-         c = 0;
+      if (d != 0) c = 0;
       // Perform addition
       d += b->data[i];
       // Update carry bit
-      if (d < b->data[i])
-         c = 1;
+      if (d < b->data[i]) c = 1;
       // Save result
       r->data[i] = d;
    }
@@ -1090,8 +1164,7 @@ error_t mpiAddAbs(Mpi *r, const Mpi *a, const Mpi *b)
       // Add carry bit
       r->data[i] += c;
       // Update carry bit
-      if (r->data[i] != 0)
-         c = 0;
+      if (r->data[i] != 0) c = 0;
    }
 
    // Check the final carry bit
@@ -1107,6 +1180,7 @@ end:
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Helper routine for multiple precision subtraction
@@ -1129,7 +1203,7 @@ error_t mpiSubAbs(Mpi *r, const Mpi *a, const Mpi *b)
    if (mpiCompAbs(a, b) < 0)
    {
       // Swap A and B if necessary
-      const Mpi *t = b;
+      const Mpi *t = a;
       a = b;
       b = t;
    }
@@ -1157,15 +1231,13 @@ error_t mpiSubAbs(Mpi *r, const Mpi *a, const Mpi *b)
       if (c)
       {
          // Update carry bit
-         if (d != 0)
-            c = 0;
+         if(d != 0) c = 0;
          // Propagate carry bit
          d -= 1;
       }
 
       // Update carry bit
-      if (d < b->data[i])
-         c = 1;
+      if(d < b->data[i]) c = 1;
       // Perform subtraction
       r->data[i] = d - b->data[i];
    }
@@ -1174,8 +1246,7 @@ error_t mpiSubAbs(Mpi *r, const Mpi *a, const Mpi *b)
    for (i = n; c && i < m; i++)
    {
       // Update carry bit
-      if (a->data[i] != 0)
-         c = 0;
+      if(a->data[i] != 0) c = 0;
       // Propagate carry bit
       r->data[i] = a->data[i] - 1;
    }
@@ -1201,6 +1272,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Left shift operation
  * @param[in,out] r The multiple precision integer to be shifted to the left
@@ -1212,18 +1284,24 @@ error_t mpiShiftLeft(Mpi *r, uint_t n)
 {
    error_t error;
    uint_t i;
-
-   // Number of 32-bit words to shift
-   uint_t n1 = n / (MPI_INT_SIZE * 8);
-   // Number of bits to shift
-   uint_t n2 = n % (MPI_INT_SIZE * 8);
+   uint_t k;
+   uint_t n1;
+   uint_t n2;
 
    // Check parameters
-   if (!r->size || !n)
+   if (r->size == 0 || n == 0)
       return NO_ERROR;
 
+   //Determine the actual length of r
+   k = mpiGetBitLength(r);
+
+   //Number of 32-bit words to shift
+   n1 = n / (MPI_INT_SIZE * 8);
+   //Number of bits to shift
+   n2 = n % (MPI_INT_SIZE * 8);
+
    // Increase the size of the multiple-precision number
-   error = mpiGrow(r, r->size + (n + 31) / 32);
+   error = mpiGrow(r, (k + n + 31) / 32);
    // Check return code
    if (error)
       return error;
@@ -1260,6 +1338,7 @@ error_t mpiShiftLeft(Mpi *r, uint_t n)
    // Shift operation is complete
    return NO_ERROR;
 }
+
 
 /**
  * @brief Right shift operation
@@ -1317,6 +1396,7 @@ error_t mpiShiftRight(Mpi *r, uint_t n)
    // Shift operation is complete
    return NO_ERROR;
 }
+
 
 /**
  * @brief Multiple precision multiplication
@@ -1394,6 +1474,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Multiply a multiple precision integer by an integer
  * @param[out] r Resulting integer R = A * B
@@ -1411,11 +1492,16 @@ error_t mpiMulInt(Mpi *r, const Mpi *a, int_t b)
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    t.data = &value;
+#else
+   t.data[0] = value;
+#endif
 
    // Perform multiplication
    return mpiMul(r, a, &t);
 }
+
 
 /**
  * @brief Multiple precision division
@@ -1452,7 +1538,9 @@ error_t mpiDiv(Mpi *q, Mpi *r, const Mpi *a, const Mpi *b)
    n = mpiGetBitLength(&d);
 
    if (m > n)
+   {
       MPI_CHECK(mpiShiftLeft(&d, m - n));
+   }
 
    while (n++ <= m)
    {
@@ -1468,10 +1556,14 @@ error_t mpiDiv(Mpi *q, Mpi *r, const Mpi *a, const Mpi *b)
    }
 
    if (q != NULL)
+   {
       MPI_CHECK(mpiCopy(q, &e));
+   }
 
    if (r != NULL)
+   {
       MPI_CHECK(mpiCopy(r, &c));
+   }
 
 end:
    // Release previously allocated memory
@@ -1482,6 +1574,7 @@ end:
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Divide a multiple precision integer by an integer
@@ -1501,11 +1594,16 @@ error_t mpiDivInt(Mpi *q, Mpi *r, const Mpi *a, int_t b)
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    t.data = &value;
+#else
+   t.data[0] = value;
+#endif
 
    // Perform division
    return mpiDiv(q, r, a, &t);
 }
+
 
 /**
  * @brief Modulo operation
@@ -1569,6 +1667,8 @@ end:
    return error;
 }
 
+
+
 /**
  * @brief Modular addition
  * @param[out] r Resulting integer R = A + B mod P
@@ -1590,6 +1690,7 @@ end:
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Modular subtraction
@@ -1613,6 +1714,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Modular multiplication
  * @param[out] r Resulting integer R = A * B mod P
@@ -1634,6 +1736,7 @@ end:
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Modular inverse
@@ -1709,6 +1812,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Modular exponentiation
  * @param[out] r Resulting integer R = A ^ E mod P
@@ -1750,10 +1854,10 @@ __weak_func error_t mpiExpMod(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
    // Even modulus?
    if (mpiIsEven(p))
    {
-      // Let B = A^2
-      MPI_CHECK(mpiMulMod(&b, a, a, p));
       // Let S[0] = A
-      MPI_CHECK(mpiCopy(&s[0], a));
+      MPI_CHECK(mpiMod(&s[0], a, p));
+      //Let B = A^2
+      MPI_CHECK(mpiMulMod(&b, &s[0], &s[0], p));
 
       // Precompute S[i] = A^(2 * i + 1)
       for (i = 1; i < (1 << (d - 1)); i++)
@@ -1785,8 +1889,7 @@ __weak_func error_t mpiExpMod(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
             n = MAX(i - d + 1, 0);
 
             // The least significant bit of the window must be equal to 1
-            while (!mpiGetBitValue(e, n))
-               n++;
+            while(!mpiGetBitValue(e, n)) n++;
 
             // The algorithm processes more than one bit per iteration
             for (u = 0, j = i; j >= n; j--)
@@ -1861,8 +1964,7 @@ __weak_func error_t mpiExpMod(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
             n = MAX(i - d + 1, 0);
 
             // The least significant bit of the window must be equal to 1
-            while (!mpiGetBitValue(e, n))
-               n++;
+            while(!mpiGetBitValue(e, n)) n++;
 
             // The algorithm processes more than one bit per iteration
             for (u = 0, j = i; j >= n; j--)
@@ -1900,6 +2002,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Modular exponentiation (fast calculation)
  * @param[out] r Resulting integer R = A ^ E mod P
@@ -1915,6 +2018,7 @@ __weak_func error_t mpiExpModFast(Mpi *r, const Mpi *a, const Mpi *e, const Mpi 
    return mpiExpMod(r, a, e, p);
 }
 
+
 /**
  * @brief Modular exponentiation (regular calculation)
  * @param[out] r Resulting integer R = A ^ E mod P
@@ -1929,6 +2033,7 @@ __weak_func error_t mpiExpModRegular(Mpi *r, const Mpi *a, const Mpi *e, const M
    // Perform modular exponentiation
    return mpiExpMod(r, a, e, p);
 }
+
 
 /**
  * @brief Montgomery multiplication
@@ -2003,6 +2108,7 @@ end:
    return error;
 }
 
+
 /**
  * @brief Montgomery reduction
  * @param[out] r Resulting integer R = A / 2^k mod P
@@ -2022,11 +2128,16 @@ error_t mpiMontgomeryRed(Mpi *r, const Mpi *a, uint_t k, const Mpi *p, Mpi *t)
    value = 1;
    b.sign = 1;
    b.size = 1;
+#if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
    b.data = &value;
+#else
+   b.data[0] = value;
+#endif
 
    // Compute R = A / 2^k mod P
    return mpiMontgomeryMul(r, a, &b, k, p, t);
 }
+
 
 #if (MPI_ASM_SUPPORT == DISABLED)
 
@@ -2059,12 +2170,10 @@ void mpiMulAccCore(uint_t *r, const uint_t *a, int_t m, const uint_t b)
       v = (uint32_t)(p >> 32);
 
       u += c;
-      if (u < c)
-         v++;
+      if(u < c) v++;
 
       u += r[i];
-      if (u < r[i])
-         v++;
+      if(u < r[i]) v++;
 
       r[i] = u;
       c = v;
@@ -2079,6 +2188,7 @@ void mpiMulAccCore(uint_t *r, const uint_t *a, int_t m, const uint_t b)
 }
 
 #endif
+
 
 /**
  * @brief Display the contents of a multiple precision integer

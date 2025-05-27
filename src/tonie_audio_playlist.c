@@ -222,5 +222,5 @@ void tap_generate_task(void *param)
 
     stream_ctx->error = tap_generate_taf(tap_ctx->tap, &stream_ctx->current_source, &stream_ctx->active, tap_ctx->force);
     stream_ctx->quit = true;
-    osDeleteTask(OS_SELF_TASK_ID);
+    osDeleteTask((OsTaskId) OS_SELF_TASK_ID);
 }
