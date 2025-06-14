@@ -832,5 +832,5 @@ void ffmpeg_stream_task(void *param)
     strncpy(source[0], ffmpeg_ctx->source, PATH_LEN - 1);
     stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append, true);
     stream_ctx->quit = true;
-    osDeleteTask(OS_SELF_TASK_ID);
+    osDeleteTask((OsTaskId) OS_SELF_TASK_ID);
 }

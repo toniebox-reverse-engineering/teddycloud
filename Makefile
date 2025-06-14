@@ -291,6 +291,14 @@ LIBOPUS_SOURCES = \
 	$(addprefix opus/,$(OPUS_SOURCES)) \
 	$(addprefix opus/,$(OPUS_SOURCES_FLOAT)) 
 
+LIBOPUS_SOURCES := \
+	$(filter-out \
+	opus/src/repacketizer.c \
+	, $(LIBOPUS_SOURCES))
+
+LIBOPUS_SOURCES += \
+	src/opus/src/repacketizer.c
+
 LIBOPUS_HEADERS = \
 	$(addprefix opus/,$(SILK_HEAD)) \
 	$(addprefix opus/,$(CELT_HEAD)) \
@@ -326,7 +334,9 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_ssl/tls_common.c \
 	cyclone/cyclone_ssl/tls_extensions.c \
 	cyclone/cyclone_ssl/tls_certificate.c \
-	cyclone/cyclone_ssl/tls_signature.c \
+	cyclone/cyclone_ssl/tls_sign_generate.c \
+	cyclone/cyclone_ssl/tls_sign_misc.c \
+	cyclone/cyclone_ssl/tls_sign_verify.c \
 	cyclone/cyclone_ssl/tls_key_material.c \
 	cyclone/cyclone_ssl/tls_transcript_hash.c \
 	cyclone/cyclone_ssl/tls_cache.c \
@@ -409,6 +419,7 @@ CYCLONE_SOURCES += \
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
+CFLAGS += -D HTTP_SERVER_MAX_CONNECTIONS=32
 CFLAGS += ${CFLAGS_VERSION}
 CFLAGS += $(INCLUDES)
 

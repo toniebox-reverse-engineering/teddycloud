@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.4.4
  **/
 
 #ifndef _OS_PORT_H
@@ -36,8 +36,6 @@
 //Compilation flags used to enable/disable features
 #define ENABLED  1
 #define DISABLED 0
-
-#define PTR_OFFSET(addr, offset) ((void *) ((uint8_t *) (addr) + (offset)))
 
 #define timeCompare(t1, t2) ((int32_t) ((t1) - (t2)))
 
@@ -99,7 +97,7 @@
 //SafeRTOS port?
 #elif defined(USE_SAFERTOS)
    #include "os_port_safertos.h"
-//Azure RTOS ThreadX port?
+//Eclipse ThreadX port?
 #elif defined(USE_THREADX)
    #include "os_port_threadx.h"
 //Keil RTX port?
@@ -243,6 +241,12 @@
 #ifndef osVsnprintf
    #include <stdio.h>
    #define osVsnprintf(dest, size, format, ap) vsnprintf(dest, size, format, ap)
+#endif
+
+//Convert string to integer
+#ifndef osAtoi
+   #include <stdlib.h>
+   #define osAtoi(s) atoi(s)
 #endif
 
 //Convert string to unsigned long integer

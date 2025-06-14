@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.2
+ * @version 2.4.4
  **/
 
 #ifndef _FS_PORT_H
@@ -116,12 +116,15 @@ typedef struct
 //FatFs port?
 #if defined(USE_FATFS)
    #include "fs_port_fatfs.h"
-//RL-FlashFS port?
+//Keil RL-FlashFS port?
 #elif defined(USE_RL_FS)
    #include "fs_port_rl_fs.h"
 //SPIFFS port?
 #elif defined(USE_SPIFFS)
    #include "fs_port_spiffs.h"
+//Segger emFile port?
+#elif defined(USE_EMFILE)
+   #include "fs_port_emfile.h"
 //Windows port?
 #elif defined(_WIN32)
    #include "fs_port_posix.h"
