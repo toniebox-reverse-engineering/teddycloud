@@ -1852,7 +1852,7 @@
             "setToEmptyValue": "leer",
             "setTonieToModelFailed": "Konnte Tonie-Modell nicht ändern!",
             "setTonieToModelFailedDetails": "Konnte Tonie-Modell für [{{ruid}}] nicht ändern: ",
-            "setTonieToModelSuccessful": "Tonie-Modell erfolgtreich gesetzt!",
+            "setTonieToModelSuccessful": "Tonie-Modell erfolgreich gesetzt!",
             "setTonieToModelSuccessfulDetails": "Tonie-Modell auf {{selectedModel}} für [{{ruid}}] gesetzt",
             "setTonieToSourceFailed": "Konnte Tonie-Quelle nicht ändern!",
             "setTonieToSourceFailedDetails": "Konnte Tonie-Quelle für [{{ruid}}] nicht ändern: ",
