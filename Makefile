@@ -75,6 +75,14 @@ CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
 endif
 endif
 
+ifeq ($(build_os_id),"debian")
+ifeq ($(build_arch_bits),32)
+ifeq ($(build_arch),"armv7l")
+CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
+endif
+endif
+endif
+
 ifeq ($(build_os_id),"ubuntu")
 ifeq ($(build_arch),"aarch64")
 ifeq ($(build_arch_bits),64)
