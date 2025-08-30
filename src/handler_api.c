@@ -3183,15 +3183,18 @@ error_t handleApiPluginsGet(HttpConnection *connection, const char_t *uri, const
                 fsCloseDir(dir);
                 break;
             }
-            if ((entry.attributes | FS_FILE_ATTR_DIRECTORY) != FS_FILE_ATTR_DIRECTORY)
+            if (osStrcmp(entry.name, ".") == 0 || osStrcmp(entry.name, "..") == 0)
             {
                 continue;
             }
+            if ((entry.attributes & FS_FILE_ATTR_DIRECTORY) == FS_FILE_ATTR_DIRECTORY)
+            {
             cJSON *pluginName = cJSON_CreateString(entry.name);
             cJSON_AddItemToArray(pluginNames, pluginName);
+            }
         }
 
-        char* pluginJson = cJSON_Print(pluginNames);
+        char *pluginJson = cJSON_Print(pluginNames);
         httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(pluginJson));
         cJSON_Delete(pluginNames);
         return httpWriteResponseString(connection, pluginJson, true);
