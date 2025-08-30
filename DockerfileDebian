@@ -25,6 +25,8 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/firmware  \
     && mkdir -p /teddycloud/data/www \
+    && mkdir -p /teddycloud/data/www/custom_img \
+    && mkdir -p /teddycloud/data/www/plugins \
     && mkdir -p /teddycloud/data/cache \
     && mkdir -p /tmp
 
@@ -48,6 +50,7 @@ VOLUME \
     "/teddycloud/data/firmware" \
     "/teddycloud/data/cache" \
     "/teddycloud/data/www/custom_img" \
+    "/teddycloud/data/www/plugins" \
     "/teddycloud/certs" \
     "/teddycloud/config"
 
