@@ -3189,7 +3189,6 @@ error_t handleApiPluginsGet(HttpConnection *connection, const char_t *uri, const
             }
             cJSON *pluginName = cJSON_CreateString(entry.name);
             cJSON_AddItemToArray(pluginNames, pluginName);
-            cJSON_Delete(pluginName);
         }
 
         char* pluginJson = cJSON_Print(pluginNames);
