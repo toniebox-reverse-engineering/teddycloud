@@ -57,7 +57,7 @@ jobs:
       dockerfile: "DockerfileDebian"
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
-      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7"]'
+      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   alpine:
     needs: test_commit_hash
