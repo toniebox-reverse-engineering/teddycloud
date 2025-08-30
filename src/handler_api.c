@@ -3167,3 +3167,35 @@ error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const
     httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(stats_json));
     return httpWriteResponseString(connection, stats_json, false);
 }
+
+error_t handleApiPluginsGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    cJSON *pluginNames = cJSON_CreateArray();
+    cJSON_AddItemToObject(cJSON_CreateObject(), "plugins", pluginNames);
+    FsDir *dir = fsOpenDir(client_ctx->settings->internal.pluginsdirfull);
+    if (dir)
+    {
+        while (true)
+        {
+            FsDirEntry entry;
+            if (fsReadDir(dir, &entry) != NO_ERROR)
+            {
+                fsCloseDir(dir);
+                break;
+            }
+            if ((entry.attributes | FS_FILE_ATTR_DIRECTORY) != FS_FILE_ATTR_DIRECTORY)
+            {
+                continue;
+            }
+            cJSON *pluginName = cJSON_CreateString(entry.name);
+            cJSON_AddItemToArray(pluginNames, pluginName);
+            cJSON_Delete(pluginName);
+        }
+
+        char* pluginJson = cJSON_Print(pluginNames);
+        httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(pluginJson));
+        cJSON_Delete(pluginNames);
+        return httpWriteResponseString(connection, pluginJson, true);
+    }
+    return ERROR_FAILURE;
+}

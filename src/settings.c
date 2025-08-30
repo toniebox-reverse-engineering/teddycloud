@@ -79,6 +79,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library", LEVEL_DETAIL)
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir', 'cachedir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
     OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("core.pluginsdir", &settings->core.pluginsdir, "plugins", "plugins dir", LEVEL_NONE)
     OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
     OPTION_STRING("core.cachedir", &settings->core.cachedir, "cache", "Cache dir", "Directory where to cache files downloaded from internet", LEVEL_DETAIL)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
@@ -158,6 +159,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.pluginsdirfull", &settings->internal.pluginsdirfull, "", "Directory where plugins are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.cachedirfull", &settings->internal.cachedirfull, "", "Directory where cached files are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay", LEVEL_NONE)
@@ -517,6 +519,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     osFreeMem(settings->internal.librarydirfull);
     osFreeMem(settings->internal.datadirfull);
     osFreeMem(settings->internal.wwwdirfull);
+    osFreeMem(settings->internal.pluginsdirfull);
     osFreeMem(settings->internal.firmwaredirfull);
     osFreeMem(settings->internal.cachedirfull);
 
@@ -528,6 +531,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.librarydirfull = osAllocMem(256);
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
+    settings->internal.pluginsdirfull = osAllocMem(256);
     settings->internal.firmwaredirfull = osAllocMem(256);
     settings->internal.cachedirfull = osAllocMem(256);
 
@@ -539,6 +543,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings_resolve_dir(&settings->internal.configdirfull, settings->core.configdir, settings->internal.basedirfull);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.pluginsdirfull, settings->core.pluginsdir, settings->internal.wwwdirfull);
     settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
 

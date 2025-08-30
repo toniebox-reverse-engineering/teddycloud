@@ -241,6 +241,7 @@ typedef struct
     char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
+    char *pluginsdirfull;
     char *firmwaredirfull;
     char *cachedirfull;
 
@@ -283,6 +284,7 @@ typedef struct
     char *librarydir;
     char *datadir;
     char *wwwdir;
+    char *pluginsdir;
     char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
