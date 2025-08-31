@@ -1657,6 +1657,7 @@
         "alternativeSource": "Cette Tonie {{originalTonie}} est assignée à un contenu {{assignedContent}} !",
         "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
         "cancel": "Annuler",
+        "clearMarks": "Effacer",
         "closeAudioPlayer": "Fermer le lecteur audio",
         "closeAudioPlayerPopover": "Fermer arrête la lecture!",
         "confirmHideModal": {
@@ -1711,6 +1712,11 @@
         },
         "errorFetchingSystemSounds": "Erreur lors de la récupération des sons du système",
         "errorFetchingTonies": "Erreur lors de la récupération des Tonies",
+        "exportCompleteInfoToJson": "Exporter les marqués – info complète – en JSON",
+        "exportCsv": "Exporter les marqués en CSV",
+        "exportCsvTooltip": "Exporter les tags marqués en fichier CSV avec série, épisode et infos modèle du tag (pas du contenu assigné)",
+        "exportToHtml": "Exporter les éléments marqués en HTML",
+        "exportToJson": "Exporter les marqués en JSON",
         "help": {
             "actionItems": {
                 "cloudIcon": {
@@ -1822,6 +1828,7 @@
             "navigationTitle": "Bibliothèque",
             "title": "Bibliothèque"
         },
+        "marked": "Marqué",
         "messages": {
             "cloudAccessBlocked": "Accès au cloud bloqué!",
             "cloudAccessBlockedDetails": "Accès au cloud bloqué pour \"{{model}}\" [{{ruid}}]",
@@ -1967,6 +1974,8 @@
             "showPagination": "Afficher la pagination",
             "title": "Tonies"
         },
+        "toniesExportList": "Liste d'export des Tonies",
+        "toniesExportListCreateDate": "Généré le",
         "unsetTonie": "Tonie/Tag"
     },
     "utils": {

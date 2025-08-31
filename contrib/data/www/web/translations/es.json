@@ -1657,6 +1657,7 @@
         "alternativeSource": "Este Tonie {{originalTonie}} tiene asignado el contenido {{assignedContent}}!",
         "alternativeSourceUnknown": "¡Este Tonie {{originalTonie}} tiene asignado contenido alternativo!",
         "cancel": "Cancelar",
+        "clearMarks": "Borrar",
         "closeAudioPlayer": "Cerrar reproductor",
         "closeAudioPlayerPopover": "¡Cerrar detiene la reproducción!",
         "confirmHideModal": {
@@ -1711,6 +1712,11 @@
         },
         "errorFetchingSystemSounds": "Error al obtener los sonidos del sistema",
         "errorFetchingTonies": "Error al obtener los Tonies",
+        "exportCompleteInfoToJson": "Exportar marcados - información completa - a JSON",
+        "exportCsv": "Exportar marcados como CSV",
+        "exportCsvTooltip": "Exporta los tags marcados como archivo CSV con información de serie, episodio y modelo del tag (no del contenido asignado)",
+        "exportToHtml": "Exporta los marcados a HTML",
+        "exportToJson": "Exportar marcados a JSON",
         "help": {
             "actionItems": {
                 "cloudIcon": {
@@ -1822,6 +1828,7 @@
             "navigationTitle": "Biblioteca",
             "title": "Biblioteca"
         },
+        "marked": "Marcado",
         "messages": {
             "cloudAccessBlocked": "¡Acceso a la nube bloqueado!",
             "cloudAccessBlockedDetails": "Acceso a la nube bloqueado para \"{{model}}\" [{{ruid}}]",
@@ -1967,6 +1974,8 @@
             "showPagination": "Mostrar paginación",
             "title": "Tonies"
         },
+        "toniesExportList": "Lista de exportación de Tonies",
+        "toniesExportListCreateDate": "Generado el",
         "unsetTonie": "Tonie/Etiqueta"
     },
     "utils": {
