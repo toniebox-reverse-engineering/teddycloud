@@ -1657,7 +1657,7 @@
         "alternativeSource": "Este Tonie {{originalTonie}} tiene asignado el contenido {{assignedContent}}!",
         "alternativeSourceUnknown": "¡Este Tonie {{originalTonie}} tiene asignado contenido alternativo!",
         "cancel": "Cancelar",
-        "clearMarks": "Borrar",
+        "clearMarks": "Eliminar marcas",
         "closeAudioPlayer": "Cerrar reproductor",
         "closeAudioPlayerPopover": "¡Cerrar detiene la reproducción!",
         "confirmHideModal": {
@@ -1805,6 +1805,7 @@
             },
             "title": "Ayuda"
         },
+        "hideMarkedTags": "Ocultar marcados Tonie",
         "infoModal": {
             "download": "Descargar TAF como *.ogg",
             "exists": "Existe:",
@@ -1875,6 +1876,8 @@
             "ok": "OK",
             "selectFile": "Seleccionar archivo"
         },
+        "setLive": "Activar en vivo",
+        "setNoCloud": "Desactivar la nube",
         "system-sounds": {
             "navigationTitle": "Sonidos del sistema",
             "title": "Sonidos del sistema"
@@ -1976,6 +1979,8 @@
         },
         "toniesExportList": "Lista de exportación de Tonies",
         "toniesExportListCreateDate": "Generado el",
+        "unsetLive": "Desactivar en vivo",
+        "unsetNoCloud": "Activar la nube",
         "unsetTonie": "Tonie/Etiqueta"
     },
     "utils": {

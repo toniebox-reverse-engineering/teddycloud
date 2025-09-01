@@ -1657,7 +1657,7 @@
         "alternativeSource": "Der Toniefigur {{originalTonie}} ist der Inhalt {{assignedContent}} zugewiesen!",
         "alternativeSourceUnknown": "Der Toniefigur {{originalTonie}} ist alternativer Inhalt zugewiesen!",
         "cancel": "Abbrechen",
-        "clearMarks": "Löschen",
+        "clearMarks": "Markierungen löschen",
         "closeAudioPlayer": "Player schließen",
         "closeAudioPlayerPopover": "Schließen stoppt die Wiedergabe!",
         "confirmHideModal": {
@@ -1805,6 +1805,7 @@
             },
             "title": "Hilfe"
         },
+        "hideMarkedTags": "Markierte Tags ausblenden",
         "infoModal": {
             "download": "Download TAF als *.ogg",
             "exists": "Existiert:",
@@ -1875,6 +1876,8 @@
             "ok": "OK",
             "selectFile": "Datei auswählen"
         },
+        "setLive": "Live aktivieren",
+        "setNoCloud": "Cloud deaktivieren",
         "system-sounds": {
             "navigationTitle": "System Sounds",
             "title": "System Sounds"
@@ -1976,6 +1979,8 @@
         },
         "toniesExportList": "Tonies-Exportliste",
         "toniesExportListCreateDate": "Erstellt am",
+        "unsetLive": "Live deaktivieren",
+        "unsetNoCloud": "Cloud aktivieren",
         "unsetTonie": "Tonie/Tag"
     },
     "utils": {
