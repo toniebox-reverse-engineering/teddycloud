@@ -90,6 +90,7 @@ ifeq ($(build_arch_bits),64)
 # LLM: Ubuntu's Linux kernel version 6.5.0-25 increased the number of random bits used for ASLR from 28 to 32 on 64-bit systems7.
 # The AddressSanitizer library hasn't been updated to accommodate this change in the ASLR configuration7.
 # This mismatch causes a CHECK failure in the sanitizer_allocator_primary64.h file, specifically at line 131.
+# But this doesn't work!
 CFLAGS_VERSION+=-DSANITIZER_CAN_USE_ALLOCATOR64=0
 endif
 endif
