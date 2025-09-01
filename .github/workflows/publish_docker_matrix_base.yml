@@ -135,6 +135,7 @@ jobs:
           touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
 
       - name: Push docker tags ${{ matrix.platform }}
+        if: ${{ steps.docker-test.conclusion == 'success' }}
         id: push_tags
         uses: docker/build-push-action@v5
         with:
@@ -147,12 +148,14 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
 
       - name: Upload digest
+        if: ${{ steps.docker-test.conclusion == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
+        if: ${{ steps.docker-test.conclusion == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ steps.platform_strip.outputs.platform }}-${{ inputs.system }}
