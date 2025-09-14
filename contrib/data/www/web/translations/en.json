@@ -94,6 +94,7 @@
                 "successDeletingPlugin": "Deletion of plugin successful",
                 "successDeletingPluginDetails": "Deletion of plugin \"{{filename}}\" was successful"
             },
+            "downloadPluginTemplate": "Download PluginTemplate",
             "empty": "No plugin available",
             "error": {
                 "notification": {
@@ -117,6 +118,7 @@
                 "fields": {
                     "author": "Author of the plugin",
                     "description": "Short summary of the plugin",
+                    "icon": "The icon used for the plugin. Must be a valid Ant Design icon component from https://ant.design/components/icon, e.g. TrophyOutlined, TagsOutlined",
                     "pluginHomepage": "Homepage of the plugin",
                     "pluginName": "The title shown in menus (mandatory)",
                     "teddyCloudSection": "Desired section where plugin shall be added to navigation (valid values:  home, tonies, tonieboxes, settings, community)",
@@ -133,6 +135,7 @@
             "installedPlugins": "Installed plugins",
             "intro": "Here you find your added TeddyCloud plugins and you can add new plugins provided by you or the TeddyCloud community!",
             "navigationTitle": "TC Plugins",
+            "ok": "OK",
             "open": "Open Plugin",
             "plugin": "Plugin",
             "title": "TeddyCloud Plugins",
@@ -1657,7 +1660,6 @@
         "alternativeSource": "This Tonie {{originalTonie}} is assigned the content {{assignedContent}}!",
         "alternativeSourceUnknown": "This Tonie {{originalTonie}} is assigned alternative content!",
         "cancel": "Cancel",
-        "clearMarks": "Clear",
         "closeAudioPlayer": "Close player",
         "closeAudioPlayerPopover": "Close stops playback!",
         "confirmHideModal": {
@@ -1712,11 +1714,6 @@
         },
         "errorFetchingSystemSounds": "Error fetching system sounds",
         "errorFetchingTonies": "Error fetching Tonies",
-        "exportCompleteInfoToJson": "Export marked - complete info - to JSON",
-        "exportCsv": "Export marked as CSV",
-        "exportCsvTooltip": "Export marked tags as CSV file with series, episode and model info of the tag (not the assigned content)",
-        "exportToHtml": "Export marked to HTML",
-        "exportToJson": "Export marked to JSON",
         "help": {
             "actionItems": {
                 "cloudIcon": {
@@ -1805,7 +1802,6 @@
             },
             "title": "Help"
         },
-        "hideMarkedTags": "Hide marked tags",
         "infoModal": {
             "download": "Download TAF as *.ogg",
             "exists": "Exists:",
@@ -1829,7 +1825,6 @@
             "navigationTitle": "Library",
             "title": "Library"
         },
-        "marked": "marked",
         "messages": {
             "cloudAccessBlocked": "Cloud access blocked!",
             "cloudAccessBlockedDetails": "Cloud access blocked for \"{{model}}\" [{{ruid}}]",
@@ -1876,8 +1871,26 @@
             "ok": "OK",
             "selectFile": "Select file"
         },
-        "setLive": "Enable live",
-        "setNoCloud": "Disable cloud",
+        "selectMode": {
+            "cancel": "Cancel",
+            "exportCompleteInfoToJson": "Export selected - complete info - to JSON",
+            "exportCsv": "Export as CSV",
+            "exportCsvTooltip": "Export tags as CSV file with series, episode and model info of the Tonie/tag (not the assigned content)",
+            "exportToHtml": "Export to HTML",
+            "exportToHtmlInline": "Export to HTM with inline images if possible (slow!)",
+            "exportToJson": "Export to JSON",
+            "hideSelectedTags": "Hide tags",
+            "select": "Select",
+            "selectAll": "Select all",
+            "selected": "Tags/Tonies selected",
+            "setLive": "Enable live",
+            "setNoCloud": "Disable cloud",
+            "unselectAll": "Unselect all",
+            "unsetLive": "Disable live",
+            "unsetNoCloud": "Enable cloud",
+            "cancelButtonTooltip": "Cancel selection mode",
+            "selectButtonTooltip": "Enable selection mode"
+        },
         "system-sounds": {
             "navigationTitle": "System Sounds",
             "title": "System Sounds"
@@ -1979,8 +1992,6 @@
         },
         "toniesExportList": "Tonies export list",
         "toniesExportListCreateDate": "Generated on",
-        "unsetLive": "Disable live",
-        "unsetNoCloud": "Enable cloud",
         "unsetTonie": "Tonie/Tag"
     },
     "utils": {
