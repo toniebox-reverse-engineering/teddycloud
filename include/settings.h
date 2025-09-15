@@ -81,6 +81,7 @@ typedef struct
     bool cacheContent;
     bool cacheToLibrary;
     bool markCustomTagByPass;
+    bool markCustomTagByUid;
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
