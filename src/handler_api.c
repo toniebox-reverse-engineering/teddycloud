@@ -1457,7 +1457,8 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         char *oldrtnl = "rtnl.bxcl.de";
         char *oldapi = "prod.de.tbs.toys";
 
-        if (osStrlen(old_patch_host) > 0) {
+        if (osStrlen(old_patch_host) > 0)
+        {
             oldrtnl = old_patch_host;
             oldapi = old_patch_host;
         }
@@ -3189,8 +3190,8 @@ error_t handleApiPluginsGet(HttpConnection *connection, const char_t *uri, const
             }
             if ((entry.attributes & FS_FILE_ATTR_DIRECTORY) == FS_FILE_ATTR_DIRECTORY)
             {
-            cJSON *pluginName = cJSON_CreateString(entry.name);
-            cJSON_AddItemToArray(pluginNames, pluginName);
+                cJSON *pluginName = cJSON_CreateString(entry.name);
+                cJSON_AddItemToArray(pluginNames, pluginName);
             }
         }
 
