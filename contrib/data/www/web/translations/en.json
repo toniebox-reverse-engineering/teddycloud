@@ -555,6 +555,12 @@
                         "01homeAssistantIntegration": "Home Assistant integration (MQTT)"
                     },
                     "title": "MQTT client"
+                },
+                "13plugins": {
+                    "items": {
+                        "01pluginFeature": "extend TeddyCloud functionality by custom plugins"
+                    },
+                    "title": "TeddyCloud Plugins"
                 }
             },
             "futureFeatures": {
@@ -1873,6 +1879,7 @@
         },
         "selectMode": {
             "cancel": "Cancel",
+            "cancelButtonTooltip": "Cancel selection mode",
             "exportCompleteInfoToJson": "Export selected - complete info - to JSON",
             "exportCsv": "Export as CSV",
             "exportCsvTooltip": "Export tags as CSV file with series, episode and model info of the Tonie/tag (not the assigned content)",
@@ -1882,14 +1889,13 @@
             "hideSelectedTags": "Hide tags",
             "select": "Select",
             "selectAll": "Select all",
+            "selectButtonTooltip": "Enable selection mode",
             "selected": "Tags/Tonies selected",
             "setLive": "Enable live",
             "setNoCloud": "Disable cloud",
             "unselectAll": "Unselect all",
             "unsetLive": "Disable live",
-            "unsetNoCloud": "Enable cloud",
-            "cancelButtonTooltip": "Cancel selection mode",
-            "selectButtonTooltip": "Enable selection mode"
+            "unsetNoCloud": "Enable cloud"
         },
         "system-sounds": {
             "navigationTitle": "System Sounds",
@@ -1989,6 +1995,21 @@
             "showAll": "Show all",
             "showPagination": "Show pagination",
             "title": "Tonies"
+        },
+        "toniesaudioplayer": {
+            "enterFullscreen": "Enter Fullscreen",
+            "exitFullscreen": "Exit Fullscreen",
+            "navigationTitle": "Audio Player",
+            "selectTonieToPlay": "Select a Tonie/tag to play",
+            "title": "Audio Player",
+            "unknown": "Unknown",
+            "openStandalone": "Open player in standalone mode",
+            "standaloneTitle": "Audio Player",
+            "noTracks": "No tracks available",
+            "openInTonieAudioPlayer": "Open in Audio Player",
+            "continueInFooterAudioPlayer": "Continue in footer audio player",
+            "shrink": "Minimize audio player",
+            "expand": "Expand audio player"
         },
         "toniesExportList": "Tonies export list",
         "toniesExportListCreateDate": "Generated on",

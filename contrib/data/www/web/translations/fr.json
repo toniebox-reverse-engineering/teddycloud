@@ -555,6 +555,12 @@
                         "01homeAssistantIntegration": "Intégration Home Assistant (MQTT)"
                     },
                     "title": "Client MQTT"
+                },
+                "13plugins": {
+                    "items": {
+                        "01pluginFeature": "Étendez les fonctionnalités de TeddyCloud avec des plugins personnalisés"
+                    },
+                    "title": "Plugins TeddyCloud"
                 }
             },
             "futureFeatures": {
@@ -1873,6 +1879,7 @@
         },
         "selectMode": {
             "cancel": "Annuler",
+            "cancelButtonTooltip": "Annuler le mode de sélection",
             "exportCompleteInfoToJson": "Exporter - informations complètes - en JSON",
             "exportCsv": "Exporter en CSV",
             "exportCsvTooltip": "Exportez les Tomies/tags au format CSV avec la série, l'épisode et les informations du modèle (pas le contenu assigné)",
@@ -1882,14 +1889,13 @@
             "hideSelectedTags": "Masquer les tags",
             "select": "Sélectionner",
             "selectAll": "Tout sélectionner",
+            "selectButtonTooltip": "Activer le mode de sélection",
             "selected": "Tags/Tonies sélectionnés",
             "setLive": "Activer live",
             "setNoCloud": "Désactiver cloud",
             "unselectAll": "Tout désélectionner",
             "unsetLive": "Désactiver live",
-            "unsetNoCloud": "Activer cloud",
-            "cancelButtonTooltip": "Annuler le mode de sélection",
-            "selectButtonTooltip": "Activer le mode de sélection"
+            "unsetNoCloud": "Activer cloud"
         },
         "system-sounds": {
             "navigationTitle": "Sons du système",
@@ -1989,6 +1995,21 @@
             "showAll": "Afficher tout",
             "showPagination": "Afficher la pagination",
             "title": "Tonies"
+        },
+        "toniesaudioplayer": {
+            "enterFullscreen": "Passer en plein écran",
+            "exitFullscreen": "Quitter le plein écran",
+            "navigationTitle": "Lecteur Audio",
+            "selectTonieToPlay": "Sélectionne un Tonie/étiquette à lire",
+            "title": "Lecteur Audio",
+            "unknown": "Inconnu",
+            "openStandalone": "Ouvrir le lecteur en mode autonome",
+            "standaloneTitle": "Lecteur Audio",
+            "noTracks": "Aucune piste disponible",
+            "openInTonieAudioPlayer": "Ouvrir dans le lecteur audio",
+            "continueInFooterAudioPlayer": "Continuer dans le lecteur audio en bas",
+            "shrink": "Réduire le lecteur audio",
+            "expand": "Agrandir le lecteur audio"
         },
         "toniesExportList": "Liste d'export des Tonies",
         "toniesExportListCreateDate": "Généré le",
