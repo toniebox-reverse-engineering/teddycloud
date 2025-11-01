@@ -1571,7 +1571,7 @@
                 "installESPTool": "Aktuelles ESPtool installieren",
                 "installESPToolLink": "ESPtool-Repository auf GitHub",
                 "installESPToolText": "Du kannst den Flash-Speicher über den Debug-Port der Box und das esptool extrahieren. Bewahre dein Backup auf! Bitte verwende eine aktuelle Version des esptool. (>v4.4)",
-                "navigationTitle": "Legacy-Methode",
+                "navigationTitle": "ESP32 Legacy-Methode",
                 "next": "Weiter",
                 "preparationText": "Bitte verbinde deine Toniebox mit deinem WLAN und aktualisiere die Firmware. Viele Boxen werden mit einer Produktionsfirmware ausgeliefert, die aktualisiert werden muss. Andernfalls funktioniert die Box nicht wie vorgesehen. Es ist nicht notwendig, die Box mit der Mytonies-App/Konto zu verbinden.",
                 "preparationTextLink": "Verbinde die Box ohne den Einrichtungsassistenten.",
@@ -1963,7 +1963,15 @@
             "square": "Eckig",
             "textFontSize": "Textgröße",
             "title": "TeddyStudio",
-            "width": "Breite"
+            "width": "Breite",
+            "paperMarginVertical": "Oberer/unterer Rand",
+            "paperMarginHorizontal": "Linker/rechter Rand",
+            "paperSize": "Papierformat",
+            "paperWidth": "Papierbreite",
+            "paperHeight": "Papierhöhe",
+            "custom": "Benutzerdefiniert",
+            "labelSettings": "Etikett-Einstellungen",
+            "paperSettings": "Papier-Einstellungen"
         },
         "title": "Tonies",
         "tonies": {

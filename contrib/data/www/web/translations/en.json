@@ -1571,7 +1571,7 @@
                 "installESPTool": "Install recent ESPtool",
                 "installESPToolLink": "ESPtool repository on GitHub",
                 "installESPToolText": "You can extract the flash memory via the debug port of the box and the esptool. Keep your backup! Please use a recent version of esptool. (>v4.4)",
-                "navigationTitle": "Legacy method",
+                "navigationTitle": "ESP32 Legacy method",
                 "next": "Next",
                 "preparationText": "Please connect your Toniebox to your Wi-Fi and update its firmware. Many boxes are shipped with a production firmware that needs to be updated. Otherwise the box won`t work as it should. It is not necessary to connect the box to the mytonies app/account.",
                 "preparationTextLink": "Connect the box without the setup assistant.",
@@ -1963,7 +1963,15 @@
             "square": "Square",
             "textFontSize": "Text size",
             "title": "TeddyStudio",
-            "width": "Width"
+            "width": "Width",
+            "paperMarginVertical": "Top/Bottom margin",
+            "paperMarginHorizontal": "Left/Right margin",
+            "paperSize": "Paper size",
+            "paperWidth": "Paper width",
+            "paperHeight": "Paper height",
+            "custom": "Custom",
+            "labelSettings": "Label settings",
+            "paperSettings": "Paper settings"
         },
         "title": "Tonies",
         "tonies": {

@@ -1571,7 +1571,7 @@
                 "installESPTool": "Installer l'outil ESP récent",
                 "installESPToolLink": "Dépôt ESPtool sur GitHub",
                 "installESPToolText": "Vous pouvez extraire la mémoire flash via le port de débogage de la boîte et l'esptool. Gardez votre sauvegarde ! Veuillez utiliser une version récente d'esptool. (>v4.4)",
-                "navigationTitle": "Méthode ancienne",
+                "navigationTitle": "ESP32 Méthode ancienne",
                 "next": "Suivant",
                 "preparationText": "Veuillez connecter votre Toniebox à votre Wi-Fi et mettre à jour son firmware. De nombreuses boîtes sont expédiées avec un firmware de production qui doit être mis à jour. Sinon, la boîte ne fonctionnera pas comme elle le devrait. Il n'est pas nécessaire de connecter la boîte à l'application/comptes mytonies.",
                 "preparationTextLink": "Connectez la boîte sans l'assistant de configuration.",
@@ -1963,7 +1963,15 @@
             "square": "Carrée",
             "textFontSize": "Taille du texte",
             "title": "TeddyStudio",
-            "width": "Largeur"
+            "width": "Largeur",
+            "paperMarginVertical": "Marge haut/bas",
+            "paperMarginHorizontal": "Marge gauche/droite",
+            "paperSize": "Format du papier",
+            "paperWidth": "Largeur du papier",
+            "paperHeight": "Hauteur du papier",
+            "custom": "Personnalisé",
+            "labelSettings": "Paramètres de l’étiquette",
+            "paperSettings": "Paramètres du papier"
         },
         "title": "Tonies",
         "tonies": {
