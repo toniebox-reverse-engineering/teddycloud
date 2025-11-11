@@ -111,7 +111,7 @@
             },
             "help": {
                 "descriptionExampleTitle": "plugin.json pour l'exemple ci-dessus :",
-                "descriptionIntro": "Chaque plugin doit inclure un fichier plugin.json à la racine. Ce fichier décrit le plugin et permet son affichage correct dans l’interface.",
+                "descriptionIntro": "Chaque plugin doit inclure un fichier plugin.json à la racine. Ce fichier décrit le plugin et permet son affichage correct dans l'interface.",
                 "descriptionTitle": "plugin.json — Métadonnées requises",
                 "exampleFolderTitle": "Dossier d'exemple :",
                 "exampleTitle": "Exemple :",
@@ -1017,6 +1017,18 @@
             "alternativeDNSSolutions": "Autres solutions sans interruption",
             "certificates": "Certificats",
             "certificatesIntro": "Lors du premier démarrage, TeddyCloud générera la CA et les certificats avec la date de début 2015-11-03. Ceux-ci seront placés dans /certs/server/. Cela générera également le remplacement de la CA pour les certificats de la toniebox dans certs/server/ca.der.",
+            "connectTBToWifi": {
+                "preparationText": "Veuillez connecter votre Toniebox à votre Wi-Fi et mettre à jour son firmware. Beaucoup de boîtes sont livrées avec un firmware de production qui doit être mis à jour. Sinon, la boîte ne fonctionnera pas correctement. Il n'est pas nécessaire de connecter la boîte à l'application mytonies ou à votre compte.",
+                "step1": "**Allumez** la Toniebox et pincez les deux oreilles pendant 5 secondes jusqu'à ce que la LED devienne bleue et que vous entendiez un son.",
+                "step2": "Attendez ~20 secondes jusqu'à entendre le deuxième son.",
+                "step3": "Sur votre appareil, allez dans les paramètres Wi-Fi et connectez-vous au réseau `Toniebox-####`.",
+                "step4": "Ignorez l'avertissement 'Pas d'accès à Internet' si celui-ci apparaît.",
+                "step5": "Ouvrez un navigateur et allez à `192.168.1.1`.",
+                "step6": "Sélectionnez votre **langue** et cliquez sur _Ok_ pour continuer.",
+                "step7": "Choisissez votre réseau Wi-Fi **2,4GHz** domestique, entrez le mot de passe et cliquez sur `Connecter Toniebox`.",
+                "step8": "Attendez que la LED devienne verte fixe. Une fois verte, placez un Tonie sur la Toniebox pour tester son fonctionnement.",
+                "title": "Connecter la Toniebox au Wi-Fi (sans assistant de configuration ni compte Tonies)"
+            },
             "dns": "DNS",
             "dnsBeware": "Attention !",
             "dnsBewareText": "Cela coupera la connexion de toutes les tonieboxes de votre réseau qui ne sont pas patchées avec votre CA de remplacement !",
@@ -1175,7 +1187,7 @@
         "cancel": "Annuler",
         "cc3200BoxFlashing": {
             "altUrlFritzBoxPatch": {
-                "CollapseTitle": "Correctif altUrl.tc.fritz.box (altUrl.tc.fritz.box.json, Paramètre par défaut dans ngCfg.json pour l’emplacement de firmware ofw2)",
+                "CollapseTitle": "Correctif altUrl.tc.fritz.box (altUrl.tc.fritz.box.json, Paramètre par défaut dans ngCfg.json pour l'emplacement de firmware ofw2)",
                 "text": "Si tu as une Fritz!Box, tu peux utiliser le correctif altUrl.tc.fritz.box. Il suffit de définir le nom de ton serveur TeddyCloud sur \"tc\" dans les paramètres de ta Fritz!Box (Réseau domestique -> Réseau -> Connexions réseau -> Modifier)."
             },
             "altUrlPatch": {
@@ -1245,7 +1257,7 @@
             "connectToTonieboxIntro": "Tu dois connecter ton UART au port de débogage. Commence par localiser le port de débogage sur la face non assemblée de la carte PCB, située en bas. Le schéma du port de débogage est montré dans l'image suivante.",
             "connectToTonieboxLink": "Trouve les instructions de connexion ici",
             "connectToTonieboxProceed": "Tu es maintenant prêt à continuer !",
-            "connectToTonieboxText": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB. La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu’ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
+            "connectToTonieboxText": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB. La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu'ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
             "createPatch": "Créer altUrl.custom.305.patch",
             "customUrlPatch": "Créer un patch URL personnalisé (altUrl.custom.305.json)",
             "customUrlPatchHint": "Veuillez créer ce patch uniquement si les patches prédéfinis altUrl.tc.fritz.box.json et altUrl.305.json ne fonctionnent pas avec votre configuration actuelle de TeddyCloud. S'ils répondent à vos besoins, vous pouvez continuer en cliquant sur 'Suivant'.",
@@ -1313,7 +1325,7 @@
                     "intro": "L'installation du nouveau bootloader est divisée en deux étapes et diffère selon qu'il s'agit d'une première installation ou d'une mise à jour d'une installation existante :",
                     "title": "Préface"
                 },
-                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RST (Toniebox) à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l’opération sera annulée.",
+                "resetCommand": "Si ton programmeur UART a une broche DTR, utilise `--reset dtr` avant chaque commande (par exemple, `cc3200tool -p COM3 --reset dtr ...`). Sinon, tu devras brièvement connecter la broche RST (Toniebox) à GND avant chaque commande. Si tu sautes cette étape, la console affichera « timed out while waiting for ack » et l'opération sera annulée.",
                 "stage1": "Étape 1 : Installation du Preloader",
                 "stage2": "Étape 2 : Installation du Bootloader",
                 "verifyBackup": "Assure-toi que le fichier backup.bin est bien plus grand que 0 KB. Vérifie que le dump et les fichiers extraits contiennent tous les fichiers importants de la Toniebox :"
@@ -1325,7 +1337,7 @@
             "patches": "Patches",
             "patchesMoreInformationLink": "Plus d'informations sur les patches personnalisés",
             "predefinedUrlPatches": "Correctifs d'URL prédéfinis",
-            "predefinedUrlPatchesIntro": "Pour les boîtiers CC3200, il est recommandé d’utiliser un correctif altUrl. HackieboxNG inclut déjà deux correctifs altUrl prêts à l'emploi :",
+            "predefinedUrlPatchesIntro": "Pour les boîtiers CC3200, il est recommandé d'utiliser un correctif altUrl. HackieboxNG inclut déjà deux correctifs altUrl prêts à l'emploi :",
             "previous": "Retour",
             "proceedWithCustomBootloader": "Procéder avec le Custom Bootloader",
             "proceedWithoutCustomBootloader": "Procéder sans le Custom Bootloader",
@@ -1405,8 +1417,6 @@
                 "readingFlashText2": "Il est recommandé d'effectuer plusieurs lectures et de comparer les résultats.",
                 "writingFlash": "Écrire la mémoire flash avec le Raspberry Pi Pico"
             },
-            "preparationText": "Connecte ta Toniebox à ton Wi-Fi et mets à jour son firmware. De nombreuses boxes sont expédiées avec un firmware de production qui doit être mis à jour. Sinon, la box ne fonctionnera pas correctement. Il n'est pas nécessaire de connecter la box à l'application ou au compte mytonies.",
-            "preparationTextLink": "Connecter la box sans l'assistant de configuration.",
             "previous": "Retour",
             "serprogFirmwareLink": "Trouver les instructions d'installation ici",
             "title": "CC3235 Flashage de la boîte",
@@ -1476,7 +1486,7 @@
                 "connectingTo": "Connexion à",
                 "connectingToESP": "Connexion à l'ESP...",
                 "connectingWriteFlash": "Connexion pour écrire le flash...",
-                "downloadFlashFilesHint": "Les images du firmware sont stockées dans le répertoire de données de ton serveur au cas où tu voudrais les reflasher. Si tu ne l’as pas encore fait, télécharge dès maintenant une copie du firmware original et stocke-la en lieu sûr ! Cela te permettra de restaurer ta Toniebox à son état d’usine en cas de problème. Sauvegarde cette copie à plusieurs endroits — par exemple sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne te fie pas uniquement à la copie stockée sur le serveur TeddyCloud.",
+                "downloadFlashFilesHint": "Les images du firmware sont stockées dans le répertoire de données de ton serveur au cas où tu voudrais les reflasher. Si tu ne l'as pas encore fait, télécharge dès maintenant une copie du firmware original et stocke-la en lieu sûr ! Cela te permettra de restaurer ta Toniebox à son état d'usine en cas de problème. Sauvegarde cette copie à plusieurs endroits — par exemple sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne te fie pas uniquement à la copie stockée sur le serveur TeddyCloud.",
                 "downloadLink": "Télécharger le firmware non patché",
                 "downloadLinkPatched": "Télécharger le firmware patché",
                 "error": "Erreur",
@@ -1516,7 +1526,7 @@
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
                 "hostnameTooLong": "Le nom d'hôte doit être inférieur à 13 caractères.",
-                "importanceBackup": "Avant de faire des modifications sur ta Toniebox, télécharge une copie du firmware original et stocke-la de manière sécurisée. Cela te permettra de restaurer ta Toniebox à son état d’usine en cas de problème. Sauvegarde-la à plusieurs endroits, comme sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne conserve jamais ta seule copie uniquement sur le serveur TeddyCloud.",
+                "importanceBackup": "Avant de faire des modifications sur ta Toniebox, télécharge une copie du firmware original et stocke-la de manière sécurisée. Cela te permettra de restaurer ta Toniebox à son état d'usine en cas de problème. Sauvegarde-la à plusieurs endroits, comme sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne conserve jamais ta seule copie uniquement sur le serveur TeddyCloud.",
                 "infoTable": "Infos ESP32",
                 "invalidSerialPort": "Port série invalide",
                 "loadFile": "Charger le fichier",
@@ -1573,8 +1583,6 @@
                 "installESPToolText": "Vous pouvez extraire la mémoire flash via le port de débogage de la boîte et l'esptool. Gardez votre sauvegarde ! Veuillez utiliser une version récente d'esptool. (>v4.4)",
                 "navigationTitle": "ESP32 Méthode ancienne",
                 "next": "Suivant",
-                "preparationText": "Veuillez connecter votre Toniebox à votre Wi-Fi et mettre à jour son firmware. De nombreuses boîtes sont expédiées avec un firmware de production qui doit être mis à jour. Sinon, la boîte ne fonctionnera pas comme elle le devrait. Il n'est pas nécessaire de connecter la boîte à l'application/comptes mytonies.",
-                "preparationTextLink": "Connectez la boîte sans l'assistant de configuration.",
                 "previous": "Retour",
                 "proceedWithDNS": "Procédez à l'étape DNS",
                 "skipDnsIfAlreadyDone": "Si vous avez déjà remplacé l'IP/le nom d'hôte dans le dump flash, vous pouvez ignorer cette étape ici.",
@@ -1727,7 +1735,7 @@
                     "title": "Statut du cloud"
                 },
                 "downloadIcon": {
-                    "text": "Si l’accès au cloud est activé et autorisé, clique sur l’icône pour télécharger le contenu depuis le cloud Boxine/Tonie.",
+                    "text": "Si l'accès au cloud est activé et autorisé, clique sur l'icône pour télécharger le contenu depuis le cloud Boxine/Tonie.",
                     "title": "Télécharger le contenu"
                 },
                 "editIcon": {
@@ -1737,12 +1745,12 @@
                         "title": "Créer un nouveau modèle (en cours)"
                     },
                     "model": {
-                        "description": "Recherche et assigne un modèle. L’image sera affichée dans l’aperçu.",
+                        "description": "Recherche et assigne un modèle. L'image sera affichée dans l'aperçu.",
                         "text": "Affiche le modèle visuel assigné au Tonie/Étiquette.",
                         "title": "Modèle"
                     },
                     "radioStreamSearch": {
-                        "description": "Utilise le champ de recherche pour trouver un flux radio et l’assigner comme source.",
+                        "description": "Utilise le champ de recherche pour trouver un flux radio et l'assigner comme source.",
                         "text": "Recherche des stations radio en ligne (si l'API de radio-browser.info est disponible).",
                         "title": "Recherche de radio"
                     },
@@ -1756,7 +1764,7 @@
                 },
                 "infoIcon": {
                     "download": {
-                        "description": "Si disponible, tu peux télécharger le fichier TAF lié sous forme d’un fichier .ogg unique.",
+                        "description": "Si disponible, tu peux télécharger le fichier TAF lié sous forme d'un fichier .ogg unique.",
                         "text": "Permet de télécharger le fichier TAF au format audio .ogg.",
                         "title": "Télécharger le TAF en .ogg"
                     },
@@ -1767,10 +1775,10 @@
                     },
                     "hide": {
                         "description": "Utilise cette option pour masquer un Tonie/Étiquette. Pour le faire réapparaître, place-le sur une de tes Tonieboxes.",
-                        "text": "Retire le Tonie/Étiquette de l’aperçu.",
+                        "text": "Retire le Tonie/Étiquette de l'aperçu.",
                         "title": "Masquer le Tonie/Étiquette"
                     },
-                    "text": "Ouvre une fenêtre avec les détails principaux du Tonie/Étiquette, y compris le titre, l'image, l'UID, la liste des pistes et divers indicateurs d’état :",
+                    "text": "Ouvre une fenêtre avec les détails principaux du Tonie/Étiquette, y compris le titre, l'image, l'UID, la liste des pistes et divers indicateurs d'état :",
                     "title": "Informations Tonie/Étiquette",
                     "valid": {
                         "description": "Un Tonie/Étiquette est considéré comme valide si sa source est un fichier TAF valide.",
@@ -1779,11 +1787,11 @@
                     }
                 },
                 "liveIcon": {
-                    "text": "L’icône rouge indique le mode 'live' : le contenu recommence depuis le début et se télécharge à nouveau. Activé automatiquement pour les flux radio. Clique pour changer.",
+                    "text": "L'icône rouge indique le mode 'live' : le contenu recommence depuis le début et se télécharge à nouveau. Activé automatiquement pour les flux radio. Clique pour changer.",
                     "title": "Statut en direct"
                 },
                 "playIcon": {
-                    "text": "Joue le contenu assigné au Tonie/Étiquette. Si l’icône est grise claire, aucun contenu n’est assigné.",
+                    "text": "Joue le contenu assigné au Tonie/Étiquette. Si l'icône est grise claire, aucun contenu n'est assigné.",
                     "title": "Lire le contenu"
                 }
             },
@@ -1930,6 +1938,7 @@
         "teddystudio": {
             "clear": "Effacer la feuille",
             "clearSettings": "Réinitialiser",
+            "custom": "Personnalisé",
             "customImage": "Images personnalisées",
             "customImageHint": "Tu peux aussi ajouter des images temporaires pour tes Traveltonies. Elles ne seront pas sauvegardées définitivement !",
             "customImageTitle": "Saisis un titre à imprimer",
@@ -1939,11 +1948,18 @@
             "height": "Hauteur",
             "intro": "Recherche tous les Tonies et Tags, officiels et tes propres, pour créer ta feuille imprimable de Traveltonies (pièce).",
             "labelBackgroundColor": "Fond",
+            "labelSettings": "Paramètres de l'étiquette",
             "labelShape": "Forme de l'étiquette",
             "labelSpacing": "Espacement",
             "labelSpacingX": "X",
             "labelSpacingY": "Y",
             "navigationTitle": "TeddyStudio",
+            "paperHeight": "Hauteur du papier",
+            "paperMarginHorizontal": "Marge gauche/droite",
+            "paperMarginVertical": "Marge haut/bas",
+            "paperSettings": "Paramètres du papier",
+            "paperSize": "Format du papier",
+            "paperWidth": "Largeur du papier",
             "placeholder": "Saisis un terme de recherche !",
             "printMode": "Mode",
             "printModeImageAndText": "Image + Texte",
@@ -1963,20 +1979,73 @@
             "square": "Carrée",
             "textFontSize": "Taille du texte",
             "title": "TeddyStudio",
-            "width": "Largeur",
-            "paperMarginVertical": "Marge haut/bas",
-            "paperMarginHorizontal": "Marge gauche/droite",
-            "paperSize": "Format du papier",
-            "paperWidth": "Largeur du papier",
-            "paperHeight": "Hauteur du papier",
-            "custom": "Personnalisé",
-            "labelSettings": "Paramètres de l’étiquette",
-            "paperSettings": "Paramètres du papier"
+            "width": "Largeur"
         },
         "title": "Tonies",
         "tonies": {
             "filterBar": {
                 "applyFilters": "Appliquer le filtre",
+                "customFilter": {
+                    "invalidFieldUnique": "Champ invalide dans unique() : {{field}}",
+                    "invalidToken": "Jeton invalide : {{token}}",
+                    "label": "Filtre personnalisé (expert)",
+                    "placeholder": "Saisis un filtre personnalisé, par ex., live && !nocloud && language=de-de",
+                    "syntaxError": "Erreur de syntaxe",
+                    "unknownFieldComparison": "Champ inconnu dans la comparaison : {{field}}",
+                    "unknownFieldNegation": "Champ inconnu dans la négation : {{field}}",
+                    "unknownFieldRegex": "Champ inconnu dans l'expression régulière : {{field}}"
+                },
+                "customFilterHelp": {
+                    "fields": {
+                        "episode": "Le nom de l'épisode du Tonie.",
+                        "exists": "Si le Tonie existe (true/false).",
+                        "hasCloudAuth": "Si le Tonie a l'autorisation cloud (true/false).",
+                        "language": "La langue du Tonie.",
+                        "live": "Si le Tonie est marqué comme live (true/false).",
+                        "model": "Le modèle du Tonie.",
+                        "nocloud": "Si le Tonie est marqué comme nocloud (true/false).",
+                        "series": "Le nom de la série du Tonie.",
+                        "valid": "Si le Tonie est valide (true/false).",
+                        "picture": "Le chemin ou l'URL de l'image assignée au Tonie.",
+                        "uid": "L'UID (identifiant unique) du Tonie.",
+                        "ruid": "L'UID inversé du Tonie en minuscules sans deux-points (:).",
+                        "source": "La source assignée au Tonie (taf, tap ou stream).",
+                        "claimed": "Si ce Tonie a été revendiqué (true/false).",
+                        "tracks": "Un tableau des noms des pistes dans le Tonie.",
+                        "track": "Rechercher un nom de piste exact dans le Tonie.",
+                        "trackcount": "Le nombre de pistes dans le Tonie.",
+                        "trackseconds": "Un tableau avec la position de départ en secondes de chaque piste dans le Tonie",
+                        "tracksecondscount": "Le nombre de positions de départ des pistes dans le Tonie"
+                    },
+                    "intro": "Utilise le filtre personnalisé pour filtrer les Tonies avec des expressions logiques et des conditions spécifiques aux champs.",
+                    "syntaxExamples": {
+                        "and": "Filtre les Tonies dont la série est 'Pixi' ET le Tonie est valide.",
+                        "combined": "Filtre les Tonies qui sont live, ont accès au cloud, langue allemande et uniques dans leur série.",
+                        "negation": "Filtre les Tonies qui ont accès au cloud.",
+                        "or": "Filtre les Tonies avec langue allemande ou française.",
+                        "series": "Filtre les Tonies dont la série est 'Pixi'.",
+                        "title": "Exemples de syntaxe",
+                        "unique": "Filtre les Tonies qui sont les seuls dans leur série.",
+                        "tracksTitle": "Exemples de champs de pistes :",
+                        "tracksRegex": "Filtrer les pistes avec une expression régulière",
+                        "trackExact": "Filtrer les pistes par nom exact",
+                        "trackCount": "Filtrer par nombre de pistes",
+                        "trackSecondsCountCompare": "Filtrer par le nombre de positions de départ des pistes",
+                        "trackSecondsCountEqualsTrackCount": "Filtrer les tonies où la longueur du tableau des positions de départ des pistes correspond au nombre de pistes",
+                        "trackSecondsCountNotEqualsTrackCount": "Filtrer les tonies où la longueur du tableau des positions de départ des pistes ne correspond pas au nombre de pistes"
+                    },
+                    "table": {
+                        "description": "Description",
+                        "field": "Champ"
+                    },
+                    "tips": {
+                        "caseSensitive": "Les noms de champs sont sensibles à la casse ; utilise les minuscules exactement comme indiqué.",
+                        "combine": "Combine plusieurs conditions avec AND / OR et nie avec !.",
+                        "parentheses": "Utilise des parenthèses () pour les expressions complexes.",
+                        "title": "Conseils"
+                    },
+                    "title": "Aide du filtre personnalisé"
+                },
                 "episodeFilterPlaceholder": "Épisode",
                 "exists": "Existe Oui",
                 "filterLabel": "Filtrer",
@@ -2005,19 +2074,19 @@
             "title": "Tonies"
         },
         "toniesaudioplayer": {
+            "continueInFooterAudioPlayer": "Continuer dans le lecteur audio en bas",
             "enterFullscreen": "Passer en plein écran",
             "exitFullscreen": "Quitter le plein écran",
+            "expand": "Agrandir le lecteur audio",
             "navigationTitle": "Lecteur Audio",
-            "selectTonieToPlay": "Sélectionne un Tonie/étiquette à lire",
-            "title": "Lecteur Audio",
-            "unknown": "Inconnu",
-            "openStandalone": "Ouvrir le lecteur en mode autonome",
-            "standaloneTitle": "Lecteur Audio",
             "noTracks": "Aucune piste disponible",
             "openInTonieAudioPlayer": "Ouvrir dans le lecteur audio",
-            "continueInFooterAudioPlayer": "Continuer dans le lecteur audio en bas",
+            "openStandalone": "Ouvrir le lecteur en mode autonome",
+            "selectTonieToPlay": "Sélectionne un Tonie/étiquette à lire",
             "shrink": "Réduire le lecteur audio",
-            "expand": "Agrandir le lecteur audio"
+            "standaloneTitle": "Lecteur Audio",
+            "title": "Lecteur Audio",
+            "unknown": "Inconnu"
         },
         "toniesExportList": "Liste d'export des Tonies",
         "toniesExportListCreateDate": "Généré le",
