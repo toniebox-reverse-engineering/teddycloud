@@ -1911,6 +1911,7 @@
         },
         "tafHeaderInvalid": "Invalid TAF",
         "tafHeaderOf": "TAF-Header of ",
+        "tafHeaderToniesJsonHint": "You must not edit the data here when submitting it to the tonies-json. This includes the track count, even if it is different from the track count in the track-desc field!",
         "tap": {
             "navigationTitle": "WIP: Audio Playlists",
             "title": "WIP: Tonie Audio Playlists"
@@ -1955,12 +1956,15 @@
             "labelSpacingY": "Y",
             "navigationTitle": "TeddyStudio",
             "paperHeight": "Paper height",
+            "paperLabelImageBleed": "Image bleed",
             "paperMarginHorizontal": "Left/Right margin",
             "paperMarginVertical": "Top/Bottom margin",
             "paperSettings": "Paper settings",
             "paperSize": "Paper size",
             "paperWidth": "Paper width",
             "placeholder": "Enter a search term!",
+            "predefinedPaperOptions": "Paper presets",
+            "selectPredefinedPaperOptions": "Select paper preset",
             "printMode": "Print mode",
             "printModeImageAndText": "Image + Text",
             "printModeImageAndTextTooltip": "Print both sides of your Traveltonie coin with the tags image for one side and the title and episode information for the other",

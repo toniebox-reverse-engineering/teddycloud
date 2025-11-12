@@ -1911,6 +1911,7 @@
         },
         "tafHeaderInvalid": "TAF invalide",
         "tafHeaderOf": "En-tête TAF de ",
+        "tafHeaderToniesJsonHint": "Tu ne dois pas modifier les données ici lorsque tu les envoies au tonies-json. Cela inclut le nombre de pistes, même s’il est différent du nombre de pistes dans le champ track-desc !",
         "tap": {
             "navigationTitle": "WIP: Listes de lecture audio",
             "title": "WIP: Listes de lecture audio de Tonie"
@@ -1955,12 +1956,15 @@
             "labelSpacingY": "Y",
             "navigationTitle": "TeddyStudio",
             "paperHeight": "Hauteur du papier",
+            "paperLabelImageBleed": "Fond perdu",
             "paperMarginHorizontal": "Marge gauche/droite",
             "paperMarginVertical": "Marge haut/bas",
             "paperSettings": "Paramètres du papier",
             "paperSize": "Format du papier",
             "paperWidth": "Largeur du papier",
             "placeholder": "Saisis un terme de recherche !",
+            "predefinedPaperOptions": "Préréglages papier",
+            "selectPredefinedPaperOptions": "Sélectionner un préréglage papier",
             "printMode": "Mode",
             "printModeImageAndText": "Image + Texte",
             "printModeImageAndTextTooltip": "Imprime les deux côtés de ta pièce Traveltonie : image d'un côté, titre et infos de l'épisode de l'autre",
