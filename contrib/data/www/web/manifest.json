@@ -3,16 +3,18 @@
     "name": "TeddyCloud Admin",
     "icons": [
         {
-            "src": "/web-app-manifest-192x192.png",
+            "src": "/web-app-manifest-light-192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any maskable",
+            "media": "(prefers-color-scheme: light)"
         },
         {
-            "src": "/web-app-manifest-512x512.png",
+            "src": "/web-app-manifest-light-512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any maskable",
+            "media": "(prefers-color-scheme: light)"
         },
         {
             "src": "/apple-touch-icon.png",
@@ -20,6 +22,7 @@
             "type": "image/png"
         }
     ],
+
     "display": "standalone",
     "start_url": "/",
     "scope": "/",
