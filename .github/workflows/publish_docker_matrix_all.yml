@@ -49,6 +49,16 @@ jobs:
       primary_image: true
       error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+  ubuntuNoASAN:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "ubuntuNoASAN"
+      dockerfile: "DockerfileUbuntuNoASAN"
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
+      primary_image: true
+      error_platforms: ""
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   debian:
     needs: test_commit_hash
     uses: ./.github/workflows/publish_docker_matrix_base.yml
@@ -58,6 +68,16 @@ jobs:
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
       error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+  debianNoASAN:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "debianNoASAN"
+      dockerfile: "DockerfileDebianNoASAN"
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
+      primary_image: false
+      error_platforms: ""
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   alpine:
     needs: test_commit_hash
