@@ -8,7 +8,7 @@ WORKDIR /buildenv
 
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/contrib/config/tonies.json || true
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /buildenv/contrib/config/tonieboxes.json || true
-RUN make zip NO_SANITIZERS=1
+RUN make zip NO_SANITIZERS=2
 
 FROM ubuntu:latest
 EXPOSE 80 443 8443
