@@ -201,11 +201,12 @@ CFLAGS_linux += -ggdb
 CFLAGS_linux += -DFFMPEG_DECODING
 LFLAGS_linux += -pthread -lm
 
+ifeq ($(NO_SANITIZERS),2)
+# Workaround for broken libasan (disable it for now)
+	LFLAGS_linux += -Wl,--no-as-needed -lm -Wl,--as-needed
+else ifneq ($(NO_SANITIZERS),1)
 # for now enable extensive error checking
 # Add flags for extensive error checking if NO_SANITIZERS is not set to 1
-ifeq ($(NO_SANITIZERS),2)
-	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
-else ifneq ($(NO_SANITIZERS),1)
 	CFLAGS_linux += -fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer
 	LFLAGS_linux += -fsanitize=undefined -fsanitize=address -static-libasan
 endif
