@@ -89,6 +89,13 @@
             "command": "make PLATFORM=windows clean",
             "type": "shell",
             "problemMatcher": []
+        },
+        {
+            "label": "build_taf_encoder_test",
+            "group": "build",
+            "command": "make wasm_test",
+            "type": "shell",
+            "problemMatcher": []
         }
     ]
 }

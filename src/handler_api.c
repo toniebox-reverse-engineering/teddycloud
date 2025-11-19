@@ -2128,6 +2128,110 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
     return httpWriteResponseString(connection, message, false);
 }
 
+error_t handleApiTafUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    char name[256];
+    char path[256 + 1];
+
+    osStrcpy(name, "unnamed.taf");
+    osStrcpy(path, "");
+
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "name", name, sizeof(name)))
+    {
+        TRACE_INFO("got name '%s'\r\n", name);
+    }
+    if (!queryGet(queryString, "path", path, sizeof(path)))
+    {
+        osStrcpy(path, "/");
+    }
+
+    sanitizePath(name, false);
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    sanitizePath(pathAbsolute, true);
+
+    uint_t statusCode = 500;
+    char message[512];
+    osSnprintf(message, sizeof(message), "OK");
+
+    if (!fsDirExists(pathAbsolute))
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
+        TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
+    }
+    else
+    {
+        char *filename = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, name);
+
+        if (!filename)
+        {
+            TRACE_ERROR("Failed to build filename\r\n");
+            osFreeMem(pathAbsolute);
+            return ERROR_FAILURE;
+        }
+        sanitizePath(filename, false);
+
+        if (fsFileExists(filename))
+        {
+            TRACE_INFO("Filename '%s' already exists, overwriting\r\n", filename);
+        }
+
+        multipart_cbr_t cbr;
+        file_save_ctx ctx;
+
+        osMemset(&cbr, 0x00, sizeof(cbr));
+        osMemset(&ctx, 0x00, sizeof(ctx));
+
+        cbr.multipart_start = &file_save_start;
+        cbr.multipart_add = &file_save_add;
+        cbr.multipart_end = &file_save_end;
+
+        ctx.root_path = pathAbsolute;
+        ctx.overlay = overlay;
+
+        switch (multipart_handle(connection, &cbr, &ctx))
+        {
+        case NO_ERROR:
+            if (!isValidTaf(filename, true))
+            {
+                TRACE_ERROR("Uploaded TAF file '%s' failed validation\r\n", filename);
+                statusCode = 500;
+                osSnprintf(message, sizeof(message), "TAF validation failed");
+                fsDeleteFile(filename);
+                break;
+            }
+            statusCode = 200;
+            osSnprintf(message, sizeof(message), "OK");
+            break;
+        default:
+            statusCode = 500;
+            osSnprintf(message, sizeof(message), "Upload failed");
+            break;
+        }
+
+        osFreeMem(filename);
+    }
+
+    osFreeMem(pathAbsolute);
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+}
+
+
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];

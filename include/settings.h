@@ -95,6 +95,7 @@ typedef struct
     bool ffmpeg_sweep_startup_buffer;
     uint32_t ffmpeg_sweep_delay_ms;
     uint32_t stream_max_size;
+    bool use_frontend;
 
 } settings_encode_t;
 

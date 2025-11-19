@@ -16,6 +16,24 @@
             },
         },
         {
+            "name": "[linux] TAF Encoder Test",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/wasm/taf_encoder_test",
+            "args": [
+                "input.raw",
+                "output.taf"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/wasm",
+            "environment": [],
+            "externalConsole": false,
+            "preLaunchTask": "build_taf_encoder_test",
+            "linux": {
+                "MIMode": "gdb"
+            }
+        },
+        {
             "name": "[linux] teddyCloud Settings Port Test",
             "type": "cppdbg",
             "request": "launch",

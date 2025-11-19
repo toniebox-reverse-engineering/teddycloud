@@ -422,6 +422,7 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
+	cyclone/cyclone_tcp/http/mime.c \
 	cyclone/cyclone_ssl/tls_certificate.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
@@ -435,6 +436,7 @@ CYCLONE_SOURCES += \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
+	src/cyclone/cyclone_tcp/http/mime.c \
 	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	src/cyclone/cyclone_ssl/tls_certificate.c
 
@@ -549,6 +551,82 @@ $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs |
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
 	$(QUIET)$(ECHO) '[ ${GREEN}CC${NC}   ] ${CYAN}$<${NC}'
 	$(QUIET)$(CC) $(CFLAGS) $(CC_IN_OPT) $< $(CC_OUT_OPT)$@
+
+# WASM encoder build target
+.PHONY: wasm
+
+# Common sources for TAF encoder
+TAF_ENCODER_SOURCES = \
+	wasm/taf_encoder_minimal.c \
+	wasm/sha1_standalone.c \
+	src/proto/proto/toniebox.pb.taf-header.pb-c.c \
+	src/proto/protobuf-c.c \
+	$(LIBOPUS_SOURCES) \
+	$(LIBOGG_SOURCES)
+
+# Common include paths for TAF encoder
+TAF_ENCODER_INCLUDES = \
+	-Isrc/proto \
+	-Iinclude/protobuf-c \
+	-Iwasm/include \
+	-Iinclude \
+	-Iogg/include \
+	-Iogg/src \
+	-Iopus/include \
+	-Iopus/celt \
+	-Iopus/silk \
+	-Iopus/silk/float
+
+# Common compiler flags for TAF encoder
+TAF_ENCODER_CFLAGS = \
+	-DOPUS_BUILD \
+	-DHAVE_LRINT \
+	-DHAVE_LRINTF \
+	-DFLOATING_POINT \
+	-DUSE_ALLOCA \
+	-DGPL_LICENSE_TERMS_ACCEPTED
+
+wasm:
+	$(QUIET)$(ECHO) '[ ${GREEN}WASM${NC} ] Building WebAssembly TAF encoder'
+	mkdir -p $(WEB_SRC_DIR)/public/wasm/; \
+	echo '[ ${GREEN}WASM${NC} ] Compiling minimal TAF encoder...'; \
+	emcc \
+		$(TAF_ENCODER_SOURCES) \
+		$(TAF_ENCODER_INCLUDES) \
+		$(TAF_ENCODER_CFLAGS) \
+		-O3 \
+		-s WASM=1 \
+		-s EXPORTED_FUNCTIONS='["_taf_encoder_create","_taf_encoder_encode","_taf_encoder_new_chapter","_taf_encoder_finalize","_taf_encoder_get_buffer","_taf_encoder_get_size","_taf_encoder_free","_malloc","_free"]' \
+		-s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","getValue","setValue","HEAP16","HEAPU8"]' \
+		-s ALLOW_MEMORY_GROWTH=1 \
+		-s INITIAL_MEMORY=33554432 \
+		-s MAXIMUM_MEMORY=268435456 \
+		-s STACK_SIZE=1048576 \
+		-s STACK_OVERFLOW_CHECK=2 \
+		-s MODULARIZE=1 \
+		-s EXPORT_NAME='createTafEncoder' \
+		-s ENVIRONMENT='web' \
+		-s ASSERTIONS=1 \
+		-s SAFE_HEAP=1 \
+		-DWASM_BUILD \
+		-o $(WEB_SRC_DIR)/public/wasm/taf_encoder.js
+	$(QUIET)$(ECHO) '[ ${GREEN}WASM${NC} ] Build complete'
+	$(QUIET)ls -lh $(WEB_SRC_DIR)/public/wasm/taf_encoder.*
+
+# Debugging
+# -g -gsource-map
+
+wasm_test:
+	$(QUIET)$(ECHO) '[ ${GREEN}WASM${NC} ] Building native TAF encoder test for debugging...'
+#	$(QUIET)$(CC) -fsanitize=undefined -fsanitize=address -static-libasan
+	$(QUIET)$(CC) -g -Og \
+		wasm/taf_encoder_test.c \
+		$(TAF_ENCODER_SOURCES) \
+		$(TAF_ENCODER_INCLUDES) \
+		$(TAF_ENCODER_CFLAGS) \
+		-lm \
+		-o wasm/taf_encoder_test
+	$(QUIET)$(ECHO) '[ ${GREEN}WASM${NC} ] Native test binary: wasm/taf_encoder_test'
 
 clean:
 	$(QUIET)$(ECHO) '[${GREEN}CLEAN${NC} ] Deleting output files...'
