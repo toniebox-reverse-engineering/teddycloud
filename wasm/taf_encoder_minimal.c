@@ -438,6 +438,36 @@ int taf_encoder_finalize(taf_encoder_t *ctx) {
         buffer_write(ctx, og.body, og.body_len);
     }
     
+    // Ensure total file size is NOT a multiple of 4096
+    // If it is, add a silent OGG page. This matches 'teddy' behavior.
+    if (ctx->output_size % 4096 == 0) {
+        //printf("taf_encoder_finalize: Output aligned to 4096, adding silence page\n");
+        int16_t silence[OPUS_FRAME_SIZE * OPUS_CHANNELS];
+        memset(silence, 0, sizeof(silence));
+        unsigned char output_frame[TONIEFILE_FRAME_SIZE];
+        
+        int frame_len = opus_encode(ctx->enc, silence, OPUS_FRAME_SIZE, output_frame, sizeof(output_frame));
+        
+        if (frame_len > 0) {
+            ogg_packet op;
+            op.packet = output_frame;
+            op.bytes = frame_len;
+            op.b_o_s = 0;
+            op.e_o_s = 1; // Mark as EOS
+            
+            ctx->ogg_granule_position += OPUS_FRAME_SIZE;
+            op.granulepos = ctx->ogg_granule_position;
+            op.packetno = ctx->ogg_packet_count++;
+            
+            ogg_stream_packetin(&ctx->os, &op);
+            
+            while (ogg_stream_flush(&ctx->os, &og)) {
+                buffer_write(ctx, og.header, og.header_len);
+                buffer_write(ctx, og.body, og.body_len);
+            }
+        }
+    }
+    
     // Finalize SHA1 - use stack allocation
     uint8_t sha1_hash[SHA1_DIGEST_SIZE];
     sha1Final(&ctx->sha1, sha1_hash);

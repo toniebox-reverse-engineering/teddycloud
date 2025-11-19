@@ -1,10 +1,10 @@
 {
   "web_version": "vX.X.X",
-  "web_gitDirty": "0",
+  "web_gitDirty": "1",
   "web_gitTag": "undefined",
-  "web_gitDateTime": "2025-11-16 20:06:58 +0100",
-  "web_gitSha": "1497b789317c2abae10a39853408343dc1bd238b",
+  "web_gitDateTime": "2025-11-19 14:49:30 +0000",
+  "web_gitSha": "2ecf17b21d94566c8b2bc2f76ebab3408ff0ded4",
   "web_gitTagPrefix": "undefined",
-  "web_gitShortSha": "1497b78",
+  "web_gitShortSha": "2ecf17b",
   "_eof":""
 }
