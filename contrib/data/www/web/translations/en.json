@@ -1743,11 +1743,7 @@
             "uploadingDetails": "Uploading file \"{{file}}\"...",
             "uploadSuccessful": "File encoding successful!",
             "uploadSuccessfulDetails": "Files were encoded as \"{{file}}\" and added to the library successful!",
-            "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area",
-            "browserSideEncoding": "Browser-side encoding",
-            "serverSideEncoding": "Server-side encoding",
-            "loadingWasmEncoder": "Loading WASM encoder...",
-            "browserEncodingInProgress": "Encoding audio files in browser..."
+            "uploadText": "Click or drag up to {{maxFiles}} audio files you want to convert to a taf file to upload them in this area"
         },
         "errorFetchingSystemSounds": "Error fetching system sounds",
         "errorFetchingTonies": "Error fetching Tonies",
