@@ -1743,7 +1743,11 @@
             "uploadingDetails": "Téléchargement du fichier \"{{file}}\"...",
             "uploadSuccessful": "Encodage du fichier réussi !",
             "uploadSuccessfulDetails": "Les fichiers ont été encodés en tant que \"{{file}}\" et ajoutés à la bibliothèque avec succès !",
-            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
+            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone",
+            "browserSideEncoding": "Encodage côté navigateur",
+            "serverSideEncoding": "Encodage côté serveur",
+            "loadingWasmEncoder": "Chargement de l'encodeur WASM...",
+            "browserEncodingInProgress": "Encodage des fichiers audio dans le navigateur..."
         },
         "errorFetchingSystemSounds": "Erreur lors de la récupération des sons du système",
         "errorFetchingTonies": "Erreur lors de la récupération des Tonies",
