@@ -1743,7 +1743,11 @@
             "uploadingDetails": "Subiendo el archivo \"{{file}}\"...",
             "uploadSuccessful": "¡Codificación de archivos exitosa!",
             "uploadSuccessfulDetails": "Los archivos se codificaron como \"{{file}}\" y se agregaron exitosamente a la biblioteca.",
-            "uploadText": "Haz clic o arrastra hasta {{maxFiles}} archivos de audio que deseas convertir en un archivo taf para subirlos a esta área"
+            "uploadText": "Haz clic o arrastra hasta {{maxFiles}} archivos de audio que deseas convertir en un archivo taf para subirlos a esta área",
+            "browserSideEncoding": "Codificación en el navegador",
+            "serverSideEncoding": "Codificación en el servidor",
+            "loadingWasmEncoder": "Cargando el codificador WASM...",
+            "browserEncodingInProgress": "Codificando archivos de audio en el navegador..."
         },
         "errorFetchingSystemSounds": "Error al obtener los sonidos del sistema",
         "errorFetchingTonies": "Error al obtener los Tonies",
