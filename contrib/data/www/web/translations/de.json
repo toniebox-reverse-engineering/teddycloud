@@ -11,6 +11,10 @@
         "unknownSource": "Unbekannt"
     },
     "community": {
+        "attribution": {
+            "navigationTitle": "Lizenzhinweise",
+            "title": "Lizenzhinweise"
+        },
         "changelog": {
             "allCommits": "Alle enthaltenen Commits findest du hier (TeddyCloud-Repo)",
             "changes": "Änderungen",
@@ -154,14 +158,45 @@
             "visitHomepage": "Plugin-Homepage besuchen"
         },
         "supportRequestGuide": {
+            "actions": {
+                "label": "Durchgeführte Schritte"
+            },
+            "actual": {
+                "label": "Tatsächliches Ergebnis"
+            },
+            "additionalInfo": {
+                "label": "Zusätzliche Informationen (Screenshots, Notizen)"
+            },
             "closing": "Diese Detailgenauigkeit wird der Community helfen, dein Problem effektiver zu lösen. Vielen Dank!",
+            "createSupportRequest": "Anfrage erstellen",
+            "createSupportRequestFormTitle": "Support-Anfrage erstellen",
+            "description": {
+                "label": "Problembeschreibung"
+            },
+            "docker": {
+                "label": "Docker-Version"
+            },
+            "englishHint": "Bitte schreibe deine Support-Anfrage auf Englisch, damit dir die gesamte Community helfen kann.",
             "example": {
                 "description": "Nachfolgend ein Beispiel für eine gut strukturierte Support-Anfrage, die dir beim Start helfen soll:",
                 "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
                 "title": "Beispiel für eine Support-Anfrage"
             },
-            "intro": "Wenn du Unterstützung anforderst, hilft es der Community, dein Problem schneller zu diagnostizieren und zu lösen, wenn du detaillierte und klare Informationen bereitstellst. Folge diesen Schritten, um sicherzustellen, dass deine Support-Anfrage alle notwendigen Details enthält. Bitte formuliere deine Anfrage auf Englisch, damit möglichst viele Mitglieder der Community dir helfen können.",
+            "expected": {
+                "label": "Erwartetes Ergebnis"
+            },
+            "formattedRequest": "Formatierte Anfrage",
+            "generate": "Generieren",
+            "hintSendingSupportRequest": "Kopiere den folgenden Inhalt in die Telegram-Gruppe oder in einen neuen Foren-Thread. Bitte vergiss nicht, die gesammelten Logs und – falls vorhanden - zusätzliche Screenshots oder Bildschirmaufnahmen anzuhängen.",
+            "intro": "Wenn du Unterstützung anforderst, hilft es der Community, dein Problem schneller zu diagnostizieren und zu lösen, wenn du detaillierte und klare Informationen bereitstellst. Folge diesen Schritten, um sicherzustellen, dass deine Support-Anfrage alle notwendigen Details enthält.",
+            "logs": {
+                "label": "Relevante Log-Auszüge"
+            },
             "navigationTitle": "Support-Anfrage-Leitfaden",
+            "os": {
+                "label": "Betriebssystem und Version"
+            },
+            "requiredField": "Dieses Feld ist erforderlich.",
             "step1": {
                 "content": "Beginne mit einer präzisen Zusammenfassung des Problems. Nenne alle spezifischen Fehlermeldungen, die du erhalten hast (kopiere und füge die genaue Nachricht ein, wenn möglich).",
                 "title": "Schritt 1: Beschreibe das Problem klar"
@@ -200,7 +235,17 @@
                 "content": "Lass uns wissen, ob du bereits Fehlerbehebungsschritte versucht hast, wie das Neustarten des Dienstes oder das Überprüfen der Logs.",
                 "title": "Schritt 6: Schritte, die du unternommen hast, um das Problem zu lösen"
             },
-            "title": "Wie man eine gute Support-Anfrage stellt"
+            "stepsTaken": {
+                "label": "Bereits unternommene Schritte"
+            },
+            "subject": {
+                "label": "Betreff",
+                "placeholder": "z. B. 'Fehler beim Hochladen einer Datei in TeddyCloud (Docker)'"
+            },
+            "title": "Wie man eine gute Support-Anfrage stellt",
+            "version": {
+                "label": "TeddyCloud-Version"
+            }
         },
         "title": "Community",
         "translations": {
@@ -287,7 +332,8 @@
         "date": "Datum",
         "delete": "Löschen",
         "deleteMultiple": "{{selectedRowCount}} markierte Zeilen löschen",
-        "downloadFile": "Download TAF als *.ogg",
+        "downloadFile": "Download file",
+        "downloadFileAsOgg": "Download TAF als *.ogg",
         "encodeFiles": {
             "addFiles": "Dateien hinzufügen",
             "cancel": "Abbrechen",
@@ -480,6 +526,7 @@
         "sponsorText": "Gefällt dir TeddyCloud?"
     },
     "home": {
+        "build": "Build",
         "error": "Fehler - Das Frontend ist nicht auf dem erwarteten Stand.",
         "errorConfirm": "Schließen",
         "errorWebVersionMismatch": "Backend hat eine andere Version als das Frontend. Bei einer Dockerinstallation bitte sicherstellen, dass kein Volume unter data/www angelegt wurde.",
@@ -879,6 +926,7 @@
     "radioStreamSearch": {
         "failedToFetchSearchResults": "Abrufen der Radiosender-Suchergebnisse fehlgeschlagen",
         "failedToFetchSearchResultsDetails": "Abrufen der Radiosender-Suchergebnisse fehlgeschlagen: ",
+        "noResults": "Keine Einträge für die Suche gefunden.",
         "searchLabel": "[optional] Radio stream suchen"
     },
     "security": {
@@ -989,10 +1037,6 @@
         "tryToRestartTC": "Versuche, TeddyCloud neu zu starten",
         "warning": "Achtung! Settings level",
         "warningHint": "Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
-    },
-    "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Fehler beim Abrufen der Modelle",
-        "failedToFetchSearchResultsDetails": "Fehler beim Abrufen der Suchergebnisse: "
     },
     "tonieboxes": {
         "accessApiDisabled": "Zugriff auf TeddyCloud APIs deaktiviert.",
@@ -1495,6 +1539,7 @@
                 "cancel": "Abbrechen",
                 "chipMAC": "Chip-MAC",
                 "chipType": "Chip-Typ",
+                "chipTypeError": "Chip-Typfehler - Unerwarteter Typ gelesen. Gelesen {{actual_name}}, erwartet {{expected_name}}. Vorgang abgebrochen, prüfe die Verbindung und versuche es erneut!",
                 "confirmFlashDialog": "Möchtest du deine Toniebox wirklich flashen? Bitte achte auf eine stabile Verbindung und unterbreche den Vorgang nicht!",
                 "confirmFlashDialogHint": "Für eine korrekte Funktionsweise deiner Toniebox ist die angegebene TeddyCloud-Instanz unbedingt notwendig. Falls deine TeddyCloud offline ist, kann deine Toniebox keine neuen Inhalte mehr abrufen!",
                 "confirmFlashModal": "Toniebox mit gepatchter Firmware flashen",
@@ -1534,7 +1579,7 @@
                 "flashId": "Flash-ID",
                 "flashManuf": "Flash-Hersteller",
                 "flashSize": "Flash-Größe",
-                "flashSizeError": "Flash-Größenfehler",
+                "flashSizeError": "Flash-Größenfehler - Unerwartete Größe gelesen. Gelesen {{actual_size}}, erwartet {{expected_size}}. Vorgang abgebrochen, prüfe die Verbindung und versuche es erneut!",
                 "hintESP32FirmwareFlashed": "Das Patchen ist abgeschlossen. Trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte sich jetzt mit TeddyCloud verbinden können!",
                 "hintESP32FirmwareReseted": "Das Zurücksetzen sollte abgeschlossen sein. Bitte trenne die Toniebox vom UART, entferne den Kurzschluss von J100 und starte die Box neu. Sie sollte nicht mehr mit deinem Teddycloud verbunden sein. Führe einen Frische-Check durch, um zu testen, ob alles einwandfrei funktioniert.",
                 "hintFlashESP32": "Trenne die Stromversorgung deiner Toniebox noch einmal. Klicke auf \"ESP32 flashen\", wähle bei Bedarf den COM-Port. Schließe dann deine Toniebox an die Stromversorgung an und warte, bis der Schritt abgeschlossen ist!",
@@ -1654,7 +1699,7 @@
             "boxSpecific": " (Toniebox spezifisch hinterlegt)",
             "Label": "Zertifikate",
             "uploadPath": "Upload Pfad (certDir):",
-            "uploadTonieboxCertificates": "Zertifikate für Toniebox \"{{name}}\" hochladen"
+            "uploadTonieboxCertificates": "Zertifikate für Toniebox{{name}} hochladen"
         }
     },
     "tonies": {
@@ -1718,9 +1763,14 @@
             "title": "Modell bearbeiten"
         },
         "encoder": {
+            "browserEncodingInProgress": "Audio-Dateien werden im Browser encodiert...",
+            "browserSideEncoding": "Encoding im Browser",
             "clearList": "Liste leeren",
+            "encode": "Konvertieren",
+            "encoding": "Kodierung",
             "errorFileProcessing": "Fehler bei der Verarbeitung der Audiodatei: ",
             "filename": "Dateiname",
+            "loadingWasmEncoder": "WASM-Encoder wird geladen...",
             "maxFiles": "Du kannst nur maximal {{maxFiles}} Dateien hinzufügen.",
             "navigationTitle": "Audio Encoder",
             "processing": "Verarbeitung läuft...",
@@ -1728,6 +1778,7 @@
             "processingError": "Fehler bei der Verarbeitung!",
             "removeFile": "Datei entfernen",
             "saveAs": "Datei speichern unter",
+            "serverSideEncoding": "Encoding auf dem Server",
             "sortAlphabetically": "Dateien alphabetisch sortieren",
             "targetDirectory": "Zielpfad auswählen",
             "title": "Audio Encoder",
@@ -1743,11 +1794,7 @@
             "uploadingDetails": "Datei \"{{file}}\" wird hochgeladen...",
             "uploadSuccessful": "Dateikodierung erfolgreich!",
             "uploadSuccessfulDetails": "Dateien wurden als \"{{file}}\" kodiert und erfolgreich zur Bibliothek hinzugefügt!",
-            "uploadText": "Klicke oder ziehe bis zu {{maxFiles}} Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich",
-            "browserSideEncoding": "Encoding im Browser",
-            "serverSideEncoding": "Encoding auf dem Server",
-            "loadingWasmEncoder": "WASM-Encoder wird geladen...",
-            "browserEncodingInProgress": "Audio-Dateien werden im Browser encodiert..."
+            "uploadText": "Klicke oder ziehe bis zu {{maxFiles}} Audiodateien, die du in eine TAF-Datei konvertieren möchtest, zum Hochladen in diesen Bereich"
         },
         "errorFetchingSystemSounds": "Fehler beim Abrufen der System Sounds",
         "errorFetchingTonies": "Fehler beim Abrufen der Tonies",
@@ -1883,6 +1930,8 @@
             "errorFetchingUpdatedCardDetails": "Fehler beim Abrufen der aktualisierten Karte für \"{{model}}\" [{{ruid}}]: ",
             "filterDeleted": "Filter gelöscht",
             "filterDeletedDetails": "Der Filter {{name}} wurde erfolgreich gelöscht!",
+            "filterLoaded": "Filter geladen",
+            "filterLoadedDetails": "Der Filter {{name}} wurde erfolgreich geladen!",
             "filterSaved": "Filter gespeichert",
             "filterSavedDetails": "Der Filter {{name}} wurde erfolgreich gespeichert!",
             "hideTonieFailed": "Tonie/Tag ausblenden fehlgeschlagen!",
@@ -1965,7 +2014,23 @@
             "titleCreate": "Neue TAP erstellen",
             "titleEdit": "TAP bearbeiten"
         },
+        "teddyaudioplayer": {
+            "continueInFooterAudioPlayer": "Im Fußbereich Audio Player fortsetzen",
+            "enterFullscreen": "Vollbild starten",
+            "exitFullscreen": "Vollbild beenden",
+            "expand": "Audio Player vergrößern",
+            "navigationTitle": "Audio Player",
+            "noTracks": "Keine Tracks verfügbar",
+            "openInTonieAudioPlayer": "Im Audio Player öffnen",
+            "openStandalone": "Player im Standalone-Modus öffnen",
+            "selectTonieToPlay": "Wähle einen Tonie/ein Tag zum Abspielen aus",
+            "shrink": "Audio Player minimieren",
+            "standaloneTitle": "Audio Player",
+            "title": "Audio Player",
+            "unknown": "Unbekannt"
+        },
         "teddystudio": {
+            "addedHint": "\"{{title}}\" wurde hinzugefügt.",
             "clear": "Blatt leeren",
             "clearSettings": "Zurücksetzen",
             "custom": "Benutzerdefiniert",
@@ -2052,9 +2117,15 @@
                     "syntaxExamples": {
                         "and": "Filtert Tonies, deren Serie 'Pixi' ist UND der Tonie gültig ist.",
                         "combined": "Filtert Tonies, die live sind, Cloud-Zugriff haben, deutsche Sprache besitzen und einzigartig in der Serie sind.",
+                        "endswith": "Filtert Tonies, bei denen das Feld mit dem angegebenen Wert endet.",
+                        "inList": "Filtert Tonies, bei denen das Feld einem der angegebenen Werte entspricht.",
+                        "isEmpty": "Filtert Tonies, bei denen das Feld leer ist.",
+                        "isNotEmpty": "Filtert Tonies, bei denen das Feld nicht leer ist.",
                         "negation": "Filtert Tonies, die Cloud-Zugriff haben.",
+                        "notInList": "Filtert Tonies, bei denen das Feld keinem der angegebenen Werte entspricht.",
                         "or": "Filtert Tonies mit entweder deutscher oder französischer Sprache.",
                         "series": "Filtert Tonies, deren Serie 'Pixi' ist.",
+                        "startswith": "Filtert Tonies, bei denen das Feld mit dem angegebenen Wert beginnt.",
                         "title": "Syntax-Beispiele",
                         "trackCount": "Nach Anzahl der Tracks filtern",
                         "trackExact": "Tracks nach exaktem Namen filtern",
@@ -2112,28 +2183,19 @@
             "showPagination": "Paginierung einblenden",
             "title": "Tonies"
         },
-        "toniesaudioplayer": {
-            "continueInFooterAudioPlayer": "Im Fußbereich Audio Player fortsetzen",
-            "enterFullscreen": "Vollbild starten",
-            "exitFullscreen": "Vollbild beenden",
-            "expand": "Audio Player vergrößern",
-            "navigationTitle": "Audio Player",
-            "noTracks": "Keine Tracks verfügbar",
-            "openInTonieAudioPlayer": "Im Audio Player öffnen",
-            "openStandalone": "Player im Standalone-Modus öffnen",
-            "selectTonieToPlay": "Wähle einen Tonie/ein Tag zum Abspielen aus",
-            "shrink": "Audio Player minimieren",
-            "standaloneTitle": "Audio Player",
-            "title": "Audio Player",
-            "unknown": "Unbekannt"
-        },
         "toniesExportList": "Tonies-Exportliste",
         "toniesExportListCreateDate": "Erstellt am",
         "unsetTonie": "Tonie/Tag"
     },
+    "toniesJsonSearch": {
+        "failedToFetchSearchResults": "Fehler beim Abrufen der Modelle",
+        "failedToFetchSearchResultsDetails": "Fehler beim Abrufen der Suchergebnisse: ",
+        "noResults": "Keine Einträge in tonies(.custom).json für die Suche gefunden."
+    },
     "utils": {
         "copied": "Kopiert!",
         "copyToClipboard": "In die Zwischenablage kopieren",
-        "failedToCopied": "Kopieren fehlgeschlagen!"
+        "failedToCopied": "Kopieren fehlgeschlagen!",
+        "noResults": "Keine Ergebnisse"
     }
 }
