@@ -258,6 +258,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
     OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
     OPTION_BOOL("frontend.check_cc3200_cfw", &settings->frontend.check_cc3200_cfw, FALSE, "Check for CFW on CC3200 box", "Enable detection of CFW on CC3200 boxes to link MAC addresses to IPs.", LEVEL_DETAIL)
+    OPTION_BOOL("frontend.use_revvox_flasher", &settings->frontend.use_revvox_flasher, FALSE, "Use Revvox Flasher for ESP32 flashing in WebUI", "Instead of esptools.js the homebrew revvox_flasher.js will be used for flashing ESP32 boxes", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
