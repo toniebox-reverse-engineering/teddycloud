@@ -23,6 +23,10 @@ on:
         description: "Comma-separated list of target platforms that can have build errors (e.g., linux/amd64,linux/arm/v7)"
         type: string
         required: true
+      noasan_fallback_platforms:
+        description: "Comma-separated list of target platforms that should not be built with ASAN (e.g., linux/amd64,linux/arm/v7)"
+        type: string
+        required: true
 
       tcw_commit_hash:
         type: string
@@ -94,6 +98,13 @@ jobs:
           echo "all_tags=$all_tags"
           echo "all_tags=$all_tags" >> $GITHUB_OUTPUT
 
+      - name: Set build args for NO_SANITIZERS platforms
+        id: set_build_args
+        run: |
+          if ${{ contains(fromJson(inputs.noasan_fallback_platforms), matrix.platform) }}; then
+            echo "build_args=NO_SANITIZERS=2" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build & push digest docker ${{ matrix.platform }}
         id: build
         uses: docker/build-push-action@v5
@@ -107,6 +118,7 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: ${{ steps.set_build_args.outputs.build_args }}
 
       - name: Platform name strip for filename
         id: platform_strip

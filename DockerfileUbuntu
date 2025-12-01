@@ -1,5 +1,8 @@
 FROM ubuntu:latest AS buildenv
 
+# Default to using ASAN
+ARG NO_SANITIZERS=0
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential git zip curl
 
@@ -8,7 +11,7 @@ WORKDIR /buildenv
 
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/contrib/config/tonies.json || true
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /buildenv/contrib/config/tonieboxes.json || true
-RUN make zip
+RUN make zip NO_SANITIZERS=${NO_SANITIZERS}
 
 FROM ubuntu:latest
 EXPOSE 80 443 8443
