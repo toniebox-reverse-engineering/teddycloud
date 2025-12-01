@@ -105,6 +105,7 @@ typedef struct
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
     bool check_cc3200_cfw;
+    bool use_revvox_flasher;
 } settings_frontend_t;
 
 typedef struct

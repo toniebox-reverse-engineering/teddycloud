@@ -11,6 +11,10 @@
         "unknownSource": "Inconnu"
     },
     "community": {
+        "attribution": {
+            "navigationTitle": "Attributions",
+            "title": "Attributions"
+        },
         "changelog": {
             "allCommits": "Tous les commits inclus se trouvent ici (repo teddy cloud)",
             "changes": "Modifications",
@@ -154,14 +158,45 @@
             "visitHomepage": "Visiter la page du plugin"
         },
         "supportRequestGuide": {
+            "actions": {
+                "label": "Actions effectuées"
+            },
+            "actual": {
+                "label": "Résultat réel"
+            },
+            "additionalInfo": {
+                "label": "Informations supplémentaires (captures, notes)"
+            },
             "closing": "Fournir ce niveau de détail aidera la communauté à résoudre ton problème de manière plus efficace. Merci !",
+            "createSupportRequest": "Créer une demande",
+            "createSupportRequestFormTitle": "Créer une demande de support",
+            "description": {
+                "label": "Description du problème"
+            },
+            "docker": {
+                "label": "Version de Docker"
+            },
+            "englishHint": "Merci de rédiger ta demande de support en anglais afin que toute la communauté puisse t'aider.",
             "example": {
                 "description": "Voici un exemple de demande de support bien structurée pour t'aider à démarrer :",
                 "details": "Subject: Error Uploading File in TeddyCloud (Docker)<br /><br />Description:<br />I encountered an error while trying to upload a file in TeddyCloud.<br /><br />1. Actions performed:<br />   - I logged in successfully.<br />   - I went to the upload page and selected a file (testfile.pdf).<br />   - I clicked the upload button.<br /><br />2. Expected outcome:<br />   - The file should upload successfully and appear in the file list.<br /><br />3. Actual outcome:<br />   - An error message appeared: 'Upload failed: Connection lost.'<br /><br />4. Environment details:<br />   - OS: Ubuntu 20.04<br />   - Docker version: 24.0.2<br />   - TeddyCloud version: 0.6.3<br /><br />5. Logs:<br />   Attached is the log extract (teddycloud_logs.txt) from the time the error occurred.",
                 "title": "Exemple de Demande de Support"
             },
-            "intro": "Lorsque tu demandes du support, fournir des informations détaillées et claires aide la communauté à diagnostiquer et résoudre ton problème plus rapidement. Suis ces étapes pour t'assurer que ta demande de support contient tous les détails nécessaires. Merci de formuler ta demande en anglais afin que le plus grand nombre possible de membres de la communauté puissent t'aider.",
+            "expected": {
+                "label": "Résultat attendu"
+            },
+            "formattedRequest": "Demande formatée",
+            "generate": "Générer",
+            "hintSendingSupportRequest": "Copie le contenu suivant dans le groupe Telegram ou dans un nouveau fil de discussion du forum. N'oublie pas de joindre les journaux collectés et, si possible, des captures d'écran ou enregistrementes vidéo.",
+            "intro": "Lorsque tu demandes du support, fournir des informations détaillées et claires aide la communauté à diagnostiquer et résoudre ton problème plus rapidement. Suis ces étapes pour t'assurer que ta demande de support contient tous les détails nécessaires.",
+            "logs": {
+                "label": "Extraits de logs pertinents"
+            },
             "navigationTitle": "Guide de Demande de Support",
+            "os": {
+                "label": "Système d'exploitation et version"
+            },
+            "requiredField": "Ce champ est obligatoire.",
             "step1": {
                 "content": "Commence par un résumé concis du problème. Mentionne tous les messages d'erreur spécifiques que tu as reçus (copie et colle le message exact si possible).",
                 "title": "Étape 1 : Décrire Clairment le Problème"
@@ -200,7 +235,17 @@
                 "content": "Fais-nous savoir si tu as déjà essayé des étapes de dépannage, telles que redémarrer le service ou vérifier les journaux.",
                 "title": "Étape 6 : Les Étapes que Tu As Entreprises pour Résoudre le Problème"
             },
-            "title": "Comment Créer une Bonne Demande de Support"
+            "stepsTaken": {
+                "label": "Étapes déjà effectuées"
+            },
+            "subject": {
+                "label": "Sujet",
+                "placeholder": "p. ex. 'Erreur lors du téléversement d'un fichier dans TeddyCloud (Docker)'"
+            },
+            "title": "Comment Créer une Bonne Demande de Support",
+            "version": {
+                "label": "Version de TeddyCloud"
+            }
         },
         "title": "Communauté",
         "translations": {
@@ -287,7 +332,8 @@
         "date": "Date",
         "delete": "Supprimer",
         "deleteMultiple": "{{selectedRowCount}} lignes sélectionnées à supprimer",
-        "downloadFile": "Télécharger TAF en *.ogg",
+        "downloadFile": "Télécharger le fichier",
+        "downloadFileAsOgg": "Télécharger TAF en *.ogg",
         "encodeFiles": {
             "addFiles": "Ajouter des fichiers",
             "cancel": "Annuler",
@@ -480,6 +526,7 @@
         "sponsorText": "Tu aimes TeddyCloud ?"
     },
     "home": {
+        "build": "Version de build",
         "error": "Erreur - L'interface utilisateur n'est pas dans l'état attendu.",
         "errorConfirm": "Fermer",
         "errorWebVersionMismatch": "Le backend a une version différente de celle du frontend. Lors d'une installation Docker, veuillez vous assurer qu'aucun volume n'a été créé sous data/www.",
@@ -559,8 +606,8 @@
                 "13TeddyStudio": {
                     "items": {
                         "01Description": "Créez et imprimez vos propres étiquettes pour vos tags personnalisés.",
-                        "02Options": "Personnalisez le format, la taille, les espacements et de nombreuses autres options d’étiquetage.",
-                        "03Paperpresets": "Utilisez les presets de papier d’étiquettes existants ou partagez-en de nouveaux sur le forum ou sur Telegram."
+                        "02Options": "Personnalisez le format, la taille, les espacements et de nombreuses autres options d'étiquetage.",
+                        "03Paperpresets": "Utilisez les presets de papier d'étiquettes existants ou partagez-en de nouveaux sur le forum ou sur Telegram."
                     },
                     "title": "TeddyStudio"
                 },
@@ -879,6 +926,7 @@
     "radioStreamSearch": {
         "failedToFetchSearchResults": "Échec de la récupération des résultats de recherche des stations de radio",
         "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche des stations de radio : ",
+        "noResults": "Aucune entrée trouvée pour la recherche.",
         "searchLabel": "[Optionnel] Rechercher un flux radio"
     },
     "security": {
@@ -989,10 +1037,6 @@
         "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
         "warning": "Attention ! Niveau des paramètres",
         "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
-    },
-    "tonieArticleSearch": {
-        "failedToFetchSearchResults": "Erreur lors de la récupération des modèles",
-        "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche de modèles : "
     },
     "tonieboxes": {
         "accessApiDisabled": "Accès aux API de TeddyCloud désactivé.",
@@ -1495,6 +1539,7 @@
                 "cancel": "Annuler",
                 "chipMAC": "MAC du chip",
                 "chipType": "Type de chip",
+                "chipTypeError": "Erreur de type de puce - Type lu inattendu. Lu {{actual_name}}, attendu {{expected_name}}. Traitement interrompu, vérifiez la connexion et réessayez.",
                 "confirmFlashDialog": "Voulez-vous vraiment flasher votre Toniebox Veuillez assurer une connexion stable et ne pas interrompre le processus !",
                 "confirmFlashDialogHint": "Pour que ta Toniebox fonctionne correctement, l'instance TeddyCloud spécifiée est absolument nécessaire. Si ta TeddyCloud est hors ligne, ta Toniebox ne pourra plus accéder à de nouveaux contenus !",
                 "confirmFlashModal": "Flasher la Toniebox avec le firmware patché",
@@ -1534,7 +1579,7 @@
                 "flashId": "ID du flash",
                 "flashManuf": "Fabricant du flash",
                 "flashSize": "Taille du flash",
-                "flashSizeError": "Erreur de taille du flash",
+                "flashSizeError": "Erreur de taille du flash - Taille lue inattendue. Lu {{actual_size}}, attendu {{expected_size}}. Traitement interrompu, vérifiez la connexion et réessayez.",
                 "hintESP32FirmwareFlashed": "Le patchage est terminé. Déconnecte la Toniebox de l'UART, retire le court-circuit du J100 et redémarre la box. Elle devrait maintenant pouvoir se connecter à TeddyCloud !",
                 "hintESP32FirmwareReseted": "La réinitialisation devrait être terminée. Veuillez déconnecter la Toniebox du UART, retirer le court-circuit de J100 et redémarrer la box. Elle ne devrait plus être connectée à ton Teddycloud. Fais une vérification de fraîcheur pour tester si tout fonctionne correctement.",
                 "hintFlashESP32": "Déconnecte l'alimentation de ta Toniebox une fois de plus. Clique sur \"Flasher l'ESP32\", choisis le port COM si nécessaire. Ensuite, connecte ta Toniebox à l'alimentation et attends que l'étape soit terminée !",
@@ -1654,7 +1699,7 @@
             "boxSpecific": " (superposé pour la Toniebox)",
             "Label": "Certificats",
             "uploadPath": "Chemin de téléchargement (certDir):",
-            "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox \"{{name}}\""
+            "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox{{name}}"
         }
     },
     "tonies": {
@@ -1718,9 +1763,14 @@
             "title": "Modifier le modèle"
         },
         "encoder": {
+            "browserEncodingInProgress": "Encodage des fichiers audio dans le navigateur...",
+            "browserSideEncoding": "Encodage côté navigateur",
             "clearList": "Vider la liste",
+            "encode": "Encodage",
+            "encoding": "Encodage",
             "errorFileProcessing": "Échec du traitement du fichier audio : ",
             "filename": "Nom du fichier",
+            "loadingWasmEncoder": "Chargement de l'encodeur WASM...",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
             "processing": "Traitement...",
@@ -1728,6 +1778,7 @@
             "processingError": "Erreur lors du traitement !",
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
+            "serverSideEncoding": "Encodage côté serveur",
             "sortAlphabetically": "Trier les fichiers par ordre alphabétique",
             "targetDirectory": "Choisir le répertoire cible",
             "title": "Encodeur audio",
@@ -1743,11 +1794,7 @@
             "uploadingDetails": "Téléchargement du fichier \"{{file}}\"...",
             "uploadSuccessful": "Encodage du fichier réussi !",
             "uploadSuccessfulDetails": "Les fichiers ont été encodés en tant que \"{{file}}\" et ajoutés à la bibliothèque avec succès !",
-            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone",
-            "browserSideEncoding": "Encodage côté navigateur",
-            "serverSideEncoding": "Encodage côté serveur",
-            "loadingWasmEncoder": "Chargement de l'encodeur WASM...",
-            "browserEncodingInProgress": "Encodage des fichiers audio dans le navigateur..."
+            "uploadText": "Cliquez ou faites glisser jusqu'à {{maxFiles}} fichiers audio que vous souhaitez convertir en fichier taf pour les télécharger dans cette zone"
         },
         "errorFetchingSystemSounds": "Erreur lors de la récupération des sons du système",
         "errorFetchingTonies": "Erreur lors de la récupération des Tonies",
@@ -1883,6 +1930,8 @@
             "errorFetchingUpdatedCardDetails": "Erreur lors de la récupération de la carte mise à jour pour \"{{model}}\" [{{ruid}}]: ",
             "filterDeleted": "Filtre supprimé",
             "filterDeletedDetails": "Le filtre {{name}} a été supprimé avec succès !",
+            "filterLoaded": "Filtre chargé",
+            "filterLoadedDetails": "Le filtre {{name}} a été chargé avec succès !",
             "filterSaved": "Filtre enregistré",
             "filterSavedDetails": "Le filtre {{name}} a été enregistré avec succès !",
             "hideTonieFailed": "Échec de la dissimulation du Tonie/Tag!",
@@ -1965,7 +2014,23 @@
             "titleCreate": "Créer un nouveau TAP",
             "titleEdit": "Modifier le TAP"
         },
+        "teddyaudioplayer": {
+            "continueInFooterAudioPlayer": "Continuer dans le lecteur audio en bas",
+            "enterFullscreen": "Passer en plein écran",
+            "exitFullscreen": "Quitter le plein écran",
+            "expand": "Agrandir le lecteur audio",
+            "navigationTitle": "Lecteur Audio",
+            "noTracks": "Aucune piste disponible",
+            "openInTonieAudioPlayer": "Ouvrir dans le lecteur audio",
+            "openStandalone": "Ouvrir le lecteur en mode autonome",
+            "selectTonieToPlay": "Sélectionne un Tonie/étiquette à lire",
+            "shrink": "Réduire le lecteur audio",
+            "standaloneTitle": "Lecteur Audio",
+            "title": "Lecteur Audio",
+            "unknown": "Inconnu"
+        },
         "teddystudio": {
+            "addedHint": "« {{title}} » a été ajouté.",
             "clear": "Effacer la feuille",
             "clearSettings": "Réinitialiser",
             "custom": "Personnalisé",
@@ -2052,9 +2117,15 @@
                     "syntaxExamples": {
                         "and": "Filtre les Tonies dont la série est 'Pixi' ET le Tonie est valide.",
                         "combined": "Filtre les Tonies qui sont live, ont accès au cloud, langue allemande et uniques dans leur série.",
+                        "endswith": "Filtre les Tonies dont le champ se termine par la valeur indiquée.",
+                        "inList": "Filtre les Tonies dont le champ correspond à l'une des valeurs indiquées.",
+                        "isEmpty": "Filtre les Tonies dont le champ est vide.",
+                        "isNotEmpty": "Filtre les Tonies dont le champ n'est pas vide.",
                         "negation": "Filtre les Tonies qui ont accès au cloud.",
+                        "notInList": "Filtre les Tonies dont le champ ne correspond à aucune des valeurs indiquées.",
                         "or": "Filtre les Tonies avec langue allemande ou française.",
                         "series": "Filtre les Tonies dont la série est 'Pixi'.",
+                        "startswith": "Filtre les Tonies dont le champ commence par la valeur indiquée.",
                         "title": "Exemples de syntaxe",
                         "trackCount": "Filtrer par nombre de pistes",
                         "trackExact": "Filtrer les pistes par nom exact",
@@ -2112,28 +2183,19 @@
             "showPagination": "Afficher la pagination",
             "title": "Tonies"
         },
-        "toniesaudioplayer": {
-            "continueInFooterAudioPlayer": "Continuer dans le lecteur audio en bas",
-            "enterFullscreen": "Passer en plein écran",
-            "exitFullscreen": "Quitter le plein écran",
-            "expand": "Agrandir le lecteur audio",
-            "navigationTitle": "Lecteur Audio",
-            "noTracks": "Aucune piste disponible",
-            "openInTonieAudioPlayer": "Ouvrir dans le lecteur audio",
-            "openStandalone": "Ouvrir le lecteur en mode autonome",
-            "selectTonieToPlay": "Sélectionne un Tonie/étiquette à lire",
-            "shrink": "Réduire le lecteur audio",
-            "standaloneTitle": "Lecteur Audio",
-            "title": "Lecteur Audio",
-            "unknown": "Inconnu"
-        },
         "toniesExportList": "Liste d'export des Tonies",
         "toniesExportListCreateDate": "Généré le",
         "unsetTonie": "Tonie/Tag"
     },
+    "toniesJsonSearch": {
+        "failedToFetchSearchResults": "Erreur lors de la récupération des modèles",
+        "failedToFetchSearchResultsDetails": "Échec de la récupération des résultats de recherche de modèles : ",
+        "noResults": "Aucune entrée trouvée dans tonies(.custom).json pour la recherche."
+    },
     "utils": {
         "copied": "Copié !",
         "copyToClipboard": "Copier dans le presse-papiers",
-        "failedToCopied": "Échec de la copie !"
+        "failedToCopied": "Échec de la copie !",
+        "noResults": "Aucun résultat"
     }
 }
