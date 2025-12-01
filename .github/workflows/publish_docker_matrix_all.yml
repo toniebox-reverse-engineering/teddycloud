@@ -47,7 +47,7 @@ jobs:
       dockerfile: "DockerfileUbuntu"
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
       primary_image: true
-      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
+      error_platforms: '["linux/s390x"]'
       noasan_fallback_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   debian:
@@ -58,7 +58,7 @@ jobs:
       dockerfile: "DockerfileDebian"
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
-      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
+      error_platforms: '["linux/s390x"]'
       noasan_fallback_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   alpine:
