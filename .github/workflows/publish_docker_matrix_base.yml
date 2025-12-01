@@ -103,6 +103,9 @@ jobs:
         run: |
           if ${{ contains(fromJson(inputs.noasan_fallback_platforms), matrix.platform) }}; then
             echo "build_args=NO_SANITIZERS=2" >> $GITHUB_OUTPUT
+            echo "Setting NO_SANITIZERS=2 for ${{ matrix.platform }}"
+          else
+            echo "Using Dockerfile default for ${{ matrix.platform }}"
           fi
 
       - name: Build & push digest docker ${{ matrix.platform }}
