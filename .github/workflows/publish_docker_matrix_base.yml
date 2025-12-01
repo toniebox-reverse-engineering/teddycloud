@@ -167,6 +167,8 @@ jobs:
           # tags: ${{ steps.modify_tags.outputs.all_tags }} # invalid reference format
           tags: ${{ steps.matrix_meta.outputs.tags }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
+          build-args: |
+            ${{ steps.set_build_args.outputs.build_args }}
 
       - name: Upload digest
         if: ${{ steps.docker-test.outcome == 'success' }}
