@@ -83,6 +83,7 @@ jobs:
       primary_image: false
       error_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       noasan_fallback_platforms: "[]"
+      skip_empty_merge: true
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   debianAsanTest:
     needs: test_commit_hash
@@ -94,4 +95,5 @@ jobs:
       primary_image: false
       error_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       noasan_fallback_platforms: "[]"
+      skip_empty_merge: true
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}

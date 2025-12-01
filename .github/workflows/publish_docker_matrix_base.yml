@@ -27,6 +27,11 @@ on:
         description: "Comma-separated list of target platforms that should not be built with ASAN (e.g., linux/amd64,linux/arm/v7)"
         type: string
         required: true
+      skip_empty_merge:
+        description: "Skip the merge if no manifests were created"
+        type: boolean
+        required: false
+        default: false
 
       tcw_commit_hash:
         type: string
@@ -189,15 +194,31 @@ jobs:
           pattern: digests-${{ inputs.system }}-*
           merge-multiple: true
           path: /tmp/digests/${{ github.sha }}
+      - name: Check for digests
+        id: check_digests
+        run: |
+          if [ -d "/tmp/digests/${{ github.sha }}" ] && [ "$(ls -A /tmp/digests/${{ github.sha }})" ]; then
+            echo "has_digests=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_digests=false" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.skip_empty_merge }}" != "true" ]; then
+              echo "Error: No digests found and skip_empty_merge is false"
+              exit 1
+            fi
+          fi
+
       - name: Set up Docker Buildx
+        if: ${{ steps.check_digests.outputs.has_digests == 'true' }}
         uses: docker/setup-buildx-action@v3
       - name: Login to GHCR
+        if: ${{ steps.check_digests.outputs.has_digests == 'true' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker meta
+        if: ${{ steps.check_digests.outputs.has_digests == 'true' }}
         id: teddycloud_meta # you'll use this in the next step
         uses: docker/metadata-action@v5
         with:
@@ -224,7 +245,7 @@ jobs:
             suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
 
       - name: Create manifest list and push (primary)
-        if: ${{ github.event_name != 'pull_request' && inputs.primary_image }}
+        if: ${{ github.event_name != 'pull_request' && inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
           # Extract original tags
@@ -237,12 +258,12 @@ jobs:
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
       - name: Create manifest list and push
-        if: ${{ github.event_name != 'pull_request' && !inputs.primary_image }}
+        if: ${{ github.event_name != 'pull_request' && !inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
       - name: Inspect image
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' && steps.check_digests.outputs.has_digests == 'true' }}
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.teddycloud_meta.outputs.version }}
