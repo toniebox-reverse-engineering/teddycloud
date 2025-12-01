@@ -258,7 +258,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
     static size_t total_sent = 0;
-    error_t send_err
+    error_t send_err;
 
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
     switch (ctx->api)
