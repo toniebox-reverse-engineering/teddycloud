@@ -197,12 +197,15 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
     {
-        char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
-        if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+        if (ctx->client_ctx->settings->internal.overlayNumber == 0)
         {
-            osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-            httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-            line[0] = '\0';
+            char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+            if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+            {
+                osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+                httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+                line[0] = '\0';
+            }
         }
     }
     switch (ctx->api)
@@ -254,6 +257,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+    static size_t total_sent = 0;
+    error_t send_err
 
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
     switch (ctx->api)
@@ -321,7 +326,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 free(tmpPath);
             }
         }
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        if (send_err) {
+            TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+        }
+        total_sent += length;
         break;
     case V1_FRESHNESS_CHECK:
         if (length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
@@ -408,11 +417,19 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         }
         else
         {
-            httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+            send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+            if (send_err) {
+                TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+            }
+            total_sent += length;
         }
         break;
     default:
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        if (send_err) {
+            TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+        }
+        total_sent += length;
         break;
     }
     ctx->status = PROX_STATUS_BODY;
