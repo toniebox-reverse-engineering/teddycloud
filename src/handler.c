@@ -942,6 +942,15 @@ char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPa
 error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir)
 {
     error_t error = NO_ERROR;
+
+    size_t lenContent = osStrlen(settings->internal.contentdirfull);
+    if (osStrncmp(tonieInfo->contentPath, settings->internal.contentdirfull, lenContent) != 0 ||
+        (tonieInfo->contentPath[lenContent] != PATH_SEPARATOR && tonieInfo->contentPath[lenContent] != '\0'))
+    {
+        TRACE_WARNING(">> File %s is not in content directory %s, not moving to library\r\n", tonieInfo->contentPath, settings->internal.contentdirfull);
+        return ERROR_INVALID_FILE;
+    }
+
     if (tonieInfo->valid)
     {
         char *libraryPath = NULL;
