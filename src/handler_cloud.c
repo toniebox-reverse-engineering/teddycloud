@@ -464,6 +464,10 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
         for (size_t i = 0; i < freshnessCacheLen; i++)
         {
+            char cruid[17];
+            osSprintf(cruid, "%016" PRIX64, bswap_64(freshnessCache[i]));
+            TRACE_DEBUG(" >> freshnessCache[%lu] = %lu =? %lu\r\n", i, freshnessCache[i], uid);
+            TRACE_DEBUG(" >> freshnessCache[%lu] = %s =? %s\r\n", i, cruid, ruid);
             if (freshnessCache[i] == uid)
             {
                 tonie_marked = true;
