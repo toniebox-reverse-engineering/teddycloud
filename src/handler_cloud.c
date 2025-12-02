@@ -454,8 +454,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         setLastRuid(ruid, client_ctx->settingsNoOverlay);
     }
 
+    tonie_info_t *tonieInfo;
+    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+
     bool_t tonie_marked = false;
-    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV2Content)
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV2Content && !tonieInfo->json.nocloud)
     {
         uint64_t uid = strtoull(ruid, NULL, 16);
         uid = bswap_64(uid);
@@ -466,8 +469,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         {
             char cruid[17];
             osSprintf(cruid, "%016" PRIX64, bswap_64(freshnessCache[i]));
-            TRACE_INFO(" >> freshnessCache[%" PRIuSIZE "] = %" PRIu64 " =? %" PRIu64 "\r\n", i, freshnessCache[i], uid);
-            TRACE_INFO(" >> freshnessCache[%" PRIuSIZE "] = %s =? %s\r\n", i, cruid, ruid);
+            TRACE_DEBUG(" >> freshnessCache[%" PRIuSIZE "] = %" PRIu64 " =? %" PRIu64 "\r\n", i, freshnessCache[i], uid);
+            TRACE_DEBUG(" >> freshnessCache[%" PRIuSIZE "] = %s =? %s\r\n", i, cruid, ruid);
             if (freshnessCache[i] == uid)
             {
                 tonie_marked = true;
@@ -476,9 +479,6 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             }
         }
     }
-
-    tonie_info_t *tonieInfo;
-    tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
     if (!tonieInfo->json.nocloud && !noPassword && checkCustomTonie(ruid, token, client_ctx->settings) && !tonieInfo->json.cloud_override && connection->request.auth.found)
     {
@@ -734,6 +734,14 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         {
             TRACE_INFO("Serve cloud content from %s\r\n", uri);
 
+            if (tonieInfo->json.source != NULL)
+            {
+                TRACE_INFO(" >> Removing source %s for download\r\n", tonieInfo->json.source);
+                tonieInfo->json.source[0] = '\0';
+                tonieInfo->json._updated = true;
+                freeTonieInfo(tonieInfo);
+                tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
+            }
             if (tonieInfo->json.cloud_override)
             {
                 token = tonieInfo->json.cloud_auth;
