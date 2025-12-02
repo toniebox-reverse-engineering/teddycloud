@@ -2231,7 +2231,6 @@ error_t handleApiTafUpload(HttpConnection *connection, const char_t *uri, const 
     return httpWriteResponseString(connection, message, false);
 }
 
-
 error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char overlay[16];
