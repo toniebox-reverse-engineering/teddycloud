@@ -17,7 +17,7 @@
 
 #include "contentJson.h"
 
-#define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
+#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
 
 #define PROX_STATUS_IDLE 0
 #define PROX_STATUS_CONN 1

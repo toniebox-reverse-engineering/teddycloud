@@ -308,21 +308,21 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                 if (isValidTaf(tmpPath, true))
                 {
-                fsDeleteFile(ctx->tonieInfo->contentPath);
-                fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
-                if (fsFileExists(ctx->tonieInfo->contentPath))
-                {
-                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
-
-                    if (ctx->client_ctx->settings->cloud.cacheToLibrary)
+                    fsDeleteFile(ctx->tonieInfo->contentPath);
+                    fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
+                    if (fsFileExists(ctx->tonieInfo->contentPath))
                     {
+                        TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
+
+                        if (ctx->client_ctx->settings->cloud.cacheToLibrary)
+                        {
                             tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, true, ctx->client_ctx->settings);
-                        moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
-                        freeTonieInfo(tonieInfo);
+                            moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
+                            freeTonieInfo(tonieInfo);
+                        }
                     }
-                }
-                else
-                {
+                    else
+                    {
                         TRACE_ERROR(">> Error caching %s, file not found\r\n", ctx->tonieInfo->contentPath);
                     }
                 }
@@ -334,7 +334,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             }
         }
         send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        if (send_err) {
+        if (send_err)
+        {
             TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
         }
         total_sent += length;
@@ -425,7 +426,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         else
         {
             send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-            if (send_err) {
+            if (send_err)
+            {
                 TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
             }
             total_sent += length;
@@ -433,7 +435,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         break;
     default:
         send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        if (send_err) {
+        if (send_err)
+        {
             TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
         }
         total_sent += length;
