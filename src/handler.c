@@ -306,6 +306,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 fsCloseFile(ctx->file);
                 char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
+                if (isValidTaf(tmpPath, true))
+                {
                 fsDeleteFile(ctx->tonieInfo->contentPath);
                 fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
                 if (fsFileExists(ctx->tonieInfo->contentPath))
@@ -314,14 +316,19 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                     if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                     {
-                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, true, ctx->client_ctx->settings);
+                            tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, true, ctx->client_ctx->settings);
                         moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
                         freeTonieInfo(tonieInfo);
                     }
                 }
                 else
                 {
-                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
+                        TRACE_ERROR(">> Error caching %s, file not found\r\n", ctx->tonieInfo->contentPath);
+                    }
+                }
+                else
+                {
+                    TRACE_ERROR(">> Error caching %s, not a valid TAF\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
             }
@@ -655,6 +662,10 @@ tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *setting
 }
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings)
 {
+    return getTonieInfoV2(contentPath, lock, false, settings);
+}
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings)
+{
     tonie_info_t *tonieInfo;
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
 
@@ -714,7 +725,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                         {
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
-                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation);
+                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation || force_taf_validation);
                                 readTrackPositions(tonieInfo, file);
                                 if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
