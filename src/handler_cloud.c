@@ -466,8 +466,8 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         {
             char cruid[17];
             osSprintf(cruid, "%016" PRIX64, bswap_64(freshnessCache[i]));
-            TRACE_DEBUG(" >> freshnessCache[%lu] = %lu =? %lu\r\n", i, freshnessCache[i], uid);
-            TRACE_DEBUG(" >> freshnessCache[%lu] = %s =? %s\r\n", i, cruid, ruid);
+            TRACE_INFO(" >> freshnessCache[%" PRIuSIZE "] = %" PRIu64 " =? %" PRIu64 "\r\n", i, freshnessCache[i], uid);
+            TRACE_INFO(" >> freshnessCache[%" PRIuSIZE "] = %s =? %s\r\n", i, cruid, ruid);
             if (freshnessCache[i] == uid)
             {
                 tonie_marked = true;
