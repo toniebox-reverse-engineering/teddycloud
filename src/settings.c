@@ -683,7 +683,7 @@ static void settings_init_opt(setting_item_t *opt)
         *((char **)opt->ptr) = strdup(opt->init.string_value);
         break;
     case TYPE_U64_ARRAY:
-        TRACE_DEBUG("  %s = size(%zu)\r\n", opt->option_name, opt->size);
+        TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
         if (opt->size > 0)
         {
             *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);

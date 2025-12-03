@@ -154,7 +154,7 @@ void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *pa
             }
             else
             {
-                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %zu\r\n", local_filename, fileSize, ctx->customDataLen);
+                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
             }
             osFreeMem(local_filename_tmp);
         }
@@ -336,7 +336,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         if (send_err)
         {
-            TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+            TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
         }
         total_sent += length;
         break;
@@ -418,7 +418,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             settings_set_u64_array_id("internal.freshnessCache", freshResp->tonie_marked, freshResp->n_tonie_marked, ctx->client_ctx->settings->internal.overlayNumber);
 
             char line[128];
-            osSnprintf(line, 128, "Content-Length: %zu\r\n\r\n", ctx->bufferLen);
+            osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
             httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
 
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
@@ -429,7 +429,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
             if (send_err)
             {
-                TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+                TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
             }
             total_sent += length;
         }
@@ -438,7 +438,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         if (send_err)
         {
-            TRACE_ERROR(">> httpSend failed at total=%zu, chunk=%zu: %s\r\n", total_sent, length, error2text(send_err));
+            TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
         }
         total_sent += length;
         break;
@@ -747,13 +747,13 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
                             }
                             else
                             {
-                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%zu != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
+                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
                             }
                         }
                     }
                     else
                     {
-                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%zu != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
+                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
                     }
                 }
                 else
@@ -768,7 +768,7 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%zu\r\n", tonieInfo->contentPath, read_length);
+                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", tonieInfo->contentPath, read_length);
             }
             fsCloseFile(file);
         }

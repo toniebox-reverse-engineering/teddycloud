@@ -55,7 +55,7 @@ void mutex_lock_id(char *id)
             mutex_info_t *mutex_info = &mutex_list[i];
             if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
             {
-                TRACE_WARNING("LOCK EXISTING %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+                TRACE_WARNING("LOCK EXISTING %" PRIuSIZE "/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
                 mutex_unlock(MUTEX_ID);
                 mutex_lock(i);
                 return;
@@ -67,7 +67,7 @@ void mutex_lock_id(char *id)
             if (mutex_info->id == NULL)
             {
                 mutex_info->id = strdup(id);
-                TRACE_WARNING("LOCK NEW %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+                TRACE_WARNING("LOCK NEW %" PRIuSIZE "/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
                 mutex_unlock(MUTEX_ID);
                 mutex_lock(i);
                 return;
@@ -87,7 +87,7 @@ void mutex_unlock_id(char *id)
         mutex_info_t *mutex_info = &mutex_list[i];
         if (mutex_info->id != NULL && osStrcmp(mutex_info->id, id) == 0)
         {
-            TRACE_WARNING("UNLOCK %zu/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
+            TRACE_WARNING("UNLOCK %" PRIuSIZE "/%" PRIu8 "/%s\r\n", (size_t)&mutex_info->mutex, i, mutex_info->id);
             osFreeMem(mutex_info->id);
             mutex_info->id = NULL;
             mutex_unlock(i);

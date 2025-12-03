@@ -198,7 +198,7 @@ void mqttTestPublishCallback(MqttClientContext *context,
     TRACE_INFO("  Retain: %d\r\n", retain ? 1 : 0);
     TRACE_INFO("  Packet Identifier: %u\r\n", packetId);
     TRACE_INFO("  Topic: %s\r\n", topic);
-    TRACE_INFO("  Message (%zu bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
+    TRACE_INFO("  Message (%" PRIuSIZE " bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
 
     char *payload = osAllocMem(length + 1);
     osMemcpy(payload, message, length);

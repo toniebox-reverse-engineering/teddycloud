@@ -824,7 +824,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size %zu bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
@@ -834,7 +834,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             TRACE_ERROR("httpReceive failed!\r\n");
             return error;
         }
-        TRACE_INFO("Content (%zu of %zu)\n", size, connection->request.byteCount);
+        TRACE_INFO("Content (%" PRIuSIZE " of %" PRIuSIZE ")\n", size, connection->request.byteCount);
         TonieFreshnessCheckRequest *freshReq = tonie_freshness_check_request__unpack(NULL, size, (const uint8_t *)data);
         if (freshReq == NULL)
         {
@@ -842,7 +842,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
         }
         else
         {
-            TRACE_INFO("Found %zu tonies:\n", freshReq->n_tonie_infos);
+            TRACE_INFO("Found %" PRIuSIZE " tonies:\n", freshReq->n_tonie_infos);
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
             freshResp.n_tonie_marked = 0;
             freshResp.tonie_marked = malloc(sizeof(uint64_t) * freshReq->n_tonie_infos);
@@ -955,7 +955,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             tonie_freshness_check_response__pack(&freshResp, (uint8_t *)data);
             osFreeMem(freshReqCloud.tonie_infos);
             osFreeMem(freshResp.tonie_marked);
-            TRACE_INFO("Freshness check response: size=%zu, content=%s\n", dataLen, data);
+            TRACE_INFO("Freshness check response: size=%" PRIuSIZE ", content=%s\n", dataLen, data);
 
             httpPrepareHeader(connection, "application/octet-stream; charset=utf-8", dataLen);
             return httpWriteResponse(connection, data, dataLen, false);

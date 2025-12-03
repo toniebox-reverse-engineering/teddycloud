@@ -215,11 +215,11 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
                  "<div class=\"container\">"
                  "<h1>Cache Statistics</h1>"
                  "<table>"
-                 "<tr><th>Total Entries</th><td>%zu</td></tr>"
-                 "<tr><th>Entries with Existing Files</th><td>%zu</td></tr>"
-                 "<tr><th>Total Cached Files</th><td>%zu</td></tr>"
-                 "<tr><th>Total Cache Size</th><td>%zu bytes</td></tr>"
-                 "<tr><th>Memory Used</th><td>%zu bytes</td></tr>"
+                 "<tr><th>Total Entries</th><td>%" PRIuSIZE "</td></tr>"
+                 "<tr><th>Entries with Existing Files</th><td>%" PRIuSIZE "</td></tr>"
+                 "<tr><th>Total Cached Files</th><td>%" PRIuSIZE "</td></tr>"
+                 "<tr><th>Total Cache Size</th><td>%" PRIuSIZE " bytes</td></tr>"
+                 "<tr><th>Memory Used</th><td>%" PRIuSIZE " bytes</td></tr>"
                  "</table>"
                  "<button class=\"btn\" onclick=\"flushCache()\">Flush Cache</button>"
                  "</div>"
@@ -289,7 +289,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         TRACE_DEBUG("No certificate authentication\r\n");
         request_source = "unknown/web";
     }
-    TRACE_DEBUG("Started server request to %s, request %zu, by %s\r\n", uri, openRequests, request_source);
+    TRACE_DEBUG("Started server request to %s, request %" PRIuSIZE ", by %s\r\n", uri, openRequests, request_source);
 
     TRACE_DEBUG(" >> client requested '%s' via %s \n", uri, connection->request.method);
 
@@ -536,7 +536,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         }
     } while (0);
 
-    TRACE_DEBUG("Stopped server request to %s, request %zu\r\n", uri, openRequests);
+    TRACE_DEBUG("Stopped server request to %s, request %" PRIuSIZE "\r\n", uri, openRequests);
     openRequestsLast--;
     return error;
 }
@@ -931,7 +931,7 @@ void server_init(bool test)
         if (openConnections != openWebConnectionsLast)
         {
             openWebConnectionsLast = openConnections;
-            TRACE_INFO("%zu open HTTPS Web connections\r\n", openConnections);
+            TRACE_INFO("%" PRIuSIZE " open HTTPS Web connections\r\n", openConnections);
         }
         openConnections = 0;
         for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
@@ -961,7 +961,7 @@ void server_init(bool test)
         if (openConnections != openAPIConnectionsLast)
         {
             openAPIConnectionsLast = openConnections;
-            TRACE_INFO("%zu open HTTPS API connections\r\n", openConnections);
+            TRACE_INFO("%" PRIuSIZE " open HTTPS API connections\r\n", openConnections);
         }
         for (size_t i = 0; i < MAX_OVERLAYS; i++)
         {

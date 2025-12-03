@@ -479,7 +479,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size for setting '%s' %zu bigger than buffer size %i bytes\r\n", item, connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size for setting '%s' %" PRIuSIZE " bigger than buffer size %i bytes\r\n", item, connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
@@ -2490,7 +2490,7 @@ error_t handleApiTonieboxJson(HttpConnection *connection, const char_t *uri, con
 
     size_t fileSize = 0;
     fsGetFileSize(path, (uint32_t *)(&fileSize));
-    TRACE_INFO("Trying to read %s with size %zu\r\n", path, fileSize);
+    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", path, fileSize);
 
     FsFile *fsFile = fsOpenFile(path, FS_FILE_MODE_READ);
     if (fsFile == NULL)
@@ -3256,11 +3256,11 @@ error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const
     char stats_json[512];
     snprintf(stats_json, sizeof(stats_json),
              "{"
-             "\"total_entries\": %zu,"
-             "\"exists_entries\": %zu,"
-             "\"total_files\": %zu,"
-             "\"total_size\": %zu,"
-             "\"memory_used\": %zu"
+             "\"total_entries\": %" PRIuSIZE ","
+             "\"exists_entries\": %" PRIuSIZE ","
+             "\"total_files\": %" PRIuSIZE ","
+             "\"total_size\": %" PRIuSIZE ","
+             "\"memory_used\": %" PRIuSIZE ""
              "}",
              stats.total_entries,
              stats.exists_entries,
