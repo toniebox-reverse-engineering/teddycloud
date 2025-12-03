@@ -465,6 +465,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
         size_t freshnessCacheLen = 0;
         uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
+        TRACE_DEBUG(" >> Checking freshnessCache with %" PRIuSIZE " entries\r\n", freshnessCacheLen);
         for (size_t i = 0; i < freshnessCacheLen; i++)
         {
             char cruid[17];
