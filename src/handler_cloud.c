@@ -853,6 +853,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
             for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
             {
+                uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
                 tonie_info_t *tonieInfo;
                 tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, false, client_ctx->settings);
 
@@ -861,15 +862,15 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 char date_buffer_server[32];
                 bool_t custom_server = FALSE;
 
-                checkAudioIdForCustom(&custom_box, date_buffer_box, freshReq->tonie_infos[i]->audio_id);
+                checkAudioIdForCustom(&custom_box, date_buffer_box, boxAudioId);
 
-                uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
                 if (custom_box)
                     boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
+                uint32_t serverAudioId = 0;
                 if (tonieInfo->valid)
                 {
-                    uint32_t serverAudioId = tonieInfo->tafHeader->audio_id;
+                    serverAudioId = tonieInfo->tafHeader->audio_id;
                     checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
 
                     if (custom_server)
@@ -907,21 +908,21 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                            tonieInfo->json.nocloud,
                            tonieInfo->json.live || isFlex || (tonieInfo->json._source_type == CT_SOURCE_STREAM),
                            tonieInfo->updated,
-                           freshReq->tonie_infos[i]->audio_id,
+                           boxAudioId,
                            date_buffer_box,
                            custom_box ? ", custom" : "");
 
                 if (tonieInfo->valid)
                 {
-                    TRACE_INFO_RESUME(", audioid-server: %08X (%s%s)",
-                                      tonieInfo->tafHeader->audio_id,
+                    TRACE_INFO_RESUME(", audioid-tc: %08X (%s%s)",
+                                      serverAudioId,
                                       date_buffer_server,
                                       custom_server ? ", custom" : "");
                 }
                 TRACE_INFO_RESUME("\r\n");
                 if (!tonieInfo->valid)
                 {
-                    content_json_update_model(&tonieInfo->json, freshReq->tonie_infos[i]->audio_id, NULL);
+                    content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
                 }
 
                 if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || isFlex)
