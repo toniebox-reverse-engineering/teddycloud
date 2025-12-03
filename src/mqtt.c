@@ -398,8 +398,9 @@ void mqtt_get_settings(mqtt_ctx_t *mqtt_ctx)
     mqtt_ctx->retain_will = settings_get_bool("mqtt.retain_will");
 }
 
-void mqtt_thread()
+void mqtt_thread(void *arg)
 {
+    (void)arg; // unused but Alpines compiler complains if arg is missing.
     uint32_t errors = 0;
     mqtt_ctx_t mqtt_ctx;
     osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
