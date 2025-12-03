@@ -378,6 +378,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 TRACE_WARNING("Field 6 has not the expected value 1. Value=%" PRIu32 "\r\n", freshRespCloud->field6);
             }
 
+            TRACE_INFO("Cloud marked tonies: %" PRIuSIZE "\r\n", freshRespCloud->n_tonie_marked);
             for (size_t i = 0; i < freshRespCloud->n_tonie_marked; i++)
             {
                 bool found = false;
