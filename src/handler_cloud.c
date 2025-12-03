@@ -889,7 +889,12 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
 
                 if (!tonieInfo->json.nocloud)
                 {
-                    freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos++] = freshReq->tonie_infos[i];
+                    freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos] = freshReq->tonie_infos[i];
+                    if (tonieInfo->valid)
+                    {
+                        freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos]->audio_id = serverAudioId;
+                    }
+                    freshReqCloud.n_tonie_infos++;
                 }
 
                 bool isFlex = false;
