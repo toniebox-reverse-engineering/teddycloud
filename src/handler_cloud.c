@@ -845,7 +845,27 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
             TRACE_INFO("Found %" PRIuSIZE " tonies:\n", freshReq->n_tonie_infos);
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
             freshResp.n_tonie_marked = 0;
-            freshResp.tonie_marked = malloc(sizeof(uint64_t) * freshReq->n_tonie_infos);
+
+            size_t freshnessCacheLen = 0;
+            uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
+            freshResp.tonie_marked = malloc(sizeof(uint64_t) * (freshReq->n_tonie_infos + freshnessCacheLen));
+
+            for (size_t i = 0; i < freshnessCacheLen; i++)
+            {
+                bool requested = false;
+                for (size_t j = 0; j < freshReq->n_tonie_infos; j++)
+                {
+                    if (freshReq->tonie_infos[j]->uid == freshnessCache[i])
+                    {
+                        requested = true;
+                        break;
+                    }
+                }
+                if (!requested)
+                {
+                    freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshnessCache[i];
+                }
+            }
 
             TonieFreshnessCheckRequest freshReqCloud = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
             freshReqCloud.n_tonie_infos = 0;
@@ -945,7 +965,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 cbr_ctx_t ctx;
                 req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_FRESHNESS_CHECK, &ctx, client_ctx);
                 ctx.customData = (void *)&freshResp;
-                ctx.customDataLen = freshReq->n_tonie_infos; // Allocated slots
+                ctx.customDataLen = freshReq->n_tonie_infos + freshnessCacheLen; // Allocated slots
                 if (!cloud_request_post(NULL, 0, "/v1/freshness-check", queryString, data, dataLen, NULL, &cbr))
                 {
                     tonie_freshness_check_request__free_unpacked(freshReq, NULL);
@@ -954,6 +974,10 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                     return NO_ERROR;
                 }
             }
+
+            TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp->n_tonie_marked);
+            settings_set_u64_array_id("internal.freshnessCache", freshResp.tonie_marked, freshResp.n_tonie_marked, client_ctx->settings->internal.overlayNumber);
+
             tonie_freshness_check_request__free_unpacked(freshReq, NULL);
             setTonieboxSettings(&freshResp, client_ctx->settings);
 
