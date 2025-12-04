@@ -975,7 +975,7 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
                 }
             }
 
-            TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp->n_tonie_marked);
+            TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp.n_tonie_marked);
             settings_set_u64_array_id("internal.freshnessCache", freshResp.tonie_marked, freshResp.n_tonie_marked, client_ctx->settings->internal.overlayNumber);
 
             tonie_freshness_check_request__free_unpacked(freshReq, NULL);
