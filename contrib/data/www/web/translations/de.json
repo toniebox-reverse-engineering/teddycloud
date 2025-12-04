@@ -2086,6 +2086,7 @@
             "replaceLabelImage": "Ziehe ein Bild hierher oder wähle eine Datei aus, um das vorhandene Labelbild zu ersetzen",
             "round": "Rund",
             "save": "Speichern",
+            "saveOnNavigate": "Auto-Speichern beim Navigieren",
             "saveSettings": "Speichern",
             "selectPredefinedPaperOptions": "Papiervoreinstellung auswählen",
             "series": "Serie",

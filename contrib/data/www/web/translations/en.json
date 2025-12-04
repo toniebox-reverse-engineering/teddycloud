@@ -2086,6 +2086,7 @@
             "replaceLabelImage": "Drop an image here or choose a file to replace the existing label image",
             "round": "Round",
             "save": "Save",
+            "saveOnNavigate": "Auto-save on navigate",
             "saveSettings": "Save",
             "selectPredefinedPaperOptions": "Select paper preset",
             "series": "Series",

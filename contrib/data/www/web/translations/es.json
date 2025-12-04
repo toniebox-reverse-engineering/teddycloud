@@ -2086,6 +2086,7 @@
             "replaceLabelImage": "Suelta una imagen aquí o elige un archivo para reemplazar la imagen de la etiqueta existente",
             "round": "Redondo",
             "save": "Guardar",
+            "saveOnNavigate": "Guardado automático al navegar",
             "saveSettings": "Guardar",
             "selectPredefinedPaperOptions": "Seleccionar preajuste de papel",
             "series": "Serie",

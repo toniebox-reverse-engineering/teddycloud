@@ -2086,6 +2086,7 @@
             "replaceLabelImage": "Déposez une image ici ou choisissez un fichier pour remplacer l'image de l'étiquette existante",
             "round": "Ronde",
             "save": "Enregistrer",
+            "saveOnNavigate": "Enregistrement auto lors de la navigation",
             "saveSettings": "Enregistrer",
             "selectPredefinedPaperOptions": "Sélectionner un préréglage papier",
             "series": "Série",
