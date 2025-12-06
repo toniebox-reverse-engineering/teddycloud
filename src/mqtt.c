@@ -198,7 +198,7 @@ void mqttTestPublishCallback(MqttClientContext *context,
     TRACE_INFO("  Retain: %d\r\n", retain ? 1 : 0);
     TRACE_INFO("  Packet Identifier: %u\r\n", packetId);
     TRACE_INFO("  Topic: %s\r\n", topic);
-    TRACE_INFO("  Message (%zu bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
+    TRACE_INFO("  Message (%" PRIuSIZE " bytes):  '%.*s'\r\n", length, (int)length, (char *)message);
 
     char *payload = osAllocMem(length + 1);
     osMemcpy(payload, message, length);
@@ -398,8 +398,9 @@ void mqtt_get_settings(mqtt_ctx_t *mqtt_ctx)
     mqtt_ctx->retain_will = settings_get_bool("mqtt.retain_will");
 }
 
-void mqtt_thread()
+void mqtt_thread(void *arg)
 {
+    (void)arg; // unused but Alpines compiler complains if arg is missing.
     uint32_t errors = 0;
     mqtt_ctx_t mqtt_ctx;
     osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
@@ -928,7 +929,11 @@ t_ha_info *mqtt_get_box(client_ctx_t *client_ctx)
 
 void mqtt_init()
 {
-    osCreateTask("MQTT", &mqtt_thread, NULL, 1024, 0);
+    OsTaskParameters taskParams;
+    taskParams.priority = 0;
+    taskParams.stackSize = 1024;
+
+    osCreateTask("MQTT", &mqtt_thread, NULL, &taskParams);
 
     t_ha_entity entity;
 

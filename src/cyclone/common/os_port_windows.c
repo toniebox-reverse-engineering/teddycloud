@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 //Switch to the appropriate trace level
@@ -44,6 +44,14 @@
 #include <stdbool.h>
 #include "os_port.h"
 #include "os_port_windows.h"
+//#include "debug.h"
+
+// Default task parameters
+const OsTaskParameters OS_TASK_DEFAULT_PARAMS =
+{
+   0, //Size of the stack
+   0  //Task priority
+};
 
 
 /**
@@ -68,22 +76,21 @@ void osStartKernel(void)
 
 /**
  * @brief Create a task
- * @param[in] name A name identifying the task
+ * @param[in] name NULL-terminated string identifying the task
  * @param[in] taskCode Pointer to the task entry function
- * @param[in] param A pointer to a variable to be passed to the task
- * @param[in] stackSize The initial size of the stack, in words
- * @param[in] priority The priority at which the task should run
+ * @param[in] arg Argument passed to the task function
+ * @param[in] params Task parameters
  * @return Task identifier referencing the newly created task
  **/
 
-OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode,
-   void *param, size_t stackSize, int_t priority)
+OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg,
+   const OsTaskParameters *params)
 {
    void *handle;
 
    //Create a new thread
    handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) taskCode,
-      param, 0, NULL);
+      arg, 0, NULL);
 
    WCHAR wname[128];
    MultiByteToWideChar(CP_ACP, 0, name, -1, wname, sizeof(wname) / sizeof(wname[0]));

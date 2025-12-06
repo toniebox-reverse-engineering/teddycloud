@@ -47,7 +47,8 @@ jobs:
       dockerfile: "DockerfileUbuntu"
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
       primary_image: true
-      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7", "linux/arm64/v8"]'
+      error_platforms: '["linux/s390x"]'
+      noasan_fallback_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   debian:
     needs: test_commit_hash
@@ -57,7 +58,8 @@ jobs:
       dockerfile: "DockerfileDebian"
       platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
-      error_platforms: '["linux/s390x", "linux/ppc64le", "linux/arm/v7"]'
+      error_platforms: '["linux/s390x"]'
+      noasan_fallback_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
   alpine:
     needs: test_commit_hash
@@ -68,4 +70,30 @@ jobs:
       platforms: '["linux/amd64", "linux/arm/v6", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x", "linux/386"]'
       primary_image: false
       error_platforms: "[]"
+      noasan_fallback_platforms: "[]"
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+
+  ubuntuAsanTest:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "ubuntuAsanTest"
+      dockerfile: "DockerfileUbuntu"
+      platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
+      primary_image: false
+      error_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
+      noasan_fallback_platforms: "[]"
+      skip_empty_merge: true
+      tcw_commit_hash: ${{ inputs.tcw_commit_hash }}
+  debianAsanTest:
+    needs: test_commit_hash
+    uses: ./.github/workflows/publish_docker_matrix_base.yml
+    with:
+      system: "debianAsanTest"
+      dockerfile: "DockerfileDebian"
+      platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
+      primary_image: false
+      error_platforms: '["linux/arm/v7", "linux/arm64/v8", "linux/ppc64le"]'
+      noasan_fallback_platforms: "[]"
+      skip_empty_merge: true
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}

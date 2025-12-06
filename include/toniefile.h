@@ -40,7 +40,7 @@ typedef struct
     OsTaskId taskId;
     bool_t quit;
     bool_t stop_on_playback_stop;
-
+    OsTaskParameters taskParams;
     void *ctx;
 } stream_ctx_t;
 

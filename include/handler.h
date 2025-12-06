@@ -17,7 +17,7 @@
 
 #include "contentJson.h"
 
-#define CONTENT_LENGTH_UNKNOWN ((size_t) - 1)
+#define CONTENT_LENGTH_UNKNOWN ((size_t)-1)
 
 #define PROX_STATUS_IDLE 0
 #define PROX_STATUS_CONN 1
@@ -91,6 +91,7 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);

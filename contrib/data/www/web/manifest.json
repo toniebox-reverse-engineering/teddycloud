@@ -1,15 +1,33 @@
 {
-  "short_name": "TeddyCloud",
-  "name": "TeddyCloud Admin",
-  "icons": [
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+    "short_name": "TeddyCloud",
+    "name": "TeddyCloud Admin",
+    "icons": [
+        {
+            "src": "/web-app-manifest-light-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable",
+            "media": "(prefers-color-scheme: light)"
+        },
+        {
+            "src": "/web-app-manifest-light-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable",
+            "media": "(prefers-color-scheme: light)"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+
+    "display": "standalone",
+    "start_url": "/",
+    "scope": "/",
+    "theme_color": "#000000",
+    "background_color": "#ffffff",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false
 }

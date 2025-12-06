@@ -429,10 +429,7 @@ error_t cert_generate_default()
 
     if (error_ca != NO_ERROR || error_ca_key != NO_ERROR)
     {
-
-        /* create a proper ASN.1 compatible serial with no leading zeroes */
         cert_generate_serial(serial, &serial_length);
-        serial[0] = 0x00;
 
         TRACE_INFO("Generating CA certificate...\r\n");
         if (cert_generate_signed("TeddyCloud CA Root Cert.", serial, serial_length, CA_RSA_SIZE, true, false, cacert, cacert_key) != NO_ERROR)

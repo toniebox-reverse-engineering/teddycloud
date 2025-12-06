@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 13
+#define CONFIG_VERSION 14
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -81,6 +81,7 @@ typedef struct
     bool cacheContent;
     bool cacheToLibrary;
     bool markCustomTagByPass;
+    bool markCustomTagByUid;
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
@@ -94,6 +95,7 @@ typedef struct
     bool ffmpeg_sweep_startup_buffer;
     uint32_t ffmpeg_sweep_delay_ms;
     uint32_t stream_max_size;
+    bool use_frontend;
 
 } settings_encode_t;
 
@@ -102,6 +104,8 @@ typedef struct
     bool split_model_content;
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
+    bool check_cc3200_cfw;
+    bool use_revvox_flasher;
 } settings_frontend_t;
 
 typedef struct
@@ -240,6 +244,7 @@ typedef struct
     char *librarydirfull;
     char *datadirfull;
     char *wwwdirfull;
+    char *pluginsdirfull;
     char *firmwaredirfull;
     char *cachedirfull;
 
@@ -282,6 +287,7 @@ typedef struct
     char *librarydir;
     char *datadir;
     char *wwwdir;
+    char *pluginsdir;
     char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t client_cert;
@@ -292,6 +298,8 @@ typedef struct
     bool flex_enabled;
     char *flex_uid;
     char *bind_ip;
+
+    uint32_t http_client_timeout;
 
     bool new_webgui_as_default;
 

@@ -15,6 +15,7 @@ services:
       - custom_img:/teddycloud/data/www/custom_img #location to store custom images for custom tonies json
       - firmware:/teddycloud/data/firmware #firmware backups
       - cache:/teddycloud/data/cache #img cache for content images
+      - plugins:/teddycloud/data/www/plugins #location to store web plugins for teddyCloud
     restart: unless-stopped
 volumes:
   certs:
@@ -24,3 +25,4 @@ volumes:
   custom_img:
   firmware:
   cache:
+  plugins:

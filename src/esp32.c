@@ -1220,7 +1220,7 @@ error_t esp32_fat_inject_folder(FsFile *file, size_t offset, size_t length, cons
                 TRACE_ERROR("Failed to read from input file\r\n");
                 return ERROR_FAILURE;
             }
-            TRACE_INFO("  Read %zu byte\r\n", read);
+            TRACE_INFO("  Read %" PRIuSIZE " byte\r\n", read);
 
             uint32_t written;
             if (f_write(&fp, buffer, read, &written) != FR_OK || read != written)

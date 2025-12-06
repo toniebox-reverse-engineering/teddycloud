@@ -154,7 +154,7 @@ void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *pa
             }
             else
             {
-                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %zu\r\n", local_filename, fileSize, ctx->customDataLen);
+                TRACE_ERROR(">> File %s has wrong size %" PRIu32 " != %" PRIuSIZE "\r\n", local_filename, fileSize, ctx->customDataLen);
             }
             osFreeMem(local_filename_tmp);
         }
@@ -197,12 +197,15 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
     {
-        char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
-        if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+        if (ctx->client_ctx->settings->internal.overlayNumber == 0)
         {
-            osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-            httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-            line[0] = '\0';
+            char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+            if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+            {
+                osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+                httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+                line[0] = '\0';
+            }
         }
     }
     switch (ctx->api)
@@ -254,6 +257,8 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+    static size_t total_sent = 0;
+    error_t send_err;
 
     // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
     switch (ctx->api)
@@ -301,27 +306,39 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 fsCloseFile(ctx->file);
                 char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
 
-                fsDeleteFile(ctx->tonieInfo->contentPath);
-                fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
-                if (fsFileExists(ctx->tonieInfo->contentPath))
+                if (isValidTaf(tmpPath, true))
                 {
-                    TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
-
-                    if (ctx->client_ctx->settings->cloud.cacheToLibrary)
+                    fsDeleteFile(ctx->tonieInfo->contentPath);
+                    fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
+                    if (fsFileExists(ctx->tonieInfo->contentPath))
                     {
-                        tonie_info_t *tonieInfo = getTonieInfo(ctx->tonieInfo->contentPath, true, ctx->client_ctx->settings);
-                        moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
-                        freeTonieInfo(tonieInfo);
+                        TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
+
+                        if (ctx->client_ctx->settings->cloud.cacheToLibrary)
+                        {
+                            tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, true, ctx->client_ctx->settings);
+                            moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
+                            freeTonieInfo(tonieInfo);
+                        }
+                    }
+                    else
+                    {
+                        TRACE_ERROR(">> Error caching %s, file not found\r\n", ctx->tonieInfo->contentPath);
                     }
                 }
                 else
                 {
-                    TRACE_ERROR(">> Error caching %s\r\n", ctx->tonieInfo->contentPath);
+                    TRACE_ERROR(">> Error caching %s, not a valid TAF\r\n", ctx->tonieInfo->contentPath);
                 }
                 free(tmpPath);
             }
         }
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        if (send_err)
+        {
+            TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
+        }
+        total_sent += length;
         break;
     case V1_FRESHNESS_CHECK:
         if (length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
@@ -361,6 +378,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
                 TRACE_WARNING("Field 6 has not the expected value 1. Value=%" PRIu32 "\r\n", freshRespCloud->field6);
             }
 
+            TRACE_INFO("Cloud marked tonies: %" PRIuSIZE "\r\n", freshRespCloud->n_tonie_marked);
             for (size_t i = 0; i < freshRespCloud->n_tonie_marked; i++)
             {
                 bool found = false;
@@ -397,10 +415,11 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             }
             tonie_freshness_check_response__pack(freshResp, (uint8_t *)ctx->buffer);
 
+            TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp->n_tonie_marked);
             settings_set_u64_array_id("internal.freshnessCache", freshResp->tonie_marked, freshResp->n_tonie_marked, ctx->client_ctx->settings->internal.overlayNumber);
 
             char line[128];
-            osSnprintf(line, 128, "Content-Length: %zu\r\n\r\n", ctx->bufferLen);
+            osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", ctx->bufferLen);
             httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
 
             httpSend(ctx->connection, ctx->buffer, ctx->bufferLen, HTTP_FLAG_DELAY);
@@ -408,11 +427,21 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         }
         else
         {
-            httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+            send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+            if (send_err)
+            {
+                TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
+            }
+            total_sent += length;
         }
         break;
     default:
-        httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+        if (send_err)
+        {
+            TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
+        }
+        total_sent += length;
         break;
     }
     ctx->status = PROX_STATUS_BODY;
@@ -638,6 +667,10 @@ tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *setting
 }
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings)
 {
+    return getTonieInfoV2(contentPath, lock, false, settings);
+}
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings)
+{
     tonie_info_t *tonieInfo;
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
 
@@ -697,7 +730,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                         {
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
-                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation);
+                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation || force_taf_validation);
                                 readTrackPositions(tonieInfo, file);
                                 if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
@@ -715,13 +748,13 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
                             }
                             else
                             {
-                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%zu != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
+                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
                             }
                         }
                     }
                     else
                     {
-                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%zu != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
+                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
                     }
                 }
                 else
@@ -736,7 +769,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
             }
             else
             {
-                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%zu\r\n", tonieInfo->contentPath, read_length);
+                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", tonieInfo->contentPath, read_length);
             }
             fsCloseFile(file);
         }
@@ -911,6 +944,15 @@ char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPa
 error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir)
 {
     error_t error = NO_ERROR;
+
+    size_t lenContent = osStrlen(settings->internal.contentdirfull);
+    if (osStrncmp(tonieInfo->contentPath, settings->internal.contentdirfull, lenContent) != 0 ||
+        (tonieInfo->contentPath[lenContent] != PATH_SEPARATOR && tonieInfo->contentPath[lenContent] != '\0'))
+    {
+        TRACE_WARNING(">> File %s is not in content directory %s, not moving to library\r\n", tonieInfo->contentPath, settings->internal.contentdirfull);
+        return ERROR_INVALID_FILE;
+    }
+
     if (tonieInfo->valid)
     {
         char *libraryPath = NULL;

@@ -479,7 +479,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
     size_t size;
     if (BODY_BUFFER_SIZE <= connection->request.byteCount)
     {
-        TRACE_ERROR("Body size for setting '%s' %zu bigger than buffer size %i bytes\r\n", item, connection->request.byteCount, BODY_BUFFER_SIZE);
+        TRACE_ERROR("Body size for setting '%s' %" PRIuSIZE " bigger than buffer size %i bytes\r\n", item, connection->request.byteCount, BODY_BUFFER_SIZE);
     }
     else
     {
@@ -1457,7 +1457,8 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         char *oldrtnl = "rtnl.bxcl.de";
         char *oldapi = "prod.de.tbs.toys";
 
-        if (osStrlen(old_patch_host) > 0) {
+        if (osStrlen(old_patch_host) > 0)
+        {
             oldrtnl = old_patch_host;
             oldapi = old_patch_host;
         }
@@ -1938,7 +1939,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         return ERROR_FAILURE;
     }
 
-    char_t post_data[BODY_BUFFER_SIZE];
+    char_t post_data[POST_BUFFER_SIZE];
     error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
     if (error != NO_ERROR)
     {
@@ -2116,6 +2117,109 @@ error_t handleApiPcmUpload(HttpConnection *connection, const char_t *uri, const 
             TRACE_INFO("[TAF] Ended encoding\r\n");
             toniefile_close(ctx.taf);
         }
+        osFreeMem(filename);
+    }
+
+    osFreeMem(pathAbsolute);
+
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+    connection->response.statusCode = statusCode;
+
+    return httpWriteResponseString(connection, message, false);
+}
+
+error_t handleApiTafUpload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    char name[256];
+    char path[256 + 1];
+
+    osStrcpy(name, "unnamed.taf");
+    osStrcpy(path, "");
+
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    if (queryGet(queryString, "name", name, sizeof(name)))
+    {
+        TRACE_INFO("got name '%s'\r\n", name);
+    }
+    if (!queryGet(queryString, "path", path, sizeof(path)))
+    {
+        osStrcpy(path, "/");
+    }
+
+    sanitizePath(name, false);
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    sanitizePath(path, true);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    sanitizePath(pathAbsolute, true);
+
+    uint_t statusCode = 500;
+    char message[512];
+    osSnprintf(message, sizeof(message), "OK");
+
+    if (!fsDirExists(pathAbsolute))
+    {
+        statusCode = 500;
+        osSnprintf(message, sizeof(message), "invalid path: '%.200s'", path);
+        TRACE_ERROR("invalid path: '%s' -> '%s'\r\n", path, pathAbsolute);
+    }
+    else
+    {
+        char *filename = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, name);
+
+        if (!filename)
+        {
+            TRACE_ERROR("Failed to build filename\r\n");
+            osFreeMem(pathAbsolute);
+            return ERROR_FAILURE;
+        }
+        sanitizePath(filename, false);
+
+        if (fsFileExists(filename))
+        {
+            TRACE_INFO("Filename '%s' already exists, overwriting\r\n", filename);
+        }
+
+        multipart_cbr_t cbr;
+        file_save_ctx ctx;
+
+        osMemset(&cbr, 0x00, sizeof(cbr));
+        osMemset(&ctx, 0x00, sizeof(ctx));
+
+        cbr.multipart_start = &file_save_start;
+        cbr.multipart_add = &file_save_add;
+        cbr.multipart_end = &file_save_end;
+
+        ctx.root_path = pathAbsolute;
+        ctx.overlay = overlay;
+
+        switch (multipart_handle(connection, &cbr, &ctx))
+        {
+        case NO_ERROR:
+            if (!isValidTaf(filename, true))
+            {
+                TRACE_ERROR("Uploaded TAF file '%s' failed validation\r\n", filename);
+                statusCode = 500;
+                osSnprintf(message, sizeof(message), "TAF validation failed");
+                fsDeleteFile(filename);
+                break;
+            }
+            statusCode = 200;
+            osSnprintf(message, sizeof(message), "OK");
+            break;
+        default:
+            statusCode = 500;
+            osSnprintf(message, sizeof(message), "Upload failed");
+            break;
+        }
+
         osFreeMem(filename);
     }
 
@@ -2386,7 +2490,7 @@ error_t handleApiTonieboxJson(HttpConnection *connection, const char_t *uri, con
 
     size_t fileSize = 0;
     fsGetFileSize(path, (uint32_t *)(&fileSize));
-    TRACE_INFO("Trying to read %s with size %zu\r\n", path, fileSize);
+    TRACE_INFO("Trying to read %s with size %" PRIuSIZE "\r\n", path, fileSize);
 
     FsFile *fsFile = fsOpenFile(path, FS_FILE_MODE_READ);
     if (fsFile == NULL)
@@ -3152,11 +3256,11 @@ error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const
     char stats_json[512];
     snprintf(stats_json, sizeof(stats_json),
              "{"
-             "\"total_entries\": %zu,"
-             "\"exists_entries\": %zu,"
-             "\"total_files\": %zu,"
-             "\"total_size\": %zu,"
-             "\"memory_used\": %zu"
+             "\"total_entries\": %" PRIuSIZE ","
+             "\"exists_entries\": %" PRIuSIZE ","
+             "\"total_files\": %" PRIuSIZE ","
+             "\"total_size\": %" PRIuSIZE ","
+             "\"memory_used\": %" PRIuSIZE ""
              "}",
              stats.total_entries,
              stats.exists_entries,
@@ -3166,4 +3270,38 @@ error_t handleApiCacheStats(HttpConnection *connection, const char_t *uri, const
 
     httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(stats_json));
     return httpWriteResponseString(connection, stats_json, false);
+}
+
+error_t handleApiPluginsGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    cJSON *pluginNames = cJSON_CreateArray();
+    cJSON_AddItemToObject(cJSON_CreateObject(), "plugins", pluginNames);
+    FsDir *dir = fsOpenDir(client_ctx->settings->internal.pluginsdirfull);
+    if (dir)
+    {
+        while (true)
+        {
+            FsDirEntry entry;
+            if (fsReadDir(dir, &entry) != NO_ERROR)
+            {
+                fsCloseDir(dir);
+                break;
+            }
+            if (osStrcmp(entry.name, ".") == 0 || osStrcmp(entry.name, "..") == 0)
+            {
+                continue;
+            }
+            if ((entry.attributes & FS_FILE_ATTR_DIRECTORY) == FS_FILE_ATTR_DIRECTORY)
+            {
+                cJSON *pluginName = cJSON_CreateString(entry.name);
+                cJSON_AddItemToArray(pluginNames, pluginName);
+            }
+        }
+
+        char *pluginJson = cJSON_Print(pluginNames);
+        httpPrepareHeader(connection, "application/json; charset=utf-8", osStrlen(pluginJson));
+        cJSON_Delete(pluginNames);
+        return httpWriteResponseString(connection, pluginJson, true);
+    }
+    return ERROR_FAILURE;
 }

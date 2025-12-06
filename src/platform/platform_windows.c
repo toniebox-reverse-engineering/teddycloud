@@ -114,7 +114,7 @@ error_t socketBind(Socket *socket, const IpAddr *localIpAddr,
     sa->sin_addr.s_addr = localIpAddr->ipv4Addr;
 
     int enable = 1;
-    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_REUSEADDR, (char *)&enable, sizeof(int)) < 0)
     {
         perror("setsockopt(SO_REUSEADDR) failed");
         return ERROR_FAILURE;
@@ -186,13 +186,13 @@ error_t socketSetTimeout(Socket *socket, systime_t timeout)
 {
     int timeout_ms = (int)timeout;
 
-    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_RCVTIMEO, &timeout_ms, sizeof(int)) < 0)
+    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout_ms, sizeof(int)) < 0)
     {
         int errCode = WSAGetLastError();
         TRACE_ERROR("setsockopt() for SO_RCVTIMEO failed with errorcode %d\r\n", errCode);
     }
 
-    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_SNDTIMEO, &timeout_ms, sizeof(int)) < 0)
+    if (setsockopt(socket->descriptor, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout_ms, sizeof(int)) < 0)
     {
         int errCode = WSAGetLastError();
         TRACE_ERROR("setsockopt() for SO_SNDTIMEO failed with errorcode %d\r\n", errCode);
@@ -331,7 +331,7 @@ error_t socketReceive(Socket *socket, void *data_in,
             const char *ptr = NULL;
 
             /* First, check for the null terminator (0x00) in the buffer */
-            const char *null_pos = memchr(buff->buffer, 0x00, max_size);
+            const char *null_pos = memchr(buff->buffer, 0x00, buff->buffer_used);
             if (null_pos)
             {
                 /* If null terminator is found, use strchr up to the null */
@@ -339,9 +339,9 @@ error_t socketReceive(Socket *socket, void *data_in,
             }
             else
             {
-                TRACE_WARNING("buffer does not contain null terminator\r\n");
+                //TRACE_WARNING("buffer does not contain null terminator\r\n");
                 /* If no null terminator, safely use memchr over the whole buffer */
-                // ptr = memchr(buff->buffer, flags & 0xFF, buff->buffer_used);
+                ptr = memchr(buff->buffer, flags & 0xFF, buff->buffer_used);
             }
 
             if (ptr)

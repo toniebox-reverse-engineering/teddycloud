@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 // Switch to the appropriate trace level
@@ -65,6 +65,7 @@ error_t mqttClientWebSocketTlsInitCallback(WebSocket *webSocket,
 }
 
 #endif
+
 
 /**
  * @brief Open network connection
@@ -226,6 +227,7 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
    return error;
 }
 
+
 /**
  * @brief Establish network connection
  * @param[in] context Pointer to the MQTT client context
@@ -325,6 +327,7 @@ error_t mqttClientEstablishConnection(MqttClientContext *context,
    return error;
 }
 
+
 /**
  * @brief Shutdown network connection
  * @param[in] context Pointer to the MQTT client context
@@ -397,6 +400,7 @@ error_t mqttClientShutdownConnection(MqttClientContext *context)
    return error;
 }
 
+
 /**
  * @brief Close network connection
  * @param[in] context Pointer to the MQTT client context
@@ -447,6 +451,7 @@ void mqttClientCloseConnection(MqttClientContext *context)
    }
 #endif
 }
+
 
 /**
  * @brief Send data using the relevant transport protocol
@@ -518,6 +523,7 @@ error_t mqttClientSendData(MqttClientContext *context,
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Receive data using the relevant transport protocol
@@ -603,6 +609,7 @@ error_t mqttClientReceiveData(MqttClientContext *context,
    // Return status code
    return error;
 }
+
 
 /**
  * @brief Wait for incoming data

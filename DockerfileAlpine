@@ -1,6 +1,9 @@
 # Use Alpine Linux as base image
 FROM alpine:latest AS buildenv
 
+# Default to not using ASAN
+ARG NO_SANITIZERS=1
+
 # Install necessary dependencies
 RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl
 
@@ -11,7 +14,7 @@ WORKDIR /buildenv
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/contrib/config/tonies.json || true
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /buildenv/contrib/config/tonieboxes.json || true
 # No libsanitizie support in alpine
-RUN make zip NO_SANITIZERS=1
+RUN make zip NO_SANITIZERS=${NO_SANITIZERS}
 #RUN make preinstall
 
 # Use Alpine Linux as base image for the final image
@@ -31,6 +34,8 @@ RUN mkdir -p /teddycloud/certs \
     && mkdir -p /teddycloud/data/library \
     && mkdir -p /teddycloud/data/firmware  \
     && mkdir -p /teddycloud/data/www \
+    && mkdir -p /teddycloud/data/www/custom_img \
+    && mkdir -p /teddycloud/data/www/plugins \
     && mkdir -p /teddycloud/data/cache \
     && mkdir -p /tmp
 
@@ -50,6 +55,7 @@ VOLUME \
     "/teddycloud/data/firmware" \
     "/teddycloud/data/cache" \
     "/teddycloud/data/www/custom_img" \
+    "/teddycloud/data/www/plugins" \
     "/teddycloud/certs" \
     "/teddycloud/config"
 

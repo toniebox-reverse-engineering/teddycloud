@@ -110,7 +110,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
            do some safety checks */
         if (protoLength == 0 || buffer[pos] != 0 || buffer[pos + 1] != 0)
         {
-            TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%zu\r\n", protoLength, pos);
+            TRACE_WARNING("Invalid protoLen=%" PRIu32 ", pos=%" PRIuSIZE "\r\n", protoLength, pos);
             return ERROR_FAILURE;
         }
 
@@ -503,7 +503,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
         TRACE_DEBUG("  3=%" PRIu32 "\r\n", rpc->log2->field3);
         TRACE_DEBUG("  group=%" PRIu32 "\r\n", rpc->log2->function_group);
         TRACE_DEBUG("  function=%" PRIu32 "\r\n", rpc->log2->function);
-        TRACE_DEBUG("  6=len(data)=%zu, data=", rpc->log2->field6.len);
+        TRACE_DEBUG("  6=len(data)=%" PRIuSIZE ", data=", rpc->log2->field6.len);
         for (size_t i = 0; i < rpc->log2->field6.len; i++)
         {
             TRACE_DEBUG_RESUME("%02X", rpc->log2->field6.data[i]);
@@ -513,7 +513,7 @@ void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc)
             TRACE_DEBUG("  8=%" PRIu32 "\r\n", rpc->log2->field8);
         if (rpc->log2->has_field9)
         {
-            TRACE_DEBUG("  9=len(data)=%zu, data=", rpc->log2->field9.len);
+            TRACE_DEBUG("  9=len(data)=%" PRIuSIZE ", data=", rpc->log2->field9.len);
             for (size_t i = 0; i < rpc->log2->field9.len; i++)
             {
                 TRACE_DEBUG_RESUME("%02X", rpc->log2->field9.data[i]);
@@ -546,7 +546,7 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
 
         if (rpc->log2)
         {
-            osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%zu;",
+            osSprintf(buffer, "x;%" PRIu64 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIu32 ";%" PRIuSIZE ";",
                       rpc->log2->uptime,
                       rpc->log2->sequence,
                       rpc->log2->field3,
@@ -568,7 +568,7 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
             escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
             fsWriteFile(file, buffer, osStrlen(buffer));
 
-            osSprintf(buffer, "\";%" PRIu32 ";%zu;",
+            osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
                       rpc->log2->field8, // TODO hasfield
                       rpc->log2->field9.len);
             fsWriteFile(file, buffer, osStrlen(buffer));

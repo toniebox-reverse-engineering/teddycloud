@@ -71,7 +71,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_UNSIGNED("core.server.https_api_port", &settings->core.https_api_port, 443, 1, 65535, "HTTPS API port", "HTTPS port for the Toniebox API", LEVEL_EXPERT)
     OPTION_STRING("core.server.bind_ip", &settings->core.bind_ip, "", "Bind IP", "ip for binding the http ports to", LEVEL_EXPERT)
 
-    OPTION_TREE_DESC("core.server", "HTTP server", LEVEL_BASIC)
+    OPTION_TREE_DESC("core", "HTTP server", LEVEL_BASIC)
     OPTION_STRING("core.host_url", &settings->core.host_url, "http://localhost", "Host URL", "URL to teddyCloud server", LEVEL_BASIC)
     OPTION_STRING("core.certdir", &settings->core.certdir, "certs/client", "Cert dir", "Directory to upload genuine client certificates", LEVEL_EXPERT)
     OPTION_INTERNAL_STRING("core.configdir", &settings->core.configdir, CONFIG_BASE_PATH, "Configuration dir", LEVEL_EXPERT)
@@ -79,9 +79,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.librarydir", &settings->core.librarydir, "library", "Library dir", "Directory of the audio library", LEVEL_DETAIL)
     OPTION_STRING("core.datadir", &settings->core.datadir, "data", "Data dir", "Base directory for 'contentdir', 'firmwaredir', 'cachedir' and 'wwwdir' when they are relative", LEVEL_EXPERT)
     OPTION_INTERNAL_STRING("core.wwwdir", &settings->core.wwwdir, "www", "WWW dir", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("core.pluginsdir", &settings->core.pluginsdir, "plugins", "plugins dir", LEVEL_NONE)
     OPTION_STRING("core.firmwaredir", &settings->core.firmwaredir, "firmware", "Firmware dir", "Directory to upload original firmware", LEVEL_DETAIL)
     OPTION_STRING("core.cachedir", &settings->core.cachedir, "cache", "Cache dir", "Directory where to cache files downloaded from internet", LEVEL_DETAIL)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
+    OPTION_UNSIGNED("core.server.http_client_timeout", &settings->core.http_client_timeout, 2000, 250, 10000, "Connection timeout", "HTTP client connection timeout (default: 500ms)", LEVEL_DETAIL)
     OPTION_BOOL("core.new_webgui_as_default", &settings->core.new_webgui_as_default, TRUE, "New WebGUI", "Use new WebGUI as default", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
@@ -157,6 +159,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("internal.librarydirfull", &settings->internal.librarydirfull, "", "Directory of the audio library (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.datadirfull", &settings->internal.datadirfull, "", "Directory where data is placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.wwwdirfull", &settings->internal.wwwdirfull, "", "Directory where web content is placed (absolute)", LEVEL_NONE)
+    OPTION_INTERNAL_STRING("internal.pluginsdirfull", &settings->internal.pluginsdirfull, "", "Directory where plugins are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.firmwaredirfull", &settings->internal.firmwaredirfull, "", "Directory where firmwares are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.cachedirfull", &settings->internal.cachedirfull, "", "Directory where cached files are placed (absolute)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("internal.overlayUniqueId", &settings->internal.overlayUniqueId, "", "Unique Id of the overlay", LEVEL_NONE)
@@ -235,7 +238,8 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.localOta", &settings->cloud.localOta, FALSE, "Local OTA delivery", "Send local OTA files in firmware dir", LEVEL_EXPERT)
     OPTION_BOOL("cloud.cacheContent", &settings->cloud.cacheContent, TRUE, "Cache content", "Cache cloud content on local server", LEVEL_DETAIL)
     OPTION_BOOL("cloud.cacheToLibrary", &settings->cloud.cacheToLibrary, TRUE, "Cache to library", "Cache cloud content to library", LEVEL_DETAIL)
-    OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags", "Automatically mark custom tags by password", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.markCustomTagByPass", &settings->cloud.markCustomTagByPass, TRUE, "Autodetect custom tags (password)", "Automatically mark custom tags by password", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.markCustomTagByUid", &settings->cloud.markCustomTagByUid, TRUE, "Autodetect custom tags (uid)", "Automatically mark custom tags by uid", LEVEL_EXPERT)
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update, only if \"Update content on lower audio id\" is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
@@ -247,11 +251,14 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.stream_max_size", &settings->encode.stream_max_size, 1024 * 1024 * 40 * 6 - 1, 1024 * 1024 - 1, INT32_MAX, "Max stream filesize", "The box may create an empty file this length for each stream. So if you have 10 streaming tonies you use, the box may block 10*240MB. The only downside is, that the box will stop after the file is full and you'll need to replace the tag onto the box. Must not be a multiply of 4096, Default: 251.658.239, so 240MB, which means around 6h.", LEVEL_EXPERT)
+    OPTION_BOOL("encode.use_frontend", &settings->encode.use_frontend, FALSE, "Browser encoding", "Use browser-side encoding instead of server-side (requires modern browser with WebAssembly support)", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("frontend", "Frontend", LEVEL_BASIC)
     OPTION_BOOL("frontend.split_model_content", &settings->frontend.split_model_content, TRUE, "Split content / model", "If enabled, the content of the TAF will be shown beside the model of the figurine", LEVEL_DETAIL)
     OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
     OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
+    OPTION_BOOL("frontend.check_cc3200_cfw", &settings->frontend.check_cc3200_cfw, FALSE, "Check for CFW on CC3200 box", "Enable detection of CFW on CC3200 boxes to link MAC addresses to IPs.", LEVEL_DETAIL)
+    OPTION_BOOL("frontend.use_revvox_flasher", &settings->frontend.use_revvox_flasher, FALSE, "Use Revvox Flasher for ESP32 flashing in WebUI", "Instead of esptools.js the homebrew revvox_flasher.js will be used for flashing ESP32 boxes", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
@@ -515,6 +522,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     osFreeMem(settings->internal.librarydirfull);
     osFreeMem(settings->internal.datadirfull);
     osFreeMem(settings->internal.wwwdirfull);
+    osFreeMem(settings->internal.pluginsdirfull);
     osFreeMem(settings->internal.firmwaredirfull);
     osFreeMem(settings->internal.cachedirfull);
 
@@ -526,6 +534,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings->internal.librarydirfull = osAllocMem(256);
     settings->internal.datadirfull = osAllocMem(256);
     settings->internal.wwwdirfull = osAllocMem(256);
+    settings->internal.pluginsdirfull = osAllocMem(256);
     settings->internal.firmwaredirfull = osAllocMem(256);
     settings->internal.cachedirfull = osAllocMem(256);
 
@@ -537,6 +546,7 @@ static void settings_generate_internal_dirs(settings_t *settings)
     settings_resolve_dir(&settings->internal.configdirfull, settings->core.configdir, settings->internal.basedirfull);
 
     settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
+    settings_resolve_dir(&settings->internal.pluginsdirfull, settings->core.pluginsdir, settings->internal.wwwdirfull);
     settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
     settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
 
@@ -673,7 +683,7 @@ static void settings_init_opt(setting_item_t *opt)
         *((char **)opt->ptr) = strdup(opt->init.string_value);
         break;
     case TYPE_U64_ARRAY:
-        TRACE_DEBUG("  %s = size(%zu)\r\n", opt->option_name, opt->size);
+        TRACE_DEBUG("  %s = size(%" PRIuSIZE ")\r\n", opt->option_name, opt->size);
         if (opt->size > 0)
         {
             *((uint64_t **)opt->ptr) = osAllocMem(sizeof(uint64_t *) * opt->size);
@@ -1060,6 +1070,13 @@ static error_t settings_load_ovl(bool overlay)
                 {
                     Settings_Overlay[i].toniebox.api_access = true;
                     settings_get_by_name_id("toniebox.api_access", i)->overlayed = true;
+                }
+                if (Settings_Overlay[i].configVersion < 14)
+                {
+                    if (Settings_Overlay[i].core.http_client_timeout < 2000)
+                    {
+                        Settings_Overlay[i].core.http_client_timeout = 2000;
+                    }
                 }
             }
             mutex_unlock(MUTEX_SETTINGS);

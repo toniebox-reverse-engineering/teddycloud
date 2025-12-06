@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2023 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.3.0
+ * @version 2.4.4
  **/
 
 #ifndef _HTTP_SERVER_H
@@ -131,6 +131,13 @@
 //Priority at which the HTTP server should run
 #ifndef HTTP_SERVER_PRIORITY
    #define HTTP_SERVER_PRIORITY OS_TASK_PRIORITY_NORMAL
+#endif
+
+//Maximum number of simultaneous client connections
+#ifndef HTTP_SERVER_MAX_CONNECTIONS
+   #define HTTP_SERVER_MAX_CONNECTIONS 10
+#elif (HTTP_SERVER_MAX_CONNECTIONS < 1)
+   #error HTTP_SERVER_MAX_CONNECTIONS parameter is not valid
 #endif
 
 //HTTP connection timeout
@@ -559,25 +566,27 @@ typedef struct
 
 typedef struct
 {
-   NetInterface *interface;                                     ///<Underlying network interface
-   uint16_t port;                                               ///<HTTP server port number
-   IpAddr ipAddr;                                               ///<HTTP server IP address
-   uint_t backlog;                                              ///<Maximum length of the pending connection queue
-   uint_t maxConnections;                                       ///<Maximum number of client connections
-   HttpConnection *connections;                                 ///<Client connections
-   char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];      ///<Web root directory
-   char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1]; ///<Default home page
+   OsTaskParameters listenerTask;                                ///<Listener task parameters
+   OsTaskParameters connectionTask[HTTP_SERVER_MAX_CONNECTIONS]; ///<Connection task parameters
+   NetInterface *interface;                                      ///<Underlying network interface
+   uint16_t port;                                                ///<HTTP server port number
+   IpAddr ipAddr;                                                ///<HTTP server IP address
+   uint_t backlog;                                               ///<Maximum length of the pending connection queue
+   uint_t maxConnections;                                        ///<Maximum number of client connections
+   HttpConnection *connections;                                  ///<Client connections
+   char_t rootDirectory[HTTP_SERVER_ROOT_DIR_MAX_LEN + 1];       ///<Web root directory
+   char_t defaultDocument[HTTP_SERVER_DEFAULT_DOC_MAX_LEN + 1];  ///<Default home page
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
-   bool_t useTls;                                               ///<Deprecated flag
-   TlsInitCallback tlsInitCallback;                             ///<TLS initialization callback function
+   bool_t useTls;                                                ///<Deprecated flag
+   TlsInitCallback tlsInitCallback;                              ///<TLS initialization callback function
 #endif
 #if (HTTP_SERVER_BASIC_AUTH_SUPPORT == ENABLED || HTTP_SERVER_DIGEST_AUTH_SUPPORT == ENABLED)
-   HttpRandCallback randCallback;                               ///<Random data generation callback function
-   HttpAuthCallback authCallback;                               ///<HTTP authentication callback function
+   HttpRandCallback randCallback;                                ///<Random data generation callback function
+   HttpAuthCallback authCallback;                                ///<HTTP authentication callback function
 #endif
-   HttpCgiCallback cgiCallback;                                 ///<CGI callback function
-   HttpRequestCallback requestCallback;                         ///<HTTP request callback function
-   HttpUriNotFoundCallback uriNotFoundCallback;                 ///<URI not found callback function
+   HttpCgiCallback cgiCallback;                                  ///<CGI callback function
+   HttpRequestCallback requestCallback;                          ///<HTTP request callback function
+   HttpUriNotFoundCallback uriNotFoundCallback;                  ///<URI not found callback function
    char_t *allowOrigin;
    bool_t isHttps;
 } HttpServerSettings;
@@ -603,6 +612,7 @@ struct _HttpServerContext
 {
    HttpServerSettings settings;                                  ///<User settings
    OsSemaphore semaphore;                                        ///<Semaphore limiting the number of connections
+   OsTaskParameters taskParams;                                  ///<Task parameters
    OsTaskId taskId;                                              ///<Task identifier
 #if (OS_STATIC_TASK_SUPPORT == ENABLED)
    OsTaskTcb taskTcb;                                            ///<Task control block
@@ -634,11 +644,8 @@ struct _HttpConnection
    HttpServerContext *serverContext;                   ///<Reference to the HTTP server context
    OsEvent startEvent;
    bool_t running;
+   OsTaskParameters taskParams;                        ///<Task parameters
    OsTaskId taskId;                                    ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                  ///<Task control block
-   OsStackType taskStack[HTTP_SERVER_STACK_SIZE];      ///<Task stack
-#endif
    Socket *socket;                                     ///<Socket
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED)
    TlsContext *tlsContext;                             ///<TLS context
