@@ -26,7 +26,7 @@ jobs:
       shell: cmd
     - name: Check windows executable existence
       id: check_release
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@v3
       with:
         files: "bin/teddycloud.exe"  
         allow_failure: true 
@@ -82,7 +82,7 @@ jobs:
       run: make zip
     - name: Check amd64 release zip existence
       id: check_release
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@v3
       with:
         files: "./install/zip/release.zip"  
         allow_failure: true 
