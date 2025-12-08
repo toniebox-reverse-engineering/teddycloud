@@ -128,6 +128,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Platform name strip for filename
         id: platform_strip
@@ -169,6 +170,7 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Upload digest
         if: ${{ steps.docker-test.outcome == 'success' }}

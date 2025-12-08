@@ -19,6 +19,8 @@ RUN make zip NO_SANITIZERS=${NO_SANITIZERS}
 
 # Use Alpine Linux as base image for the final image
 FROM alpine:latest
+ARG TEDDYCLOUD_VERSION=unknown
+LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
 EXPOSE 80 443 8443
 
 # Install necessary runtime dependencies
