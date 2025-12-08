@@ -63,6 +63,7 @@ typedef struct
 const reverse_target_t reverse_targets[] = {
     {"macvendor", "api.macvendors.com", "/", 443, true, true, true, 24, "text/plain"},
     {"teddycloud_release", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/releases/latest", 443, true, false, true, 24, "application/json"},
+    {"teddycloud_develop", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/commits/develop", 443, true, false, true, 1, "application/json"},
     {NULL, NULL, NULL, 0, false, false, false, 0, NULL}};
 
 void cbrReverseBodyCache(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
