@@ -178,15 +178,7 @@ req_cbr_t getCloudCbr(HttpConnection *connection, const char_t *uri, const char_
 }
 void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[128];
-
-    // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
-    const char *statusText = httpStatusCodeText(cloud_ctx->statusCode);
-
-    osSprintf(line, "HTTP/%d.%d %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-    ctx->status = PROX_STATUS_CONN;
+    cbrGenericResponsePassthrough(src_ctx, cloud_ctx);
 }
 
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
@@ -436,12 +428,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         }
         break;
     default:
-        send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-        if (send_err)
-        {
-            TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
-        }
-        total_sent += length;
+        cbrGenericBodyPassthrough(src_ctx, cloud_ctx, payload, length, error);
         break;
     }
     ctx->status = PROX_STATUS_BODY;
@@ -449,10 +436,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
 void cbrCloudServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 {
-    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    TRACE_DEBUG(">> cbrCloudServerDiscoPassthrough\r\n");
-    httpFlushStream(ctx->connection);
-    ctx->status = PROX_STATUS_DONE;
+    cbrGenericServerDiscoPassthrough(src_ctx, cloud_ctx);
 }
 
 char *strupr(char input[])
@@ -1029,4 +1013,90 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
         error = ERROR_INVALID_FILE;
     }
     return error;
+}
+req_cbr_t getGenericCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+{
+    fillBaseCtx(connection, uri, queryString, api, ctx, client_ctx);
+
+    req_cbr_t cbr = {
+        .ctx = ctx,
+        .response = &cbrGenericResponsePassthrough,
+        .header = &cbrGenericHeaderPassthrough,
+        .body = &cbrGenericBodyPassthrough,
+        .disconnect = &cbrGenericServerDiscoPassthrough};
+
+    return cbr;
+}
+
+void cbrGenericResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    char line[128];
+
+    // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
+    const char *statusText = httpStatusCodeText(cloud_ctx->statusCode);
+
+    osSprintf(line, "HTTP/%d.%d %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    ctx->status = PROX_STATUS_CONN;
+}
+
+void cbrGenericHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    char line[2048];
+
+    if (ctx->status != PROX_STATUS_HEAD) // Only once
+    {
+        if (ctx->client_ctx->settings->internal.overlayNumber == 0)
+        {
+            char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+            if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+            {
+                osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+                httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+                line[0] = '\0';
+            }
+        }
+    }
+
+    if (header)
+    {
+        if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
+        {
+            TRACE_DEBUG(">> cbrGenericHeaderPassthrough: %s = %s\r\n", header, value);
+            osSprintf(line, "%s: %s\r\n", header, value);
+        }
+    }
+    else
+    {
+        TRACE_DEBUG(">> cbrGenericHeaderPassthrough: NULL\r\n");
+        osStrcpy(line, "\r\n");
+    }
+
+    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    ctx->status = PROX_STATUS_HEAD;
+}
+
+void cbrGenericBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    static size_t total_sent = 0;
+    error_t send_err;
+
+    send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
+    if (send_err)
+    {
+        TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
+    }
+    total_sent += length;
+    ctx->status = PROX_STATUS_BODY;
+}
+
+void cbrGenericServerDiscoPassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    TRACE_DEBUG(">> cbrGenericServerDiscoPassthrough\r\n");
+    httpFlushStream(ctx->connection);
+    ctx->status = PROX_STATUS_DONE;
 }
