@@ -1052,6 +1052,13 @@
         "warning": "¡Atención! Nivel de configuración",
         "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'."
     },
+    "teddycloud": {
+        "newVersionAvailable": "¡Hay una nueva versión disponible!",
+        "newVersionDetailsAvailable": "No estás usando la versión más reciente de TeddyCloud. Actualiza para obtener todos los beneficios de la última versión.",
+        "newVersionDetailsAvailableDevelop": "No estás usando la versión más reciente de la versión develop de TeddyCloud. Actualiza para obtener todos los beneficios de la última versión develop.",
+        "newVersionShort": "Actualización disponible",
+        "openNewVersionInGithub": "Abrir la última versión en GitHub"
+    },
     "tonieboxes": {
         "accessApiDisabled": "Acceso a las API de TeddyCloud deshabilitado.",
         "accessApiEnabled": "Acceso a las API de TeddyCloud habilitado.",

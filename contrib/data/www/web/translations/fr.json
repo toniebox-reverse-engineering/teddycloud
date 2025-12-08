@@ -1052,6 +1052,13 @@
         "warning": "Attention ! Niveau des paramètres",
         "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
     },
+    "teddycloud": {
+        "newVersionAvailable": "Une nouvelle version est disponible !",
+        "newVersionDetailsAvailable": "Tu n'utilises pas la dernière version de TeddyCloud. Mets à jour pour profiter de tous les avantages de la dernière version !",
+        "newVersionDetailsAvailableDevelop": "Tu n'utilises pas la dernière version develop de TeddyCloud. Mets à jour pour profiter de tous les avantages de la dernière version develop !",
+        "newVersionShort": "Mise à jour disponible",
+        "openNewVersionInGithub": "Ouvrir la dernière version sur GitHub"
+    },
     "tonieboxes": {
         "accessApiDisabled": "Accès aux API de TeddyCloud désactivé.",
         "accessApiEnabled": "Accès aux API de TeddyCloud activé.",

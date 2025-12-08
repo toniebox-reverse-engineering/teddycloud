@@ -1052,6 +1052,13 @@
         "warning": "Attention! Settings level",
         "warningHint": "If you are missing settings, increase the 'Settings level'."
     },
+    "teddycloud": {
+        "newVersionAvailable": "There is a new version available!",
+        "newVersionDetailsAvailable": "You are not using the latest TeddyCloud version. Please update to get all benefits of the latest release!",
+        "newVersionDetailsAvailableDevelop": "You are not using the latest TeddyCloud develop version. Please update to get all benefits of the latest develop version!",
+        "newVersionShort": "Update available",
+        "openNewVersionInGithub": "Open the latest version on GitHub"
+    },
     "tonieboxes": {
         "accessApiDisabled": "Access to TeddyCloud APIs disabled.",
         "accessApiEnabled": "Access to TeddyCloud APIs enabled.",
