@@ -104,7 +104,7 @@ request_type_t request_paths[] = {
     /*binary handler (rtnl)*/
     {REQ_ANY, "*binary", SERTY_BOTH, &handleRtnl},
     /* reverse proxy handler */
-    {REQ_ANY, "/reverse", SERTY_WEB, &handleReverse},
+    {REQ_ANY, "/reverse", SERTY_WEB, &handleReverseCloudGet},
     /* cached files */
     {REQ_GET, "/cache/", SERTY_WEB, &handleCacheDownload},
     /* web interface directory */
