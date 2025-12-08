@@ -68,7 +68,9 @@ typedef struct
 {
     bool enabled;
     char *remote_hostname;
+    char *remote_hostname_tb2;
     uint32_t remote_port;
+    uint32_t remote_port_tb2;
     bool enableV1Claim;
     bool enableV1CloudReset;
     bool enableV1FreshnessCheck;
