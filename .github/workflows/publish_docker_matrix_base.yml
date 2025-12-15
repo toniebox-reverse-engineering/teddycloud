@@ -174,14 +174,14 @@ jobs:
 
       - name: Upload digest
         if: ${{ steps.docker-test.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
         if: ${{ steps.docker-test.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-${{ steps.platform_strip.outputs.platform }}-${{ inputs.system }}
           path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
