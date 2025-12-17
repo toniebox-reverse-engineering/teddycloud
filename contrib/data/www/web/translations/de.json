@@ -1617,7 +1617,8 @@
                 "hostnameTooLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
                 "importanceBackup": "Bevor du Änderungen an deiner Toniebox vornimmst, lade eine Kopie der Original-Firmware herunter und speichere sie sicher. So kannst du deine Toniebox im Notfall jederzeit auf den Werkszustand zurücksetzen. Speichere sie an mehreren Orten, zum Beispiel auf deinem Hauptrechner oder Laptop, einem externen Laufwerk oder USB-Stick und/oder einem vertrauenswürdigen Cloud-Dienst (z. B. Google Drive, Dropbox, OneDrive). Speichere deine einzige Kopie niemals nur auf dem TeddyCloud-Server.",
                 "infoTable": "ESP32 info",
-                "invalidFlashData": "Der ausgelesene Flash besteht nur aus 0x00 oder 0xFF! Bitte überprüfe die Verbindung und versuche es erneut!",
+                "invalidFlashData": "Der ausgelesene / geladene Flash besteht nur aus 0x00 oder 0xFF! Bitte überprüfe die Verbindung oder die Datei und versuche es erneut!",
+                "invalidFlashDataCertificatesMissing": "Der ausgelesene / geladene Flash scheint keine Zertifikate zu enthalten! Bitte überprüfe die Verbindung oder die Datei und versuche es erneut! Fehler:",
                 "invalidSerialPort": "Ungültiger serieller Port",
                 "loadFile": "Datei laden",
                 "manually": "Manuell",
@@ -1730,7 +1731,9 @@
             "Label": "Zertifikate",
             "uploadPath": "Upload Pfad (certDir):",
             "uploadTonieboxCertificates": "Zertifikate für Toniebox{{name}} hochladen"
-        }
+        },
+        "warningUseAtYourOwnRisk": "Warnung: Nutzung auf eigene Gefahr!",
+        "warningUseAtYourOwnRiskText": "Das Flashen deiner Toniebox mit einer modifizierten Firmware führt zum Erlöschen der Garantie und kann deine Box unbrauchbar machen. Bitte folge den Anweisungen sorgfältig und stelle sicher, dass du die damit verbundenen Risiken verstehst."
     },
     "tonies": {
         "addNewCustomTonie": "Neues Modell anlegen",

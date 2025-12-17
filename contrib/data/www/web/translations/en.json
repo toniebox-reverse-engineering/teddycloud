@@ -1617,7 +1617,8 @@
                 "hostnameTooLong": "The hostname should be less than 13 characters long.",
                 "importanceBackup": "Before making any changes of your Toniebox, download and securely store a copy of the original firmware. This ensures you can always restore your Toniebox to its factory state if something goes wrong. Save it in multiple locations, such as your main computer or laptop, an external hard drive or USB stick and/or a trusted cloud storage service (e.g. Google Drive, Dropbox, OneDrive). Never store your only copy on the TeddyCloud-Server.",
                 "infoTable": "ESP32 info",
-                "invalidFlashData": "Read flash consists only of 0x00 or 0xFF! Please check connection and try again!",
+                "invalidFlashData": "Read / loaded flash consists only of 0x00 or 0xFF! Please check connection or the loaded file and try again!",
+                "invalidFlashDataCertificatesMissing": "Read / loaded flash misses certificates, something went wrong! Please check connection or the loaded file and try again! Error: ",
                 "invalidSerialPort": "Invalid serial port",
                 "loadFile": "Load File",
                 "manually": "Manually",
@@ -1730,7 +1731,9 @@
             "Label": "Certificates",
             "uploadPath": "Upload path (certDir):",
             "uploadTonieboxCertificates": "Upload certificates for Toniebox{{name}}"
-        }
+        },
+        "warningUseAtYourOwnRisk": "Warning: Use at your own risk!",
+        "warningUseAtYourOwnRiskText": "Flashing your Toniebox with a patched firmware will void your warranty and may lead to a broken box. Please follow the instructions carefully and ensure you understand the risks involved."
     },
     "tonies": {
         "addNewCustomTonie": "Create new model",
