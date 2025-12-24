@@ -366,7 +366,7 @@
                     "title": "Edit TAF Metadata"
                 },
                 "editTAPPlaylist": {
-                    "text": "Opens the Tonie Audio Playlist Editor to manage TAP files. (WIP)",
+                    "text": "Opens the TeddyAudio Playlist Editor to manage TAP files.",
                     "title": "Edit TAP Playlist"
                 },
                 "migrateToAudioIdFolder": {
@@ -498,8 +498,13 @@
             "edit": "(WIP - not implemented yet) Edit metadata"
         },
         "tap": {
-            "copy": "(WIP - not implemented yet) Duplicate Tonie Audio Playlist",
-            "edit": "(WIP - not implemented yet) Edit Tonie Audio Playlist"
+            "edit": "Edit TeddyAudio Playlist",
+            "messages": {
+                "savedSuccessfully": "TAP saved sucessfully!",
+                "savedSuccessfullyDetails": "TAP \"{{file}}\" saved in \"{{path}}\" sucessfully!",
+                "savingFailed": "TAP saving failed!",
+                "savingFailedDetails": "TAP \"{{file}}\" saving in \"{{path}}\" failed:"
+            }
         },
         "title": "Filebrowser",
         "upload": {
@@ -541,7 +546,7 @@
                         "03provideCustomAudio": "provide custom audio content",
                         "04simulateLiveContent": "simulate live content",
                         "05convertAudio": "on-the-fly convert audio streams via ffmpeg for webradio and streams",
-                        "06definePlaylists": "define tonie audio playlists (PoC in WebFrontend)",
+                        "06definePlaylists": "define TeddyAudio Playlists (PoC in WebFrontend)",
                         "07cacheAudio": "cache original tonie audio content",
                         "08filterTags": "filter custom tags to prevent deletion"
                     },
@@ -560,7 +565,7 @@
                     "title": "Manage all your Tonies/Tags"
                 },
                 "04manageLibrary": "Manage your content library",
-                "05managePlaylists": "Manage your Tonie Audio Playlist library (PoC in WebFrontend)",
+                "05managePlaylists": "Manage your TeddyAudio Playlist library (PoC in WebFrontend)",
                 "06convertAudioFile": "Convert any audio file to a tonie audio file",
                 "07manageTonieboxes": {
                     "items": {
@@ -1577,6 +1582,7 @@
                 "downloadStubFailed": "Download Stub to ESP32 failed! Please check connection and try again!",
                 "error": "Error",
                 "executingReliabilityCheck": "Executing reliability check for stable ESP32 connection. Please wait!",
+                "extendedFlashingLog": "Extended flashing log",
                 "extractCertificates": "Extract Certificates for TeddyCloud",
                 "extractCertificatesAutomaticallyHint": "Click the button \"Extract certificates for TeddyCloud\" to automatically extract and store the certificates in TeddyCloud.",
                 "extractCertificatesAutomaticallyHint2": "Certificates will be stored in up to two locations: first, in the base client certificate directory ../{{certDir}}/ for TeddyCloud (if no certificates are already present), and second, in the folder ../{{certDir}}/{{mac}}.",
@@ -1612,6 +1618,7 @@
                 "hintPatchHost": "Enter the desired hostname for your TeddyCloud instance.",
                 "hintPatchWifi": "Optionally enter the WiFi credentials for your Toniebox. Please only set this if you really need to - usually, if your Toniebox was connected to your WiFi right before patching, you don't need to.",
                 "hintReadESP32ImportFlash": "Now disconnect the powersource of your Toniebox. Make sure that the UART operates in 3.3V mode. Connect your UART with your PC and Toniebox. Short cut the J100 pinholes. Then connect your Toniebox to power. Click on \"Read Flash\" or \"Load File\", then choose the COM-Port. Finally wait till the step is done!",
+                "hintSaveLog": "Please save the log output to a file for further analysis in case of problems.",
                 "hostname": "TeddyCloud Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
                 "hostnameTooLong": "The hostname should be less than 13 characters long.",
@@ -1642,6 +1649,8 @@
                 "resetBoxine": "Reset Box",
                 "resetBoxineTooltip": "To reset your Toniebox to its original firmware, press this button to begin the process. You will need to select the original backup of the firmware, which will then be flashed onto your Toniebox in its untouched state. Unfortunately, if you do not have a backup of the original firmware, it will not be possible to reset your Toniebox.",
                 "retrievingMac": "Retrieving MAC address...",
+                "save": "Save log",
+                "showLog": "Show log details",
                 "titleESP32FirmwareFlashed": "ESP32 flashed",
                 "titleFlashESP32": "Flash ESP32",
                 "titlePatchFlash": "Patch Flash",
@@ -2024,8 +2033,8 @@
         "tafHeaderOf": "TAF-Header of ",
         "tafHeaderToniesJsonHint": "You must not edit the data here when submitting it to the tonies-json. This includes the track count, even if it is different from the track count in the track-desc field!",
         "tap": {
-            "navigationTitle": "WIP: Audio Playlists",
-            "title": "WIP: Tonie Audio Playlists"
+            "navigationTitle": "TeddyAudio Playlists",
+            "title": "TeddyAudio Playlists"
         },
         "tapEditor": {
             "addFile": "Add file",
@@ -2044,8 +2053,9 @@
             "nameRequired": "TAP Name  must be set",
             "nameTooltip": "Sets the name of the playlist",
             "save": "Save",
-            "titleCreate": "Create new TAP",
-            "titleEdit": "Edit TAP"
+            "titleCreate": "Create new TAP in {{path}}",
+            "titleCreateButton": "Create new TAP",
+            "titleEdit": "Edit TAP {{name}}"
         },
         "teddyaudioplayer": {
             "continueInFooterAudioPlayer": "Continue in footer audio player",

@@ -366,7 +366,7 @@
                     "title": "TAF-Metadaten bearbeiten"
                 },
                 "editTAPPlaylist": {
-                    "text": "Öffnet den Tonie-Audio-Playlist-Editor, um TAP-Dateien zu verwalten. (WIP)",
+                    "text": "Öffnet den Tonie-Audio-Playlist-Editor, um TAP-Dateien zu verwalten.",
                     "title": "TAP-Playlist bearbeiten"
                 },
                 "migrateToAudioIdFolder": {
@@ -498,8 +498,13 @@
             "edit": "(WIP - not implemented yet) Metadaten editieren"
         },
         "tap": {
-            "copy": "(WIP - not implemented yet) Tonie Audio Playlist duplizieren",
-            "edit": "(WIP - not implemented yet) Tonie Audio Playlist editieren"
+            "edit": "TeddyAudio Playlist editieren",
+            "messages": {
+                "savedSuccessfully": "TAP erfolgreich gespeichert!",
+                "savedSuccessfullyDetails": "TAP \"{{file}}\" wurde erfolgreich in \"{{path}}\" gespeichert!",
+                "savingFailed": "TAP-Speichern fehlgeschlagen!",
+                "savingFailedDetails": "Speichern der TAP-Datei \"{{file}}\" in \"{{path}}\" ist fehlgeschlagen:"
+            }
         },
         "title": "Dateibrowser",
         "upload": {
@@ -1577,6 +1582,7 @@
                 "downloadStubFailed": "Download des Stubs auf den ESP32 fehlgeschlagen! Bitte überprüfe die Verbindung und versuche es erneut!",
                 "error": "Fehler",
                 "executingReliabilityCheck": "Führe Zuverlässigkeitsprüfung für eine stabile ESP32-Verbindung durch. Bitte warte!",
+                "extendedFlashingLog": "Erweitertes Flash-Protokoll",
                 "extractCertificates": "Zertifikate für TeddyCloud extrahieren",
                 "extractCertificatesAutomaticallyHint": "Klicke den Button \"Zertifikate für TeddyCloud extrahieren\" zum automatischen Extrahieren und Ablegen der Zertifikate in TeddyCloud.",
                 "extractCertificatesAutomaticallyHint2": "Die Zertifikate werden an bis zu zwei Speicherorten abgelegt: Zuerst im Basisclientzertifikatverzeichnis für TeddyCloud unter ../{{certDir}}/ (falls keine Zertifikate vorhanden sind) und dann im Ordner ../{{certDir}}/{{mac}}.",
@@ -1612,6 +1618,7 @@
                 "hintPatchHost": "Gib den gewünschten Hostnamen deiner TeddyCloud-Instanz ein.",
                 "hintPatchWifi": "Gib optional die WiFi Zugangsdaten für deine Toniebox ein. Bitte nur setzen, wenn es wirklich nötig ist - normalerweise, wenn deine Toniebox kurz vor dem Patchen mit deinem WLAN verbunden war, ist dies nicht erforderlich.",
                 "hintReadESP32ImportFlash": "Trenne jetzt die Stromversorgung deiner Toniebox. Stelle sicher, dass dein UART im 3,3-V-Modus arbeitet. Verbinde dein UART mit dem PC und der Toniebox. Überbrücke die J100-Lötpunkte. Schließe danach die Toniebox wieder an die Stromversorgung an. Klicke auf „Flash auslesen“ oder „Datei laden“ und wähle dann den COM-Port aus. Warte anschließend, bis der Schritt abgeschlossen ist!",
+                "hintSaveLog": "Bitte speichere die Protokollausgabe in eine Datei für weitere Analyse bei Problemen.",
                 "hostname": "TeddyCloud-Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
                 "hostnameTooLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
@@ -1642,6 +1649,8 @@
                 "resetBoxine": "Box zurücksetzen",
                 "resetBoxineTooltip": "Um deine Toniebox auf die Original-Firmware zurückzusetzen, drücke diesen Button, um den Vorgang zu starten. Du musst das Original-Backup der Firmware auswählen, das dann im unveränderten Zustand auf deine Toniebox geflasht wird. Leider ist es nicht möglich, deine Toniebox zurückzusetzen, wenn du kein Backup der Original-Firmware besitzt.",
                 "retrievingMac": "MAC-Adresse wird abgerufen...",
+                "save": "Protokoll speichern",
+                "showLog": "Protokolldetails anzeigen",
                 "titleESP32FirmwareFlashed": "ESP32 geflasht",
                 "titleFlashESP32": "ESP32 flashen",
                 "titlePatchFlash": "Flash patchen",
@@ -2024,8 +2033,8 @@
         "tafHeaderOf": "TAF-Header von ",
         "tafHeaderToniesJsonHint": "Du darfst die Daten hier nicht bearbeiten, wenn du sie an das tonies-json übermittelst. Dazu gehört auch die Anzahl der Tracks, selbst wenn sie sich von der Anzahl im Feld track-desc unterscheidet!",
         "tap": {
-            "navigationTitle": "WIP: Audio Playlists",
-            "title": "WIP: Tonie Audio Playlists"
+            "navigationTitle": "TeddyAudio Playlists",
+            "title": "TeddyAudio Playlists"
         },
         "tapEditor": {
             "addFile": "Datei hinzufügen",
@@ -2044,8 +2053,9 @@
             "nameRequired": "Der TAP Name muss ausgefüllt werden",
             "nameTooltip": "Legt den Namen der Wiedergabeliste fest",
             "save": "Speichern",
-            "titleCreate": "Neue TAP erstellen",
-            "titleEdit": "TAP bearbeiten"
+            "titleCreate": "Neue TAP in {{path}} erstellen",
+            "titleCreateButton": "Neue TAP erstellen",
+            "titleEdit": "TAP {{name}} bearbeiten"
         },
         "teddyaudioplayer": {
             "continueInFooterAudioPlayer": "Im Fußbereich Audio Player fortsetzen",
