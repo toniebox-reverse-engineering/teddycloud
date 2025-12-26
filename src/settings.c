@@ -226,7 +226,9 @@ static void option_map_init(uint8_t settingsId)
     OPTION_TREE_DESC("cloud", "Cloud", LEVEL_BASIC)
     OPTION_BOOL("cloud.enabled", &settings->cloud.enabled, FALSE, "Cloud enabled", "Generally enable cloud operation", LEVEL_BASIC)
     OPTION_STRING("cloud.remote_hostname", &settings->cloud.remote_hostname, "prod.de.tbs.toys", "Cloud hostname", "Hostname of remote cloud server", LEVEL_EXPERT)
+    OPTION_STRING("cloud.remote_hostname_tb2", &settings->cloud.remote_hostname_tb2, "tbs2.tonie.cloud", "Cloud hostname TB2", "Hostname of remote cloud server of the TB2", LEVEL_EXPERT)
     OPTION_UNSIGNED("cloud.remote_port", &settings->cloud.remote_port, 443, 1, 65535, "Cloud port", "Port of remote cloud server", LEVEL_EXPERT)
+    OPTION_UNSIGNED("cloud.remote_port_tb2", &settings->cloud.remote_port_tb2, 443, 1, 65535, "Cloud port TB2", "Port of remote cloud server of the TB2", LEVEL_EXPERT)
     OPTION_BOOL("cloud.enableV1Claim", &settings->cloud.enableV1Claim, TRUE, "Forward 'claim'", "Forward 'claim' queries to claim tonies in the household in the tonies cloud", LEVEL_BASIC)
     OPTION_BOOL("cloud.enableV1CloudReset", &settings->cloud.enableV1CloudReset, FALSE, "Forward 'cloudReset'", "Forward 'cloudReset' queries to tonies cloud", LEVEL_DETAIL)
     OPTION_BOOL("cloud.enableV1FreshnessCheck", &settings->cloud.enableV1FreshnessCheck, TRUE, "Forward 'freshnessCheck'", "Forward 'freshnessCheck' queries to mark new content as updated to tonies cloud", LEVEL_DETAIL)
@@ -251,14 +253,14 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("encode.ffmpeg_sweep_startup_buffer", &settings->encode.ffmpeg_sweep_startup_buffer, TRUE, "Sweep stream prebuffer", "Webradio streams often send several seconds as a buffer immediately. This may contain ads and will add up if you disalbe 'Stream force restart'.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.ffmpeg_sweep_delay_ms", &settings->encode.ffmpeg_sweep_delay_ms, 2000, 0, 10000, "Sweep delay ms", "Wait x ms until sweeping is stopped and stream is started. Delays stream start, but may increase success.", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.stream_max_size", &settings->encode.stream_max_size, 1024 * 1024 * 40 * 6 - 1, 1024 * 1024 - 1, INT32_MAX, "Max stream filesize", "The box may create an empty file this length for each stream. So if you have 10 streaming tonies you use, the box may block 10*240MB. The only downside is, that the box will stop after the file is full and you'll need to replace the tag onto the box. Must not be a multiply of 4096, Default: 251.658.239, so 240MB, which means around 6h.", LEVEL_EXPERT)
-    OPTION_BOOL("encode.use_frontend", &settings->encode.use_frontend, FALSE, "Browser encoding", "Use browser-side encoding instead of server-side (requires modern browser with WebAssembly support)", LEVEL_DETAIL)
+    OPTION_BOOL("encode.use_frontend", &settings->encode.use_frontend, TRUE, "Browser encoding", "Use browser-side encoding instead of server-side (requires modern browser with WebAssembly support)", LEVEL_DETAIL)
 
     OPTION_TREE_DESC("frontend", "Frontend", LEVEL_BASIC)
     OPTION_BOOL("frontend.split_model_content", &settings->frontend.split_model_content, TRUE, "Split content / model", "If enabled, the content of the TAF will be shown beside the model of the figurine", LEVEL_DETAIL)
     OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
     OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
     OPTION_BOOL("frontend.check_cc3200_cfw", &settings->frontend.check_cc3200_cfw, FALSE, "Check for CFW on CC3200 box", "Enable detection of CFW on CC3200 boxes to link MAC addresses to IPs.", LEVEL_DETAIL)
-    OPTION_BOOL("frontend.use_revvox_flasher", &settings->frontend.use_revvox_flasher, FALSE, "Use Revvox Flasher for ESP32 flashing in WebUI", "Instead of esptools.js the homebrew revvox_flasher.js will be used for flashing ESP32 boxes", LEVEL_EXPERT)
+    OPTION_BOOL("frontend.use_revvox_flasher", &settings->frontend.use_revvox_flasher, TRUE, "Use Revvox Flasher for ESP32 flashing in WebUI", "Instead of esptools.js the homebrew revvox_flasher.js will be used for flashing ESP32 boxes", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
@@ -1077,6 +1079,11 @@ static error_t settings_load_ovl(bool overlay)
                     {
                         Settings_Overlay[i].core.http_client_timeout = 2000;
                     }
+                }
+                if (Settings_Overlay[i].configVersion < 15)
+                {
+                    Settings_Overlay[i].frontend.use_revvox_flasher = true;
+                    Settings_Overlay[i].encode.use_frontend = true;
                 }
             }
             mutex_unlock(MUTEX_SETTINGS);

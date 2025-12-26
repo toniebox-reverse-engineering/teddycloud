@@ -15,4 +15,5 @@
 #define PROX_STATUS_BODY 3
 #define PROX_STATUS_DONE 4
 
-error_t handleReverse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
+error_t handleReverseCloudGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
+error_t handleReverseGeneric(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);

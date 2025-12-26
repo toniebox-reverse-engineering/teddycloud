@@ -366,7 +366,7 @@
                     "title": "Editar metadatos de TAF"
                 },
                 "editTAPPlaylist": {
-                    "text": "Abre el editor de listas de reproducción de audio de Tonie para administrar archivos TAP. (WIP)",
+                    "text": "Abre el editor de TeddyAudio Playlist de Tonie para administrar archivos TAP.",
                     "title": "Editar lista de reproducción TAP"
                 },
                 "migrateToAudioIdFolder": {
@@ -498,8 +498,13 @@
             "edit": "(WIP - aún no implementado) Editar metadatos"
         },
         "tap": {
-            "copy": "(WIP - aún no implementado) Duplicar lista de reproducción de Tonie",
-            "edit": "(WIP - aún no implementado) Editar lista de reproducción de Tonie"
+            "edit": "Editar lista de reproducción de Tonie",
+            "messages": {
+                "savedSuccessfully": "TAP enregistré avec succès !",
+                "savedSuccessfullyDetails": "Le TAP \"{{file}}\" a été enregistré avec succès dans \"{{path}}\".",
+                "savingFailed": "Échec de l’enregistrement du TAP !",
+                "savingFailedDetails": "L’enregistrement du TAP \"{{file}}\" dans \"{{path}}\" a échoué :"
+            }
         },
         "title": "Explorador de archivos",
         "upload": {
@@ -541,7 +546,7 @@
                         "03provideCustomAudio": "proporcionar contenido de audio personalizado",
                         "04simulateLiveContent": "simular contenido en vivo",
                         "05convertAudio": "convertir transmisiones de audio sobre la marcha mediante ffmpeg para radio web y transmisiones",
-                        "06definePlaylists": "definir listas de reproducción de audio de tonie (PoC en el frontend web)",
+                        "06definePlaylists": "definir TeddyAudio Playlist de tonie (PoC en el frontend web)",
                         "07cacheAudio": "almacenar en caché contenido de audio original de tonie",
                         "08filterTags": "filtrar etiquetas personalizadas para evitar la eliminación"
                     },
@@ -560,7 +565,7 @@
                     "title": "Gestiona todos tus Tonies/Etiquetas"
                 },
                 "04manageLibrary": "Gestionar tu biblioteca de contenido",
-                "05managePlaylists": "Gestionar tu biblioteca de listas de reproducción de audio de Tonie (PoC en el frontend web)",
+                "05managePlaylists": "Gestionar tu biblioteca de TeddyAudio Playlist de Tonie (PoC en el frontend web)",
                 "06convertAudioFile": "Convertir cualquier archivo de audio en un archivo de audio de tonie",
                 "07manageTonieboxes": {
                     "items": {
@@ -1051,6 +1056,13 @@
         "tryToRestartTC": "Intentando reiniciar TeddyCloud",
         "warning": "¡Atención! Nivel de configuración",
         "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'."
+    },
+    "teddycloud": {
+        "newVersionAvailable": "¡Hay una nueva versión disponible!",
+        "newVersionDetailsAvailable": "No estás usando la versión más reciente de TeddyCloud. Actualiza para obtener todos los beneficios de la última versión.",
+        "newVersionDetailsAvailableDevelop": "No estás usando la versión más reciente de la versión develop de TeddyCloud. Actualiza para obtener todos los beneficios de la última versión develop.",
+        "newVersionShort": "Actualización disponible",
+        "openNewVersionInGithub": "Abrir la última versión en GitHub"
     },
     "tonieboxes": {
         "accessApiDisabled": "Acceso a las API de TeddyCloud deshabilitado.",
@@ -1570,6 +1582,7 @@
                 "downloadStubFailed": "La descarga del stub al ESP32 ha fallado. ¡Por favor revisa la conexión e inténtalo de nuevo!",
                 "error": "Error",
                 "executingReliabilityCheck": "Ejecutando la verificación de fiabilidad para una conexión estable con el ESP32. ¡Por favor espera!",
+                "extendedFlashingLog": "Registro de flasheo extendido",
                 "extractCertificates": "Extraer certificados para TeddyCloud",
                 "extractCertificatesAutomaticallyHint": "Haz clic en el botón \"Extraer certificados para TeddyCloud\" para extraer y almacenar automáticamente los certificados en TeddyCloud.",
                 "extractCertificatesAutomaticallyHint2": "Los certificados se almacenarán en hasta dos ubicaciones: primero, en el directorio base de certificados para TeddyCloud ../{{certDir}}/ (si no hay certificados presentes), y segundo, en la carpeta ../{{certDir}}/{{mac}}.",
@@ -1596,6 +1609,7 @@
                 "flashManuf": "Fabricante de Flash",
                 "flashSize": "Tamaño de Flash",
                 "flashSizeError": "Error de tamaño de flash - Se leyó un tamaño inesperado. Leído {{actualsize}}, esperado {{expectedsize}}. Proceso abortado, revise la conexión y vuelva a intentarlo.",
+                "flashSizeErrorLoadedFile": "Error de tamaño de flash - El archivo cargado tiene un tamaño inesperado. Tamaño del archivo {{actualsize}}, esperado {{expectedsize}}. Proceso abortado, revise el archivo y vuelva a intentarlo.",
                 "hintESP32FirmwareFlashed": "El parcheo debería estar hecho. Desconecta la Toniebox del UART, quita el cortocircuito de J100 y reinicia la caja. ¡Ahora debería poder conectarse a TeddyCloud!",
                 "hintESP32FirmwareReseted": "El restablecimiento debería estar completado. Por favor, desconecta la Toniebox del UART, retira el cortocircuito de J100 y reinicia la caja. Ya no debería estar conectada a tu Teddycloud. Realiza una comprobación de frescura para verificar que todo funciona bien.",
                 "hintFlashESP32": "Desconecta la fuente de alimentación de tu Toniebox una vez más. Haz clic en \"Flashear ESP32\", si es necesario elige el puerto COM. Luego conecta tu Toniebox a la alimentación y espera hasta que se complete el paso.",
@@ -1604,17 +1618,20 @@
                 "hintPatchHost": "Introduce el nombre de host deseado para tu instancia de TeddyCloud.",
                 "hintPatchWifi": "Opcionalmente ingresa las credenciales WiFi para tu Toniebox. Por favor, solo configúralo si realmente es necesario; normalmente, si tu Toniebox estaba conectada a tu WiFi justo antes de aplicar el parche, no necesitas hacerlo.",
                 "hintReadESP32ImportFlash": "Ahora desconecta la fuente de alimentación de tu Toniebox. Asegúrate de que tu UART funcione en modo de 3,3 V. Conecta tu UART al PC y a la Toniebox. Puentea los puntos de soldadura J100. Después conecta de nuevo la Toniebox a la alimentación. Haz clic en \"Leer flash\" o \"Cargar archivo\" y elige el puerto COM. Finalmente espera a que el paso termine.",
+                "hintSaveLog": "Por favor, guarda la salida del registro en un archivo para un análisis adicional en caso de problemas.",
                 "hostname": "Nombre de host de TeddyCloud:",
                 "hostnameSettings": "Configuración del nombre de host",
                 "hostnameTooLong": "El nombre de host debe tener menos de 13 caracteres.",
                 "importanceBackup": "Antes de hacer cualquier cambio en tu Toniebox, descarga y guarda de forma segura una copia del firmware original. Esto te permitirá restaurar tu Toniebox a su estado de fábrica si algo sale mal. Guárdala en varios lugares, como tu ordenador principal o portátil, un disco duro externo o memoria USB, y/o un servicio de almacenamiento en la nube de confianza (por ejemplo, Google Drive, Dropbox, OneDrive). Nunca guardes tu única copia solo en el servidor TeddyCloud.",
                 "infoTable": "Información del ESP32",
-                "invalidFlashData": "La lectura del flash contiene únicamente 0x00 o 0xFF. ¡Revisa la conexión e inténtalo de nuevo!",
+                "invalidFlashData": "La lectura / carga del flash contiene únicamente 0x00 o 0xFF. ¡Revisa la conexión o el archivo cargado e inténtalo de nuevo!",
+                "invalidFlashDataCertificatesMissing": "La lectura / carga del flash sin certificados; algo salió mal. Por favor, compruebe la conexión o el archivo cargado e inténtelo de nuevo. Error:",
                 "invalidSerialPort": "Puerto serie no válido",
                 "loadFile": "Cargar archivo",
                 "manually": "Manualmente",
                 "next": "Siguiente",
                 "noPortAvailable": "No hay puertos disponibles o el usuario canceló",
+                "openPort": "Abrir puerto",
                 "patchImage": "Parchear",
                 "patchingFailed": "Error al parchear",
                 "patchingFlashImage": "Parcheando imagen de flash...",
@@ -1632,6 +1649,8 @@
                 "resetBoxine": "Restablecer la caja",
                 "resetBoxineTooltip": "Para restablecer tu Toniebox a su firmware original, pulsa este botón para comenzar el proceso. Necesitarás seleccionar la copia de seguridad del firmware original, que se instalará en tu Toniebox en su estado original. Desafortunadamente, no será posible restablecer tu Toniebox si no tienes una copia de seguridad del firmware original.",
                 "retrievingMac": "Recuperando dirección MAC...",
+                "save": "Guardar registro",
+                "showLog": "Mostrar detalles del registro",
                 "titleESP32FirmwareFlashed": "ESP32 flasheado",
                 "titleFlashESP32": "Flashear ESP32",
                 "titlePatchFlash": "Parchear Flash",
@@ -1639,6 +1658,8 @@
                 "uploadFailed": "Error al subir",
                 "uploading": "Subiendo...",
                 "uploadSuccessful": "Subida exitosa, guardado como",
+                "verifyingReadFlash": "Verificando flash leído...",
+                "verifyingWrittenFlash": "Verificando flash escrito...",
                 "wifiCredentialsIncomplete": "¡Credenciales WiFi incompletas! Por favor, introduce tanto el SSID como la contraseña, o deja ambos campos vacíos.",
                 "wifiPassword": "Contraseña WiFi:",
                 "wifiSettings": "Datos WiFi (opcional):",
@@ -1719,7 +1740,9 @@
             "Label": "Certificados",
             "uploadPath": "Ruta de carga (certDir):",
             "uploadTonieboxCertificates": "Subir certificados para Toniebox{{name}}"
-        }
+        },
+        "warningUseAtYourOwnRisk": "Advertencia: úsalo bajo tu propia responsabilidad",
+        "warningUseAtYourOwnRiskText": "Flashear tu Toniebox con un firmware modificado anulará la garantía y puede dejar la caja inutilizable. Sigue las instrucciones cuidadosamente y asegúrate de comprender los riesgos asociados."
     },
     "tonies": {
         "addNewCustomTonie": "Crear nuevo modelo",
@@ -2010,8 +2033,8 @@
         "tafHeaderOf": "TAF-Header de ",
         "tafHeaderToniesJsonHint": "No debes editar los datos aquí cuando los envíes al tonies-json. ¡Esto incluye el número de pistas, incluso si es diferente del número de pistas en el campo track-desc!",
         "tap": {
-            "navigationTitle": "WIP: Listas de reproducción de audio",
-            "title": "WIP: Listas de reproducción de audio de Tonie"
+            "navigationTitle": "TeddyAudio Playlists",
+            "title": "TeddyAudio Playlists"
         },
         "tapEditor": {
             "addFile": "Agregar archivo",
@@ -2030,8 +2053,9 @@
             "nameRequired": "Se debe establecer el nombre TAP",
             "nameTooltip": "Establece el nombre de la lista de reproducción",
             "save": "Guardar",
-            "titleCreate": "Crear nuevo TAP",
-            "titleEdit": "Editar TAP"
+            "titleCreate": "Crear nuevo TAP in {{path}}",
+            "titleCreateButton": "Crear nuevo TAP",
+            "titleEdit": "Editar TAP {{name}}"
         },
         "teddyaudioplayer": {
             "continueInFooterAudioPlayer": "Continuar en el reproductor de audio del pie de página",
@@ -2056,6 +2080,8 @@
             "clear": "Limpiar hoja",
             "clearSettings": "Restaurar",
             "close": "Cerrar",
+            "contentPadding": "Relleno de contenido",
+            "currentLabel": "Etiqueta actual",
             "custom": "Personalizado",
             "customImage": "Imágenes personalizadas",
             "customImageHint": "También puedes añadir imágenes temporales para tus Traveltonies. ¡Ten en cuenta que no se guardarán permanentemente!",
@@ -2099,17 +2125,21 @@
             "printSheet": "Tu hoja para imprimir",
             "printTrackListInsteadTitle": "Imprimir la lista de pistas en lugar del título",
             "replaceLabelImage": "Suelta una imagen aquí o elige un archivo para reemplazar la imagen de la etiqueta existente",
+            "restoreCommonSettings": "Restaurar",
             "round": "Redondo",
             "save": "Guardar",
             "saveOnNavigate": "Guardado automático al navegar",
             "saveSettings": "Guardar preset",
             "selectPredefinedPaperOptions": "Seleccionar preajuste de papel",
             "series": "Serie",
+            "seriesOnImageLabelFontSize": "Tamaño de fuente de la serie",
+            "seriesOnImageLabelRotationDeg": "Rotación de la serie",
             "settings": "Configuración",
             "settingsSavedSuccessful": "Configuración de TeddyStudio guardada correctamente",
             "showLabelBorder": "Imprimir borde de la etiqueta",
             "showLanguageFlag": "Imprimir bandera de idioma",
             "showModelNo": "Imprimir número de modelo",
+            "showSeriesOnImageLabel": "Mostrar serie en la etiqueta de imagen",
             "square": "Cuadrada",
             "textFontSize": "Tamaño de texto",
             "title": "TeddyStudio",

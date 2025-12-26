@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -66,11 +66,16 @@ jobs:
           git status
           cd ..
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20.11.1"
+          node-version: "24.12.0"
       - name: Install NPM version
-        run: npm install -g npm@10.8.2
+        run: npm install -g npm@latest
+
+      - name: Verify versions
+        run: |
+          node --version
+          npm --version
 
       - name: Disable CI checks
         run: echo "CI=false" >> $GITHUB_ENV

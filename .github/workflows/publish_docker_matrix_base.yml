@@ -51,7 +51,7 @@ jobs:
         platform: ${{ fromJson(inputs.platforms) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           ref: ${{ inputs.tcw_commit_hash }}
@@ -115,7 +115,7 @@ jobs:
 
       - name: Build & push digest docker ${{ matrix.platform }}
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ inputs.dockerfile }}
@@ -128,6 +128,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Platform name strip for filename
         id: platform_strip
@@ -158,7 +159,7 @@ jobs:
       - name: Push docker tags ${{ matrix.platform }}
         if: ${{ steps.docker-test.outcome == 'success' }}
         id: push_tags
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ inputs.dockerfile }}
@@ -169,17 +170,18 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Upload digest
         if: ${{ steps.docker-test.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
           path: /tmp/digests/${{ github.sha }}/*
           if-no-files-found: error
       - name: Upload release file
         if: ${{ steps.docker-test.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-${{ steps.platform_strip.outputs.platform }}-${{ inputs.system }}
           path: /tmp/teddycloud.${{ steps.platform_strip.outputs.platform }}.${{ inputs.system }}.release.zip
@@ -191,7 +193,7 @@ jobs:
       - build
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: digests-${{ inputs.system }}-*
           merge-multiple: true

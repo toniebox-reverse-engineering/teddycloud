@@ -24,8 +24,37 @@
         <meta name="apple-mobile-web-app-title" content="TeddyCloud" />
 
         <title>TeddyCloud</title>
-      <script type="module" crossorigin src="/web/assets/index-BWAn6UKu.js"></script>
-      <link rel="stylesheet" crossorigin href="/web/assets/index-C50iVXuJ.css">
+
+        <script>
+            (async () => {
+                try {
+                    const res = await fetch("/web/web_version.json?ts=" + Date.now(), {
+                        cache: "no-store",
+                    });
+                    if (!res.ok) {
+                        console.error("error loading web_version.json:", res.status, res.statusText);
+                        return;
+                    }
+                    const v = await res.json();
+                    const current = v.web_gitSha;
+                    const local = localStorage.getItem("web_gitSha");
+
+                    if (local && local !== current) {
+                        localStorage.setItem("web_gitSha", current);
+                        const url = new URL(window.location.href);
+                        url.searchParams.set("v", current);
+                        window.location.replace(url.toString());
+                        console.log("New version detected, reloaded page.");
+                    } else {
+                        localStorage.setItem("web_gitSha", current);
+                    }
+                } catch (e) {
+                    console.error("Error checking version:", e);
+                }
+            })();
+        </script>
+      <script type="module" crossorigin src="/web/assets/index-Bj7ssOz6.js"></script>
+      <link rel="stylesheet" crossorigin href="/web/assets/index-zRaEDlqF.css">
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

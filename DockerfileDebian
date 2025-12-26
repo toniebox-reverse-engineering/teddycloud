@@ -14,6 +14,8 @@ RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonie
 RUN make zip NO_SANITIZERS=${NO_SANITIZERS}
 
 FROM debian:latest
+ARG TEDDYCLOUD_VERSION=unknown
+LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
 EXPOSE 80 443 8443
 
 RUN apt-get update \

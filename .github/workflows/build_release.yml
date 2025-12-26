@@ -16,7 +16,7 @@ jobs:
       upload_url: ${{ steps.set_data1.outputs.upload_url }}
     steps:
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -26,7 +26,7 @@ jobs:
       shell: cmd
     - name: Check windows executable existence
       id: check_release
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@v3
       with:
         files: "bin/teddycloud.exe"  
         allow_failure: true 
@@ -69,7 +69,7 @@ jobs:
         echo "ASSET_APPENDIX=release_${GITHUB_REF#refs/tags/tc_}" >> $GITHUB_ENV
         echo "IS_PRERELEASE=false" >> $GITHUB_ENV
     
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
     - uses: actions/download-artifact@master
@@ -82,7 +82,7 @@ jobs:
       run: make zip
     - name: Check amd64 release zip existence
       id: check_release
-      uses: andstor/file-existence-action@v1
+      uses: andstor/file-existence-action@v3
       with:
         files: "./install/zip/release.zip"  
         allow_failure: true 

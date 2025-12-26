@@ -23,7 +23,7 @@ jobs:
   test_commit_hash:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           ref: ${{ inputs.tcw_commit_hash }}

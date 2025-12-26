@@ -24,7 +24,7 @@ mkdir -p certs/client
 
 echo "Generate CA certificate"
 faketime "${FAKETIME}" openssl genrsa -out ${CA_KEY} ${KEY_LEN}
-faketime "${FAKETIME}" openssl req -x509 -new -nodes -extensions v3_ca -key ${CA_KEY} -days ${DAYS} -out ${CA_CRT} -sha256 -subj '/C=DE/CN=Teddy CA'
+faketime "${FAKETIME}" openssl req -x509 -new -nodes -extensions v3_ca -key ${CA_KEY} -days ${DAYS} -out ${CA_CRT} -sha256 -subj '/C=DE/CN=TeddyCloud'
 faketime "${FAKETIME}" openssl x509 -inform PEM -outform DER -in ${CA_CRT} -out ${CA_CRT_DER}
 
 echo ""
