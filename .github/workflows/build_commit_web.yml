@@ -68,9 +68,14 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20.11.1"
+          node-version: "24.12.0"
       - name: Install NPM version
-        run: npm install -g npm@10.8.2
+        run: npm install -g npm@latest
+
+      - name: Verify versions
+        run: |
+          node --version
+          npm --version
 
       - name: Disable CI checks
         run: echo "CI=false" >> $GITHUB_ENV
