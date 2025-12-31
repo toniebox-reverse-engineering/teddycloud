@@ -125,6 +125,7 @@
                     "icon": "El icono utilizado para el plugin. Debe ser un componente de icono válido de Ant Design de https://ant.design/components/icon, p. ej. TrophyOutlined, TagsOutlined",
                     "pluginHomepage": "Página principal del plugin",
                     "pluginName": "El título que aparece en los menús (obligatorio)",
+                    "standalone": "Indicador booleano que define si el plugin debe ejecutarse en modo independiente (sin encabezado, sin barra lateral y sin pie de página). Importante: el valor true y false no debe ir entre comillas.",
                     "teddyCloudSection": "Sección deseada donde se agregará el plugin a la navegación (valores válidos: home, tonies, tonieboxes, settings, community)",
                     "version": "Versión del plugin"
                 },
