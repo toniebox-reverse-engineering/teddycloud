@@ -26,6 +26,7 @@ Currently implemented are:
 
 ## Planned
 * teddyBench integration
+* Toniebox 2 support
 
 ## Where to start?
 If you want to get started, please follow our [guide on our website](https://toniebox-reverse-engineering.github.io/docs/tools/teddycloud/).
