@@ -1,10 +1,10 @@
 {
-  "web_version": "vX.X.X",
+  "web_version": "v0.6.7",
   "web_gitDirty": "0",
-  "web_gitTag": "undefined",
+  "web_gitTag": "tcw_v0.6.7",
   "web_gitDateTime": "2026-01-11 12:46:00 +0100",
   "web_gitSha": "fa6babd8487afba90e391f23714d8435574562a5",
-  "web_gitTagPrefix": "undefined",
+  "web_gitTagPrefix": "tcw",
   "web_gitShortSha": "fa6babd",
   "_eof":""
 }
