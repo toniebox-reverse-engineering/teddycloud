@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "core/net.h"
 #include "core/ip.h"
@@ -24,6 +25,8 @@ typedef struct
 #define MQTT_CLIENT_PRIVATE_CONTEXT mqtt_ctx_t *mqtt_ctx;
 
 #include "mqtt/mqtt_client.h"
+#include "tls.h"
+#include "rand.h"
 
 #include "home_assistant.h"
 #include "debug.h"
@@ -290,13 +293,125 @@ bool mqtt_subscribe(const char *item_topic)
     return true;
 }
 
+/**
+ * @brief TLS initialization callback for MQTT
+ * @param[in] context Pointer to the MQTT client context
+ * @param[in] tlsContext Pointer to the TLS context
+ * @return Error code
+ */
+error_t mqttTlsInitCallback(MqttClientContext *context, TlsContext *tlsContext)
+{
+    error_t error = NO_ERROR;
+    bool insecure = settings_get_bool("mqtt.tls_insecure");
+
+    // Set PRNG (required for TLS)
+    error = tlsSetPrng(tlsContext, rand_get_algo(), rand_get_context());
+    if (error)
+    {
+        TRACE_ERROR("MQTT TLS: Failed to set PRNG\r\n");
+        return error;
+    }
+
+    // Set client mode
+    error = tlsSetConnectionEnd(tlsContext, TLS_CONNECTION_END_CLIENT);
+    if (error)
+    {
+        TRACE_ERROR("MQTT TLS: Failed to set connection end\r\n");
+        return error;
+    }
+
+    // Set server name for SNI (Server Name Indication)
+    const char *hostname = settings_get_string("mqtt.hostname");
+    if (hostname && strlen(hostname) > 0)
+    {
+        error = tlsSetServerName(tlsContext, hostname);
+        if (error)
+        {
+            TRACE_WARNING("MQTT TLS: Failed to set server name for SNI\r\n");
+        }
+        else
+        {
+            TRACE_INFO("MQTT TLS: SNI set to %s\r\n", hostname);
+        }
+    }
+
+    // Skip verification if insecure mode
+    if (insecure)
+    {
+        TRACE_WARNING("MQTT TLS: Certificate verification DISABLED (insecure mode)\r\n");
+        // Don't load CA cert and don't verify
+        return NO_ERROR;
+    }
+
+    // Load CA certificate if specified
+    const char *caFile = settings_get_string("mqtt.tls_ca_file");
+    if (caFile && strlen(caFile) > 0)
+    {
+        TRACE_INFO("MQTT TLS: Loading CA certificate from %s\r\n", caFile);
+
+        // Open and read CA certificate file using standard C I/O
+        FILE *fp = fopen(caFile, "rb");
+        if (fp)
+        {
+            // Get file size
+            fseek(fp, 0, SEEK_END);
+            long pemCertLen = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+
+            if (pemCertLen > 0)
+            {
+                char *pemCert = osAllocMem(pemCertLen + 1);
+                if (pemCert)
+                {
+                    size_t bytesRead = fread(pemCert, 1, pemCertLen, fp);
+                    pemCert[bytesRead] = '\0';
+
+                    error = tlsSetTrustedCaList(tlsContext, pemCert, bytesRead);
+                    osFreeMem(pemCert);
+
+                    if (error)
+                    {
+                        TRACE_ERROR("MQTT TLS: Failed to set trusted CA list (error %d)\r\n", error);
+                        fclose(fp);
+                        return error;
+                    }
+                    TRACE_INFO("MQTT TLS: CA certificate loaded (%ld bytes)\r\n", pemCertLen);
+                }
+            }
+            fclose(fp);
+        }
+        else
+        {
+            TRACE_WARNING("MQTT TLS: Could not open CA file: %s\r\n", caFile);
+        }
+    }
+    else
+    {
+        TRACE_WARNING("MQTT TLS: No CA certificate specified!\r\n");
+    }
+
+    return NO_ERROR;
+}
+
 error_t mqttConnect(MqttClientContext *mqtt_context)
 {
     error_t error = NO_ERROR;
 
     mqttClientInit(mqtt_context);
     mqttClientSetVersion(mqtt_context, MQTT_VERSION_3_1_1);
-    mqttClientSetTransportProtocol(mqtt_context, MQTT_TRANSPORT_PROTOCOL_TCP);
+
+    // Check if TLS is enabled
+    if (settings_get_bool("mqtt.tls_enabled"))
+    {
+        TRACE_INFO("MQTT: Using TLS transport\r\n");
+        mqttClientSetTransportProtocol(mqtt_context, MQTT_TRANSPORT_PROTOCOL_TLS);
+        mqttClientRegisterTlsInitCallback(mqtt_context, mqttTlsInitCallback);
+    }
+    else
+    {
+        TRACE_INFO("MQTT: Using plain TCP transport\r\n");
+        mqttClientSetTransportProtocol(mqtt_context, MQTT_TRANSPORT_PROTOCOL_TCP);
+    }
 
     mqttClientRegisterPublishCallback(mqtt_context, mqttTestPublishCallback);
 

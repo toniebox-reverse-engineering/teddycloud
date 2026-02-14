@@ -122,6 +122,10 @@ typedef struct
     uint32_t qosLevel;
     bool retain_will;
     bool disable_on_error;
+    // TLS Settings
+    bool tls_enabled;
+    char *tls_ca_file;
+    bool tls_insecure;
 } settings_mqtt_t;
 
 typedef struct
