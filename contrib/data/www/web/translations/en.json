@@ -311,6 +311,14 @@
         }
     ],
     "fileBrowser": {
+        "unusedTafsModal": {
+            "fullPath": "Full path",
+            "name": "TAF filename",
+            "noUnusedTafs": "No unused TAFs found!",
+            "title": "Unused TAF files",
+            "actions": "Actions",
+            "ok": "OK"
+        },
         "actions": "Actions",
         "attention": "Please note!",
         "cancel": "Cancel",
@@ -1041,7 +1049,6 @@
         "restartTC": "Restarting TeddyCloud",
         "rtnl": {
             "clear": "Clear RTNL Log",
-            "enableRtnl": "Enable logging",
             "navigationTitle": "RTNL log",
             "title": "RTNL Log"
         },
@@ -1630,7 +1637,7 @@
                 "hintUseOtherToolForAdditionalBackup": "Please use an additional tool to create a separate backup.",
                 "hostname": "TeddyCloud Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
-                "hostnameTooLong": "The hostname should be less than 13 characters long.",
+                "hostnameTooLong": "If you want to connect a CC3200 Toniebox later, the hostname must not exceed 12 characters (firmware limitation).",
                 "importanceBackup": "Before making any changes of your Toniebox, download and securely store a copy of the original firmware. This ensures you can always restore your Toniebox to its factory state if something goes wrong. Save it in multiple locations, such as your main computer or laptop, an external hard drive or USB stick and/or a trusted cloud storage service (e.g. Google Drive, Dropbox, OneDrive). Never store your only copy on the TeddyCloud-Server.",
                 "infoTable": "ESP32 info",
                 "invalidFlashData": "Read / loaded flash consists only of 0x00 or 0xFF! Please check connection or the loaded file and try again!",
@@ -1831,7 +1838,8 @@
             "removeFile": "Remove file",
             "saveAs": "Save file as",
             "serverSideEncoding": "Server-side encoding",
-            "sortAlphabetically": "Sort files alphabetically",
+            "sortAlphabeticallyLiteral": "Sort alphabetically (lexicographical)",
+            "sortAlphabeticallyNatural": "Sort alphabetically (numeric order)",
             "targetDirectory": "Choose target directory",
             "title": "Audio Encoder",
             "tooManyFilesError": "Too many files!",

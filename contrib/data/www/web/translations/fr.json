@@ -311,6 +311,14 @@
         }
     ],
     "fileBrowser": {
+        "unusedTafsModal": {
+            "fullPath": "Chemin complet",
+            "name": "Nom du fichier TAF",
+            "noUnusedTafs": "Aucun TAF inutilisé trouvé !",
+            "title": "Fichiers TAF inutilisés",
+            "actions": "Actions",
+            "ok": "OK"
+        },
         "actions": "Actions",
         "attention": "Veuillez noter !",
         "cancel": "Annuler",
@@ -1041,7 +1049,6 @@
         "restartTC": "Redémarrage de TeddyCloud",
         "rtnl": {
             "clear": "Effacer le journal RTNL",
-            "enableRtnl": "Activer la journalisation",
             "navigationTitle": "Journal RTNL",
             "title": "Journal RTNL"
         },
@@ -1630,7 +1637,7 @@
                 "hintUseOtherToolForAdditionalBackup": "Por favor, utiliza una herramienta adicional para crear una copia de seguridad independiente.",
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
-                "hostnameTooLong": "Le nom d'hôte doit être inférieur à 13 caractères.",
+                "hostnameTooLong": "Si vous souhaitez connecter ultérieurement une Toniebox CC3200, le nom d'hôte ne doit pas dépasser 12 caractères (limitation du firmware).",
                 "importanceBackup": "Avant de faire des modifications sur ta Toniebox, télécharge une copie du firmware original et stocke-la de manière sécurisée. Cela te permettra de restaurer ta Toniebox à son état d'usine en cas de problème. Sauvegarde-la à plusieurs endroits, comme sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne conserve jamais ta seule copie uniquement sur le serveur TeddyCloud.",
                 "infoTable": "Infos ESP32",
                 "invalidFlashData": "La lecture / le chargement du flash ne contient que des 0x00 ou 0xFF. Vérifie la connexion ou le fichier chargé et réessaie !",
@@ -1831,7 +1838,8 @@
             "removeFile": "Supprimer le fichier",
             "saveAs": "Enregistrer le fichier sous",
             "serverSideEncoding": "Encodage côté serveur",
-            "sortAlphabetically": "Trier les fichiers par ordre alphabétique",
+            "sortAlphabeticallyLiteral": "Trier par ordre alphabétique (lexicographique)",
+            "sortAlphabeticallyNatural": "Trier par ordre alphabétique (ordre numérique)",
             "targetDirectory": "Choisir le répertoire cible",
             "title": "Encodeur audio",
             "tooManyFilesError": "Trop de fichiers !",

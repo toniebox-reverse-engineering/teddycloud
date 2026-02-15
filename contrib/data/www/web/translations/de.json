@@ -311,6 +311,14 @@
         }
     ],
     "fileBrowser": {
+        "unusedTafsModal": {
+            "fullPath": "Vollständiger Pfad",
+            "name": "TAF Dateiname",
+            "noUnusedTafs": "Keine ungenutzten TAFs gefunden!",
+            "title": "Ungenutzte TAF-Dateien",
+            "actions": "Aktionen",
+            "ok": "OK"
+        },
         "actions": "Aktionen",
         "attention": "Bitte beachte!",
         "cancel": "Cancel",
@@ -1041,7 +1049,6 @@
         "restartTC": "TeddyCloud wird neu gestartet",
         "rtnl": {
             "clear": "RTNL Log leeren",
-            "enableRtnl": "Logging aktivieren",
             "navigationTitle": "RTNL log",
             "title": "RTNL Log"
         },
@@ -1630,7 +1637,7 @@
                 "hintUseOtherToolForAdditionalBackup": "Bitte verwende ein zusätzliches Tool, um ein separates Backup zu erstellen.",
                 "hostname": "TeddyCloud-Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
-                "hostnameTooLong": "Der Hostname sollte weniger als 13 Zeichen lang sein.",
+                "hostnameTooLong": "Wenn du später eine CC3200 Toniebox verbinden willst, darf der Hostname maximal 12 Zeichen haben (Firmware-Limit).",
                 "importanceBackup": "Bevor du Änderungen an deiner Toniebox vornimmst, lade eine Kopie der Original-Firmware herunter und speichere sie sicher. So kannst du deine Toniebox im Notfall jederzeit auf den Werkszustand zurücksetzen. Speichere sie an mehreren Orten, zum Beispiel auf deinem Hauptrechner oder Laptop, einem externen Laufwerk oder USB-Stick und/oder einem vertrauenswürdigen Cloud-Dienst (z. B. Google Drive, Dropbox, OneDrive). Speichere deine einzige Kopie niemals nur auf dem TeddyCloud-Server.",
                 "infoTable": "ESP32 info",
                 "invalidFlashData": "Der ausgelesene / geladene Flash besteht nur aus 0x00 oder 0xFF! Bitte überprüfe die Verbindung oder die Datei und versuche es erneut!",
@@ -1831,7 +1838,8 @@
             "removeFile": "Datei entfernen",
             "saveAs": "Datei speichern unter",
             "serverSideEncoding": "Encoding auf dem Server",
-            "sortAlphabetically": "Dateien alphabetisch sortieren",
+            "sortAlphabeticallyLiteral": "Alphabetisch sortieren (lexikografisch)",
+            "sortAlphabeticallyNatural": "Alphabetisch sortieren (mit Zahlenreihenfolge)",
             "targetDirectory": "Zielpfad auswählen",
             "title": "Audio Encoder",
             "tooManyFilesError": "Zu viele Dateien!",

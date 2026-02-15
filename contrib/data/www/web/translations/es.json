@@ -311,6 +311,14 @@
         }
     ],
     "fileBrowser": {
+        "unusedTafsModal": {
+            "fullPath": "Ruta completa",
+            "name": "Nombre del archivo TAF",
+            "noUnusedTafs": "¡No se encontraron TAF sin usar!",
+            "title": "Archivos TAF sin usar",
+            "actions": "Acciones",
+            "ok": "Aceptar"
+        },
         "actions": "Acciones",
         "attention": "¡Atención!",
         "cancel": "Cancelar",
@@ -1041,7 +1049,6 @@
         "restartTC": "Reiniciando TeddyCloud",
         "rtnl": {
             "clear": "Limpiar registro RTNL",
-            "enableRtnl": "Habilitar registro",
             "navigationTitle": "Registro RTNL",
             "title": "Registro RTNL"
         },
@@ -1630,7 +1637,7 @@
                 "hintUseOtherToolForAdditionalBackup": "Por favor, utiliza una herramienta adicional para crear una copia de seguridad independiente.",
                 "hostname": "Nombre de host de TeddyCloud:",
                 "hostnameSettings": "Configuración del nombre de host",
-                "hostnameTooLong": "El nombre de host debe tener menos de 13 caracteres.",
+                "hostnameTooLong": "Si más adelante quieres conectar una Toniebox CC3200, el nombre de host no puede superar los 12 caracteres (limitación del firmware).",
                 "importanceBackup": "Antes de hacer cualquier cambio en tu Toniebox, descarga y guarda de forma segura una copia del firmware original. Esto te permitirá restaurar tu Toniebox a su estado de fábrica si algo sale mal. Guárdala en varios lugares, como tu ordenador principal o portátil, un disco duro externo o memoria USB, y/o un servicio de almacenamiento en la nube de confianza (por ejemplo, Google Drive, Dropbox, OneDrive). Nunca guardes tu única copia solo en el servidor TeddyCloud.",
                 "infoTable": "Información del ESP32",
                 "invalidFlashData": "La lectura / carga del flash contiene únicamente 0x00 o 0xFF. ¡Revisa la conexión o el archivo cargado e inténtalo de nuevo!",
@@ -1831,7 +1838,8 @@
             "removeFile": "Eliminar archivo",
             "saveAs": "Guardar archivo como",
             "serverSideEncoding": "Codificación en el servidor",
-            "sortAlphabetically": "Ordenar archivos alfabéticamente",
+            "sortAlphabeticallyLiteral": "Ordenar alfabéticamente (lexicográfico)",
+            "sortAlphabeticallyNatural": "Ordenar alfabéticamente (orden numérico)",
             "targetDirectory": "Elegir directorio de destino",
             "title": "Codificador de audio",
             "tooManyFilesError": "¡Demasiados archivos!",
