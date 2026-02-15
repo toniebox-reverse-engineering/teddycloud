@@ -1,4 +1,4 @@
-FROM ubuntu:latest as buildenv
+FROM ubuntu:latest AS buildenv
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc gdb protobuf-c-compiler build-essential git zip curl
