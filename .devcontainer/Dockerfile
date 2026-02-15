@@ -1,7 +1,21 @@
-FROM ubuntu:latest as buildenv
+FROM ubuntu:latest AS buildenv
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc gdb protobuf-c-compiler build-essential git zip curl
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        gdb \
+        protobuf-c-compiler \
+        build-essential \
+        git \
+        zip \
+        curl \
+        ca-certificates \
+        openssl \
+        faketime \
+        python3 \
+        python3-dotenv-cli \
+        nodejs \
+        npm
 
 #COPY . /buildenv
 #WORKDIR /buildenv
