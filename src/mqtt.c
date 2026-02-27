@@ -114,7 +114,10 @@ error_t mqtt_sendEvent(const char *eventname, const char *content, client_ctx_t 
     char topic[MQTT_TOPIC_STRING_LENGTH];
 
     osSnprintf(topic, sizeof(topic), "%s/event/%s", settings_get_string("mqtt.topic"), eventname);
-    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), client_ctx->settings->mqtt.qosLevel, false, NULL);
+    if (!mqtt_publish(topic, content))
+    {
+        mqtt_fail = true;
+    }
 
     return NO_ERROR;
 }
