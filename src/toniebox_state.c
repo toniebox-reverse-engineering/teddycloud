@@ -137,3 +137,93 @@ void tbs_playback_system_sound(client_ctx_t *client_ctx, toniebox_state_system_s
 {
     tbs_playback(client_ctx, TBS_PLAYBACK_STOPPED);
 }
+
+uint8_t tbs_get_overlay_by_common_name(const char *common_name)
+{
+    if (!common_name)
+    {
+        return 0;
+    }
+    for (size_t i = 1; i < MAX_OVERLAYS; i++)
+    {
+        settings_t *settings = get_settings_id(i);
+        if (!settings->internal.config_used)
+        {
+            continue;
+        }
+        if (!osStrcmp(settings->commonName, common_name))
+        {
+            return (uint8_t)i;
+        }
+    }
+    return 0;
+}
+
+bool tbs_cmd_stop(uint8_t overlay_id)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS)
+    {
+        return false;
+    }
+    toniebox_state_t *state = get_toniebox_state_id(overlay_id);
+    if (state->box.stream_ctx.active && !state->box.stream_ctx.quit)
+    {
+        TRACE_INFO("CMD: Stopping active stream on overlay %" PRIu8 "\r\n", overlay_id);
+        state->box.stream_ctx.active = false;
+        sse_sendEvent("cmd", "stop", true);
+        return true;
+    }
+    TRACE_INFO("CMD: No active stream to stop on overlay %" PRIu8 "\r\n", overlay_id);
+    return false;
+}
+
+bool tbs_cmd_set_vol_limit_spk(uint8_t overlay_id, uint32_t level)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS || level > 3)
+    {
+        return false;
+    }
+    settings_t *settings = get_settings_id(overlay_id);
+    if (!settings->internal.config_used)
+    {
+        return false;
+    }
+    TRACE_INFO("CMD: Setting speaker volume limit to %" PRIu32 " on overlay %" PRIu8 "\r\n", level, overlay_id);
+    settings_set_unsigned_id("toniebox.max_vol_spk", level, overlay_id);
+    sse_sendEvent("cmd", "vol_limit_spk", true);
+    return true;
+}
+
+bool tbs_cmd_set_vol_limit_hdp(uint8_t overlay_id, uint32_t level)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS || level > 3)
+    {
+        return false;
+    }
+    settings_t *settings = get_settings_id(overlay_id);
+    if (!settings->internal.config_used)
+    {
+        return false;
+    }
+    TRACE_INFO("CMD: Setting headphone volume limit to %" PRIu32 " on overlay %" PRIu8 "\r\n", level, overlay_id);
+    settings_set_unsigned_id("toniebox.max_vol_hdp", level, overlay_id);
+    sse_sendEvent("cmd", "vol_limit_hdp", true);
+    return true;
+}
+
+bool tbs_cmd_set_led(uint8_t overlay_id, uint32_t mode)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS || mode > 2)
+    {
+        return false;
+    }
+    settings_t *settings = get_settings_id(overlay_id);
+    if (!settings->internal.config_used)
+    {
+        return false;
+    }
+    TRACE_INFO("CMD: Setting LED mode to %" PRIu32 " on overlay %" PRIu8 "\r\n", mode, overlay_id);
+    settings_set_unsigned_id("toniebox.led", mode, overlay_id);
+    sse_sendEvent("cmd", "led", true);
+    return true;
+}

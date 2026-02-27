@@ -24,6 +24,7 @@
 #include "cert.h"
 #include "esp32.h"
 #include "cache.h"
+#include "toniebox_state.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -363,6 +364,95 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "boxModel", settings->boxModel); // TODO add color name + url
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
+    }
+
+    char *jsonString = cJSON_PrintUnformatted(json);
+    cJSON_Delete(json);
+
+    httpInitResponseHeader(connection);
+    connection->response.contentType = "text/json";
+    connection->response.contentLength = osStrlen(jsonString);
+
+    return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+
+error_t handleApiBoxCommand(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char boxId[128] = {0};
+    char cmd[32] = {0};
+    char valueStr[16] = {0};
+    bool success = false;
+
+    if (!queryGet(queryString, "boxId", boxId, sizeof(boxId)))
+    {
+        httpInitResponseHeader(connection);
+        connection->response.contentType = "text/json";
+        connection->response.statusCode = 400;
+        const char *err = "{\"error\":\"missing boxId parameter\"}";
+        connection->response.contentLength = osStrlen(err);
+        return httpWriteResponse(connection, (char *)err, connection->response.contentLength, false);
+    }
+
+    if (!queryGet(queryString, "cmd", cmd, sizeof(cmd)))
+    {
+        httpInitResponseHeader(connection);
+        connection->response.contentType = "text/json";
+        connection->response.statusCode = 400;
+        const char *err = "{\"error\":\"missing cmd parameter\"}";
+        connection->response.contentLength = osStrlen(err);
+        return httpWriteResponse(connection, (char *)err, connection->response.contentLength, false);
+    }
+
+    uint8_t overlay_id = tbs_get_overlay_by_common_name(boxId);
+    if (overlay_id == 0)
+    {
+        httpInitResponseHeader(connection);
+        connection->response.contentType = "text/json";
+        connection->response.statusCode = 404;
+        const char *err = "{\"error\":\"box not found\"}";
+        connection->response.contentLength = osStrlen(err);
+        return httpWriteResponse(connection, (char *)err, connection->response.contentLength, false);
+    }
+
+    uint32_t value = 0;
+    if (queryGet(queryString, "value", valueStr, sizeof(valueStr)))
+    {
+        value = (uint32_t)atoi(valueStr);
+    }
+
+    if (!strcmp(cmd, "stop"))
+    {
+        success = tbs_cmd_stop(overlay_id);
+    }
+    else if (!strcmp(cmd, "volLimitSpk"))
+    {
+        success = tbs_cmd_set_vol_limit_spk(overlay_id, value);
+    }
+    else if (!strcmp(cmd, "volLimitHdp"))
+    {
+        success = tbs_cmd_set_vol_limit_hdp(overlay_id, value);
+    }
+    else if (!strcmp(cmd, "led"))
+    {
+        success = tbs_cmd_set_led(overlay_id, value);
+    }
+    else
+    {
+        httpInitResponseHeader(connection);
+        connection->response.contentType = "text/json";
+        connection->response.statusCode = 400;
+        const char *err = "{\"error\":\"unknown cmd, use: stop|volLimitSpk|volLimitHdp|led\"}";
+        connection->response.contentLength = osStrlen(err);
+        return httpWriteResponse(connection, (char *)err, connection->response.contentLength, false);
+    }
+
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddBoolToObject(json, "success", success);
+    cJSON_AddStringToObject(json, "cmd", cmd);
+    cJSON_AddStringToObject(json, "boxId", boxId);
+    if (strcmp(cmd, "stop") != 0)
+    {
+        cJSON_AddNumberToObject(json, "value", value);
     }
 
     char *jsonString = cJSON_PrintUnformatted(json);

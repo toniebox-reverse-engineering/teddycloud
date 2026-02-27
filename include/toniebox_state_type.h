@@ -36,6 +36,15 @@ typedef enum
     TBS_SYS_SOUND_LANG_FR_FR = 0x00000003,
 } toniebox_state_system_sound_lang_t;
 
+typedef enum
+{
+    TBS_CMD_NONE = 0,
+    TBS_CMD_STOP,
+    TBS_CMD_SET_VOL_LIMIT_SPK,
+    TBS_CMD_SET_VOL_LIMIT_HDP,
+    TBS_CMD_SET_LED,
+} toniebox_state_cmd_t;
+
 typedef struct
 {
     const char *id;
@@ -45,6 +54,8 @@ typedef struct
     uint32_t volumeLevel;
     uint32_t volumedB;
     stream_ctx_t stream_ctx;
+    toniebox_state_cmd_t pending_cmd;
+    uint32_t pending_cmd_value;
 } toniebox_state_box_t;
 
 typedef struct

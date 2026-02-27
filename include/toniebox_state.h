@@ -20,3 +20,9 @@ void tbs_playback(client_ctx_t *client_ctx, toniebox_state_playback_t playback);
 void tbs_playback_stop(client_ctx_t *client_ctx);
 void tbs_playback_file(client_ctx_t *client_ctx, char *filepath);
 void tbs_playback_system_sound(client_ctx_t *client_ctx, toniebox_state_system_sound_lang_t language, toniebox_state_system_sound_t system_sound);
+
+bool tbs_cmd_stop(uint8_t overlay_id);
+bool tbs_cmd_set_vol_limit_spk(uint8_t overlay_id, uint32_t level);
+bool tbs_cmd_set_vol_limit_hdp(uint8_t overlay_id, uint32_t level);
+bool tbs_cmd_set_led(uint8_t overlay_id, uint32_t mode);
+uint8_t tbs_get_overlay_by_common_name(const char *common_name);

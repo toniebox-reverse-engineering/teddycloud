@@ -32,6 +32,7 @@ typedef struct
 #include "debug.h"
 #include "mutex_manager.h"
 #include "mqtt.h"
+#include "toniebox_state.h"
 
 #define MQTT_BOX_INSTANCES 32
 t_ha_info *mqtt_get_box(client_ctx_t *client_ctx);
@@ -786,6 +787,99 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
     }
 }
 
+typedef struct
+{
+    uint8_t overlay_id;
+} mqtt_box_cmd_ctx_t;
+
+static mqtt_box_cmd_ctx_t mqtt_box_cmd_contexts[MQTT_BOX_INSTANCES];
+
+void mqtt_box_cmd_stop_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    TRACE_INFO("[MQTT] Received stop command for overlay %" PRIu8 "\r\n", cmd_ctx->overlay_id);
+    tbs_cmd_stop(cmd_ctx->overlay_id);
+}
+
+void mqtt_box_cmd_vol_spk_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received volLimitSpk=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_vol_limit_spk(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_vol_spk_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[8];
+    osSprintf(buf, "%" PRIu32, settings->toniebox.max_vol_spk);
+    ha_transmit(ha_info, entity, buf);
+}
+
+void mqtt_box_cmd_vol_hdp_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received volLimitHdp=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_vol_limit_hdp(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_vol_hdp_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[8];
+    osSprintf(buf, "%" PRIu32, settings->toniebox.max_vol_hdp);
+    ha_transmit(ha_info, entity, buf);
+}
+
+void mqtt_box_cmd_led_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received led=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_led(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_led_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[8];
+    osSprintf(buf, "%" PRIu32, settings->toniebox.led);
+    ha_transmit(ha_info, entity, buf);
+}
+
 error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
@@ -1001,6 +1095,70 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.type = ha_image;
     entity.url_t = "%s/ContentPicture";
     ha_add(ha_box_instance, &entity);
+
+    int cmd_ctx_idx = (int)(ha_box_instance - ha_box_instances);
+    if (cmd_ctx_idx >= 0 && cmd_ctx_idx < MQTT_BOX_INSTANCES)
+    {
+        mqtt_box_cmd_contexts[cmd_ctx_idx].overlay_id = client_ctx->settings->internal.overlayNumber;
+        mqtt_box_cmd_ctx_t *cmd_ctx = &mqtt_box_cmd_contexts[cmd_ctx_idx];
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdStop";
+        entity.name = "Stop Stream";
+        entity.type = ha_button;
+        entity.cmd_t = "%s/CmdStop/set";
+        entity.received = mqtt_box_cmd_stop_rx;
+        entity.received_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdVolLimitSpk";
+        entity.name = "Speaker Volume Limit";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdVolLimitSpk/set";
+        entity.stat_t = "%s/CmdVolLimitSpk";
+        entity.min = 0;
+        entity.max = 3;
+        entity.mode = "slider";
+        entity.ic = "mdi:volume-high";
+        entity.received = mqtt_box_cmd_vol_spk_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_vol_spk_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdVolLimitHdp";
+        entity.name = "Headphone Volume Limit";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdVolLimitHdp/set";
+        entity.stat_t = "%s/CmdVolLimitHdp";
+        entity.min = 0;
+        entity.max = 3;
+        entity.mode = "slider";
+        entity.ic = "mdi:headphones";
+        entity.received = mqtt_box_cmd_vol_hdp_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_vol_hdp_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdLed";
+        entity.name = "LED Mode";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdLed/set";
+        entity.stat_t = "%s/CmdLed";
+        entity.min = 0;
+        entity.max = 2;
+        entity.mode = "slider";
+        entity.ic = "mdi:led-on";
+        entity.received = mqtt_box_cmd_led_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_led_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+    }
 
     return NO_ERROR;
 }
