@@ -227,3 +227,37 @@ bool tbs_cmd_set_led(uint8_t overlay_id, uint32_t mode)
     sse_sendEvent("cmd", "led", true);
     return true;
 }
+
+bool tbs_cmd_set_slap_enabled(uint8_t overlay_id, bool enabled)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS)
+    {
+        return false;
+    }
+    settings_t *settings = get_settings_id(overlay_id);
+    if (!settings->internal.config_used)
+    {
+        return false;
+    }
+    TRACE_INFO("CMD: Setting slap enabled to %s on overlay %" PRIu8 "\r\n", enabled ? "true" : "false", overlay_id);
+    settings_set_bool_id("toniebox.slap_enabled", enabled, overlay_id);
+    sse_sendEvent("cmd", "slap_enabled", true);
+    return true;
+}
+
+bool tbs_cmd_set_slap_dir(uint8_t overlay_id, bool back_left)
+{
+    if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS)
+    {
+        return false;
+    }
+    settings_t *settings = get_settings_id(overlay_id);
+    if (!settings->internal.config_used)
+    {
+        return false;
+    }
+    TRACE_INFO("CMD: Setting slap direction to %s on overlay %" PRIu8 "\r\n", back_left ? "back-left" : "forw-left", overlay_id);
+    settings_set_bool_id("toniebox.slap_back_left", back_left, overlay_id);
+    sse_sendEvent("cmd", "slap_dir", true);
+    return true;
+}

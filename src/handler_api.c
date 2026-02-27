@@ -436,12 +436,20 @@ error_t handleApiBoxCommand(HttpConnection *connection, const char_t *uri, const
     {
         success = tbs_cmd_set_led(overlay_id, value);
     }
+    else if (!strcmp(cmd, "slapEnabled"))
+    {
+        success = tbs_cmd_set_slap_enabled(overlay_id, value != 0);
+    }
+    else if (!strcmp(cmd, "slapDir"))
+    {
+        success = tbs_cmd_set_slap_dir(overlay_id, value != 0);
+    }
     else
     {
         httpInitResponseHeader(connection);
         connection->response.contentType = "text/json";
         connection->response.statusCode = 400;
-        const char *err = "{\"error\":\"unknown cmd, use: stop|volLimitSpk|volLimitHdp|led\"}";
+        const char *err = "{\"error\":\"unknown cmd, use: stop|volLimitSpk|volLimitHdp|led|slapEnabled|slapDir\"}";
         connection->response.contentLength = osStrlen(err);
         return httpWriteResponse(connection, (char *)err, connection->response.contentLength, false);
     }

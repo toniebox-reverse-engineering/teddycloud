@@ -25,4 +25,6 @@ bool tbs_cmd_stop(uint8_t overlay_id);
 bool tbs_cmd_set_vol_limit_spk(uint8_t overlay_id, uint32_t level);
 bool tbs_cmd_set_vol_limit_hdp(uint8_t overlay_id, uint32_t level);
 bool tbs_cmd_set_led(uint8_t overlay_id, uint32_t mode);
+bool tbs_cmd_set_slap_enabled(uint8_t overlay_id, bool enabled);
+bool tbs_cmd_set_slap_dir(uint8_t overlay_id, bool back_left);
 uint8_t tbs_get_overlay_by_common_name(const char *common_name);

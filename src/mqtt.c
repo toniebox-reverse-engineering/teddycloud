@@ -883,6 +883,52 @@ void mqtt_box_cmd_led_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ct
     ha_transmit(ha_info, entity, buf);
 }
 
+void mqtt_box_cmd_slap_en_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    bool enabled = !osStrcasecmp(payload, "TRUE");
+    TRACE_INFO("[MQTT] Received slapEnabled=%s for overlay %" PRIu8 "\r\n", enabled ? "true" : "false", cmd_ctx->overlay_id);
+    tbs_cmd_set_slap_enabled(cmd_ctx->overlay_id, enabled);
+}
+
+void mqtt_box_cmd_slap_en_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    ha_transmit(ha_info, entity, settings->toniebox.slap_enabled ? "TRUE" : "FALSE");
+}
+
+void mqtt_box_cmd_slap_dir_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    bool back_left = !osStrcasecmp(payload, "TRUE");
+    TRACE_INFO("[MQTT] Received slapDir=%s for overlay %" PRIu8 "\r\n", back_left ? "back-left" : "forw-left", cmd_ctx->overlay_id);
+    tbs_cmd_set_slap_dir(cmd_ctx->overlay_id, back_left);
+}
+
+void mqtt_box_cmd_slap_dir_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    ha_transmit(ha_info, entity, settings->toniebox.slap_back_left ? "TRUE" : "FALSE");
+}
+
 error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
 {
     t_ha_entity entity;
@@ -1159,6 +1205,32 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
         entity.received = mqtt_box_cmd_led_rx;
         entity.received_ctx = cmd_ctx;
         entity.transmit = mqtt_box_cmd_led_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdSlapEnabled";
+        entity.name = "Slap to Skip";
+        entity.type = ha_switch;
+        entity.cmd_t = "%s/CmdSlapEnabled/set";
+        entity.stat_t = "%s/CmdSlapEnabled";
+        entity.ic = "mdi:gesture-tap";
+        entity.received = mqtt_box_cmd_slap_en_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_slap_en_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdSlapDirection";
+        entity.name = "Slap Direction";
+        entity.type = ha_switch;
+        entity.cmd_t = "%s/CmdSlapDirection/set";
+        entity.stat_t = "%s/CmdSlapDirection";
+        entity.ic = "mdi:swap-horizontal";
+        entity.received = mqtt_box_cmd_slap_dir_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_slap_dir_tx;
         entity.transmit_ctx = cmd_ctx;
         ha_add(ha_box_instance, &entity);
     }
