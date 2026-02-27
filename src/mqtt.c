@@ -828,8 +828,8 @@ void mqtt_box_cmd_vol_spk_tx(t_ha_info *ha_info, const t_ha_entity *entity, void
         return;
     }
     settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
-    char buf[8];
-    osSprintf(buf, "%" PRIu32, settings->toniebox.max_vol_spk);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.max_vol_spk);
     ha_transmit(ha_info, entity, buf);
 }
 
@@ -853,8 +853,8 @@ void mqtt_box_cmd_vol_hdp_tx(t_ha_info *ha_info, const t_ha_entity *entity, void
         return;
     }
     settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
-    char buf[8];
-    osSprintf(buf, "%" PRIu32, settings->toniebox.max_vol_hdp);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.max_vol_hdp);
     ha_transmit(ha_info, entity, buf);
 }
 
@@ -878,8 +878,8 @@ void mqtt_box_cmd_led_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ct
         return;
     }
     settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
-    char buf[8];
-    osSprintf(buf, "%" PRIu32, settings->toniebox.led);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.led);
     ha_transmit(ha_info, entity, buf);
 }
 
