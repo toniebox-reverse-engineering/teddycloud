@@ -89,13 +89,13 @@
 // Secure renegotiation support
 #define TLS_SECURE_RENEGOTIATION_SUPPORT ENABLED
 // Fallback SCSV support
-#define TLS_FALLBACK_SCSV_SUPPORT DISABLED
+#define TLS_FALLBACK_SCSV_SUPPORT ENABLED
 
 // Maximum number of certificates the end entity can load
 #define TLS_MAX_CERTIFICATES 4
 
 // RSA key exchange support
-#define TLS_RSA_KE_SUPPORT DISABLED
+#define TLS_RSA_KE_SUPPORT ENABLED
 // DHE_RSA key exchange support
 #define TLS_DHE_RSA_KE_SUPPORT ENABLED
 // DHE_DSS key exchange support
@@ -105,7 +105,7 @@
 // ECDHE_RSA key exchange support
 #define TLS_ECDHE_RSA_KE_SUPPORT ENABLED
 // ECDHE_ECDSA key exchange support
-#define TLS_ECDHE_ECDSA_KE_SUPPORT DISABLED
+#define TLS_ECDHE_ECDSA_KE_SUPPORT ENABLED
 // ECDH_anon key exchange support (insecure)
 #define TLS_ECDH_ANON_KE_SUPPORT DISABLED
 // PSK key exchange support
@@ -135,7 +135,7 @@
 // DSA signature capability
 #define TLS_DSA_SIGN_SUPPORT DISABLED
 // ECDSA signature capability
-#define TLS_ECDSA_SIGN_SUPPORT DISABLED
+#define TLS_ECDSA_SIGN_SUPPORT ENABLED
 // EdDSA signature capability
 #define TLS_EDDSA_SIGN_SUPPORT DISABLED
 

@@ -189,7 +189,7 @@
 // ECDH support
 #define ECDH_SUPPORT ENABLED
 // ECDSA support
-#define ECDSA_SUPPORT DISABLED
+#define ECDSA_SUPPORT ENABLED
 
 // secp112r1 elliptic curve support
 #define SECP112R1_SUPPORT DISABLED
