@@ -218,7 +218,7 @@
 // secp256r1 elliptic curve support
 #define TLS_SECP256R1_SUPPORT ENABLED
 // secp384r1 elliptic curve support
-#define TLS_SECP384R1_SUPPORT DISABLED
+#define TLS_SECP384R1_SUPPORT ENABLED
 // secp521r1 elliptic curve support
 #define TLS_SECP521R1_SUPPORT DISABLED
 // brainpoolP256r1 elliptic curve support

@@ -659,6 +659,11 @@ error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tl
     if (error)
         return error;
 
+    // Enable secure renegotiation, otherwise modern OpenSSL clients (e.g., Python 3 requests) reject the connection
+    error = tlsEnableSecureRenegotiation(tlsContext, TRUE);
+    if (error)
+        return error;
+
     // Client authentication
     error = tlsSetClientAuthMode(tlsContext, authMode);
     // Any error to report?

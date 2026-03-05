@@ -218,7 +218,7 @@
 // secp256r1 elliptic curve support (NIST P-256)
 #define SECP256R1_SUPPORT ENABLED
 // secp384r1 elliptic curve support (NIST P-384)
-#define SECP384R1_SUPPORT DISABLED
+#define SECP384R1_SUPPORT ENABLED
 // secp521r1 elliptic curve support (NIST P-521)
 #define SECP521R1_SUPPORT DISABLED
 // brainpoolP160r1 elliptic curve support
