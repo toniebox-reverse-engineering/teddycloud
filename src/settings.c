@@ -232,9 +232,11 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.enableV1Claim", &settings->cloud.enableV1Claim, TRUE, "Forward 'claim'", "Forward 'claim' queries to claim tonies in the household in the tonies cloud", LEVEL_BASIC)
     OPTION_BOOL("cloud.enableV1CloudReset", &settings->cloud.enableV1CloudReset, FALSE, "Forward 'cloudReset'", "Forward 'cloudReset' queries to tonies cloud", LEVEL_DETAIL)
     OPTION_BOOL("cloud.enableV1FreshnessCheck", &settings->cloud.enableV1FreshnessCheck, TRUE, "Forward 'freshnessCheck'", "Forward 'freshnessCheck' queries to mark new content as updated to tonies cloud", LEVEL_DETAIL)
+    OPTION_BOOL("cloud.enableV3FreshnessCheck", &settings->cloud.enableV3FreshnessCheck, TRUE, "Forward 'freshnessCheck' v3", "Forward 'freshnessCheck' v3 queries to mark new content as updated to tonies cloud", LEVEL_DETAIL)
     OPTION_BOOL("cloud.enableV1Log", &settings->cloud.enableV1Log, FALSE, "Forward 'log'", "Forward 'log' queries to tonies cloud", LEVEL_EXPERT)
     OPTION_BOOL("cloud.enableV1Time", &settings->cloud.enableV1Time, FALSE, "Forward 'time'", "Forward 'time' queries to tonies cloud", LEVEL_EXPERT)
     OPTION_BOOL("cloud.enableV1Ota", &settings->cloud.enableV1Ota, FALSE, "Forward 'ota'", "Forward 'ota' queries to tonies cloud", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.enableV3Ota", &settings->cloud.enableV3Ota, TRUE, "Forward 'check-ota' v3", "Forward 'check-ota' v3 queries to tonies cloud", LEVEL_EXPERT)
     OPTION_BOOL("cloud.enableV2Content", &settings->cloud.enableV2Content, TRUE, "Forward 'content'", "Forward 'content' queries to download content from the tonies cloud", LEVEL_BASIC)
     OPTION_BOOL("cloud.cacheOta", &settings->cloud.cacheOta, TRUE, "Cache OTA", "Cache OTA files in firmware dir of local server (this still blocks OTA if local OTA delivery is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.localOta", &settings->cloud.localOta, FALSE, "Local OTA delivery", "Send local OTA files in firmware dir", LEVEL_EXPERT)
@@ -1712,12 +1714,13 @@ bool test_boxine_ca(uint8_t settingsId)
     const char *client_ca_crt = settings_get_string_id("internal.client.ca", settingsId);
 
     size_t boxine_ca_length = 2008;
+    size_t tb2_ca_length = 898;
     size_t ca_length = osStrlen(client_ca_crt);
     if (ca_length > 0)
     {
-        if (ca_length != boxine_ca_length)
+        if (ca_length != boxine_ca_length && ca_length != tb2_ca_length)
         {
-            TRACE_WARNING("Client CA length mismatch %" PRIuSIZE " expected %" PRIuSIZE "\r\n", ca_length, boxine_ca_length);
+            TRACE_WARNING("Client CA length mismatch %" PRIuSIZE " expected %" PRIuSIZE " or %" PRIuSIZE "\r\n", ca_length, boxine_ca_length, tb2_ca_length);
             return false;
         }
         else

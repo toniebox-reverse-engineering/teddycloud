@@ -194,7 +194,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
         req_cbr_t cbr;
         if (client_ctx->settings->cloud.cacheOta)
         {
-            cbr = getCloudOtaCbr(NULL, uri, queryStringNew, &ctx, client_ctx);
+            cbr = getCloudOtaCbr(NULL, uri, queryStringNew, V1_OTA, &ctx, client_ctx);
         }
         else
         {
@@ -994,6 +994,213 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
         return NO_ERROR;
     }
     return NO_ERROR;
+}
+
+error_t handleCloudFreshnessCheckV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint8_t data[BODY_BUFFER_SIZE];
+    size_t size;
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudFreshnessCheckTime", current_time, client_ctx);
+
+    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        return ERROR_FAILURE;
+    }
+
+    error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!\r\n");
+        return error;
+    }
+
+    // null terminate body if it fits
+    if (size < BODY_BUFFER_SIZE) {
+        data[size] = '\0';
+    }
+
+    TRACE_INFO("V3 Freshness check request (%" PRIuSIZE " of %" PRIuSIZE "): %s\n", size, connection->request.byteCount, data);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3FreshnessCheck)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_FRESHNESS_CHECK, &ctx, client_ctx);
+        if (!cloud_request_post(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, data, size, NULL, &cbr))
+        {
+            return NO_ERROR;
+        }
+    }
+
+    // Skip passthrough for now, reply with empty array
+    const char *response_json = "{\"items\": []}";
+    size_t dataLen = osStrlen(response_json);
+
+    TRACE_INFO("V3 Freshness check response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
+    return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+}
+
+error_t handleCloudCheckOtaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint8_t data[BODY_BUFFER_SIZE];
+    size_t size;
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudCheckOtaTime", current_time, client_ctx);
+
+    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        return ERROR_FAILURE;
+    }
+
+    error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!\r\n");
+        return error;
+    }
+
+    // null terminate body if it fits
+    if (size < BODY_BUFFER_SIZE) {
+        data[size] = '\0';
+    }
+
+    TRACE_INFO("V3 Check OTA request (%" PRIuSIZE " of %" PRIuSIZE "): %s\n", size, connection->request.byteCount, data);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Ota)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_CHECK_OTA, &ctx, client_ctx);
+        if (!cloud_request_post(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, data, size, NULL, &cbr))
+        {
+            return NO_ERROR;
+        }
+    }
+
+    // Skip passthrough for now, reply with empty object
+    const char *response_json = "{}";
+    size_t dataLen = osStrlen(response_json);
+
+    TRACE_INFO("V3 Check OTA response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
+    return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+}
+
+error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    error_t ret = NO_ERROR;
+    char *query = strdup(queryString);
+    char *localUri = strdup(uri);
+    char *savelocalUri = localUri;
+    
+    char *typeStr = strtok_r(&localUri[8], "/", &savelocalUri);
+    char *hash = strtok_r(NULL, "?", &savelocalUri);
+    
+    if (!typeStr || !hash) {
+        osFreeMem(localUri);    
+        osFreeMem(query);
+        return ERROR_FAILURE;
+    }
+    
+    cloudapi_ota_t fileId = (cloudapi_ota_t)atoi(typeStr);
+    
+    TRACE_INFO(" >> V3 OTA-Request for type %d with hash %s\r\n", fileId, hash);
+
+    char *folder;
+    switch (client_ctx->settings->internal.toniebox_firmware.boxIC)
+    {
+    case BOX_CC3200:
+        folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+        break;
+    case BOX_CC3235:
+        folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+        break;
+    case BOX_ESP32:
+        folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+        break;
+    default:
+        folder = strdup("");
+        break;
+    }
+    char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, fileId, PATH_SEPARATOR);
+    osFreeMem(folder);
+
+    // Provide the original URI and everything to cache it
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudOtaTime", current_time, client_ctx);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Ota)
+    {
+        ota_ctx_t ota_ctx;
+        cbr_ctx_t ctx;
+        req_cbr_t cbr;
+        
+        if (client_ctx->settings->cloud.cacheOta)
+        {
+            cbr = getCloudOtaCbr(NULL, uri, queryString, V3_OTA, &ctx, client_ctx);
+        }
+        else
+        {
+            cbr = getCloudCbr(connection, uri, queryString, V3_OTA, &ctx, client_ctx);
+        }
+        ota_ctx.fileId = fileId;
+        ctx.customData = &ota_ctx;
+        cloud_request_get(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, NULL, &cbr);
+
+        if (!client_ctx->settings->cloud.cacheOta)
+        {
+            osFreeMem(local_dir);
+            osFreeMem(query);
+            osFreeMem(localUri);
+            return ret;
+        }
+    }
+
+    char *local_file = custom_asprintf("%s%s.bin", local_dir, hash);
+    bool new_ota = false;
+    
+    if (fsFileExists(local_file))
+    {
+        if (client_ctx->settings->cloud.localOta)
+        {
+            TRACE_INFO(" >> Found OTA %" PRIu8 " with hash %s\r\n", fileId, hash);
+            new_ota = true;
+        }
+        else
+        {
+            TRACE_INFO(" >> Found OTA %" PRIu8 " with hash %s but local OTA disabled\r\n", fileId, hash);
+        }
+    }
+    else
+    {
+        TRACE_INFO(" >> No OTA found for %" PRIu8 " %s\r\n", fileId, hash);
+    }
+    
+    if (new_ota)
+    {
+        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+    }
+    else
+    {
+        httpPrepareHeader(connection, NULL, 0);
+        connection->response.statusCode = 404; // Not found locally (or ignored)
+        ret = httpWriteResponse(connection, NULL, 0, false);
+    }
+
+    osFreeMem(local_file);
+    osFreeMem(local_dir);
+    osFreeMem(query);
+    osFreeMem(localUri);
+    return ret;
 }
 
 error_t handleCloudReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)

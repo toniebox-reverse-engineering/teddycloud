@@ -21,9 +21,9 @@ void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *qu
     }
 }
 
-req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
+req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
-    fillBaseCtx(connection, uri, queryString, V1_OTA, ctx, client_ctx);
+    fillBaseCtx(connection, uri, queryString, api, ctx, client_ctx);
 
     req_cbr_t cbr = {
         .ctx = ctx,
@@ -113,6 +113,59 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
                         osFreeMem(local_filename_tmp);
                     }
                 }
+            }
+            if (!header && ctx->api == V3_OTA && ctx->file == NULL)
+            {
+                ota_ctx_t *ota_ctx = (ota_ctx_t *)ctx->customData;
+                char *localUri = strdup(ctx->uri);
+                char *savelocalUri = localUri;
+                strtok_r(&localUri[8], "/", &savelocalUri); // ignore type
+                char *hash = strtok_r(NULL, "?", &savelocalUri);
+                if (hash)
+                {
+                    char *folder;
+                    switch (ctx->client_ctx->settings->internal.toniebox_firmware.boxIC)
+                    {
+                    case BOX_CC3200:
+                        folder = custom_asprintf("cc3200%c", PATH_SEPARATOR);
+                        break;
+                    case BOX_CC3235:
+                        folder = custom_asprintf("cc3235%c", PATH_SEPARATOR);
+                        break;
+                    case BOX_ESP32:
+                        folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+                        break;
+                    default:
+                        folder = strdup("");
+                        break;
+                    }
+                    char *local_dir = custom_asprintf("%s%cota%c%s%" PRIu8 "%c", ctx->client_ctx->settings->internal.firmwaredirfull, PATH_SEPARATOR, PATH_SEPARATOR, folder, ota_ctx->fileId, PATH_SEPARATOR);
+                    char *local_filename = custom_asprintf("%s%s.bin", local_dir, hash);
+                    char *local_filename_tmp = custom_asprintf("%s.tmp", local_filename);
+                    osFreeMem(folder);
+
+                    fsCreateDirEx(local_dir, true);
+                    if (!fsFileExists(local_filename))
+                    {
+                        ctx->file = fsOpenFile(local_filename_tmp, FS_FILE_MODE_WRITE);
+                        if (ctx->file == NULL)
+                        {
+                            TRACE_ERROR(">> Could not open file %s\r\n", local_filename_tmp);
+                        }
+                        else
+                        {
+                            ctx->customData = strdup(local_filename);
+                        }
+                    }
+                    else
+                    {
+                        TRACE_WARNING(">> File %s already exists, no ota caching\r\n", local_filename);
+                    }
+                    osFreeMem(local_dir);
+                    osFreeMem(local_filename);
+                    osFreeMem(local_filename_tmp);
+                }
+                osFreeMem(localUri);
             }
         }
     }
@@ -208,6 +261,9 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
             passthrough = false;
         }
         break;
+    case V3_FRESHNESS_CHECK:
+    case V3_CHECK_OTA:
+        break; // explicit passthrough
     default:
         break;
     }

@@ -74,9 +74,11 @@ typedef struct
     bool enableV1Claim;
     bool enableV1CloudReset;
     bool enableV1FreshnessCheck;
+    bool enableV3FreshnessCheck;
     bool enableV1Log;
     bool enableV1Time;
     bool enableV1Ota;
+    bool enableV3Ota;
     bool enableV2Content;
     bool cacheOta;
     bool localOta;

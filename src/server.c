@@ -160,7 +160,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/cacheStats", SERTY_WEB, &handleApiCacheStats},
     {REQ_GET, "/api/sse", SERTY_WEB, &handleApiSse},
     {REQ_GET, "/robots.txt", SERTY_WEB, &handleSecMitRobotsTxt},
-    /* official tonies API */
+    /* official tonies (TB1) API */
     {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
     {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
     {REQ_GET, "/v1/claim", SERTY_BOTH, &handleCloudClaim},
@@ -168,7 +168,11 @@ request_type_t request_paths[] = {
     {REQ_GET, "/v2/content", SERTY_BOTH, &handleCloudContentV2},
     {REQ_POST, "/v1/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheck},
     {REQ_POST, "/v1/log", SERTY_BOTH, &handleCloudLog},
-    {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset}};
+    {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset},
+    /* official tonies API (TB2) */
+    {REQ_POST, "/v3/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheckV3},
+    {REQ_POST, "/v3/check-ota", SERTY_BOTH, &handleCloudCheckOtaV3},
+    {REQ_GET, "/v3/ota", SERTY_BOTH, &handleCloudOtaV3}};
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -305,13 +309,18 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         char_t *subject = connection->tlsContext->client_cert_subject;
         char_t *issuer = connection->tlsContext->client_cert_issuer;
 
-        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL)
+        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "Toniebox SubCA") != NULL
+            || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL || osStrstr(issuer, "Toniebox Root CA") != NULL)
         {
+            char_t *commonName = NULL;
             if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
             {
-                char_t *commonName;
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
+            } else if (osStrlen(subject) == 12) {
+                commonName = strdup(subject);
+            }
+            if (commonName != NULL) {
                 if (get_overlay_id(commonName) == 0)
                 {
                     if (client_ctx->settings->core.allowNewBox)
