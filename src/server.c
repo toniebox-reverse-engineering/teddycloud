@@ -356,11 +356,13 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 settings_internal_toniebox_firmware_t *firmware_info = &client_ctx->settings->internal.toniebox_firmware;
 
                 char *espDetectNew = "toniebox-esp32-";
+                char *tb2DetectNew = "TB2/";
 
                 char *tbV = osStrstr(ua, "TB/");
                 char *tbSp = osStrstr(ua, "SP/");
                 char *tbHw = osStrstr(ua, "HW/");
                 char *tbEsp = osStrstr(ua, espDetectNew);
+                char *tb2 = osStrstr(ua, tb2DetectNew);
                 char *buffer;
                 char *spacePos;
 
@@ -368,6 +370,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 time_t spVersionTime = 0;
                 time_t hwVersionTime = 0;
                 char *fwEsp = NULL;
+                char *fwTb2 = NULL;
 
                 if (tbV != NULL)
                 {
@@ -406,6 +409,10 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 {
                     fwEsp = tbEsp + osStrlen(espDetectNew);
                 }
+                if (tb2 != NULL)
+                {
+                    fwTb2 = tb2 + osStrlen(tb2DetectNew);
+                }
 
                 if (fwVersionTime > 0)
                 {
@@ -436,6 +443,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                     {
                         settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx->settings->internal.overlayNumber);
                     }
+                }
+                else if (fwTb2 != NULL)
+                {
+                    // TB2 User-Agent: TB2/1.0.22-92f57d4
+                    client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_TB2;
+                    // TODO: Parse the fwTb2 version
                 }
                 else
                 {

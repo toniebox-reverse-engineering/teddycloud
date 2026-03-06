@@ -81,6 +81,9 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
                         case BOX_ESP32:
                             folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
                             break;
+                        case BOX_TB2:
+                            folder = custom_asprintf("tb2%c", PATH_SEPARATOR);
+                            break;
                         default:
                             folder = strdup("");
                             break;
@@ -134,6 +137,9 @@ void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *
                         break;
                     case BOX_ESP32:
                         folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+                        break;
+                    case BOX_TB2:
+                        folder = custom_asprintf("tb2%c", PATH_SEPARATOR);
                         break;
                     default:
                         folder = strdup("");

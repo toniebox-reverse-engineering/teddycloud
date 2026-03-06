@@ -124,6 +124,9 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     case BOX_ESP32:
         folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
         break;
+    case BOX_TB2:
+        folder = custom_asprintf("tb2%c", PATH_SEPARATOR);
+        break;
     default:
         folder = strdup("");
         break;
@@ -1125,6 +1128,9 @@ error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const ch
         break;
     case BOX_ESP32:
         folder = custom_asprintf("esp32%c", PATH_SEPARATOR);
+        break;
+    case BOX_TB2:
+        folder = custom_asprintf("tb2%c", PATH_SEPARATOR);
         break;
     default:
         folder = strdup("");

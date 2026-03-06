@@ -142,6 +142,9 @@ error_t mqtt_sendBoxEvent(const char *eventname, const char *content, client_ctx
     case BOX_ESP32:
         osSnprintf(hw, sizeof(hw), "ESP32");
         break;
+    case BOX_TB2:
+        osSnprintf(hw, sizeof(hw), "TB2");
+        break;
     case BOX_UNKNOWN:
         break;
     }

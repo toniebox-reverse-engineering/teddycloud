@@ -53,6 +53,7 @@ typedef enum
     BOX_CC3200 = 1,
     BOX_CC3235 = 2,
     BOX_ESP32 = 3,
+    BOX_TB2 = 4,
 } settings_box_type;
 
 typedef enum
