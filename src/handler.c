@@ -269,6 +269,9 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
         break;
     case V3_FRESHNESS_CHECK:
     case V3_CHECK_OTA:
+    case V3_SETUP_STATUS:
+    case V3_CHAPTER:
+    case V3_CONTENT_META:
         break; // explicit passthrough
     default:
         break;

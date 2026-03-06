@@ -34,10 +34,13 @@ typedef enum
     V2_CONTENT,
     V1_FRESHNESS_CHECK,
     V1_LOG,
-    V1_CLOUDRESET = 8,
-    V3_FRESHNESS_CHECK = 9,
-    V3_CHECK_OTA = 10,
-    V3_OTA = 11,
+    V1_CLOUDRESET,
+    V3_FRESHNESS_CHECK,
+    V3_CHECK_OTA,
+    V3_OTA,
+    V3_SETUP_STATUS,
+    V3_CHAPTER,
+    V3_CONTENT_META = 14,
 } cloudapi_t;
 
 typedef enum

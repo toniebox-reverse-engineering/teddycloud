@@ -172,7 +172,10 @@ request_type_t request_paths[] = {
     /* official tonies API (TB2) */
     {REQ_POST, "/v3/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheckV3},
     {REQ_POST, "/v3/check-ota", SERTY_BOTH, &handleCloudCheckOtaV3},
-    {REQ_GET, "/v3/ota", SERTY_BOTH, &handleCloudOtaV3}};
+    {REQ_GET, "/v3/ota", SERTY_BOTH, &handleCloudOtaV3},
+    {REQ_POST, "/v3/setup-status", SERTY_BOTH, &handleCloudSetupStatusV3},
+    {REQ_GET, "/v3/chapter", SERTY_BOTH, &handleCloudChapterV3},
+    {REQ_GET, "/v3/content-meta", SERTY_BOTH, &handleCloudContentMetaV3}};
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {

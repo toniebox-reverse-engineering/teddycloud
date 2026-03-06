@@ -81,6 +81,9 @@ typedef struct
     bool enableV1Ota;
     bool enableV3Ota;
     bool enableV2Content;
+    bool enableV3SetupStatus;
+    bool enableV3ContentMeta;
+    bool enableV3Chapter;
     bool cacheOta;
     bool localOta;
     bool cacheContent;

@@ -1097,6 +1097,101 @@ error_t handleCloudCheckOtaV3(HttpConnection *connection, const char_t *uri, con
     return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
 }
 
+error_t handleCloudSetupStatusV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    uint8_t data[BODY_BUFFER_SIZE];
+    size_t size;
+
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudSetupStatusTime", current_time, client_ctx);
+
+    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+        return ERROR_FAILURE;
+    }
+
+    error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+    if (error != NO_ERROR)
+    {
+        TRACE_ERROR("httpReceive failed!\r\n");
+        return error;
+    }
+
+    if (size < BODY_BUFFER_SIZE) {
+        data[size] = '\0';
+    }
+
+    TRACE_INFO("V3 Setup Status request (%" PRIuSIZE " of %" PRIuSIZE "): %s\n", size, connection->request.byteCount, data);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3SetupStatus)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_SETUP_STATUS, &ctx, client_ctx);
+        if (!cloud_request_post(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, data, size, NULL, &cbr))
+        {
+            return NO_ERROR;
+        }
+    }
+
+    const char *response_json = "";
+    size_t dataLen = osStrlen(response_json);
+
+    TRACE_INFO("V3 Setup Status response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
+    return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+}
+
+error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudContentMetaTime", current_time, client_ctx);
+
+    TRACE_INFO("V3 Content Meta request: %s\n", uri);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3ContentMeta)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_CONTENT_META, &ctx, client_ctx);
+        if (!cloud_request_get(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, connection->private.authentication_token, &cbr))
+        {
+            return NO_ERROR;
+        }
+    }
+
+    httpPrepareHeader(connection, NULL, 0);
+    connection->response.statusCode = 404;
+    return httpWriteResponse(connection, NULL, 0, false);
+}
+
+error_t handleCloudChapterV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char current_time[64];
+    time_format_current(current_time);
+    mqtt_sendBoxEvent("LastCloudChapterTime", current_time, client_ctx);
+
+    TRACE_INFO("V3 Chapter request: %s\n", uri);
+
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Chapter)
+    {
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_CHAPTER, &ctx, client_ctx);
+        // Note: chapter uses a query parameter `auth=...` which is extracted in handler if we need it, but proxying it just passes URI+Query.
+        // We will pass the authentication token if available, though for V3_CHAPTER it seems to use `?auth=XXX` anyway.
+        if (!cloud_request_get(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, NULL, &cbr))
+        {
+            return NO_ERROR;
+        }
+    }
+
+    httpPrepareHeader(connection, NULL, 0);
+    connection->response.statusCode = 404;
+    return httpWriteResponse(connection, NULL, 0, false);
+}
+
 error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     error_t ret = NO_ERROR;
