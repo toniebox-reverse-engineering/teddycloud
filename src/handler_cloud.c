@@ -16,6 +16,7 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 #include "tonie_audio_playlist.h"
+#include "cJSON.h"
 
 #include <byteswap.h>
 
@@ -814,6 +815,125 @@ void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioI
     }
 }
 
+void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckRequest *freshReq, TonieFreshnessCheckResponse *freshResp, TonieFreshnessCheckRequest *freshReqCloud, size_t *freshnessCacheLenOut)
+{
+    settings_t *settings = client_ctx->settings;
+    TRACE_INFO("Found %" PRIuSIZE " tonies:\n", freshReq->n_tonie_infos);
+    freshResp->n_tonie_marked = 0;
+
+    size_t freshnessCacheLen = 0;
+    uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", settings->internal.overlayNumber, &freshnessCacheLen);
+    if (freshnessCacheLenOut) *freshnessCacheLenOut = freshnessCacheLen;
+    
+    freshResp->tonie_marked = malloc(sizeof(uint64_t) * (freshReq->n_tonie_infos + freshnessCacheLen));
+
+    for (size_t i = 0; i < freshnessCacheLen; i++)
+    {
+        bool requested = false;
+        for (size_t j = 0; j < freshReq->n_tonie_infos; j++)
+        {
+            if (freshReq->tonie_infos[j]->uid == freshnessCache[i])
+            {
+                requested = true;
+                break;
+            }
+        }
+        if (!requested)
+        {
+            freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshnessCache[i];
+        }
+    }
+
+    freshReqCloud->n_tonie_infos = 0;
+    freshReqCloud->tonie_infos = malloc(sizeof(TonieFCInfo *) * freshReq->n_tonie_infos);
+
+    for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
+    {
+        uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
+        tonie_info_t *tonieInfo;
+        tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, false, settings);
+
+        char date_buffer_box[32];
+        bool_t custom_box;
+        char date_buffer_server[32];
+        bool_t custom_server = FALSE;
+
+        checkAudioIdForCustom(&custom_box, date_buffer_box, boxAudioId);
+
+        if (custom_box)
+            boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+        uint32_t serverAudioId = 0;
+        if (tonieInfo->valid)
+        {
+            serverAudioId = tonieInfo->tafHeader->audio_id;
+            checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
+
+            if (custom_server)
+                serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
+
+            tonieInfo->updated = boxAudioId < serverAudioId;
+            tonieInfo->updated = tonieInfo->updated || (settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
+            if (settings->cloud.prioCustomContent && !settings->cloud.updateOnLowerAudioId)
+            {
+                if (custom_box && !custom_server)
+                    tonieInfo->updated = false;
+                if (!custom_box && custom_server)
+                    tonieInfo->updated = true;
+            }
+        }
+
+        if (!tonieInfo->json.nocloud)
+        {
+            freshReqCloud->tonie_infos[freshReqCloud->n_tonie_infos] = freshReq->tonie_infos[i];
+            if (tonieInfo->valid)
+            {
+                freshReqCloud->tonie_infos[freshReqCloud->n_tonie_infos]->audio_id = serverAudioId;
+            }
+            freshReqCloud->n_tonie_infos++;
+        }
+
+        bool isFlex = false;
+
+        char uid[17];
+        osSprintf(uid, "%016" PRIX64, freshReq->tonie_infos[i]->uid);
+
+        if (settings->core.flex_enabled && !osStrcasecmp(settings->core.flex_uid, uid))
+        {
+            isFlex = true;
+        }
+        (void)custom_box;
+        (void)custom_server;
+        TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
+                   freshReq->tonie_infos[i]->uid,
+                   tonieInfo->json.nocloud,
+                   tonieInfo->json.live || isFlex || (tonieInfo->json._source_type == CT_SOURCE_STREAM),
+                   tonieInfo->updated,
+                   boxAudioId,
+                   date_buffer_box,
+                   custom_box ? ", custom" : "");
+
+        if (tonieInfo->valid)
+        {
+            TRACE_INFO_RESUME(", audioid-tc: %08X (%s%s)",
+                              serverAudioId,
+                              date_buffer_server,
+                              custom_server ? ", custom" : "");
+        }
+        TRACE_INFO_RESUME("\r\n");
+        if (!tonieInfo->valid)
+        {
+            content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
+        }
+
+        if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || isFlex)
+        {
+            freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
+        }
+        freeTonieInfo(tonieInfo);
+    }
+}
+
 error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     uint8_t data[BODY_BUFFER_SIZE];
@@ -845,122 +965,13 @@ error_t handleCloudFreshnessCheck(HttpConnection *connection, const char_t *uri,
         }
         else
         {
-            TRACE_INFO("Found %" PRIuSIZE " tonies:\n", freshReq->n_tonie_infos);
             TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
-            freshResp.n_tonie_marked = 0;
-
-            size_t freshnessCacheLen = 0;
-            uint64_t *freshnessCache = settings_get_u64_array_id("internal.freshnessCache", client_ctx->settings->internal.overlayNumber, &freshnessCacheLen);
-            freshResp.tonie_marked = malloc(sizeof(uint64_t) * (freshReq->n_tonie_infos + freshnessCacheLen));
-
-            for (size_t i = 0; i < freshnessCacheLen; i++)
-            {
-                bool requested = false;
-                for (size_t j = 0; j < freshReq->n_tonie_infos; j++)
-                {
-                    if (freshReq->tonie_infos[j]->uid == freshnessCache[i])
-                    {
-                        requested = true;
-                        break;
-                    }
-                }
-                if (!requested)
-                {
-                    freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshnessCache[i];
-                }
-            }
-
             TonieFreshnessCheckRequest freshReqCloud = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
-            freshReqCloud.n_tonie_infos = 0;
-            freshReqCloud.tonie_infos = malloc(sizeof(TonieFCInfo *) * freshReq->n_tonie_infos);
+            size_t freshnessCacheLen = 0;
 
-            for (uint16_t i = 0; i < freshReq->n_tonie_infos; i++)
-            {
-                uint32_t boxAudioId = freshReq->tonie_infos[i]->audio_id;
-                tonie_info_t *tonieInfo;
-                tonieInfo = getTonieInfoFromUid(freshReq->tonie_infos[i]->uid, false, client_ctx->settings);
+            process_freshness_check(client_ctx, freshReq, &freshResp, &freshReqCloud, &freshnessCacheLen);
 
-                char date_buffer_box[32];
-                bool_t custom_box;
-                char date_buffer_server[32];
-                bool_t custom_server = FALSE;
-
-                checkAudioIdForCustom(&custom_box, date_buffer_box, boxAudioId);
-
-                if (custom_box)
-                    boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
-
-                uint32_t serverAudioId = 0;
-                if (tonieInfo->valid)
-                {
-                    serverAudioId = tonieInfo->tafHeader->audio_id;
-                    checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
-
-                    if (custom_server)
-                        serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
-
-                    tonieInfo->updated = boxAudioId < serverAudioId;
-                    tonieInfo->updated = tonieInfo->updated || (client_ctx->settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
-                    if (client_ctx->settings->cloud.prioCustomContent && !client_ctx->settings->cloud.updateOnLowerAudioId)
-                    {
-                        if (custom_box && !custom_server)
-                            tonieInfo->updated = false;
-                        if (!custom_box && custom_server)
-                            tonieInfo->updated = true;
-                    }
-                }
-
-                if (!tonieInfo->json.nocloud)
-                {
-                    freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos] = freshReq->tonie_infos[i];
-                    if (tonieInfo->valid)
-                    {
-                        freshReqCloud.tonie_infos[freshReqCloud.n_tonie_infos]->audio_id = serverAudioId;
-                    }
-                    freshReqCloud.n_tonie_infos++;
-                }
-
-                bool isFlex = false;
-
-                char uid[17];
-                osSprintf(uid, "%016" PRIX64, freshReq->tonie_infos[i]->uid);
-
-                if (settings->core.flex_enabled && !osStrcasecmp(settings->core.flex_uid, uid))
-                {
-                    isFlex = true;
-                }
-                (void)custom_box;
-                (void)custom_server;
-                TRACE_INFO("  uid: %016" PRIX64 ", nocloud: %d, live: %d, updated: %d, audioid: %08X (%s%s)",
-                           freshReq->tonie_infos[i]->uid,
-                           tonieInfo->json.nocloud,
-                           tonieInfo->json.live || isFlex || (tonieInfo->json._source_type == CT_SOURCE_STREAM),
-                           tonieInfo->updated,
-                           boxAudioId,
-                           date_buffer_box,
-                           custom_box ? ", custom" : "");
-
-                if (tonieInfo->valid)
-                {
-                    TRACE_INFO_RESUME(", audioid-tc: %08X (%s%s)",
-                                      serverAudioId,
-                                      date_buffer_server,
-                                      custom_server ? ", custom" : "");
-                }
-                TRACE_INFO_RESUME("\r\n");
-                if (!tonieInfo->valid)
-                {
-                    content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
-                }
-
-                if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || isFlex)
-                {
-                    freshResp.tonie_marked[freshResp.n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
-                }
-                freeTonieInfo(tonieInfo);
-            }
-
-            if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1FreshnessCheck)
+            if (settings->cloud.enabled && settings->cloud.enableV1FreshnessCheck)
             {
                 size_t dataLen = tonie_freshness_check_request__get_packed_size(&freshReqCloud);
                 tonie_freshness_check_request__pack(&freshReqCloud, (uint8_t *)data);
@@ -1028,24 +1039,150 @@ error_t handleCloudFreshnessCheckV3(HttpConnection *connection, const char_t *ur
 
     TRACE_INFO("V3 Freshness check request (%" PRIuSIZE " of %" PRIuSIZE "): %s\n", size, connection->request.byteCount, data);
 
-    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3FreshnessCheck)
-    {
-        cbr_ctx_t ctx;
-        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_FRESHNESS_CHECK, &ctx, client_ctx);
-        if (!cloud_request_post(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, data, size, NULL, &cbr))
-        {
-            return NO_ERROR;
-        }
+    // Parse JSON and prepare structures for process_freshness_check
+    cJSON *inputJson = cJSON_ParseWithLengthOpts((const char*)data, size, 0, 0);
+    if (!inputJson) {
+        TRACE_ERROR("Parsing V3 Freshness JSON failed\n");
+        return ERROR_FAILURE;
     }
 
-    // Skip passthrough for now, reply with empty array
-    const char *response_json = "{\"items\": []}";
+    cJSON *contentObj = cJSON_GetObjectItem(inputJson, "content");
+    if (!contentObj) {
+        TRACE_ERROR("V3 Freshness JSON missing 'content' object\n");
+        cJSON_Delete(inputJson);
+        return ERROR_FAILURE;
+    }
+
+    int count = cJSON_GetArraySize(contentObj);
+    
+    TonieFreshnessCheckRequest freshReq = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
+    freshReq.n_tonie_infos = count;
+    TonieFCInfo *fcInfos = malloc(sizeof(TonieFCInfo) * count);
+    freshReq.tonie_infos = malloc(sizeof(TonieFCInfo *) * count);
+    
+    cJSON *item = contentObj->child;
+    int i = 0;
+    while (item && i < count) {
+        tonie_fcinfo__init(&fcInfos[i]);
+        
+        char ruidStr[17];
+        osStrncpy(ruidStr, item->string, 16);
+        ruidStr[16] = '\0';
+        
+        char uidStr[17];
+        for (int j = 0; j < 8; j++) {
+            uidStr[j*2] = ruidStr[14 - j*2];
+            uidStr[j*2 + 1] = ruidStr[15 - j*2];
+        }
+        uidStr[16] = '\0';
+        
+        fcInfos[i].uid = strtoull(uidStr, NULL, 16);
+        
+        if (cJSON_IsNumber(item)) {
+            fcInfos[i].audio_id = (uint32_t)item->valuedouble;
+        }
+        freshReq.tonie_infos[i] = &fcInfos[i];
+        item = item->next;
+        i++;
+    }
+    
+    TonieFreshnessCheckResponse freshResp = TONIE_FRESHNESS_CHECK_RESPONSE__INIT;
+    TonieFreshnessCheckRequest freshReqCloud = TONIE_FRESHNESS_CHECK_REQUEST__INIT;
+    size_t freshnessCacheLen = 0;
+
+    process_freshness_check(client_ctx, &freshReq, &freshResp, &freshReqCloud, &freshnessCacheLen);
+    
+    if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3FreshnessCheck)
+    {
+        cJSON *cloudReqJson = cJSON_CreateObject();
+        cJSON *cloudContentObj = cJSON_CreateObject();
+        cJSON_AddItemToObject(cloudReqJson, "content", cloudContentObj);
+        
+        for (size_t k = 0; k < freshReqCloud.n_tonie_infos; k++) {
+            char ruidStr[17];
+            char uidStr[17];
+            osSprintf(uidStr, "%016" PRIX64, freshReqCloud.tonie_infos[k]->uid);
+            for (int j = 0; j < 8; j++) {
+                ruidStr[j*2] = uidStr[14 - j*2];
+                ruidStr[j*2 + 1] = uidStr[15 - j*2];
+            }
+            ruidStr[16] = '\0';
+            
+            cJSON_AddNumberToObject(cloudContentObj, ruidStr, freshReqCloud.tonie_infos[k]->audio_id);
+        }
+        
+        char *cloud_req_str = cJSON_PrintUnformatted(cloudReqJson);
+        size_t cloud_req_len = osStrlen(cloud_req_str);
+        
+        cbr_ctx_t ctx;
+        req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_FRESHNESS_CHECK, &ctx, client_ctx);
+        ctx.customData = (void *)&freshResp;
+        ctx.customDataLen = freshReq.n_tonie_infos + freshnessCacheLen;
+        
+        if (!cloud_request_post(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, (const uint8_t *)cloud_req_str, cloud_req_len, NULL, &cbr))
+        {
+            free(cloud_req_str);
+            cJSON_Delete(cloudReqJson);
+            free(fcInfos);
+            free(freshReq.tonie_infos);
+            if (freshReqCloud.tonie_infos) free(freshReqCloud.tonie_infos);
+            if (freshResp.tonie_marked) free(freshResp.tonie_marked);
+            cJSON_Delete(inputJson);
+            return NO_ERROR;
+        }
+        
+        free(cloud_req_str);
+        cJSON_Delete(cloudReqJson);
+        free(fcInfos);
+        free(freshReq.tonie_infos);
+        if (freshReqCloud.tonie_infos) free(freshReqCloud.tonie_infos);
+        if (freshResp.tonie_marked) free(freshResp.tonie_marked);
+        cJSON_Delete(inputJson);
+        return NO_ERROR;
+    }
+
+    TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp.n_tonie_marked);
+    settings_set_u64_array_id("internal.freshnessCache", freshResp.tonie_marked, freshResp.n_tonie_marked, client_ctx->settings->internal.overlayNumber);
+
+    // No settings for TB2 in freshnessCheck
+    // setTonieboxSettings(&freshResp, client_ctx->settings); 
+
+    // Now create json response
+    cJSON *respJson = cJSON_CreateObject();
+    cJSON *itemsArray = cJSON_CreateArray();
+    cJSON_AddItemToObject(respJson, "items", itemsArray);
+    
+    for (size_t j = 0; j < freshResp.n_tonie_marked; j++) {
+        char ruidStr[17];
+        char uidStr[17];
+        osSprintf(uidStr, "%016" PRIX64, freshResp.tonie_marked[j]);
+        for (int m = 0; m < 8; m++) {
+            ruidStr[m*2] = uidStr[14 - m*2];
+            ruidStr[m*2 + 1] = uidStr[15 - m*2];
+        }
+        ruidStr[16] = '\0';
+
+        cJSON_AddItemToArray(itemsArray, cJSON_CreateString(ruidStr));
+    }
+    
+    char *response_json = cJSON_PrintUnformatted(respJson);
     size_t dataLen = osStrlen(response_json);
-
+    
     TRACE_INFO("V3 Freshness check response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
-
+    
     httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
-    return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+    error = httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+    
+    free(response_json);
+    cJSON_Delete(respJson);
+    
+    free(fcInfos);
+    free(freshReq.tonie_infos);
+    if (freshReqCloud.tonie_infos) free(freshReqCloud.tonie_infos);
+    if (freshResp.tonie_marked) free(freshResp.tonie_marked);
+    
+    cJSON_Delete(inputJson);
+    return error;
 }
 
 error_t handleCloudCheckOtaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
