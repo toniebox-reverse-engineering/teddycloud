@@ -418,11 +418,8 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     return ret;
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *uri, int ruid_uri_begin, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, char *ruid, bool_t *tonie_marked, error_t *error)
 {
-#define RUID_URI_CONTENT_BEGIN 12
-    char ruid[17];
-    error_t error = NO_ERROR;
     uint8_t *token = connection->private.authentication_token;
 
     char queryValue[16];
@@ -434,12 +431,13 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         }
     }
 
-    osStrncpy(ruid, &uri[RUID_URI_CONTENT_BEGIN], sizeof(ruid));
+    osStrncpy(ruid, &uri[ruid_uri_begin], 16);
     ruid[16] = 0;
     if (osStrlen(ruid) != 16)
     {
         TRACE_WARNING(" >>  invalid URI\r\n");
-        return ERROR_NOT_FOUND;
+        *error = ERROR_NOT_FOUND;
+        return NULL;
     }
 
     if (connection->request.Range.start != 0)
@@ -461,7 +459,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     tonie_info_t *tonieInfo;
     tonieInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
 
-    bool_t tonie_marked = false;
+    *tonie_marked = false;
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV2Content && !tonieInfo->json.nocloud)
     {
         uint64_t uid = strtoull(ruid, NULL, 16);
@@ -478,7 +476,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             TRACE_DEBUG(" >> freshnessCache[%" PRIuSIZE "] = %s =? %s\r\n", i, cruid, ruid);
             if (freshnessCache[i] == uid)
             {
-                tonie_marked = true;
+                *tonie_marked = true;
                 TRACE_INFO(" >> rUID %s found in freshnessCache, refresh content\r\n", ruid);
                 break;
             }
@@ -556,11 +554,11 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             fsCreateDir(dir);
             osFreeMem(dir);
 
-            error = fsCopyFile(assignFile, tonieInfo->contentPath, true);
-            if (error != NO_ERROR)
+            *error = fsCopyFile(assignFile, tonieInfo->contentPath, true);
+            if (*error != NO_ERROR)
             {
                 freeTonieInfo(tonieInfoAssign);
-                TRACE_ERROR("Could not copy %s to %s, error=%s\r\n", assignFile, tonieInfo->contentPath, error2text(error));
+                TRACE_ERROR("Could not copy %s to %s, error=%s\r\n", assignFile, tonieInfo->contentPath, error2text(*error));
                 break;
             }
 
@@ -590,10 +588,28 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
         } while (0);
 
         settings_set_string("internal.assign_unknown", "");
-        error = NO_ERROR;
+        *error = NO_ERROR;
     }
 
     saveTonieInfo(tonieInfo, true);
+    return tonieInfo;
+}
+
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+{
+#define RUID_URI_CONTENT_BEGIN 12
+    char ruid[17];
+    error_t error = NO_ERROR;
+    bool_t tonie_marked = false;
+
+    tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, RUID_URI_CONTENT_BEGIN, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
+
+    if (tonieInfo == NULL)
+    {
+        return error;
+    }
+
+    uint8_t *token = connection->private.authentication_token;
 
     bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
     if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
@@ -750,6 +766,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
             if (tonieInfo->json.cloud_override)
             {
                 token = tonieInfo->json.cloud_auth;
+                char msg[TONIE_AUTH_TOKEN_LENGTH * 2 + 1] = {0};
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
                 osMemcpy((char_t *)&uri[RUID_URI_CONTENT_BEGIN], tonieInfo->json.cloud_ruid, osStrlen(tonieInfo->json.cloud_ruid));
                 TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo->json.cloud_ruid, msg);
@@ -1289,15 +1306,40 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
 
     TRACE_INFO("V3 Content Meta request: %s\n", uri);
 
+    #define RUID_URI_CONTENT_META_BEGIN 17
+    char ruid[17];
+    error_t error = NO_ERROR;
+    bool_t tonie_marked = false;
+    bool noPassword = false;
+
+    tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, RUID_URI_CONTENT_META_BEGIN, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
+
+    if (tonieInfo == NULL)
+    {
+        return error;
+    }
+    uint8_t *token = connection->private.authentication_token;
+
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3ContentMeta)
     {
+        if (tonieInfo->json.cloud_override)
+        {
+            token = tonieInfo->json.cloud_auth;
+            char msg[TONIE_AUTH_TOKEN_LENGTH * 2 + 1] = {0};
+            convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
+            osMemcpy((char_t *)&uri[RUID_URI_CONTENT_META_BEGIN], tonieInfo->json.cloud_ruid, osStrlen(tonieInfo->json.cloud_ruid));
+            TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo->json.cloud_ruid, msg);
+        }
+
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V3_CONTENT_META, &ctx, client_ctx);
-        if (!cloud_request_get(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, connection->private.authentication_token, &cbr))
+        if (!cloud_request_get(client_ctx->settings->cloud.remote_hostname_tb2, 0, uri, queryString, token, &cbr))
         {
+            freeTonieInfo(tonieInfo);
             return NO_ERROR;
         }
     }
+    freeTonieInfo(tonieInfo);
 
     httpPrepareHeader(connection, NULL, 0);
     connection->response.statusCode = 404;
