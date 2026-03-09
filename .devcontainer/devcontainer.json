@@ -13,7 +13,8 @@
       "extensions": [
         "ms-vscode.makefile-tools",
         "ms-azuretools.vscode-docker",
-        "ms-vscode.cpptools-extension-pack"
+        "ms-vscode.cpptools-extension-pack",
+        "kylinideteam.cppdebug"
       ]
     }
   },

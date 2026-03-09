@@ -15,6 +15,9 @@ EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 OPTI_LEVEL    ?= -O2
+TEST_API_HTTP_PORT ?= 18080
+TEST_API_HTTPS_PORT ?= 18443
+TEST_API_HTTPS_API_PORT ?= 18444
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -717,3 +720,45 @@ cppcheck:
 	$(QUIET)$(ECHO)  "[ ${CYAN}CHK${NC} ] Running cppcheck"
 	cppcheck -j6 --enable=all --inconclusive --std=c99 --language=c --platform=unspecified --report-progress --suppress=missingIncludeSystem --xml --output-file=cppcheck.xml $(wildcard $(SRC_DIR)/*.c) $(INCLUDES) -D GPL_LICENSE_TERMS_ACCEPTED -D TRACE_NOPATH_FILE
 	cppcheck-htmlreport --file=cppcheck.xml --report-dir=cppcheck
+
+.PHONY: test_api_custom_json
+test_api_custom_json:
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Run custom JSON API tests against running server"
+	$(QUIET)TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 tests/test_tonies_custom_json_api.py
+
+.PHONY: test_api_custom_json_with_server
+test_api_custom_json_with_server: build
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run custom JSON API tests, stop server"
+	$(QUIET)python3 -c 'import socket,sys; ports=[$(TEST_API_HTTP_PORT),$(TEST_API_HTTPS_PORT),$(TEST_API_HTTPS_API_PORT)]; used=[]; [used.append(p) for p in ports if (lambda s: (s.settimeout(0.2), s.connect_ex(("127.0.0.1", p)), s.close()))(socket.socket(socket.AF_INET, socket.SOCK_STREAM))[1] == 0]; sys.exit(1 if used else 0)' || { \
+		$(ECHO) "[ ${RED}ERR${NC}  ] One or more test ports are already in use: $(TEST_API_HTTP_PORT), $(TEST_API_HTTPS_PORT), $(TEST_API_HTTPS_API_PORT)"; \
+		$(ECHO) "[ ${RED}ERR${NC}  ] Please free them manually first. Example:"; \
+		$(ECHO) "             ps -ef | awk '/teddycloud/ && !/awk/ {print}'"; \
+		$(ECHO) "             kill <PID>"; \
+		exit 1; \
+	}
+	$(QUIET)tmp_log=/tmp/teddycloud_test_api_custom_json.log; \
+	srv_pid_file=/tmp/teddycloud_test_api_custom_json.pid; \
+	./bin/teddycloud --config-set "core.server.http_port=$(TEST_API_HTTP_PORT),core.server.https_web_port=$(TEST_API_HTTPS_PORT),core.server.https_api_port=$(TEST_API_HTTPS_API_PORT)" > "$$tmp_log" 2>&1 & \
+	srv_pid=$$!; \
+	echo $$srv_pid > "$$srv_pid_file"; \
+	trap 'kill $$srv_pid >/dev/null 2>&1 || true; rm -f "$$srv_pid_file"' EXIT INT TERM; \
+	ready=0; \
+	for i in $$(seq 1 60); do \
+		if ! kill -0 $$srv_pid >/dev/null 2>&1; then \
+			$(ECHO) "[ ${RED}ERR${NC}  ] Test server exited during startup. Log:"; \
+			sed -n '1,140p' "$$tmp_log"; \
+			exit 1; \
+		fi; \
+		http_code=$$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$(TEST_API_HTTP_PORT)/web/" || true); \
+		if [ "$$http_code" = "200" ]; then \
+			ready=1; \
+			break; \
+		fi; \
+		sleep 0.2; \
+	done; \
+	if [ "$$ready" != "1" ]; then \
+		$(ECHO) "[ ${RED}ERR${NC}  ] Test server did not become ready on port $(TEST_API_HTTP_PORT). Log:"; \
+		sed -n '1,140p' "$$tmp_log"; \
+		exit 1; \
+	fi; \
+	TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/test_tonies_custom_json_api.py

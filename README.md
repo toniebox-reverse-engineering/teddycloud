@@ -33,7 +33,13 @@ If you want to get started, please follow our [guide on our website](https://ton
 
 ## Development and bulding
 Please use the [develop](tree/develop) for your development and pull requests. Stable builds are available from the master branch. Don't forget to clone the submodules with --recurse-submodules.
-To catch sanitizer in you IDE set a breakpoint on `__asan::ReportGenericError`. 
+To catch sanitizer in you IDE set a breakpoint on `__asan::ReportGenericError`.
+
+### Build and Run in Editor (VS Code)
+- Build once: `Terminal (or F1) -> Run Task -> build` (uses `.vscode/tasks.json`).
+- Debug/run: open `Run and Debug`, select `[linux] teddyCloud`, press `F5` (uses `.vscode/launch.json`).
+- `F5` runs the prelaunch build task automatically and starts `bin/teddycloud` with `gdb`.
+- For web UI in devcontainer, open `http://localhost:<port>/web` on your forwarded HTTP port (You can find the port in `F1 -> 'Ports: Focus on Ports view`).
 
 ## Attribution
 The icons used are from here:
@@ -42,4 +48,3 @@ The icons used are from here:
 * img_custom.png/favicon.ico: https://www.flaticon.com/free-icon/dog_2829818
 
 Thanks for the original authors for these great icons.
-
