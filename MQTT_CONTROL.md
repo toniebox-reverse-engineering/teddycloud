@@ -142,9 +142,31 @@ mosquitto_pub -h BROKER -t "TOPIC/box/BOX_CN/CmdLed/set" -m "9"
 - The box applies the setting on its next freshness check.
 - Invalid values are silently rejected (logged server-side, no crash).
 
+## MQTT Reconnect Behavior
+
+TeddyCloud implements a robust MQTT reconnect strategy:
+
+- On connection failure, retries automatically with **exponential backoff** (5 s → 10 s → 20 s → 40 s → 60 s cap)
+- On successful reconnect, backoff resets to 5 s
+- **MQTT is never permanently disabled** due to broker unavailability
+- The `disable_on_error` setting logs a warning after 10 failures but does **not** deactivate MQTT
+- After reconnect, all subscriptions and HA discovery configs are re-published automatically
+- Connection loss during runtime triggers the same backoff-based reconnect cycle
+- All connect/disconnect/retry events are logged with attempt count and delay
+
+### Scenarios
+
+| Scenario | Behavior |
+|----------|----------|
+| Broker offline at start | Retries with exponential backoff until broker appears |
+| Broker goes offline during runtime | Detects disconnect, reconnects with backoff |
+| Broker comes back after outage | Reconnects, re-subscribes, re-publishes all state |
+| Network flap | Reconnects within 5 s (initial backoff) |
+
 ## Limitations
 
-1. **No real-time volume control**: Only volume *limits* (0–3) can be set, not the actual playback volume (0–16).
-2. **No pause/resume**: The Toniebox protocol has no command channel for playback control.
-3. **Stream stop only**: CmdStop stops server-side stream delivery; the box may continue playing already-buffered audio.
-4. **Deferred application**: All setting changes take effect on the box's next freshness check, not immediately.
+1. **No real-time volume control**: Only volume *limits* (0–3) can be set, not the actual playback volume (0–16). The RTNL protocol is one-way (box → server); there is no command channel to set the actual volume level.
+2. **No pause/resume**: The Toniebox protocol has no command channel for playback control. Playback state is reported read-only via RTNL.
+3. **No mute/unmute**: No protocol field exists for muting. Volume level is controlled exclusively by physical ear presses on the box.
+4. **Stream stop only**: CmdStop stops server-side stream delivery; the box may continue playing already-buffered audio.
+5. **Deferred application**: All setting changes (volume limits, LED, slap) take effect on the box's next freshness check, not immediately.

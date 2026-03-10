@@ -524,6 +524,9 @@ void mqtt_thread(void *arg)
 {
     (void)arg; // unused but Alpines compiler complains if arg is missing.
     uint32_t errors = 0;
+    uint32_t retry_delay_ms = 5000;
+    const uint32_t RETRY_DELAY_INIT_MS = 5000;
+    const uint32_t RETRY_DELAY_MAX_MS = 60000;
     mqtt_ctx_t mqtt_ctx;
     osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
 
@@ -535,7 +538,7 @@ void mqtt_thread(void *arg)
         {
             if (mqttConnected)
             {
-                TRACE_INFO("Disconnecting\r\n");
+                TRACE_INFO("[MQTT] Disconnecting (disabled by setting)\r\n");
                 mqttClientClose(&mqtt_context);
                 mqttConnected = FALSE;
             }
@@ -551,22 +554,38 @@ void mqtt_thread(void *arg)
             error = mqttConnect(&mqtt_context);
             if (error)
             {
-                osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
-                if (++errors > 10)
+                errors++;
+                TRACE_WARNING("[MQTT] Connection attempt #%" PRIu32 " failed, retrying in %" PRIu32 "ms\r\n", errors, retry_delay_ms);
+
+                if (errors >= 10 && get_settings()->mqtt.disable_on_error)
                 {
-                    errors = 0;
-                    if (get_settings()->mqtt.disable_on_error)
+                    TRACE_ERROR("[MQTT] %" PRIu32 " consecutive failures (disable_on_error is set, but MQTT will keep retrying)\r\n", errors);
+                }
+
+                osDelayTask(retry_delay_ms);
+
+                /* exponential backoff: double delay up to max */
+                if (retry_delay_ms < RETRY_DELAY_MAX_MS)
+                {
+                    retry_delay_ms *= 2;
+                    if (retry_delay_ms > RETRY_DELAY_MAX_MS)
                     {
-                        TRACE_INFO("Too many errors, disabling MQTT\r\n");
-                        settings_set_bool("mqtt.enabled", false);
+                        retry_delay_ms = RETRY_DELAY_MAX_MS;
                     }
                 }
                 continue;
             }
 
-            TRACE_INFO("Connected\r\n");
+            TRACE_INFO("[MQTT] Connected to broker successfully\r\n");
+            if (errors > 0)
+            {
+                TRACE_INFO("[MQTT] Reconnected after %" PRIu32 " failed attempt(s)\r\n", errors);
+            }
             mqttConnected = TRUE;
             mqtt_fail = false;
+            errors = 0;
+            retry_delay_ms = RETRY_DELAY_INIT_MS;
+
             mutex_lock(MUTEX_MQTT_BOX);
             for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
             {
@@ -583,9 +602,13 @@ void mqtt_thread(void *arg)
 
         if (error || mqtt_fail)
         {
+            TRACE_WARNING("[MQTT] Connection lost (error=%s, mqtt_fail=%s), reconnecting...\r\n",
+                          error ? error2text(error) : "none", mqtt_fail ? "true" : "false");
             mqttClientClose(&mqtt_context);
             mqttConnected = FALSE;
-            osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
+            mqtt_fail = false;
+            retry_delay_ms = RETRY_DELAY_INIT_MS;
+            osDelayTask(retry_delay_ms);
         }
 
         /* process buffered Tx actions */

@@ -111,6 +111,7 @@ struct s_ha_info
     char availability_topic[MAX_LEN];
     t_ha_entity entities[MAX_ENTITIES];
     int entitiy_count;
+    uint32_t next_publish_time;
 };
 
 void ha_setup(t_ha_info *ha_info);
