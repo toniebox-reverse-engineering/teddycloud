@@ -36,6 +36,7 @@ typedef enum
 {
     eDerTypeUnknown,
     eDerTypeKey,
+    eDerTypeEcKey,
     eDerTypeCertificate
 } eDerType;
 
@@ -145,13 +146,37 @@ error_t der_detect(const char *filename, eDerType *type)
 
         if (tag == 0x30)
         {
-            /* when it's an SEQUENCE, its probably a certificate */
+            /* when it's a SEQUENCE, it's probably a certificate */
             *type = eDerTypeCertificate;
         }
         else if (tag == 0x02)
         {
-            /* when it's an INTEGER, its probably the RSA key */
-            *type = eDerTypeKey;
+            /* read the INTEGER length */
+            size_t intLen;
+            err = der_get_length(fp, &intLen);
+            if (err != NO_ERROR || intLen == 0)
+            {
+                *type = eDerTypeKey; /* fallback: assume RSA */
+                break;
+            }
+            /* read the first byte of the INTEGER value (version) */
+            uint8_t version;
+            err = fsReadFile(fp, &version, 1, &len);
+            if (err != NO_ERROR || len != 1)
+            {
+                *type = eDerTypeKey; /* fallback: assume RSA */
+                break;
+            }
+            if (version == 0x01)
+            {
+                /* EC private key (RFC 5915): version = 1 */
+                *type = eDerTypeEcKey;
+            }
+            else
+            {
+                /* RSA/other: version = 0 */
+                *type = eDerTypeKey;
+            }
         }
     } while (0);
 
@@ -198,6 +223,10 @@ error_t read_certificate(const char_t *filename, char_t **buffer, size_t *length
         break;
     case eDerTypeKey:
         type = "RSA PRIVATE KEY";
+        TRACE_INFO("File '%s' detected as DER style %s\r\n", filename, type);
+        break;
+    case eDerTypeEcKey:
+        type = "EC PRIVATE KEY";
         TRACE_INFO("File '%s' detected as DER style %s\r\n", filename, type);
         break;
     default:

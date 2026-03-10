@@ -34,7 +34,13 @@ typedef enum
     V2_CONTENT,
     V1_FRESHNESS_CHECK,
     V1_LOG,
-    V1_CLOUDRESET
+    V1_CLOUDRESET,
+    V3_FRESHNESS_CHECK,
+    V3_CHECK_OTA,
+    V3_OTA,
+    V3_SETUP_STATUS,
+    V3_CHAPTER,
+    V3_CONTENT_META = 14,
 } cloudapi_t;
 
 typedef enum
@@ -71,7 +77,7 @@ typedef struct
 } cbr_ctx_t;
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
-req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
+req_cbr_t getCloudOtaCbr(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
 void cbrCloudOtaHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value);
 void cbrCloudOtaBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error);
 

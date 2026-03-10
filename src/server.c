@@ -161,7 +161,7 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/cacheStats", SERTY_WEB, &handleApiCacheStats},
     {REQ_GET, "/api/sse", SERTY_WEB, &handleApiSse},
     {REQ_GET, "/robots.txt", SERTY_WEB, &handleSecMitRobotsTxt},
-    /* official tonies API */
+    /* official tonies (TB1) API */
     {REQ_GET, "/v1/time", SERTY_BOTH, &handleCloudTime},
     {REQ_GET, "/v1/ota", SERTY_BOTH, &handleCloudOTA},
     {REQ_GET, "/v1/claim", SERTY_BOTH, &handleCloudClaim},
@@ -169,7 +169,14 @@ request_type_t request_paths[] = {
     {REQ_GET, "/v2/content", SERTY_BOTH, &handleCloudContentV2},
     {REQ_POST, "/v1/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheck},
     {REQ_POST, "/v1/log", SERTY_BOTH, &handleCloudLog},
-    {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset}};
+    {REQ_POST, "/v1/cloud-reset", SERTY_BOTH, &handleCloudReset},
+    /* official tonies API (TB2) */
+    {REQ_POST, "/v3/freshness-check", SERTY_BOTH, &handleCloudFreshnessCheckV3},
+    {REQ_POST, "/v3/check-ota", SERTY_BOTH, &handleCloudCheckOtaV3},
+    {REQ_GET, "/v3/ota", SERTY_BOTH, &handleCloudOtaV3},
+    {REQ_POST, "/v3/setup-status", SERTY_BOTH, &handleCloudSetupStatusV3},
+    {REQ_GET, "/v3/chapter", SERTY_BOTH, &handleCloudChapterV3},
+    {REQ_GET, "/v3/content-meta", SERTY_BOTH, &handleCloudContentMetaV3}};
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -306,13 +313,18 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         char_t *subject = connection->tlsContext->client_cert_subject;
         char_t *issuer = connection->tlsContext->client_cert_issuer;
 
-        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL)
+        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "Toniebox SubCA") != NULL
+            || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL || osStrstr(issuer, "Toniebox Root CA") != NULL)
         {
+            char_t *commonName = NULL;
             if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
             {
-                char_t *commonName;
                 commonName = strdup(&subject[2]);
                 commonName[osStrlen(commonName) - 1] = '\0';
+            } else if (osStrlen(subject) == 12) {
+                commonName = strdup(subject);
+            }
+            if (commonName != NULL) {
                 if (get_overlay_id(commonName) == 0)
                 {
                     if (client_ctx->settings->core.allowNewBox)
@@ -348,11 +360,13 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 settings_internal_toniebox_firmware_t *firmware_info = &client_ctx->settings->internal.toniebox_firmware;
 
                 char *espDetectNew = "toniebox-esp32-";
+                char *tb2DetectNew = "TB2/";
 
                 char *tbV = osStrstr(ua, "TB/");
                 char *tbSp = osStrstr(ua, "SP/");
                 char *tbHw = osStrstr(ua, "HW/");
                 char *tbEsp = osStrstr(ua, espDetectNew);
+                char *tb2 = osStrstr(ua, tb2DetectNew);
                 char *buffer;
                 char *spacePos;
 
@@ -360,6 +374,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 time_t spVersionTime = 0;
                 time_t hwVersionTime = 0;
                 char *fwEsp = NULL;
+                char *fwTb2 = NULL;
 
                 if (tbV != NULL)
                 {
@@ -398,6 +413,10 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 {
                     fwEsp = tbEsp + osStrlen(espDetectNew);
                 }
+                if (tb2 != NULL)
+                {
+                    fwTb2 = tb2 + osStrlen(tb2DetectNew);
+                }
 
                 if (fwVersionTime > 0)
                 {
@@ -428,6 +447,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                     {
                         settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx->settings->internal.overlayNumber);
                     }
+                }
+                else if (fwTb2 != NULL)
+                {
+                    // TB2 User-Agent: TB2/1.0.22-92f57d4
+                    client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_TB2;
+                    // TODO: Parse the fwTb2 version
                 }
                 else
                 {
@@ -657,6 +682,11 @@ error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tl
     // Session cache that will be used to save/resume TLS sessions
     error = tlsSetCache(tlsContext, tlsCache);
     // Any error to report?
+    if (error)
+        return error;
+
+    // Enable secure renegotiation, otherwise modern OpenSSL clients (e.g., Python 3 requests) reject the connection
+    error = tlsEnableSecureRenegotiation(tlsContext, TRUE);
     if (error)
         return error;
 

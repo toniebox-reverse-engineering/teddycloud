@@ -53,6 +53,7 @@ typedef enum
     BOX_CC3200 = 1,
     BOX_CC3235 = 2,
     BOX_ESP32 = 3,
+    BOX_TB2 = 4,
 } settings_box_type;
 
 typedef enum
@@ -74,10 +75,15 @@ typedef struct
     bool enableV1Claim;
     bool enableV1CloudReset;
     bool enableV1FreshnessCheck;
+    bool enableV3FreshnessCheck;
     bool enableV1Log;
     bool enableV1Time;
     bool enableV1Ota;
+    bool enableV3Ota;
     bool enableV2Content;
+    bool enableV3SetupStatus;
+    bool enableV3ContentMeta;
+    bool enableV3Chapter;
     bool cacheOta;
     bool localOta;
     bool cacheContent;

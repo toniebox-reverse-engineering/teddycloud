@@ -25,3 +25,4 @@ wasm/output.taf
 wasm/sample-15s.mp3
 wasm/taf_encoder_test
 test-client/
+fake-server-tb2/*
