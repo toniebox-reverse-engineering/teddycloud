@@ -7,7 +7,7 @@ __pycache__/
 /report
 /bin
 /stockaudio
-contrib/data/www/web/
+contrib/data/www/
 contrib/certs/server/ca-key.pem
 contrib/certs/server/ca-root.pem
 contrib/certs/server/ca-root.srl
@@ -28,3 +28,4 @@ wasm/sample-15s.mp3
 wasm/taf_encoder_test
 test-client/
 fake-server-tb2/*
+
