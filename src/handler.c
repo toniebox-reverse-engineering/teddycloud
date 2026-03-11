@@ -263,12 +263,12 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
     switch (ctx->api)
     {
     case V1_FRESHNESS_CHECK:
+    case V3_FRESHNESS_CHECK:
         if (!header || osStrcmp(header, "Content-Length") == 0) // Skip empty line at the and + contentlen
         {
             passthrough = false;
         }
         break;
-    case V3_FRESHNESS_CHECK:
     case V3_CHECK_OTA:
     case V3_SETUP_STATUS:
     case V3_CHAPTER:
@@ -399,60 +399,80 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         total_sent += length;
         break;
     case V3_FRESHNESS_CHECK:
+    {
+        bool finished = false;
         if (length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {
-            TonieFreshnessCheckResponse *freshResp = (TonieFreshnessCheckResponse *)ctx->customData;
-            
-            cJSON *respJson = cJSON_ParseWithLengthOpts((const char*)ctx->buffer, ctx->bufferLen, 0, 0);
-            if (respJson) {
-                cJSON *itemsArray = cJSON_GetObjectItem(respJson, "items");
-                if (cJSON_IsArray(itemsArray)) {
-                    int num_items = cJSON_GetArraySize(itemsArray);
-                    TRACE_INFO("Cloud marked tonies V3: %d\r\n", num_items);
-                    
-                    cJSON *item = itemsArray->child;
-                    while (item) {
-                        if (cJSON_IsString(item)) {
-                            char ruidStr[17];
-                            osStrncpy(ruidStr, item->valuestring, 16);
-                            ruidStr[16] = '\0';
-                            
-                            char uidStr[17];
-                            for (int j = 0; j < 8; j++) {
-                                uidStr[j*2] = ruidStr[14 - j*2];
-                                uidStr[j*2 + 1] = ruidStr[15 - j*2];
-                            }
-                            uidStr[16] = '\0';
+            finished = true;
+        }
+        if (error == ERROR_END_OF_STREAM)
+        {
+            finished = true;
+        }
 
-                            uint64_t marked_uid = strtoull(uidStr, NULL, 16);
-                            bool found = false;
-                            for (size_t j = 0; j < freshResp->n_tonie_marked; j++)
+        if (finished && ctx->status != PROX_STATUS_DONE)
+        {
+            ctx->status = PROX_STATUS_DONE;
+            TonieFreshnessCheckResponse *freshResp = (TonieFreshnessCheckResponse *)ctx->customData;
+
+            if (ctx->buffer)
+            {
+                cJSON *respJson = cJSON_ParseWithLengthOpts((const char *)ctx->buffer, ctx->bufferLen, 0, 0);
+                if (respJson)
+                {
+                    cJSON *itemsArray = cJSON_GetObjectItem(respJson, "items");
+                    if (cJSON_IsArray(itemsArray))
+                    {
+                        int num_items = cJSON_GetArraySize(itemsArray);
+                        TRACE_INFO("Cloud marked tonies V3: %d\r\n", num_items);
+
+                        cJSON *item = itemsArray->child;
+                        while (item)
+                        {
+                            if (cJSON_IsString(item))
                             {
-                                if (marked_uid == freshResp->tonie_marked[j])
+                                char ruidStr[17];
+                                osStrncpy(ruidStr, item->valuestring, 16);
+                                ruidStr[16] = '\0';
+
+                                char uidStr[17];
+                                for (int j = 0; j < 8; j++)
                                 {
-                                    found = true;
-                                    break;
+                                    uidStr[j * 2] = ruidStr[14 - j * 2];
+                                    uidStr[j * 2 + 1] = ruidStr[15 - j * 2];
+                                }
+                                uidStr[16] = '\0';
+
+                                uint64_t marked_uid = strtoull(uidStr, NULL, 16);
+                                bool found = false;
+                                for (size_t j = 0; j < freshResp->n_tonie_marked; j++)
+                                {
+                                    if (marked_uid == freshResp->tonie_marked[j])
+                                    {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found)
+                                {
+                                    if (ctx->customDataLen > freshResp->n_tonie_marked)
+                                    {
+                                        freshResp->tonie_marked[freshResp->n_tonie_marked++] = marked_uid;
+                                        TRACE_INFO("Marked UID %016" PRIX64 " as updated from cloud\r\n", marked_uid);
+                                    }
+                                    else
+                                    {
+                                        TRACE_WARNING("Could not add UID %016" PRIX64 " to freshnessCheck response, as not enough slots allocated!\r\n", marked_uid);
+                                    }
                                 }
                             }
-                            if (!found)
-                            {
-                                if (ctx->customDataLen > freshResp->n_tonie_marked)
-                                {
-                                    freshResp->tonie_marked[freshResp->n_tonie_marked++] = marked_uid;
-                                    TRACE_INFO("Marked UID %016" PRIX64 " as updated from cloud\r\n", marked_uid);
-                                }
-                                else
-                                {
-                                    TRACE_WARNING("Could not add UID %016" PRIX64 " to freshnessCheck response, as not enough slots allocated!\r\n", marked_uid);
-                                }
-                            }
+                            item = item->next;
                         }
-                        item = item->next;
                     }
+                    cJSON_Delete(respJson);
                 }
-                cJSON_Delete(respJson);
             }
-            
+
             TRACE_INFO("Setting freshnessCache with %" PRIuSIZE " entries\r\n", freshResp->n_tonie_marked);
             settings_set_u64_array_id("internal.freshnessCache", freshResp->tonie_marked, freshResp->n_tonie_marked, ctx->client_ctx->settings->internal.overlayNumber);
 
@@ -460,43 +480,41 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
             cJSON *newRespJson = cJSON_CreateObject();
             cJSON *newItemsArray = cJSON_CreateArray();
             cJSON_AddItemToObject(newRespJson, "items", newItemsArray);
-            
-            for (size_t j = 0; j < freshResp->n_tonie_marked; j++) {
+
+            for (size_t j = 0; j < freshResp->n_tonie_marked; j++)
+            {
                 char ruidStr[17];
                 char uidStr[17];
                 osSprintf(uidStr, "%016" PRIX64, freshResp->tonie_marked[j]);
-                for (int m = 0; m < 8; m++) {
-                    ruidStr[m*2] = uidStr[14 - m*2];
-                    ruidStr[m*2 + 1] = uidStr[15 - m*2];
+                for (int m = 0; m < 8; m++)
+                {
+                    ruidStr[m * 2] = uidStr[14 - m * 2];
+                    ruidStr[m * 2 + 1] = uidStr[15 - m * 2];
                 }
                 ruidStr[16] = '\0';
-                
+
                 cJSON_AddItemToArray(newItemsArray, cJSON_CreateString(ruidStr));
             }
-            
+
             char *response_json = cJSON_PrintUnformatted(newRespJson);
             size_t dataLen = osStrlen(response_json);
-            
+
             char line[128];
             osSnprintf(line, 128, "Content-Length: %" PRIuSIZE "\r\n\r\n", dataLen);
             httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
 
             httpSend(ctx->connection, response_json, dataLen, HTTP_FLAG_DELAY);
-            
+
             free(response_json);
             cJSON_Delete(newRespJson);
-            osFreeMem(ctx->buffer);
-        }
-        else
-        {
-            send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
-            if (send_err)
+            if (ctx->buffer)
             {
-                TRACE_ERROR(">> httpSend failed at total=%" PRIuSIZE ", chunk=%" PRIuSIZE ": %s\r\n", total_sent, length, error2text(send_err));
+                osFreeMem(ctx->buffer);
+                ctx->buffer = NULL;
             }
-            total_sent += length;
         }
         break;
+    }
     case V1_FRESHNESS_CHECK:
         if (length > 0 && fillCbrBodyCache(ctx, httpClientContext, payload, length))
         {

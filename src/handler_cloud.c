@@ -595,14 +595,13 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
     return tonieInfo;
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api)
 {
-#define RUID_URI_CONTENT_BEGIN 12
     char ruid[17];
     error_t error = NO_ERROR;
     bool_t tonie_marked = false;
 
-    tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, RUID_URI_CONTENT_BEGIN, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
+    tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, ruid_begin, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
 
     if (tonieInfo == NULL)
     {
@@ -611,7 +610,7 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
 
     uint8_t *token = connection->private.authentication_token;
 
-    bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || !client_ctx->settings->cloud.enableV2Content || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
+    bool can_use_cloud = !(!client_ctx->settings->cloud.enabled || (api == V2_CONTENT && !client_ctx->settings->cloud.enableV2Content) || (tonieInfo->json.nocloud && !tonieInfo->json.cloud_override));
     if (tonieInfo->json._source_type == CT_SOURCE_STREAM)
     {
         char *streamFileRel = &tonieInfo->json._streamFile[osStrlen(client_ctx->settings->internal.datadirfull)];
@@ -768,13 +767,13 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
                 token = tonieInfo->json.cloud_auth;
                 char msg[TONIE_AUTH_TOKEN_LENGTH * 2 + 1] = {0};
                 convertTokenBytesToString(token, msg, client_ctx->settings->log.logFullAuth);
-                osMemcpy((char_t *)&uri[RUID_URI_CONTENT_BEGIN], tonieInfo->json.cloud_ruid, osStrlen(tonieInfo->json.cloud_ruid));
+                osMemcpy((char_t *)&uri[ruid_begin], tonieInfo->json.cloud_ruid, osStrlen(tonieInfo->json.cloud_ruid));
                 TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo->json.cloud_ruid, msg);
             }
 
             connection->response.keepAlive = true;
             cbr_ctx_t ctx;
-            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V2_CONTENT, &ctx, client_ctx);
+            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
             ctx.tonieInfo = tonieInfo;
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
@@ -783,6 +782,12 @@ error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const 
     freeTonieInfo(tonieInfo);
     return error;
 }
+
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+{
+    return handleCloudContentExt(connection, uri, queryString, client_ctx, noPassword, 12, V2_CONTENT);
+}
+
 
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -1339,6 +1344,54 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
             return NO_ERROR;
         }
     }
+    if (tonieInfo->exists && tonieInfo->valid)
+    {
+        cJSON *respJson = cJSON_CreateObject();
+        cJSON_AddNumberToObject(respJson, "version", tonieInfo->tafHeader->audio_id);
+        cJSON_AddStringToObject(respJson, "contentType", "content_tonie");
+        cJSON_AddStringToObject(respJson, "tonieType", "content");
+        cJSON_AddStringToObject(respJson, "resumeBehavior", tonieInfo->json.live ? "alwaysReset" : "resume");
+        cJSON_AddStringToObject(respJson, "tonieSalesId", tonieInfo->json.tonie_model ? tonieInfo->json.tonie_model : "");
+
+        cJSON *contentArray = cJSON_CreateArray();
+        cJSON_AddItemToObject(respJson, "content", contentArray);
+
+        cJSON *contentItem = cJSON_CreateObject();
+        cJSON_AddItemToArray(contentArray, contentItem);
+
+        cJSON_AddStringToObject(contentItem, "type", "audio");
+        char name[64];
+        osSprintf(name, "teddycloud_00_%s", ruid);
+        cJSON_AddStringToObject(contentItem, "name", name);
+        cJSON_AddStringToObject(contentItem, "auth", "");
+        cJSON_AddItemToObject(contentItem, "analytics", cJSON_CreateObject());
+
+        uint32_t fileSize = 0;
+        fsGetFileSize(tonieInfo->contentPath, &fileSize);
+        if (fileSize > 4 + TAF_HEADER_SIZE)
+        {
+            fileSize -= 4 + TAF_HEADER_SIZE; // 4 is protobuf header size
+        }
+        else
+        {
+            fileSize = 0;
+        }
+        cJSON_AddNumberToObject(contentItem, "fileSize", (double)fileSize);
+
+        char *response_json = cJSON_PrintUnformatted(respJson);
+        size_t dataLen = osStrlen(response_json);
+
+        TRACE_INFO("V3 Content Meta response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
+
+        httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
+        error = httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+
+        free(response_json);
+        cJSON_Delete(respJson);
+        freeTonieInfo(tonieInfo);
+        return error;
+    }
+
     freeTonieInfo(tonieInfo);
 
     httpPrepareHeader(connection, NULL, 0);
@@ -1353,6 +1406,25 @@ error_t handleCloudChapterV3(HttpConnection *connection, const char_t *uri, cons
     mqtt_sendBoxEvent("LastCloudChapterTime", current_time, client_ctx);
 
     TRACE_INFO("V3 Chapter request: %s\n", uri);
+
+    // /v3/chapter/teddycloud_00_fa9c3e0d500304e0
+    // 012345678901234567890123456
+    //             ^ teddycloud_ at 12 (len 11)
+    //                        ^ 00_ at 23 (len 3)
+    //                           ^ ruid at 26
+    
+    if (osStrncmp(&uri[12], "teddycloud_", 11) == 0)
+    {
+        char chapter_id_str[3];
+        osStrncpy(chapter_id_str, &uri[12 + 11], 2);
+        chapter_id_str[2] = '\0';
+        int chapter_id = atoi(chapter_id_str);
+        TRACE_INFO(" >> local chapter_id=%d\n", chapter_id);
+
+        connection->private.client_ctx.skip_taf_header = true;
+
+        return handleCloudContentExt(connection, uri, queryString, client_ctx, false, 12 + 11 + 3, V3_CHAPTER);
+    }
 
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Chapter)
     {
