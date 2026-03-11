@@ -1,7 +1,7 @@
 FROM ubuntu:latest as buildenv
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc gdb protobuf-c-compiler build-essential git zip curl
+    && apt-get install -y --no-install-recommends ca-certificates gcc gdb protobuf-c-compiler build-essential git zip curl
 
 #COPY . /buildenv
 #WORKDIR /buildenv
