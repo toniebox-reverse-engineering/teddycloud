@@ -360,6 +360,7 @@ typedef struct
 {
     bool cache_images;
     bool cache_preload;
+    uint32_t custom_backup_keep;
 } settings_tonie_json_t;
 
 typedef struct
