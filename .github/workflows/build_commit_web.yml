@@ -85,8 +85,8 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "scilor@users.noreply.github.com"
+          git config --global user.name "SciLor"
 
       - name: Commit and push if changed
         run: |

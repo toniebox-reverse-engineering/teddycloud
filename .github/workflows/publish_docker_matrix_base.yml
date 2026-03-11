@@ -41,7 +41,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  REGISTRY_IMAGE: ghcr.io/toniebox-reverse-engineering/teddycloud
 
 jobs:
   build:
@@ -51,8 +51,6 @@ jobs:
         platform: ${{ fromJson(inputs.platforms) }}
     runs-on: ubuntu-latest
     steps:
-      - name: Lowercase REGISTRY_IMAGE
-        run: echo "REGISTRY_IMAGE=$(echo '${{ env.REGISTRY_IMAGE }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - uses: actions/checkout@v6
         with:
           submodules: recursive
@@ -194,8 +192,6 @@ jobs:
     needs:
       - build
     steps:
-      - name: Lowercase REGISTRY_IMAGE
-        run: echo "REGISTRY_IMAGE=$(echo '${{ env.REGISTRY_IMAGE }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
       - name: Download digests
         uses: actions/download-artifact@v7
         with:

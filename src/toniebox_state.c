@@ -138,27 +138,6 @@ void tbs_playback_system_sound(client_ctx_t *client_ctx, toniebox_state_system_s
     tbs_playback(client_ctx, TBS_PLAYBACK_STOPPED);
 }
 
-uint8_t tbs_get_overlay_by_common_name(const char *common_name)
-{
-    if (!common_name)
-    {
-        return 0;
-    }
-    for (size_t i = 1; i < MAX_OVERLAYS; i++)
-    {
-        settings_t *settings = get_settings_id(i);
-        if (!settings->internal.config_used)
-        {
-            continue;
-        }
-        if (!osStrcmp(settings->commonName, common_name))
-        {
-            return (uint8_t)i;
-        }
-    }
-    return 0;
-}
-
 bool tbs_cmd_stop(uint8_t overlay_id)
 {
     if (overlay_id == 0 || overlay_id >= MAX_OVERLAYS)
