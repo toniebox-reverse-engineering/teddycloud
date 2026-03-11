@@ -18,6 +18,8 @@ bool isSecMitIncident(HttpConnection *connection)
         isSecurityIncident = true;
         TRACE_WARNING("Hard security lock detected.\r\n");
         TRACE_WARNING("Somebody locked it manually to protect you, as you keep ignoring the warnings!\r\n");
+        // curl 'http://[IP_ADDRESS]/api/settings/set/security_mit.hardLock' --data-raw 'true' --insecure
+        // curl 'http://[IP_ADDRESS]/api/triggerWriteConfig' --insecure
     }
     if (settings->security_mit.onBlacklistDomain && (settings->internal.security_mit.blacklisted_domain_access > 0))
     {
