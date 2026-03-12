@@ -324,6 +324,25 @@ void dumpRuidAuth(contentJson_t *content_json, char *ruid, uint8_t *authenticati
 
 error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
+    uint8_t data[BODY_BUFFER_SIZE + 1];
+    size_t size = 0;
+
+    if (BODY_BUFFER_SIZE <= connection->request.byteCount)
+    {
+        TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %i bytes\r\n", connection->request.byteCount, BODY_BUFFER_SIZE);
+    }
+    else
+    {
+        error_t error = httpReceive(connection, &data, BODY_BUFFER_SIZE, &size, 0x00);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("httpReceive failed!\r\n");
+            return error;
+        }
+        data[size] = '\0';
+        TRACE_INFO(" >> client log data (%" PRIuSIZE " bytes):\n%s\n", size, data);
+    }
+
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV1Log)
     {
         cbr_ctx_t ctx;
