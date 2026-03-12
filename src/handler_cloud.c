@@ -328,7 +328,7 @@ error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_LOG, &ctx, client_ctx);
-        cloud_request_get(NULL, 0, uri, queryString, NULL, &cbr);
+        cloud_request_post(NULL, 0, uri, queryString, data, size, NULL, &cbr);
     }
     return NO_ERROR;
 }
