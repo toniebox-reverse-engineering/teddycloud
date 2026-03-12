@@ -342,13 +342,12 @@ void ha_connected(t_ha_info *ha_info)
 bool ha_loop(t_ha_info *ha_info)
 {
     systime_t time = osGetSystemTime();
-    static systime_t nextTime = 0;
 
-    if (time >= nextTime)
+    if (time >= ha_info->next_publish_time)
     {
         ha_publish(ha_info);
         ha_transmit_all(ha_info);
-        nextTime = time + 60000;
+        ha_info->next_publish_time = time + 60000;
     }
 
     return false;

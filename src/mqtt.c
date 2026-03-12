@@ -32,6 +32,7 @@ typedef struct
 #include "debug.h"
 #include "mutex_manager.h"
 #include "mqtt.h"
+#include "toniebox_state.h"
 
 #define MQTT_BOX_INSTANCES 32
 t_ha_info *mqtt_get_box(client_ctx_t *client_ctx);
@@ -113,7 +114,10 @@ error_t mqtt_sendEvent(const char *eventname, const char *content, client_ctx_t 
     char topic[MQTT_TOPIC_STRING_LENGTH];
 
     osSnprintf(topic, sizeof(topic), "%s/event/%s", settings_get_string("mqtt.topic"), eventname);
-    mqttClientPublish(&mqtt_context, topic, content, osStrlen(content), client_ctx->settings->mqtt.qosLevel, false, NULL);
+    if (!mqtt_publish(topic, content))
+    {
+        mqtt_fail = true;
+    }
 
     return NO_ERROR;
 }
@@ -520,6 +524,9 @@ void mqtt_thread(void *arg)
 {
     (void)arg; // unused but Alpines compiler complains if arg is missing.
     uint32_t errors = 0;
+    uint32_t retry_delay_ms = 5000;
+    const uint32_t RETRY_DELAY_INIT_MS = 5000;
+    const uint32_t RETRY_DELAY_MAX_MS = 60000;
     mqtt_ctx_t mqtt_ctx;
     osMemset(&mqtt_ctx, 0x00, sizeof(mqtt_ctx));
 
@@ -531,7 +538,7 @@ void mqtt_thread(void *arg)
         {
             if (mqttConnected)
             {
-                TRACE_INFO("Disconnecting\r\n");
+                TRACE_INFO("[MQTT] Disconnecting (disabled by setting)\r\n");
                 mqttClientClose(&mqtt_context);
                 mqttConnected = FALSE;
             }
@@ -547,22 +554,38 @@ void mqtt_thread(void *arg)
             error = mqttConnect(&mqtt_context);
             if (error)
             {
-                osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
-                if (++errors > 10)
+                errors++;
+                TRACE_WARNING("[MQTT] Connection attempt #%" PRIu32 " failed, retrying in %" PRIu32 "ms\r\n", errors, retry_delay_ms);
+
+                if (errors >= 10 && get_settings()->mqtt.disable_on_error)
                 {
-                    errors = 0;
-                    if (get_settings()->mqtt.disable_on_error)
+                    TRACE_ERROR("[MQTT] %" PRIu32 " consecutive failures (disable_on_error is set, but MQTT will keep retrying)\r\n", errors);
+                }
+
+                osDelayTask(retry_delay_ms);
+
+                /* exponential backoff: double delay up to max */
+                if (retry_delay_ms < RETRY_DELAY_MAX_MS)
+                {
+                    retry_delay_ms *= 2;
+                    if (retry_delay_ms > RETRY_DELAY_MAX_MS)
                     {
-                        TRACE_INFO("Too many errors, disabling MQTT\r\n");
-                        settings_set_bool("mqtt.enabled", false);
+                        retry_delay_ms = RETRY_DELAY_MAX_MS;
                     }
                 }
                 continue;
             }
 
-            TRACE_INFO("Connected\r\n");
+            TRACE_INFO("[MQTT] Connected to broker successfully\r\n");
+            if (errors > 0)
+            {
+                TRACE_INFO("[MQTT] Reconnected after %" PRIu32 " failed attempt(s)\r\n", errors);
+            }
             mqttConnected = TRUE;
             mqtt_fail = false;
+            errors = 0;
+            retry_delay_ms = RETRY_DELAY_INIT_MS;
+
             mutex_lock(MUTEX_MQTT_BOX);
             for (int pos = 0; pos < MQTT_BOX_INSTANCES; pos++)
             {
@@ -579,9 +602,13 @@ void mqtt_thread(void *arg)
 
         if (error || mqtt_fail)
         {
+            TRACE_WARNING("[MQTT] Connection lost (error=%s, mqtt_fail=%s), reconnecting...\r\n",
+                          error ? error2text(error) : "none", mqtt_fail ? "true" : "false");
             mqttClientClose(&mqtt_context);
             mqttConnected = FALSE;
-            osDelayTask(MQTT_CLIENT_DEFAULT_TIMEOUT);
+            mqtt_fail = false;
+            retry_delay_ms = RETRY_DELAY_INIT_MS;
+            osDelayTask(retry_delay_ms);
         }
 
         /* process buffered Tx actions */
@@ -787,6 +814,145 @@ void mqtt_settings_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, 
     default:
         break;
     }
+}
+
+typedef struct
+{
+    uint8_t overlay_id;
+} mqtt_box_cmd_ctx_t;
+
+static mqtt_box_cmd_ctx_t mqtt_box_cmd_contexts[MQTT_BOX_INSTANCES];
+
+void mqtt_box_cmd_stop_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    TRACE_INFO("[MQTT] Received stop command for overlay %" PRIu8 "\r\n", cmd_ctx->overlay_id);
+    tbs_cmd_stop(cmd_ctx->overlay_id);
+}
+
+void mqtt_box_cmd_vol_spk_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received volLimitSpk=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_vol_limit_spk(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_vol_spk_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.max_vol_spk);
+    ha_transmit(ha_info, entity, buf);
+}
+
+void mqtt_box_cmd_vol_hdp_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received volLimitHdp=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_vol_limit_hdp(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_vol_hdp_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.max_vol_hdp);
+    ha_transmit(ha_info, entity, buf);
+}
+
+void mqtt_box_cmd_led_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    uint32_t val = (uint32_t)atoi(payload);
+    TRACE_INFO("[MQTT] Received led=%" PRIu32 " for overlay %" PRIu8 "\r\n", val, cmd_ctx->overlay_id);
+    tbs_cmd_set_led(cmd_ctx->overlay_id, val);
+}
+
+void mqtt_box_cmd_led_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    char buf[12];
+    osSnprintf(buf, sizeof(buf), "%" PRIu32, settings->toniebox.led);
+    ha_transmit(ha_info, entity, buf);
+}
+
+void mqtt_box_cmd_slap_en_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    bool enabled = !osStrcasecmp(payload, "TRUE");
+    TRACE_INFO("[MQTT] Received slapEnabled=%s for overlay %" PRIu8 "\r\n", enabled ? "true" : "false", cmd_ctx->overlay_id);
+    tbs_cmd_set_slap_enabled(cmd_ctx->overlay_id, enabled);
+}
+
+void mqtt_box_cmd_slap_en_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    ha_transmit(ha_info, entity, settings->toniebox.slap_enabled ? "TRUE" : "FALSE");
+}
+
+void mqtt_box_cmd_slap_dir_rx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx, const char *payload)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx || !payload)
+    {
+        return;
+    }
+    bool back_left = !osStrcasecmp(payload, "TRUE");
+    TRACE_INFO("[MQTT] Received slapDir=%s for overlay %" PRIu8 "\r\n", back_left ? "back-left" : "forw-left", cmd_ctx->overlay_id);
+    tbs_cmd_set_slap_dir(cmd_ctx->overlay_id, back_left);
+}
+
+void mqtt_box_cmd_slap_dir_tx(t_ha_info *ha_info, const t_ha_entity *entity, void *ctx)
+{
+    mqtt_box_cmd_ctx_t *cmd_ctx = (mqtt_box_cmd_ctx_t *)ctx;
+    if (!cmd_ctx)
+    {
+        return;
+    }
+    settings_t *settings = get_settings_id(cmd_ctx->overlay_id);
+    ha_transmit(ha_info, entity, settings->toniebox.slap_back_left ? "TRUE" : "FALSE");
 }
 
 error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
@@ -1004,6 +1170,96 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     entity.type = ha_image;
     entity.url_t = "%s/ContentPicture";
     ha_add(ha_box_instance, &entity);
+
+    int cmd_ctx_idx = (int)(ha_box_instance - ha_box_instances);
+    if (cmd_ctx_idx >= 0 && cmd_ctx_idx < MQTT_BOX_INSTANCES)
+    {
+        mqtt_box_cmd_contexts[cmd_ctx_idx].overlay_id = client_ctx->settings->internal.overlayNumber;
+        mqtt_box_cmd_ctx_t *cmd_ctx = &mqtt_box_cmd_contexts[cmd_ctx_idx];
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdStop";
+        entity.name = "Stop Stream";
+        entity.type = ha_button;
+        entity.cmd_t = "%s/CmdStop/set";
+        entity.received = mqtt_box_cmd_stop_rx;
+        entity.received_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdVolLimitSpk";
+        entity.name = "Speaker Volume Limit";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdVolLimitSpk/set";
+        entity.stat_t = "%s/CmdVolLimitSpk";
+        entity.min = 0;
+        entity.max = 3;
+        entity.mode = "slider";
+        entity.ic = "mdi:volume-high";
+        entity.received = mqtt_box_cmd_vol_spk_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_vol_spk_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdVolLimitHdp";
+        entity.name = "Headphone Volume Limit";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdVolLimitHdp/set";
+        entity.stat_t = "%s/CmdVolLimitHdp";
+        entity.min = 0;
+        entity.max = 3;
+        entity.mode = "slider";
+        entity.ic = "mdi:headphones";
+        entity.received = mqtt_box_cmd_vol_hdp_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_vol_hdp_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdLed";
+        entity.name = "LED Mode";
+        entity.type = ha_number;
+        entity.cmd_t = "%s/CmdLed/set";
+        entity.stat_t = "%s/CmdLed";
+        entity.min = 0;
+        entity.max = 2;
+        entity.mode = "slider";
+        entity.ic = "mdi:led-on";
+        entity.received = mqtt_box_cmd_led_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_led_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdSlapEnabled";
+        entity.name = "Slap to Skip";
+        entity.type = ha_switch;
+        entity.cmd_t = "%s/CmdSlapEnabled/set";
+        entity.stat_t = "%s/CmdSlapEnabled";
+        entity.ic = "mdi:gesture-tap";
+        entity.received = mqtt_box_cmd_slap_en_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_slap_en_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+
+        memset(&entity, 0x00, sizeof(entity));
+        entity.id = "CmdSlapDirection";
+        entity.name = "Slap Direction";
+        entity.type = ha_switch;
+        entity.cmd_t = "%s/CmdSlapDirection/set";
+        entity.stat_t = "%s/CmdSlapDirection";
+        entity.ic = "mdi:swap-horizontal";
+        entity.received = mqtt_box_cmd_slap_dir_rx;
+        entity.received_ctx = cmd_ctx;
+        entity.transmit = mqtt_box_cmd_slap_dir_tx;
+        entity.transmit_ctx = cmd_ctx;
+        ha_add(ha_box_instance, &entity);
+    }
 
     return NO_ERROR;
 }
