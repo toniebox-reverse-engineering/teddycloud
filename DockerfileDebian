@@ -19,7 +19,7 @@ LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
 EXPOSE 80 443 8443
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libubsan1 strace ffmpeg curl ca-certificates \
+    && apt-get install -y --no-install-recommends libubsan1 strace ffmpeg curl ca-certificates gosu libcap2-bin \
     && rm -rf /var/lib/apt/lists/*
 
 RUN update-ca-certificates
@@ -46,6 +46,9 @@ COPY --from=buildenv \
     /buildenv/install/pre/*.sh /usr/local/bin/
 COPY --from=buildenv \
     /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+
+# Allow non-root user to bind privileged ports (80, 443) when PUID/PGID are set
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/teddycloud
 
 COPY --from=buildenv /buildenv/install/zip/release.zip /tmp/teddycloud.zip
 
