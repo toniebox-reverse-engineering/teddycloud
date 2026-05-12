@@ -3,6 +3,9 @@ services:
     container_name: teddycloud
     hostname: teddycloud
     image: ghcr.io/toniebox-reverse-engineering/teddycloud:latest
+    # environment:
+    #  - PUID=1000 #optional (run as non-root; UID for /teddycloud files)
+    #  - PGID=1000 #optional (run as non-root; GID for /teddycloud files)
     # ports:
     #  - 80:80 #optional (for the webinterface)
     #  - 8443:8443 #optional (for the webinterface)
