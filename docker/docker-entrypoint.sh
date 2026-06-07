@@ -47,8 +47,17 @@ if [ -n "${DOCKER_TEST:-}" ]; then
   echo "Running teddycloud --docker-test..."
   LSAN_OPTIONS=detect_leaks=0 "${RUN_AS[@]}" teddycloud --docker-test
 else
+  # teddycloud requests an in-place restart by exiting with RETURNCODE_USER_RESTART
+  # (-2 in the source), which the shell receives as the unsigned 8-bit code 254.
+  # Restart the process on that code; for any other exit code, leave the loop and
+  # let Docker's restart policy (if configured) decide what happens next.
+  readonly RESTART_CODE=254
   while true
   do
+    # Disable errexit only around the long-running process: a non-zero exit (a
+    # crash, or a user-requested restart/quit) must NOT abort the loop before we
+    # have inspected the exit code below.
+    set +o errexit
     if [ -n "${STRACE:-}" ]; then
       echo "Running teddycloud with strace..."
       "${RUN_AS[@]}" strace -t -T teddycloud
@@ -57,9 +66,10 @@ else
       "${RUN_AS[@]}" teddycloud
     fi
     retVal=$?
+    set -o errexit
     echo "teddycloud exited with code $retVal"
-    if [ $retVal -ne -2 ]; then
-      exit $retVal
+    if [ "$retVal" -ne "$RESTART_CODE" ]; then
+      exit "$retVal"
     fi
     echo "Restarting teddycloud..."
   done
