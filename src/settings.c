@@ -1008,6 +1008,9 @@ static error_t settings_load_ovl(bool overlay)
                     setting_item_t *opt = settings_get_by_name_ovl(option_name, overlay_unique_id);
                     if (opt != NULL)
                     {
+                        // temporaries for the bounds-checked numeric cases below
+                        int32_t signedVal;
+                        uint32_t unsignedVal;
                         // Update the setting value based on the type
                         if (overlay)
                         {
@@ -1025,12 +1028,40 @@ static error_t settings_load_ovl(bool overlay)
                             TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((bool *)opt->ptr) ? "true" : "false");
                             break;
                         case TYPE_SIGNED:
-                            *((int32_t *)opt->ptr) = atoi(value_str);
+                            // Enforce the same min/max bounds the API setters apply, but only
+                            // when the option declares a real range (max > min). Options left
+                            // unbounded (e.g. internal counters with min == max) keep the raw
+                            // value, preserving previous behaviour.
+                            signedVal = atoi(value_str);
+                            if (opt->max.signed_value > opt->min.signed_value &&
+                                (signedVal < opt->min.signed_value || signedVal > opt->max.signed_value))
+                            {
+                                TRACE_WARNING("Value %d for '%s' out of range [%d, %d]; keeping %d\r\n",
+                                              signedVal, option_name, opt->min.signed_value,
+                                              opt->max.signed_value, *((int32_t *)opt->ptr));
+                            }
+                            else
+                            {
+                                *((int32_t *)opt->ptr) = signedVal;
+                            }
                             TRACE_DEBUG("%s=%d\r\n", opt->option_name, *((int32_t *)opt->ptr));
                             break;
                         case TYPE_UNSIGNED:
                         case TYPE_HEX:
-                            *((uint32_t *)opt->ptr) = strtoul(value_str, NULL, 10);
+                            unsignedVal = strtoul(value_str, NULL, 10);
+                            if (opt->max.unsigned_value > opt->min.unsigned_value &&
+                                (unsignedVal < opt->min.unsigned_value || unsignedVal > opt->max.unsigned_value))
+                            {
+                                TRACE_WARNING("Value %u for '%s' out of range [%llu, %llu]; keeping %u\r\n",
+                                              unsignedVal, option_name,
+                                              (unsigned long long)opt->min.unsigned_value,
+                                              (unsigned long long)opt->max.unsigned_value,
+                                              *((uint32_t *)opt->ptr));
+                            }
+                            else
+                            {
+                                *((uint32_t *)opt->ptr) = unsignedVal;
+                            }
                             TRACE_DEBUG("%s=%u\r\n", opt->option_name, *((uint32_t *)opt->ptr));
                             break;
                         case TYPE_FLOAT:
