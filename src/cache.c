@@ -204,6 +204,25 @@ cache_entry_t *cache_add(const char *url)
     return entry;
 }
 
+void cache_deinit(void)
+{
+    /* The cache list lives for the whole process; free it on shutdown so the
+       entries and their strdup'd strings aren't reported as leaks. cache_table
+       itself is a static head node, so only walk and free the .next chain.
+       Runs single-threaded during shutdown, after the HTTP server has stopped. */
+    cache_entry_t *pos = cache_table.next;
+    while (pos)
+    {
+        cache_entry_t *next = pos->next;
+        osFreeMem((void *)pos->original_url);
+        osFreeMem((void *)pos->cached_url);
+        osFreeMem((void *)pos->file_path);
+        osFreeMem(pos);
+        pos = next;
+    }
+    cache_table.next = NULL;
+}
+
 bool cache_fetch_entry(cache_entry_t *entry)
 {
     if (entry->exists && fsFileExists(entry->file_path))

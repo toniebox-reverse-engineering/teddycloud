@@ -1048,6 +1048,7 @@ void server_init(bool test)
     }
     mqtt_server_deinit();
     tonies_deinit();
+    cache_deinit();
     mutex_manager_deinit();
 
     pcaplog_close();
