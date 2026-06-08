@@ -828,9 +828,23 @@ void ffmpeg_stream_task(void *param)
     stream_ctx_t *stream_ctx = (stream_ctx_t *)param;
     ffmpeg_stream_ctx_t *ffmpeg_ctx = (ffmpeg_stream_ctx_t *)stream_ctx->ctx;
 
-    char source[99][PATH_LEN]; // waste memory, but warning otherwise
+    /* Heap-allocate the (~400 KB) source array instead of putting it on the task
+       stack. osCreateTask's requested stackSize is not honored by the pthread
+       backend, so on small default thread stacks (notably musl/Alpine, ~128 KB)
+       this stack array overflowed and crashed the stream task. See issue #160. */
+    char (*source)[PATH_LEN] = osAllocMem(sizeof(char[99][PATH_LEN]));
+    if (source == NULL)
+    {
+        TRACE_ERROR("ffmpeg_stream_task: failed to allocate source buffer\r\n");
+        stream_ctx->error = ERROR_OUT_OF_MEMORY;
+        stream_ctx->quit = true;
+        osDeleteTask((OsTaskId)OS_SELF_TASK_ID);
+        return;
+    }
     strncpy(source[0], ffmpeg_ctx->source, PATH_LEN - 1);
+    source[0][PATH_LEN - 1] = '\0';
     stream_ctx->error = ffmpeg_stream(source, 1, &stream_ctx->current_source, ffmpeg_ctx->targetFile, ffmpeg_ctx->skip_seconds, &stream_ctx->active, &ffmpeg_ctx->sweep, ffmpeg_ctx->append, true);
+    osFreeMem(source);
     stream_ctx->quit = true;
     osDeleteTask((OsTaskId) OS_SELF_TASK_ID);
 }
