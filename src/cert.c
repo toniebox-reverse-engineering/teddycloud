@@ -151,6 +151,33 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
         return ERROR_FAILURE;
     }
 
+    /* #115: if the private-key file uses a .pem/.key extension, also export the key
+       as PEM (PKCS#8) so we write a real PEM file instead of raw DER. This must run
+       while cert_privkey is still valid (it is freed below after signing); .der
+       targets keep DER. */
+    char_t *priv_pem_data = NULL;
+    size_t priv_pem_size = 0;
+    size_t priv_file_len = priv_file ? osStrlen(priv_file) : 0;
+    if (priv_file_len > 4 && (!osStrcasecmp(&priv_file[priv_file_len - 4], ".pem") || !osStrcasecmp(&priv_file[priv_file_len - 4], ".key")))
+    {
+        /* Export into a fixed buffer, mirroring cert_generate_signed_ec. 8 KB holds
+           a 4096-bit RSA key in PKCS#8 PEM with room to spare. (pemExportRsaPrivateKey
+           must not be called with a NULL output buffer.) */
+        char_t temp_pem_buf[8192];
+        size_t temp_pem_size = sizeof(temp_pem_buf);
+        if (pemExportRsaPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size) == NO_ERROR && temp_pem_size > 0)
+        {
+            priv_pem_data = osAllocMem(temp_pem_size + 1);
+            osMemcpy(priv_pem_data, temp_pem_buf, temp_pem_size);
+            priv_pem_data[temp_pem_size] = '\0';
+            priv_pem_size = temp_pem_size;
+        }
+        else
+        {
+            TRACE_WARNING("PEM export of RSA private key failed; writing DER to '%s'\r\n", priv_file);
+        }
+    }
+
     /* create and sign the certificate */
     X509CertRequestInfo cert_req;
     osMemset(&cert_req, 0x00, sizeof(cert_req));
@@ -278,13 +305,21 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
             TRACE_ERROR("fsOpenFile failed\r\n");
             return ERROR_FAILURE;
         }
-        fsWriteFile(file, priv_data, priv_size);
+        if (priv_pem_data)
+        {
+            fsWriteFile(file, priv_pem_data, priv_pem_size);
+        }
+        else
+        {
+            fsWriteFile(file, priv_data, priv_size);
+        }
         fsCloseFile(file);
     }
 
     osFreeMem(cert_der_data);
     osFreeMem(cert_pem_data);
     osFreeMem(priv_data);
+    if (priv_pem_data) osFreeMem(priv_pem_data);
 
     if (!self_sign)
     {
