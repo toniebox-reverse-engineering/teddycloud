@@ -36,13 +36,26 @@ error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buff
         TRACE_ERROR("Body size %" PRIuSIZE " bigger than buffer size %" PRIuSIZE " bytes\r\n", connection->request.byteCount, buffer_size);
         return ERROR_BUFFER_OVERFLOW;
     }
-    error = httpReceive(connection, post_data, buffer_size, &size, 0x00);
-    if (error != NO_ERROR)
+    /* The body may arrive across multiple TCP segments (e.g. Firefox commonly
+       sends the POST body separately from the headers), so a single httpReceive()
+       can return only the first chunk and silently truncate the body. Loop until
+       the full Content-Length has been read. See teddycloud_web#171. */
+    size_t received = 0;
+    while (received < connection->request.byteCount)
     {
-        TRACE_ERROR("Could not read post data\r\n");
-        return error;
+        error = httpReceive(connection, post_data + received, buffer_size - received, &size, 0x00);
+        if (error != NO_ERROR)
+        {
+            TRACE_ERROR("Could not read post data (got %" PRIuSIZE " of %" PRIuSIZE " bytes)\r\n", received, connection->request.byteCount);
+            return error;
+        }
+        if (size == 0)
+        {
+            break;
+        }
+        received += size;
     }
-    return error;
+    return NO_ERROR;
 }
 
 /* sanitizes the path - needs two additional characters in worst case, so make sure 'path' has enough space */
