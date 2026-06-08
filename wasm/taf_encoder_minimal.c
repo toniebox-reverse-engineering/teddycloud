@@ -74,6 +74,10 @@ typedef struct {
     int bitrate;
 } taf_encoder_t;
 
+// Forward declaration (defined at end of file) so error paths in
+// taf_encoder_create() can fully clean up before returning NULL.
+void taf_encoder_free(taf_encoder_t *ctx);
+
 // Helper: Write to memory buffer
 static int buffer_write(taf_encoder_t *ctx, const void *data, size_t length) {
     size_t required = ctx->output_size + length;
@@ -260,8 +264,11 @@ taf_encoder_t *taf_encoder_create(uint32_t audio_id, int bitrate) {
     // Flush header pages
     ogg_page og;
     while (ogg_stream_flush(&ctx->os, &og)) {
-        buffer_write(ctx, og.header, og.header_len);
-        buffer_write(ctx, og.body, og.body_len);
+        if (buffer_write(ctx, og.header, og.header_len) != 0 ||
+            buffer_write(ctx, og.body, og.body_len) != 0) {
+            taf_encoder_free(ctx);
+            return NULL;
+        }
     }
     
     // Add first chapter at start
@@ -333,8 +340,10 @@ int taf_encoder_encode(taf_encoder_t *ctx, int16_t *samples, int num_samples) {
                 //printf("taf_encoder_encode: Page full (remain=%d), forcing flush\n", page_remain);
                 ogg_page og;
                 if (ogg_stream_flush(&ctx->os, &og)) {
-                    buffer_write(ctx, og.header, og.header_len);
-                    buffer_write(ctx, og.body, og.body_len);
+                    if (buffer_write(ctx, og.header, og.header_len) != 0 ||
+                        buffer_write(ctx, og.body, og.body_len) != 0) {
+                        return -1;
+                    }
                     ctx->taf_block_num++;
                     
                     // Recalculate
@@ -391,8 +400,10 @@ int taf_encoder_encode(taf_encoder_t *ctx, int16_t *samples, int num_samples) {
             // Write OGG pages
             ogg_page og;
             while (ogg_stream_pageout(&ctx->os, &og)) {
-                buffer_write(ctx, og.header, og.header_len);
-                buffer_write(ctx, og.body, og.body_len);
+                if (buffer_write(ctx, og.header, og.header_len) != 0 ||
+                    buffer_write(ctx, og.body, og.body_len) != 0) {
+                    return -1;
+                }
                 ctx->taf_block_num++;
             }
             
@@ -434,8 +445,10 @@ int taf_encoder_finalize(taf_encoder_t *ctx) {
     // Flush any remaining OGG pages
     ogg_page og;
     while (ogg_stream_flush(&ctx->os, &og)) {
-        buffer_write(ctx, og.header, og.header_len);
-        buffer_write(ctx, og.body, og.body_len);
+        if (buffer_write(ctx, og.header, og.header_len) != 0 ||
+            buffer_write(ctx, og.body, og.body_len) != 0) {
+            return -1;
+        }
     }
     
     // Ensure total file size is NOT a multiple of 4096
@@ -460,10 +473,12 @@ int taf_encoder_finalize(taf_encoder_t *ctx) {
             op.packetno = ctx->ogg_packet_count++;
             
             ogg_stream_packetin(&ctx->os, &op);
-            
+
             while (ogg_stream_flush(&ctx->os, &og)) {
-                buffer_write(ctx, og.header, og.header_len);
-                buffer_write(ctx, og.body, og.body_len);
+                if (buffer_write(ctx, og.header, og.header_len) != 0 ||
+                    buffer_write(ctx, og.body, og.body_len) != 0) {
+                    return -1;
+                }
             }
         }
     }
@@ -516,8 +531,10 @@ int taf_encoder_finalize(taf_encoder_t *ctx) {
     proto_be[2] = proto_size >> 8;
     proto_be[3] = proto_size;
     
-    buffer_write_at(ctx, 0, proto_be, sizeof(proto_be));
-    buffer_write_at(ctx, 4, header_buffer, proto_size);
+    if (buffer_write_at(ctx, 0, proto_be, sizeof(proto_be)) != 0 ||
+        buffer_write_at(ctx, 4, header_buffer, proto_size) != 0) {
+        return -1;
+    }
     
     //printf("taf_encoder_finalize: done\n");
     return 0;
