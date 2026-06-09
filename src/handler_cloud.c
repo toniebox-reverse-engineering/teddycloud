@@ -698,12 +698,14 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         tap_param.tap = &tonieInfo->json._tap;
         tap_param.tap->audio_id = time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT;
         tap_param.force = false;
+        tap_param.preserve_on_client_disconnect = true;
 
         stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
         stream_ctx->active = false;
         stream_ctx->quit = false;
         stream_ctx->error = NO_ERROR;
-        stream_ctx->stop_on_playback_stop = true;
+        stream_ctx->client_disconnected = false;
+        stream_ctx->stop_on_playback_stop = false;
         stream_ctx->ctx = &tap_param;
         stream_ctx->taskParams.stackSize = 10 * 1024;
         stream_ctx->taskParams.priority = 0;
@@ -717,9 +719,17 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         if (stream_ctx->error == NO_ERROR)
         {
             error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
-            if (response_error)
+                        if (response_error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
+                if (response_error == ERROR_TIMEOUT && stream_ctx->error == NO_ERROR && !stream_ctx->quit)
+                {
+                    stream_ctx->client_disconnected = true;
+                    TRACE_WARNING(" >> TAP stream client timeout/disconnect while TAF generation is still active; preserving background generation\r\n");
+                }
+                else
+                {
+                    TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
+                }
             }
         }
         else
@@ -727,7 +737,10 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(stream_ctx->error));
         }
 
-        stream_ctx->active = false;
+        if (!stream_ctx->client_disconnected)
+        {
+            stream_ctx->active = false;
+        }
 
         while (!stream_ctx->quit)
         {
