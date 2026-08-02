@@ -730,16 +730,26 @@ error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tl
         return error;
     }
 
-    // Import TB2 server's certificate if available
-    const char *cert_chain_tb2 = settings_get_string("internal.server_tb2.cert_chain");
-    const char *server_key_tb2 = settings_get_string("internal.server_tb2.key");
-
-    if (cert_chain_tb2 && server_key_tb2 && strlen(cert_chain_tb2) > 0 && strlen(server_key_tb2) > 0)
+    // Import the TB2 server certificate only when explicitly enabled.
+    //
+    // The TB2 certificate is an ECDSA certificate. Offering it unconditionally
+    // makes ECDHE_ECDSA cipher suites selectable for every client, including
+    // TB1 boxes. A TB1 box does not trust the TB2 CA and aborts the handshake
+    // ("TLS handshake failure!"), so it never reaches the HTTP layer.
+    // Keep it opt-in until certificate selection can be done per client
+    // (e.g. via SNI / the TB2 hostname).
+    if (settings_get_bool("core.server_cert_tb2.enabled"))
     {
-        error = tlsLoadCertificate(tlsContext, 1, cert_chain_tb2, strlen(cert_chain_tb2), server_key_tb2, strlen(server_key_tb2), NULL);
-        if (error)
+        const char *cert_chain_tb2 = settings_get_string("internal.server_tb2.cert_chain");
+        const char *server_key_tb2 = settings_get_string("internal.server_tb2.key");
+
+        if (cert_chain_tb2 && server_key_tb2 && strlen(cert_chain_tb2) > 0 && strlen(server_key_tb2) > 0)
         {
-            TRACE_WARNING("  Failed to add TB2 cert: %s\r\n", error2text(error));
+            error = tlsLoadCertificate(tlsContext, 1, cert_chain_tb2, strlen(cert_chain_tb2), server_key_tb2, strlen(server_key_tb2), NULL);
+            if (error)
+            {
+                TRACE_WARNING("  Failed to add TB2 cert: %s\r\n", error2text(error));
+            }
         }
     }
 

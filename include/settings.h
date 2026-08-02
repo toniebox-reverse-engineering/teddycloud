@@ -328,6 +328,7 @@ typedef struct
     char *sslkeylogfile;
     settings_cert_opt_t server_cert;
     settings_cert_opt_t server_cert_tb2;
+    bool server_cert_tb2_enabled;
     settings_cert_opt_t client_cert;
     settings_cert_opt_t client_cert_fake;
     char *allowOrigin;

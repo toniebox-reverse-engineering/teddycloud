@@ -101,6 +101,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("core.server_cert.data.key", &settings->core.server_cert.data.key, "", "Server key data", LEVEL_EXPERT)
 
     OPTION_TREE_DESC("core.server_cert_tb2", "HTTPS server certificates (TB2)", LEVEL_EXPERT)
+    OPTION_BOOL("core.server_cert_tb2.enabled", &settings->core.server_cert_tb2_enabled, FALSE, "Enable TB2 certificate", "Additionally offer the TB2 (ECDSA) server certificate during the TLS handshake. Only enable when a TB2 box is used - TB1 boxes fail the handshake when an ECDSA certificate is offered.", LEVEL_EXPERT)
     OPTION_TREE_DESC("core.server_cert_tb2.file", "File certificates (TB2)", LEVEL_EXPERT)
     OPTION_STRING("core.server_cert_tb2.file.ca", &settings->core.server_cert_tb2.file.ca, "certs/server_tb2/ca-root.pem", "CA certificate (TB2)", "CA certificate (TB2)", LEVEL_EXPERT)
     OPTION_STRING("core.server_cert_tb2.file.ca_der", &settings->core.server_cert_tb2.file.ca_der, "certs/server_tb2/ca.der", "CA certificate as DER (TB2)", "CA certificate as DER (TB2)", LEVEL_EXPERT)
