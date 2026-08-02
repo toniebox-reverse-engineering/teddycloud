@@ -16,6 +16,9 @@
 #define TONIEFILE_PAD_END 64
 
 #define OGG_HEADER_LENGTH 27
+/* max lacing values per ogg page (255), minus a safety margin for the packet
+   that finally fills the block */
+#define OGG_SEGMENTS_RESERVE 8
 /*
     quint32 Signature;
     quint8 Version;

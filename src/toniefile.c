@@ -449,6 +449,35 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                 return ERROR_FAILURE;
             }
 
+            /* An ogg page can hold at most 255 lacing values (segments) and every
+               packet consumes at least one of them. Very small packets - which
+               opus produces for silence or very quiet passages - would therefore
+               run out of segments long before the 4096 byte block is filled.
+               libogg then splits the page, the extra page header shifts the write
+               position and the block alignment check below fails, aborting the
+               whole (web radio) stream. Make sure every packet is big enough that
+               the remaining space can still be filled with the remaining segments. */
+            int segments_left = 255 - (int)ctx->os.lacing_fill - OGG_SEGMENTS_RESERVE;
+            if (segments_left < 1)
+            {
+                segments_left = 1;
+            }
+            int min_payload = (page_remain + segments_left - 1) / segments_left;
+            if (min_payload > frame_payload)
+            {
+                min_payload = frame_payload;
+            }
+            if (frame_len < min_payload)
+            {
+                int ret = opus_packet_pad(output_frame, frame_len, min_payload);
+                if (ret < 0)
+                {
+                    TRACE_ERROR("Cannot pad: %s\r\n", opus_strerror(ret));
+                    return ERROR_FAILURE;
+                }
+                frame_len = min_payload;
+            }
+
             /* we did not exactly hit the destination size and are close to block size. pad packet */
             if (frame_payload - frame_len < OPUS_PACKET_PAD)
             {
