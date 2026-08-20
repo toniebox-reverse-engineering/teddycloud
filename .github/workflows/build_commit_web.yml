@@ -68,7 +68,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "24.12.0"
+          node-version: "26"
       - name: Install NPM version
         run: npm install -g npm@latest
 
