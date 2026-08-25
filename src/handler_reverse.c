@@ -56,15 +56,16 @@ typedef struct
     bool https;
     bool allow_params;
     bool cache;
-    uint32_t cache_hours;
+    uint32_t cache_hours;   
+    bool flush_on_restart;
     const char *mime_type;
 } reverse_target_t;
 
-const reverse_target_t reverse_targets[] = {
-    {"macvendor", "api.macvendors.com", "/", 443, true, true, true, 24, "text/plain"},
-    {"teddycloud_release", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/releases/latest", 443, true, false, true, 24, "application/json"},
-    {"teddycloud_develop", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/commits/develop", 443, true, false, true, 1, "application/json"},
-    {NULL, NULL, NULL, 0, false, false, false, 0, NULL}};
+reverse_target_t reverse_targets[] = {
+    {"macvendor", "api.macvendors.com", "/", 443, true, true, true, 24, false, "text/plain"},
+    {"teddycloud_release", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/releases/latest", 443, true, false, true, 24, true, "application/json"},
+    {"teddycloud_develop", "api.github.com", "/repos/toniebox-reverse-engineering/teddycloud/commits/develop", 443, true, false, true, 1, true, "application/json"},
+    {NULL, NULL, NULL, 0, false, false, false, 0, false, NULL}};
 
 void cbrReverseBodyCache(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
@@ -122,7 +123,7 @@ error_t handleReverseGeneric(HttpConnection *connection, const char_t *uri, cons
     }
 
     const char *targetNamePrefix = uri + prefixLen;
-    const reverse_target_t *target = NULL;
+    reverse_target_t *target = NULL;
     const char *subPath = NULL;
 
     for (int i = 0; reverse_targets[i].name != NULL; i++)
@@ -181,6 +182,14 @@ error_t handleReverseGeneric(HttpConnection *connection, const char_t *uri, cons
 
     if (target->cache)
     {
+        bool flush_cache = false;
+        if (target->flush_on_restart)
+        {
+            flush_cache = true;
+            target->flush_on_restart = false;
+            TRACE_INFO("Target %s: flushing cache on first use after restart\r\n", target->name);
+        }
+
         uint8_t sha256_calc[SHA256_DIGEST_SIZE];
         char sha256_calc_str[2 * SHA256_DIGEST_SIZE + 1];
 
@@ -211,7 +220,7 @@ error_t handleReverseGeneric(HttpConnection *connection, const char_t *uri, cons
                     time_t fileTs = (time_t)strtoul(tsStr, NULL, 10);
                     time_t now = time(NULL);
 
-                    if (fileTs + (target->cache_hours * 3600) > now)
+                    if (!flush_cache && (fileTs + (target->cache_hours * 3600) > now))
                     {
                         // Valid
                         cachePath = custom_asprintf("%s/%s", cacheDir, entry.name);

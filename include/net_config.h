@@ -49,6 +49,11 @@ typedef struct
     settings_t *settingsNoOverlay;
     toniebox_state_t *state;
     bool skip_taf_header;
+    bool taf_chapter_split;
+    uint32_t taf_chapter_start_offset;
+    uint32_t taf_chapter_end_offset;
+    uint32_t taf_chapter_header_size;
+    void *mqtt_connection;
 } client_ctx_t;
 
 typedef struct
@@ -64,6 +69,7 @@ typedef struct
 #define TONIE_HEADER_LENGTH 0x1000
 #define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - TONIE_HEADER_LENGTH)
 
+#define HTTP_CLIENT_BUFFER_SIZE 1024 * 16
 #define HTTP_CLIENT_PRIVATE_CONTEXT \
     const char *serverName;         \
     http_client_private_t private;  \

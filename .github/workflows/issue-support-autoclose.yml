@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Check for closure triggers
         id: check-content
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const body = context.payload.issue.body;

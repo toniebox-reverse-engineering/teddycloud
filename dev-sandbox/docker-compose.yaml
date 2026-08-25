@@ -1,0 +1,25 @@
+# Dev sandbox: one container (backend + frontend). DockerfileAlpine + make web.
+# First time: ./dev-sandbox/setup.sh
+# Start:     docker compose -f ./dev-sandbox/docker-compose.yaml up --build
+# Stop:      docker compose -f ./dev-sandbox/docker-compose.yaml down
+#
+# Access: http://localhost:8080
+services:
+  teddycloud:
+    build:
+      context: ..
+      dockerfile: dev-sandbox/Dockerfile
+    image: teddycloud:local
+    container_name: teddycloud-dev
+    ports:
+      - "8080:80"
+      - "8443:8443"
+    volumes:
+      - ./run/certs:/teddycloud/certs
+      - ./run/config:/teddycloud/config
+      - ./run/data/content:/teddycloud/data/content
+      - ./run/data/library:/teddycloud/data/library
+      - ./run/data/firmware:/teddycloud/data/firmware
+      - ./run/data/cache:/teddycloud/data/cache
+      - ./run/data/www/plugins:/teddycloud/data/www/plugins
+      - ./run/data/www/custom_img:/teddycloud/data/www/custom_img

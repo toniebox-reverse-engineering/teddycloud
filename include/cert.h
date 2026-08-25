@@ -75,6 +75,9 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
  * Both certificates are stored in the file paths specified in the settings.
  */
 error_t cert_generate_default();
+error_t cert_generate_default_tb2();
+error_t cert_generate_mac_tb2(const char *mac, const char *dest, bool add_to_settings);
+error_t cert_generate_signed_ec(const char *subject, const uint8_t *serial_number, int serial_number_size, bool self_sign, bool cert_der_format, const char *cert_file, const char *priv_file, const char *ca_cert_setting, const char *ca_key_setting, const char *dns_names[], size_t dns_names_count);
 
 /**
  * @brief Truncate the serial number to a specified length

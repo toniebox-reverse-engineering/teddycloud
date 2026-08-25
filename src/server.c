@@ -144,6 +144,9 @@ request_type_t request_paths[] = {
     {REQ_GET, "/api/toniesJsonReload", SERTY_WEB, &handleApiToniesJsonReload},
     {REQ_GET, "/api/toniesJson", SERTY_WEB, &handleApiToniesJson},
     {REQ_GET, "/api/toniesCustomJson", SERTY_WEB, &handleApiToniesCustomJson},
+    {REQ_POST, "/api/toniesCustomJsonUpsert", SERTY_WEB, &handleApiToniesCustomJsonUpsert},
+    {REQ_POST, "/api/toniesCustomJsonDelete", SERTY_WEB, &handleApiToniesCustomJsonDelete},
+    {REQ_POST, "/api/toniesCustomJsonRename", SERTY_WEB, &handleApiToniesCustomJsonRename},
     {REQ_GET, "/api/tonieboxesJson", SERTY_WEB, &handleApiTonieboxJson},
     {REQ_GET, "/api/tonieboxesCustomJson", SERTY_WEB, &handleApiTonieboxCustomJson},
     {REQ_GET, "/api/trigger", SERTY_WEB, &handleApiTrigger},
@@ -312,6 +315,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
     {
         char_t *subject = connection->tlsContext->client_cert_subject;
         char_t *issuer = connection->tlsContext->client_cert_issuer;
+        uint32_t boxGen = GENERATION_UNKNOWN;
 
         if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "Toniebox SubCA") != NULL
             || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL || osStrstr(issuer, "Toniebox Root CA") != NULL)
@@ -426,23 +430,27 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                         {
                             // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
                             client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
+                            boxGen = GENERATION_TB2;
                         }
                         else
                         {
                             // CC3200 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
                             client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3200;
+                            boxGen = GENERATION_TB1;
                         }
                     }
                     else
                     {
                         // ESP32 User-Agent (old): %box-color% TB/%firmware-ts%
                         client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                        boxGen = GENERATION_TB1;
                     }
                 }
                 else if (fwEsp != NULL)
                 {
                     // ESP32 User-Agent: toniebox-esp-eu/v5.226.0
                     client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_ESP32;
+                    boxGen = GENERATION_TB1;
                     if (osStrcmp(firmware_info->uaEsp32Firmware, fwEsp) != 0)
                     {
                         settings_set_string_id("internal.toniebox_firmware.uaEsp32Firmware", fwEsp, client_ctx->settings->internal.overlayNumber);
@@ -452,6 +460,8 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 {
                     // TB2 User-Agent: TB2/1.0.22-92f57d4
                     client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_TB2;
+                    boxGen = GENERATION_TB2;
+
                     // TODO: Parse the fwTb2 version
                 }
                 else
@@ -473,6 +483,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                 firmware_info->uaVersionFirmware = fwVersionTime;
                 firmware_info->uaVersionServicePack = spVersionTime;
                 firmware_info->uaVersionHardware = hwVersionTime;
+
+                if (client_ctx->settings->toniebox.boxGeneration != boxGen)
+                {
+                    TRACE_INFO("Box generation set %d to %d\r\n", client_ctx->settings->toniebox.boxGeneration, boxGen);
+                    settings_set_unsigned_id("toniebox.boxGeneration", boxGen, client_ctx->settings->internal.overlayNumber);
+                }
             }
         }
     }
@@ -661,7 +677,62 @@ error_t httpServerCgiCallback(HttpConnection *connection,
     return NO_ERROR;
 }
 
-error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tlsContext, TlsClientAuthMode authMode)
+static error_t httpServerLoadCertificate(
+    TlsContext *tlsContext,
+    bool_t useTb2Certificate)
+{
+    const char *certificateName = useTb2Certificate ? "TB2" : "TB1";
+    const char *certChainSetting = useTb2Certificate
+                                       ? "internal.server_tb2.cert_chain"
+                                       : "internal.server.cert_chain";
+    const char *serverKeySetting = useTb2Certificate
+                                       ? "internal.server_tb2.key"
+                                       : "internal.server.key";
+    const char *certChain = settings_get_string(certChainSetting);
+    const char *serverKey = settings_get_string(serverKeySetting);
+
+    if (certChain == NULL || serverKey == NULL || certChain[0] == '\0' ||
+        serverKey[0] == '\0')
+    {
+        TRACE_ERROR("Failed to get %s HTTPS server certificate\r\n", certificateName);
+        return ERROR_FAILURE;
+    }
+
+    error_t error = tlsLoadCertificate(tlsContext, 0, certChain, strlen(certChain),
+                                       serverKey, strlen(serverKey), NULL);
+    if (error)
+    {
+        TRACE_ERROR("Failed to load %s HTTPS server certificate: %s\r\n",
+                    certificateName, error2text(error));
+    }
+
+    return error;
+}
+
+static error_t httpServerSelectBoxCertificate(
+    TlsContext *tlsContext,
+    const char_t *selectedProtocol)
+{
+    (void)selectedProtocol;
+
+    const char_t *hostname = tlsGetServerName(tlsContext);
+    const bool_t useTb2Certificate = hostname[0] != '\0';
+
+    if (useTb2Certificate)
+    {
+        TRACE_DEBUG("Box TLS SNI '%s'; selecting TB2 certificate\r\n", hostname);
+    }
+    else
+    {
+        TRACE_DEBUG("Box TLS has no SNI hostname; selecting TB1 certificate\r\n");
+    }
+
+    return httpServerLoadCertificate(tlsContext, useTb2Certificate);
+}
+
+static error_t httpServerConfigureTls(
+    TlsContext *tlsContext,
+    TlsClientAuthMode authMode)
 {
     error_t error;
 
@@ -696,47 +767,30 @@ error_t httpServerTlsInitCallbackBase(HttpConnection *connection, TlsContext *tl
     if (error)
         return error;
 
-    // Import server's certificate
-    const char *cert_chain = settings_get_string("internal.server.cert_chain");
-    const char *server_key = settings_get_string("internal.server.key");
-
-    if (!cert_chain || !server_key)
-    {
-        TRACE_ERROR("Failed to get certificates\r\n");
-        return ERROR_FAILURE;
-    }
-
-    error = tlsLoadCertificate(tlsContext, 0, cert_chain, strlen(cert_chain), server_key, strlen(server_key), NULL);
-
-    if (error)
-    {
-        TRACE_ERROR("  Failed to add cert: %s\r\n", error2text(error));
-        return error;
-    }
-
-    // Successful processing
     return NO_ERROR;
 }
 error_t httpServerTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
 {
-    return httpServerTlsInitCallbackBase(connection, tlsContext, TLS_CLIENT_AUTH_NONE);
+    error_t error = httpServerConfigureTls(tlsContext, TLS_CLIENT_AUTH_NONE);
+    if (!error)
+    {
+        error = httpServerLoadCertificate(tlsContext, FALSE);
+    }
+    return error;
 }
 error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tlsContext)
 {
     settings_t *settings = get_settings(); // Overlay is currently unknown and settings in the context empty
     TlsClientAuthMode authMode = TLS_CLIENT_AUTH_OPTIONAL;
-    error_t error = NO_ERROR;
+    error_t error = httpServerConfigureTls(tlsContext, authMode);
+
     /*
     if (settings->core.boxCertAuth)
     {
         authMode = TLS_CLIENT_AUTH_REQUIRED;
     }
     */
-    error = httpServerTlsInitCallbackBase(connection, tlsContext, authMode);
-    if (error)
-        return error;
-
-    if (settings->core.boxCertAuth && 1 == 0)
+    if (!error && settings->core.boxCertAuth && 1 == 0)
     {
         // TODO add client certs and check if this works.
         // CA cannot be used - the intermedia CAs are not available
@@ -770,6 +824,13 @@ error_t httpServerBoxTlsInitCallback(HttpConnection *connection, TlsContext *tls
             TRACE_ERROR("Failed to get trusted CA list\r\n");
             error = ERROR_FAILURE; // TODO which error
         }
+    }
+
+    if (!error)
+    {
+        // Cyclone invokes this hook after parsing SNI and before selecting a certificate.
+        error = tlsSetAlpnCallback(
+            tlsContext, httpServerSelectBoxCertificate);
     }
 
     return error;
@@ -1017,6 +1078,7 @@ void server_init(bool test)
     }
     mqtt_server_deinit();
     tonies_deinit();
+    cache_deinit();
     mutex_manager_deinit();
 
     pcaplog_close();

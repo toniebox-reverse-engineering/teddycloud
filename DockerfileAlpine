@@ -2,19 +2,19 @@
 FROM alpine:latest AS buildenv
 
 # Default to not using ASAN
-ARG NO_SANITIZERS=1
+ARG NO_SANITIZERS=1 # No libsanitizie support in alpine
 
 # Install necessary dependencies
-RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl
+RUN apk --no-cache add gcc protobuf-c-dev build-base git zip curl ca-certificates
 
 # Copy source code and build
 COPY . /buildenv
 WORKDIR /buildenv
 
-RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /buildenv/contrib/config/tonies.json || true
-RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /buildenv/contrib/config/tonieboxes.json || true
-# No libsanitizie support in alpine
-RUN make zip NO_SANITIZERS=${NO_SANITIZERS}
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /tmp/tonies.json || true
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /tmp/tonieboxes.json || true
+RUN make test_git_version && make zip NO_SANITIZERS=${NO_SANITIZERS}
+RUN cp /tmp/tonies.json /tmp/tonieboxes.json /buildenv/contrib/config/ || true
 #RUN make preinstall
 
 # Use Alpine Linux as base image for the final image
@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
 EXPOSE 80 443 8443
 
 # Install necessary runtime dependencies
-RUN apk --no-cache add strace ffmpeg curl ca-certificates bash
+RUN apk --no-cache add strace ffmpeg curl ca-certificates bash su-exec shadow libcap
 
 # Update CA certificates
 RUN update-ca-certificates
@@ -48,6 +48,10 @@ COPY --from=buildenv /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv /buildenv/install/pre/data/www/ /teddycloud/data/www/
 COPY --from=buildenv /buildenv/install/pre/*.sh /usr/local/bin/
 COPY --from=buildenv /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+
+# Allow non-root user to bind privileged ports (80, 443) when PUID/PGID are set
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/teddycloud
+
 COPY --from=buildenv /buildenv/install/zip/release.zip /tmp/teddycloud.zip
 
 # Set up volumes

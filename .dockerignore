@@ -1,0 +1,31 @@
+# Don't add it, this breaks version information for the docker build.
+# .git
+# .gitmodules
+# .github
+# .vscode
+
+# Local runtime/dev data
+dev-sandbox/run
+data
+certs
+config
+
+# Build artifacts
+bin
+obj
+install
+teddycloud_web/dist
+
+# Python / test caches
+__pycache__
+*.pyc
+.pytest_cache
+
+# Node caches
+teddycloud_web/node_modules
+teddycloud_web/.vite
+
+# Temp files
+.tmp-benchmark-*
+tmp_*
+*.log

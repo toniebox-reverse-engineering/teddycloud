@@ -26,7 +26,7 @@
 #define TONIEBOX_CUSTOM_JSON_FILE "tonieboxes.custom.json"
 #define CONFIG_FILE "config.ini"
 #define CONFIG_OVERLAY_FILE "config.overlay.ini"
-#define CONFIG_VERSION 15
+#define CONFIG_VERSION 17
 #define MAX_OVERLAYS 16 + 1
 
 typedef enum
@@ -55,6 +55,12 @@ typedef enum
     BOX_ESP32 = 3,
     BOX_TB2 = 4,
 } settings_box_type;
+typedef enum
+{
+    GENERATION_UNKNOWN = 0,
+    GENERATION_TB1 = 1,
+    GENERATION_TB2 = 2,
+} settings_box_generation;
 
 typedef enum
 {
@@ -113,7 +119,6 @@ typedef struct
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
     bool check_cc3200_cfw;
-    bool use_revvox_flasher;
 } settings_frontend_t;
 
 typedef struct
@@ -152,6 +157,9 @@ typedef struct
 {
     bool api_access;
     bool overrideCloud;
+    settings_box_generation boxGeneration;
+
+    // TB1 specific
     uint32_t max_vol_spk;
     uint32_t max_vol_hdp;
     bool slap_enabled;
@@ -165,7 +173,7 @@ typedef struct
 typedef struct
 {
     bool baby_mode; 
-    uint8_t lightring_brightness;
+    uint32_t lightring_brightness;
 } settings_toniebox2_t;
 
 typedef struct
@@ -253,7 +261,9 @@ typedef struct
     bool exit;
     int32_t returncode;
     settings_cert_t server;
+    settings_cert_t server_tb2;
     settings_cert_t client;
+    settings_cert_t client_fake;
     bool config_init;
     bool config_used;
     bool config_changed;
@@ -285,6 +295,7 @@ typedef struct
     settings_internal_security_mit_t security_mit;
 
     uint64_t *freshnessCache;
+    bool freshnessCacheChanged;
 
     time_t last_connection;
     char *last_ruid;
@@ -316,7 +327,9 @@ typedef struct
     char *pluginsdir;
     char *sslkeylogfile;
     settings_cert_opt_t server_cert;
+    settings_cert_opt_t server_cert_tb2;
     settings_cert_opt_t client_cert;
+    settings_cert_opt_t client_cert_fake;
     char *allowOrigin;
     bool boxCertAuth;
     bool allowNewBox;
@@ -326,6 +339,7 @@ typedef struct
     char *bind_ip;
 
     uint32_t http_client_timeout;
+    uint32_t file_upload_timeout_ms;
 
     bool new_webgui_as_default;
 
@@ -374,6 +388,7 @@ typedef struct
 {
     bool cache_images;
     bool cache_preload;
+    uint32_t custom_backup_keep;
 } settings_tonie_json_t;
 
 typedef struct
@@ -609,6 +624,7 @@ bool settings_set_bool_id(const char *item, bool value, uint8_t settingsId);
  */
 bool settings_get_bool(const char *item);
 bool settings_get_bool_ovl(const char *item, const char *overlay_name);
+bool settings_get_bool_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Gets the value of an signed integer setting item.
@@ -618,6 +634,7 @@ bool settings_get_bool_ovl(const char *item, const char *overlay_name);
  */
 int32_t settings_get_signed(const char *item);
 int32_t settings_get_signed_ovl(const char *item, const char *overlay_name);
+int32_t settings_get_signed_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of an integer setting item.
@@ -637,6 +654,7 @@ bool settings_set_signed_id(const char *item, int32_t value, uint8_t settingsId)
  */
 uint32_t settings_get_unsigned(const char *item);
 uint32_t settings_get_unsigned_ovl(const char *item, const char *overlay_name);
+uint32_t settings_get_unsigned_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of an unsigned integer setting item.
@@ -656,6 +674,7 @@ bool settings_set_unsigned_id(const char *item, uint32_t value, uint8_t settings
  */
 float settings_get_float(const char *item);
 float settings_get_float_ovl(const char *item, const char *overlay_name);
+float settings_get_float_id(const char *item, uint8_t settingsId);
 
 /**
  * @brief Sets the value of a floating point setting item.

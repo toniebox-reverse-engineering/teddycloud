@@ -80,7 +80,7 @@ char *mqtt_settingname_clean(const char *str)
 
 char *mqtt_topic_str(const char *fmt, const char *param)
 {
-    char *first_s = osStrstr(fmt, "%s");
+    const char *first_s = osStrstr(fmt, "%s");
     if (first_s == NULL)
     {
         return "none";

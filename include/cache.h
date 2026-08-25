@@ -91,4 +91,9 @@ cache_entry_t *cache_fetch_by_path(const char *path);
  */
 cache_entry_t *cache_fetch_by_cached_url(const char *cached_url);
 
+/**
+ * @brief Frees all cache entries and their strings. Call once on shutdown.
+ */
+void cache_deinit(void);
+
 #endif // _CACHE_H

@@ -469,7 +469,10 @@ error_t mpiCopy(Mpi *r, const Mpi *a)
    // Clear the contents of the multiple precision integer
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
    // Let R = A
-   osMemcpy(r->data, a->data, n * MPI_INT_SIZE);
+   if (n > 0)
+   {
+      osMemcpy(r->data, a->data, n * MPI_INT_SIZE);
+   }
    // Set the sign of R
    r->sign = a->sign;
 

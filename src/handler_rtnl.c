@@ -360,7 +360,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             if (item == NULL || audioId == SPECIAL_AUDIO_ID_ONE)
             {
                 tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, false, client_ctx->settings);
-                if (tonieInfo->valid)
+                if (tonieInfo->valid || (tonieInfo->json._valid && tonieInfo->json.tonie_model != NULL))
                 {
                     item = tonies_byModel(tonieInfo->json.tonie_model);
                 }

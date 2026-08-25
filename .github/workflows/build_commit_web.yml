@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -66,9 +66,9 @@ jobs:
           git status
           cd ..
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: "24.12.0"
+          node-version: "26"
       - name: Install NPM version
         run: npm install -g npm@latest
 

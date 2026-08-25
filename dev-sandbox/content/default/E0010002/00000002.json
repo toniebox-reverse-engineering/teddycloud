@@ -1,0 +1,14 @@
+{
+  "live": false,
+  "nocloud": true,
+  "source": "lib://audio_002.taf",
+  "skip_seconds": 0,
+  "cache": false,
+  "cloud_ruid": "e001000200000002",
+  "cloud_auth": "",
+  "cloud_override": false,
+  "tonie_model": "custom_002",
+  "hide": false,
+  "claimed": false,
+  "_version": 5
+}

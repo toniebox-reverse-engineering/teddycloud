@@ -1,0 +1,542 @@
+[
+  {
+    "model": "custom_001",
+    "series": "Coin 1",
+    "title": "Coin 1",
+    "audio_id": [
+      "431165001"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_001.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_002",
+    "series": "Coin 2",
+    "title": "Coin 2",
+    "audio_id": [
+      "431165002"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_002.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_003",
+    "series": "Coin 3",
+    "title": "Coin 3",
+    "audio_id": [
+      "431165003"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_003.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_004",
+    "audio_id": [
+      "431165004"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "title": "Coin 4",
+    "series": "Coin 4",
+    "pic": "/custom_img/custom_004.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_005",
+    "series": "Coin 5",
+    "title": "Coin 5",
+    "audio_id": [
+      "431165005"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_005.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_006",
+    "series": "Coin 6",
+    "title": "Coin 6",
+    "audio_id": [
+      "431165006"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_006.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_007",
+    "series": "Coin 7",
+    "title": "Coin 7",
+    "audio_id": [
+      "431165007"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_007.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_008",
+    "series": "Coin 8",
+    "title": "Coin 8",
+    "audio_id": [
+      "431165008"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_008.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_009",
+    "series": "Coin 9",
+    "title": "Coin 9",
+    "audio_id": [
+      "431165009"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_009.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_010",
+    "series": "Coin 10",
+    "title": "Coin 10",
+    "audio_id": [
+      "431165010"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_010.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_011",
+    "series": "Coin 11",
+    "title": "Coin 11",
+    "audio_id": [
+      "431165011"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_011.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_012",
+    "series": "Coin 12",
+    "title": "Coin 12",
+    "audio_id": [
+      "431165012"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_012.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_013",
+    "series": "Coin 13",
+    "title": "Coin 13",
+    "audio_id": [
+      "431165013"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_013.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_014",
+    "series": "Coin 14",
+    "title": "Coin 14",
+    "audio_id": [
+      "431165014"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_014.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_015",
+    "series": "Coin 15",
+    "title": "Coin 15",
+    "audio_id": [
+      "431165015"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_015.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_016",
+    "series": "Coin 16",
+    "title": "Coin 16",
+    "audio_id": [
+      "431165016"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_016.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_017",
+    "series": "Coin 17",
+    "title": "Coin 17",
+    "audio_id": [
+      "431165017"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_017.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_018",
+    "series": "Coin 18",
+    "title": "Coin 18",
+    "audio_id": [
+      "431165018"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_018.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_019",
+    "series": "Coin 19",
+    "title": "Coin 19",
+    "audio_id": [
+      "431165019"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_019.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_020",
+    "series": "Coin 20",
+    "title": "Coin 20",
+    "audio_id": [
+      "431165020"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_020.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_021",
+    "series": "Coin 21",
+    "title": "Coin 21",
+    "audio_id": [
+      "431165021"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_021.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_022",
+    "series": "Coin 22",
+    "title": "Coin 22",
+    "audio_id": [
+      "431165022"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_022.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_023",
+    "series": "Coin 23",
+    "title": "Coin 23",
+    "audio_id": [
+      "431165023"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_023.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_024",
+    "series": "Coin 24",
+    "title": "Coin 24",
+    "audio_id": [
+      "431165024"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_024.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_025",
+    "series": "Coin 25",
+    "title": "Coin 25",
+    "audio_id": [
+      "431165025"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_025.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_026",
+    "series": "Coin 26",
+    "title": "Coin 26",
+    "audio_id": [
+      "431165026"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_026.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_027",
+    "series": "Coin 27",
+    "title": "Coin 27",
+    "audio_id": [
+      "431165027"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_027.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_028",
+    "series": "Coin 28",
+    "title": "Coin 28",
+    "audio_id": [
+      "431165028"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_028.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_029",
+    "series": "Coin 29",
+    "title": "Coin 29",
+    "audio_id": [
+      "431165029"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_029.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  },
+  {
+    "model": "custom_030",
+    "series": "Coin 30",
+    "title": "Coin 30",
+    "audio_id": [
+      "431165030"
+    ],
+    "hash": [
+      "D85301EF0C7029AC47D0D6F5EDA9CA6ED8548A5B"
+    ],
+    "pic": "/custom_img/custom_030.png",
+    "no": "",
+    "episodes": "",
+    "release": "",
+    "language": "",
+    "category": "",
+    "tracks": []
+  }
+]

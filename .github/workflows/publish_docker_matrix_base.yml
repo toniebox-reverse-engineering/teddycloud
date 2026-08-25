@@ -51,10 +51,12 @@ jobs:
         platform: ${{ fromJson(inputs.platforms) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
           ref: ${{ inputs.tcw_commit_hash }}
+      - name: Test git version
+        run: make test_git_version
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
@@ -113,17 +115,20 @@ jobs:
             echo "Using Dockerfile default for ${{ matrix.platform }}"
           fi
 
-      - name: Build & push digest docker ${{ matrix.platform }}
+      - name: Build docker ${{ matrix.platform }}
         id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
-          # Don't push if it's a fork
-          push: ${{ !github.event.pull_request.head.repo.fork }}
+          # PRs (fork or non-fork): load locally to avoid pushing intermediate digests to GHCR.
+          # Non-PR events (push to branch, tag): push by digest to GHCR for the merge job.
+          load: ${{ github.event_name == 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ github.event_name == 'pull_request' && 'teddycloud-test:local' || '' }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true
+          outputs: ${{ github.event_name != 'pull_request' && format('type=image,name={0},push-by-digest=true,name-canonical=true', env.REGISTRY_IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -140,7 +145,11 @@ jobs:
         id: docker-test
         run: |
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-          docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test teddycloud-test:local
+          else
+            docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
+          fi
         continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
       - name: Extract release zip
         run: |
@@ -149,7 +158,7 @@ jobs:
         continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
 
       - name: Export digest
-        if: ${{ steps.docker-test.outcome == 'success' }}
+        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
         run: |
           mkdir -p /tmp/digests/${{ github.sha }}
           digest="${{ steps.build.outputs.digest }}"
@@ -157,14 +166,14 @@ jobs:
           touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
 
       - name: Push docker tags ${{ matrix.platform }}
-        if: ${{ steps.docker-test.outcome == 'success' }}
+        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
         id: push_tags
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           # tags: ${{ steps.modify_tags.outputs.all_tags }} # invalid reference format
           tags: ${{ steps.matrix_meta.outputs.tags }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
@@ -173,7 +182,7 @@ jobs:
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Upload digest
-        if: ${{ steps.docker-test.outcome == 'success' }}
+        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
@@ -188,6 +197,7 @@ jobs:
           if-no-files-found: error
 
   merge-images:
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     needs:
       - build
@@ -249,7 +259,7 @@ jobs:
             suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
 
       - name: Create manifest list and push (primary)
-        if: ${{ github.event_name != 'pull_request' && inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
+        if: ${{ inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
           # Extract original tags
@@ -262,12 +272,12 @@ jobs:
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
       - name: Create manifest list and push
-        if: ${{ github.event_name != 'pull_request' && !inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
+        if: ${{ !inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
         working-directory: /tmp/digests/${{ github.sha }}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
       - name: Inspect image
-        if: ${{ github.event_name != 'pull_request' && steps.check_digests.outputs.has_digests == 'true' }}
+        if: ${{ steps.check_digests.outputs.has_digests == 'true' }}
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.teddycloud_meta.outputs.version }}

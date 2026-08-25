@@ -1066,7 +1066,14 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    }
 #endif
 
-   if (connection->private.client_ctx.skip_taf_header)
+   if (connection->private.client_ctx.taf_chapter_split)
+   {
+      uint32_t header_size = connection->private.client_ctx.taf_chapter_header_size;
+      uint32_t start_off = connection->private.client_ctx.taf_chapter_start_offset;
+      uint32_t end_off = connection->private.client_ctx.taf_chapter_end_offset;
+      length = header_size + (end_off - start_off);
+   }
+   else if (connection->private.client_ctx.skip_taf_header)
    {
       length -= TONIE_HEADER_LENGTH;
    }
@@ -1128,25 +1135,31 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       return error;
    }
 
-   if (connection->private.client_ctx.skip_taf_header)
+   bool taf_chapter_split = connection->private.client_ctx.taf_chapter_split;
+   uint32_t taf_virtual_pos = connection->request.Range.start;
+
+   if (!taf_chapter_split)
    {
-      if (connection->request.Range.start > 0)
+      if (connection->private.client_ctx.skip_taf_header)
       {
-         connection->request.Range.start += TONIE_HEADER_LENGTH;
+         if (connection->request.Range.start > 0)
+         {
+            connection->request.Range.start += TONIE_HEADER_LENGTH;
+         }
+         else
+         {
+            fsSeekFile(file, TONIE_HEADER_LENGTH, FS_SEEK_SET);
+         }
+      }
+      if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+      {
+         TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
+         fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
       }
       else
       {
-         fsSeekFile(file, TONIE_HEADER_LENGTH, FS_SEEK_SET);
+         TRACE_DEBUG("No seeking, sending from beginning\r\n");
       }
-   }
-   if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
-   {
-      TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
-      fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
-   }
-   else
-   {
-      TRACE_DEBUG("No seeking, sending from beginning\r\n");
    }
 
 #if (HTTP_SERVER_FS_SUPPORT == ENABLED)
@@ -1155,6 +1168,24 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    {
       // Limit the number of bytes to read at a time
       n = MIN(length, HTTP_SERVER_BUFFER_SIZE);
+
+      if (taf_chapter_split)
+      {
+         uint32_t header_size = connection->private.client_ctx.taf_chapter_header_size;
+         uint32_t start_off = connection->private.client_ctx.taf_chapter_start_offset;
+         
+         if (taf_virtual_pos < header_size)
+         {
+            n = MIN(n, header_size - taf_virtual_pos);
+            uint32_t physical_pos = 4096 + taf_virtual_pos;
+            fsSeekFile(file, physical_pos, FS_SEEK_SET);
+         }
+         else
+         {
+            uint32_t physical_pos = start_off + (taf_virtual_pos - header_size);
+            fsSeekFile(file, physical_pos, FS_SEEK_SET);
+         }
+      }
 
       // Read data from the specified file
       error = fsReadFile(file, connection->buffer, n, &n);
@@ -1175,6 +1206,11 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
       // Any error to report?
       if (error)
          break;
+
+      if (taf_chapter_split)
+      {
+         taf_virtual_pos += n;
+      }
 
       // Decrement the count of remaining bytes to be transferred
       length -= n;

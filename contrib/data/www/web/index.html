@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
         <meta charset="utf-8" />
@@ -32,7 +32,11 @@
                         cache: "no-store",
                     });
                     if (!res.ok) {
-                        console.error("error loading web_version.json:", res.status, res.statusText);
+                        console.error(
+                            "error loading web_version.json:",
+                            res.status,
+                            res.statusText,
+                        );
                         return;
                     }
                     const v = await res.json();
@@ -53,8 +57,8 @@
                 }
             })();
         </script>
-      <script type="module" crossorigin src="/web/assets/index-DmtT6wdd.js"></script>
-      <link rel="stylesheet" crossorigin href="/web/assets/index-DkJUiIwA.css">
+      <script type="module" crossorigin src="/web/assets/index-zUap2i4c.js"></script>
+      <link rel="stylesheet" crossorigin href="/web/assets/index-CTPesxOB.css">
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

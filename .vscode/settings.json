@@ -10,5 +10,18 @@
   "C_Cpp.autocompleteAddParentheses": true,
   "editor.formatOnSave": true,
   "editor.formatOnType": false,
-  "cmake.configureOnOpen": false, 
+  "cmake.configureOnOpen": false,
+  "cSpell.words": [
+    "Boxine",
+    "custommodel",
+    "hoverable",
+    "nocloud",
+    "playpause",
+    "ruid",
+    "teddycloud",
+    "TEDDYCLOUD",
+    "tonie",
+    "Tonie",
+    "toniebox"
+  ],
 }

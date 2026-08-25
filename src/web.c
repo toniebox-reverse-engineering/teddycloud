@@ -42,8 +42,8 @@ bool web_parse_url(const char *url, char **hostname, uint16_t *port, char **uri,
     }
 
     // Find the start of the port and path
-    char *port_start = strchr(url, ':');
-    char *path_start = strchr(url, '/');
+    char *port_start = (char *)strchr(url, ':');
+    char *path_start = (char *)strchr(url, '/');
 
     if (path_start == NULL)
     {

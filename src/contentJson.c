@@ -3,6 +3,7 @@
 #include "settings.h"
 #include "debug.h"
 #include "cJSON.h"
+#include "os_port.h"
 #include "net_config.h"
 #include "server_helpers.h"
 #include "toniesJson.h"
@@ -102,7 +103,11 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                     }
                     else
                     {
-                        error_t tap_error = tap_load(content_json->_source_resolved, &content_json->_tap);
+                        /* Only try tap_load for .tap files (JSON). TAF files are binary – parsing them as JSON
+                         * causes "Json parse error". Skip tap_load for .taf and other non-TAP paths. */
+                        size_t src_len = osStrlen(content_json->_source_resolved);
+                        bool_t looks_like_tap = (src_len >= 4 && osStrncasecmp(content_json->_source_resolved + src_len - 4, ".tap", 4) == 0);
+                        error_t tap_error = looks_like_tap ? tap_load(content_json->_source_resolved, &content_json->_tap) : ERROR_INVALID_FILE;
                         if (tap_error == NO_ERROR && content_json->_tap._valid)
                         {
                             if (content_json->_tap._cached)

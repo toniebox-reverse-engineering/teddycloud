@@ -23,3 +23,6 @@
 [submodule "ogg"]
 	path = ogg
 	url = https://github.com/xiph/ogg.git
+[submodule "emsdk"]
+	path = emsdk
+	url = https://github.com/emscripten-core/emsdk.git

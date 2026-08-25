@@ -20,6 +20,7 @@ bool isSecMitIncident(HttpConnection *connection)
         TRACE_WARNING("Somebody locked it manually to protect you, as you keep ignoring the warnings!\r\n");
         // curl "http://[iP_ADDRESS]/api/settings/set/security_mit.hardLock" -i -X POST --data-raw "true" --insecure
         // curl "http://[iP_ADDRESS]/api/triggerWriteConfig" --insecure
+        // curl "http://[iP_ADDRESS]/robots.txt" --insecure
     }
     if (settings->security_mit.onBlacklistDomain && (settings->internal.security_mit.blacklisted_domain_access > 0))
     {
@@ -84,6 +85,10 @@ error_t handleSecMitDomain(HttpConnection *connection, const char_t *uri, const 
     char *hashes[] = {
         "863a5a96d45d2e8736d1c6a6e1d8b615b6436737", // fbx
         "26884d3f9c6aa6234390365388a2dc289e750640", // nfweu
+        "daf5880dbf7f73bde5d3287d4be22c8e5c1fba21", // 16ax
+        "0e71920910bd10d50c22d2494892085d9eb7d7e4", // kirner
+        "1ed20761da4be8801c8a8dc1abd95b7c62db4e87", // t861
+        "7ee274a4722145a936eaa7dbc1f6f66749758463", // flks
         //"b26f5cd0a1a9845fd5bb8fba7a48b0b3d011ac07"  // dev
     };
     size_t numHashes = sizeof(hashes) / sizeof(hashes[0]);
