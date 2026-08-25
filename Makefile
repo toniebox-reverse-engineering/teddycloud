@@ -86,27 +86,19 @@ endif
 endif
 endif
 
-ifeq ($(build_os_id),"ubuntu")
-ifeq ($(build_arch),"aarch64")
-# Workaround AddressSanitizer: CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == ((address_range.Init(TotalSpaceSize, PrimaryAllocatorName, kSpaceBeg)))" (0x500000000000, 0xfffffffffffffff4) (tid=8)
-# LLM: Ubuntu's Linux kernel version 6.5.0-25 increased the number of random bits used for ASLR from 28 to 32 on 64-bit systems7.
-# The AddressSanitizer library hasn't been updated to accommodate this change in the ASLR configuration7.
-# This mismatch causes a CHECK failure in the sanitizer_allocator_primary64.h file, specifically at line 131.
-# But this doesn't work!
-CFLAGS_VERSION+=-DSANITIZER_CAN_USE_ALLOCATOR64=0
-endif
-endif
-
-ifeq ($(build_os_id),"debian")
-ifeq ($(build_arch),"aarch64")
-# Workaround AddressSanitizer: CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == ((address_range.Init(TotalSpaceSize, PrimaryAllocatorName, kSpaceBeg)))" (0x500000000000, 0xfffffffffffffff4) (tid=8)
-# LLM: Ubuntu's Linux kernel version 6.5.0-25 increased the number of random bits used for ASLR from 28 to 32 on 64-bit systems7.
-# The AddressSanitizer library hasn't been updated to accommodate this change in the ASLR configuration7.
-# This mismatch causes a CHECK failure in the sanitizer_allocator_primary64.h file, specifically at line 131.
-# But this doesn't work!
-CFLAGS_VERSION+=-DSANITIZER_CAN_USE_ALLOCATOR64=0
-endif
-endif
+# NOTE (issue #311): AddressSanitizer on aarch64 aborts at startup with
+#   CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == (...)" (0x500000000000, 0xfffffffffffffff4)
+# when libasan cannot mmap its fixed 64-bit allocator region. TWO triggers cause it:
+#   (1) QEMU-user emulation / small-VA kernels, whose constrained address space cannot
+#       hold the mapping -- this is why the CI cross-built-under-qemu failed; and
+#   (2) high-entropy ASLR (vm.mmap_rnd_bits=32 on recent kernels) colliding with the
+#       allocator base -- this also happens on NATIVE arm64 hardware, probabilistically.
+# Passing -DSANITIZER_CAN_USE_ALLOCATOR64=0 in CFLAGS here has NO effect: that define
+# only matters when libasan itself is compiled, not the application.
+# Fixes: build/test aarch64 on NATIVE arm64 runners (kills trigger 1) and lower ASLR to
+# vm.mmap_rnd_bits=28 in CI (kills trigger 2) -- see publish_docker_matrix_base.yml.
+# libasan from LLVM 17+ (GCC 14+) moved its allocator base 0x600000000000 -> 0x500000000000
+# to tolerate 32-bit ASLR, so a current base image needs no extra workaround; GCC <=13 does.
 
 build_version:=vX.X.X
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
