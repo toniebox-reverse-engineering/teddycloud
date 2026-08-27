@@ -99,6 +99,7 @@ typedef struct
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
+    bool autoMarkListenedOnSync;
 } settings_cloud_t;
 
 typedef struct

@@ -17,6 +17,7 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 #include "tonie_audio_playlist.h"
+#include "libraryMeta.h"
 #include "cJSON.h"
 
 #include <byteswap.h>
@@ -738,6 +739,17 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
+
+        if (client_ctx->settings->cloud.autoMarkListenedOnSync && tonieInfo->json._source_type == CT_SOURCE_TAF)
+        {
+            /* Download-time heuristic: a future iteration could use the RTNL-derived
+             * "Playback ON/OFF" MQTT events (toniebox_state.c) for a real playback-based signal.
+             * This mutates the library file's own listened flag, not tonieInfo->json (the tag's). */
+            if (!library_meta_get_listened(tonieInfo->contentPath))
+            {
+                library_meta_set_listened(tonieInfo->contentPath, true);
+            }
+        }
 
         if (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE)
         {
