@@ -47,6 +47,20 @@ FsFile *fsOpenFileEx(const char_t *path, char *mode)
     return fp;
 }
 
+error_t fsFlushFile(FsFile *file)
+{
+    if (file == NULL)
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+#ifdef USE_FATFS
+    return f_sync((FIL *)file) == FR_OK ? NO_ERROR : ERROR_FAILURE;
+#else
+    return fflush((FILE *)file) == 0 ? NO_ERROR : ERROR_FAILURE;
+#endif
+}
+
 error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, size_t *diff_position)
 {
     size_t position = 0;

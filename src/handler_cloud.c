@@ -13,13 +13,151 @@
 #include "mqtt.h"
 #include "mqtt_server.h"
 #include "server_helpers.h"
+#include "mutex_manager.h"
 
 #include "toniefile.h"
 #include "toniesJson.h"
-#include "tonie_audio_playlist.h"
+#include "tonie_audio_playlist_internal.h"
 #include "cJSON.h"
 
 #include <byteswap.h>
+
+#define TAP_LIVE_READY_BYTES (2U * TONIEFILE_FRAME_SIZE)
+#define TAP_LIVE_READY_WAIT_MS 3000U
+#define TAP_LIVE_READY_POLL_MS 100U
+#define TAP_TARGET_LOCK_COUNT 8U
+#define TAP_TARGET_LOCK_WAIT_MS 30000U
+#define TAP_TARGET_LOCK_POLL_MS 100U
+#define TAP_GENERATOR_START_WAIT_MS 10000U
+#define TAP_GENERATOR_START_POLL_MS 100U
+
+typedef struct
+{
+    bool_t locked;
+    char *target_path;
+} tap_target_lock_t;
+
+static tap_target_lock_t tap_target_locks[TAP_TARGET_LOCK_COUNT];
+
+static bool_t tap_is_stable_cached_playlist(tonie_info_t *tonieInfo);
+
+/*
+ * Cyclone reads stream_max_size from the connection client context. Keep the
+ * TAP live-size override local to this request without changing vendored code.
+ */
+static error_t tap_send_response_stream_with_size(HttpConnection *connection, const char_t *uri, uint32_t stream_max_size)
+{
+    client_ctx_t saved_client_ctx = connection->private.client_ctx;
+    client_ctx_t local_client_ctx = saved_client_ctx;
+    settings_t local_settings = *local_client_ctx.settings;
+
+    local_settings.encode.stream_max_size = stream_max_size;
+    local_client_ctx.settings = &local_settings;
+    connection->private.client_ctx = local_client_ctx;
+
+    error_t error = httpSendResponseStream(connection, uri, true);
+
+    connection->private.client_ctx = saved_client_ctx;
+    return error;
+}
+
+static uint32_t stream_ctx_next_generation(stream_ctx_t *stream_ctx)
+{
+    stream_ctx->generation++;
+    if (stream_ctx->generation == 0)
+    {
+        stream_ctx->generation++;
+    }
+
+    return stream_ctx->generation;
+}
+
+/*
+ * Serialize live generation per final TAP target. Different TAP targets can
+ * still run in parallel, but two boxes cannot write/read the same .taf.tmp.
+ */
+static error_t tap_target_lock(const char *target_path)
+{
+    if (target_path == NULL)
+    {
+        return ERROR_FAILURE;
+    }
+
+    uint32_t waited_ms = 0;
+    while (waited_ms < TAP_TARGET_LOCK_WAIT_MS)
+    {
+        tap_target_lock_t *free_lock = NULL;
+        bool_t target_locked = FALSE;
+
+        mutex_lock(MUTEX_TAP_TARGETS);
+        for (size_t i = 0; i < TAP_TARGET_LOCK_COUNT; i++)
+        {
+            tap_target_lock_t *lock = &tap_target_locks[i];
+
+            if (lock->locked && lock->target_path != NULL && osStrcmp(lock->target_path, target_path) == 0)
+            {
+                target_locked = TRUE;
+                break;
+            }
+
+            if (!lock->locked && free_lock == NULL)
+            {
+                free_lock = lock;
+            }
+        }
+
+        if (!target_locked && free_lock != NULL)
+        {
+            size_t target_path_len = osStrlen(target_path) + 1;
+            char *target_path_copy = osAllocMem(target_path_len);
+            if (target_path_copy == NULL)
+            {
+                mutex_unlock(MUTEX_TAP_TARGETS);
+                return ERROR_OUT_OF_MEMORY;
+            }
+
+            osMemcpy(target_path_copy, target_path, target_path_len);
+            free_lock->locked = TRUE;
+            free_lock->target_path = target_path_copy;
+            mutex_unlock(MUTEX_TAP_TARGETS);
+            return NO_ERROR;
+        }
+
+        mutex_unlock(MUTEX_TAP_TARGETS);
+        if (waited_ms == 0 || (waited_ms % 5000U) == 0)
+        {
+            TRACE_VERBOSE("Waiting for TAP target lock %s, waited=%" PRIu32 "ms\r\n", target_path, waited_ms);
+        }
+        osDelayTask(TAP_TARGET_LOCK_POLL_MS);
+        waited_ms += TAP_TARGET_LOCK_POLL_MS;
+    }
+
+    TRACE_WARNING("Timeout while waiting for TAP target lock %s after %" PRIu32 "ms\r\n", target_path, waited_ms);
+    return ERROR_TIMEOUT;
+}
+
+static void tap_target_unlock(const char *target_path)
+{
+    if (target_path == NULL)
+    {
+        return;
+    }
+
+    mutex_lock(MUTEX_TAP_TARGETS);
+    for (size_t i = 0; i < TAP_TARGET_LOCK_COUNT; i++)
+    {
+        tap_target_lock_t *lock = &tap_target_locks[i];
+
+        if (lock->locked && lock->target_path != NULL && osStrcmp(lock->target_path, target_path) == 0)
+        {
+            lock->locked = FALSE;
+            osFreeMem(lock->target_path);
+            lock->target_path = NULL;
+            break;
+        }
+    }
+    mutex_unlock(MUTEX_TAP_TARGETS);
+}
 
 void convertTokenBytesToString(uint8_t *token, char *msg, bool_t logFullAuth)
 {
@@ -500,8 +638,15 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
             TRACE_DEBUG(" >> freshnessCache[%" PRIuSIZE "] = %s =? %s\r\n", i, cruid, ruid);
             if (freshnessCache[i] == uid)
             {
-                *tonie_marked = true;
-                TRACE_INFO(" >> rUID %s found in freshnessCache, refresh content\r\n", ruid);
+                if (tap_is_stable_cached_playlist(tonieInfo))
+                {
+                    TRACE_VERBOSE(" >> rUID %s found in freshnessCache but ignored for stable cached TAP\r\n", ruid);
+                }
+                else
+                {
+                    *tonie_marked = true;
+                    TRACE_INFO(" >> rUID %s found in freshnessCache, refresh content\r\n", ruid);
+                }
                 break;
             }
         }
@@ -649,9 +794,11 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         ffmpeg_ctx.targetFile = tonieInfo->json._streamFile;
 
         stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        stream_ctx_next_generation(stream_ctx);
         stream_ctx->active = false;
         stream_ctx->quit = false;
         stream_ctx->error = NO_ERROR;
+        stream_ctx->current_source = 0;
         stream_ctx->stop_on_playback_stop = true;
         stream_ctx->ctx = &ffmpeg_ctx;
         stream_ctx->taskParams.priority = 0;
@@ -688,51 +835,224 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
     }
     else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
     {
-        // TODO: Add MUTEX on tonieInfo->json._tap._filepath_resolved
-
         TRACE_INFO("Serve streaming TAP %s from %s\r\n", tonieInfo->contentPath, tonieInfo->json._source_resolved);
         char *streamFileRel = &tonieInfo->contentPath[osStrlen(client_ctx->settings->internal.datadirfull)];
         connection->response.keepAlive = true;
 
         tap_generate_param_t tap_param;
         tap_param.tap = &tonieInfo->json._tap;
-        tap_param.tap->audio_id = time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT;
-        tap_param.force = false;
+        bool_t dynamic_tap_playlist = tap_param.tap->shuffle != TAP_SHUFFLE_NONE;
+        bool_t force_tap_regeneration = tap_param.tap->audio_id == 0 || dynamic_tap_playlist;
+        tap_param.force = force_tap_regeneration;
+        tap_param.preserve_on_client_disconnect = true;
+        tap_param.current_source = 0;
+        tap_param.error = NO_ERROR;
+        tap_param.generator_active = false;
+        tap_param.generator_done = false;
+        tap_param.runtime_indices = NULL;
+        tap_param.runtime_files_count = 0;
+        osMemset(&tap_param.live_header, 0, sizeof(tap_param.live_header));
+
+        error_t tap_lock_error = tap_target_lock(tap_param.tap->_filepath_resolved);
+        bool_t tap_target_locked = (tap_lock_error == NO_ERROR);
+        if (tap_lock_error != NO_ERROR)
+        {
+            if (!force_tap_regeneration && tap_final_cache_is_current(tap_param.tap))
+            {
+                TRACE_INFO("Serve finalized TAP TAF directly from %s after TAP lock timeout\r\n", tap_param.tap->_filepath_resolved);
+                char *finalFileRel = &tap_param.tap->_filepath_resolved[osStrlen(client_ctx->settings->internal.datadirfull)];
+                error_t response_error = httpSendResponseStream(connection, finalFileRel, false);
+                freeTonieInfo(tonieInfo);
+                return response_error;
+            }
+
+            TRACE_ERROR(" >> TAP target lock unavailable for %s, error=%s\r\n", tap_param.tap->_filepath_resolved, error2text(tap_lock_error));
+            freeTonieInfo(tonieInfo);
+            return tap_lock_error;
+        }
+
+        if (!force_tap_regeneration && tap_final_cache_is_current(tap_param.tap))
+        {
+            TRACE_INFO("Serve finalized TAP TAF directly from %s\r\n", tap_param.tap->_filepath_resolved);
+            char *finalFileRel = &tap_param.tap->_filepath_resolved[osStrlen(client_ctx->settings->internal.datadirfull)];
+            tap_target_unlock(tap_param.tap->_filepath_resolved);
+            tap_target_locked = FALSE;
+            error_t response_error = httpSendResponseStream(connection, finalFileRel, false);
+            if (response_error)
+            {
+                if (response_error == ERROR_WRITE_FAILED)
+                {
+                    TRACE_WARNING(" >> client disconnected while sending finalized TAP file %s, error=%s\r\n", tap_param.tap->_filepath_resolved, error2text(response_error));
+                }
+                else
+                {
+                    TRACE_ERROR(" >> finalized TAP file %s not available or not sent, error=%s...\r\n", tap_param.tap->_filepath_resolved, error2text(response_error));
+                }
+            }
+            freeTonieInfo(tonieInfo);
+            return response_error;
+        }
+
+        error_t runtime_error = tap_prepare_runtime_indices(tap_param.tap, &tap_param.runtime_indices, &tap_param.runtime_files_count);
+        if (runtime_error != NO_ERROR)
+        {
+            tap_target_unlock(tap_param.tap->_filepath_resolved);
+            freeTonieInfo(tonieInfo);
+            return runtime_error;
+        }
+
+        uint32_t predicted_taf_size = 0;
+        if (tap_predict_taf_live_header(tap_param.tap, tap_param.runtime_indices, tap_param.runtime_files_count, &tap_param.live_header, &predicted_taf_size) != NO_ERROR)
+        {
+            predicted_taf_size = 0;
+            osMemset(&tap_param.live_header, 0, sizeof(tap_param.live_header));
+        }
+
+        bool_t tap_live_prediction_valid = predicted_taf_size > TONIEFILE_FRAME_SIZE &&
+                                           tap_param.live_header.payload_size > 0 &&
+                                           tap_param.live_header.has_sha1_hash &&
+                                           tap_param.live_header.has_ogg_state;
+        TRACE_VERBOSE("TAP live prediction: valid=%u predicted_taf_size=%" PRIu32 " payload_size=%" PRIu32 " track_pages=%" PRIuSIZE "\r\n",
+                      tap_live_prediction_valid, predicted_taf_size, tap_param.live_header.payload_size, tap_param.live_header.track_page_nums_count);
 
         stream_ctx_t *stream_ctx = &client_ctx->state->box.stream_ctx;
+        uint32_t stream_generation = stream_ctx_next_generation(stream_ctx);
+        tap_param.generation = stream_generation;
+        tap_param.generator_started = false;
         stream_ctx->active = false;
         stream_ctx->quit = false;
         stream_ctx->error = NO_ERROR;
-        stream_ctx->stop_on_playback_stop = true;
+        stream_ctx->current_source = 0;
+        stream_ctx->stop_on_playback_stop = false;
         stream_ctx->ctx = &tap_param;
+        tap_param.stream_ctx = stream_ctx;
         stream_ctx->taskParams.stackSize = 10 * 1024;
         stream_ctx->taskParams.priority = 0;
-        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, stream_ctx, &stream_ctx->taskParams);
-
-        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
+        stream_ctx->taskId = osCreateTask(streamFileRel, &tap_generate_task, &tap_param, &stream_ctx->taskParams);
+        if (stream_ctx->taskId == (OsTaskId)OS_INVALID_TASK_ID)
         {
-            osDelayTask(100);
+            TRACE_ERROR("Could not start TAP generator task for %s\r\n", tonieInfo->contentPath);
+            tap_param.error = ERROR_FAILURE;
+            tap_param.generator_done = true;
         }
 
-        if (stream_ctx->error == NO_ERROR)
+        uint32_t tap_generator_start_waited_ms = 0;
+        while (!tap_param.generator_started && !tap_param.generator_done && tap_param.error == NO_ERROR && tap_generator_start_waited_ms < TAP_GENERATOR_START_WAIT_MS)
         {
-            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            osDelayTask(TAP_GENERATOR_START_POLL_MS);
+            tap_generator_start_waited_ms += TAP_GENERATOR_START_POLL_MS;
+        }
+        if (!tap_param.generator_started && !tap_param.generator_done && tap_param.error == NO_ERROR)
+        {
+            TRACE_WARNING("TAP generator task has not entered for %s after %" PRIu32 "ms; keeping handler context until task completion\r\n", tonieInfo->contentPath, tap_generator_start_waited_ms);
+        }
+
+        bool_t client_disconnected = false;
+        if (tap_param.error == NO_ERROR)
+        {
+            uint32_t tap_live_waited_ms = 0;
+            uint32_t tap_live_tmp_size = 0;
+
+            while (tap_live_waited_ms < TAP_LIVE_READY_WAIT_MS)
+            {
+                error_t size_error = fsGetFileSize(tonieInfo->contentPath, &tap_live_tmp_size);
+
+                if (size_error == NO_ERROR && tap_live_tmp_size >= TAP_LIVE_READY_BYTES)
+                {
+                    break;
+                }
+
+                if (tap_param.error != NO_ERROR || tap_param.generator_done)
+                {
+                    break;
+                }
+
+                osDelayTask(TAP_LIVE_READY_POLL_MS);
+                tap_live_waited_ms += TAP_LIVE_READY_POLL_MS;
+            }
+
+            if (stream_ctx->generation == stream_generation)
+            {
+                stream_ctx->active = tap_param.generator_active;
+                stream_ctx->error = tap_param.error;
+                stream_ctx->quit = tap_param.generator_done;
+            }
+
+            error_t response_error;
+            if (tap_live_prediction_valid)
+            {
+                response_error = tap_send_response_stream_with_size(connection, streamFileRel, predicted_taf_size);
+            }
+            else
+            {
+                response_error = httpSendResponseStream(connection, streamFileRel, true);
+            }
+            TRACE_VERBOSE("TAP live response finished: error=%s predicted_taf_size=%" PRIu32 " active=%u quit=%u current=%u\r\n",
+                          error2text(response_error), predicted_taf_size, tap_param.generator_active, tap_param.generator_done, stream_ctx->generation == stream_generation);
+
             if (response_error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
+                if (tap_param.error == NO_ERROR && !tap_param.generator_done)
+                {
+                    client_disconnected = true;
+                    TRACE_WARNING(" >> TAP stream client disconnected while sending %s, generation still active; preserving background generation, error=%s\r\n", tonieInfo->contentPath, error2text(response_error));
+                }
+                else if (response_error == ERROR_WRITE_FAILED)
+                {
+                    TRACE_WARNING(" >> TAP stream client disconnected while sending %s, generation already finished, error=%s\r\n", tonieInfo->contentPath, error2text(response_error));
+                }
+                else
+                {
+                    TRACE_ERROR(" >> file %s not available or not sent, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
+                }
             }
         }
         else
         {
-            TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(stream_ctx->error));
+            TRACE_ERROR(" >> TAP stream not available, error=%s...\r\n", error2text(tap_param.error));
         }
 
-        stream_ctx->active = false;
+        if (!client_disconnected)
+        {
+            tap_param.generator_active = false;
+        }
 
-        while (!stream_ctx->quit)
+        while (!tap_param.generator_done)
         {
             osDelayTask(100);
         }
+
+        if (tap_param.error == NO_ERROR)
+        {
+            error_t publish_error = tap_publish_taf_replace_safe(tonieInfo->contentPath, tap_param.tap->_filepath_resolved);
+            if (publish_error != NO_ERROR)
+            {
+                TRACE_ERROR("Could not publish generated TAP %s from %s, error=%s\r\n", tap_param.tap->_filepath_resolved, tonieInfo->contentPath, error2text(publish_error));
+                tap_param.error = publish_error;
+            }
+        }
+        if (fsFileExists(tonieInfo->contentPath))
+        {
+            error_t delete_error = fsDeleteFile(tonieInfo->contentPath);
+            if (delete_error != NO_ERROR && delete_error != ERROR_FILE_NOT_FOUND)
+            {
+                TRACE_WARNING("Could not delete temporary TAP file %s, error=%s\r\n", tonieInfo->contentPath, error2text(delete_error));
+            }
+        }
+
+        if (stream_ctx->generation == stream_generation)
+        {
+            stream_ctx->current_source = tap_param.current_source;
+            stream_ctx->error = tap_param.error;
+            stream_ctx->active = tap_param.generator_active;
+            stream_ctx->quit = tap_param.generator_done;
+        }
+
+        if (tap_target_locked)
+        {
+            tap_target_unlock(tap_param.tap->_filepath_resolved);
+        }
+        tap_free_runtime_indices(tap_param.runtime_indices);
     }
     else if (tonieInfo->exists && tonieInfo->valid && (!tonie_marked || !can_use_cloud))
     {
@@ -806,7 +1126,14 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
             if (error)
             {
-                TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                if (error == ERROR_WRITE_FAILED)
+                {
+                    TRACE_WARNING(" >> client disconnected while sending file %s, error=%s\r\n", tonieInfo->contentPath, error2text(error));
+                }
+                else
+                {
+                    TRACE_ERROR(" >> file %s not available or not sent, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
+                }
             }
         }
         else
@@ -917,6 +1244,59 @@ void checkAudioIdForCustom(bool_t *isCustom, char date_buffer[32], time_t audioI
     }
 }
 
+static bool_t tap_should_force_dynamic_freshness(tonie_info_t *tonieInfo)
+{
+    if (tonieInfo == NULL || tonieInfo->json._source_type != CT_SOURCE_TAP_STREAM)
+    {
+        return false;
+    }
+
+    tonie_audio_playlist_t *tap = &tonieInfo->json._tap;
+    if (!tap->_valid)
+    {
+        return false;
+    }
+
+    return tap->audio_id == 0 || tap->shuffle != TAP_SHUFFLE_NONE;
+}
+
+static bool_t tap_is_stable_cached_playlist(tonie_info_t *tonieInfo)
+{
+    if (tonieInfo == NULL || tonieInfo->json._source_type != CT_SOURCE_TAP_CACHED)
+    {
+        return false;
+    }
+
+    tonie_audio_playlist_t *tap = &tonieInfo->json._tap;
+    if (!tap->_valid || tap->audio_id == 0 || tap->shuffle != TAP_SHUFFLE_NONE || tap->_filepath_resolved == NULL)
+    {
+        return false;
+    }
+
+    if (tonieInfo->tafHeader == NULL || tonieInfo->tafHeader->audio_id != tap->audio_id)
+    {
+        return false;
+    }
+
+    return fsFileExists(tap->_filepath_resolved) && toniefile_is_valid(tap->_filepath_resolved);
+}
+
+#if (TRACE_LEVEL >= TRACE_LEVEL_VERBOSE)
+static const char *content_source_type_name(ct_source_t source_type)
+{
+    switch (source_type)
+    {
+        case CT_SOURCE_NONE: return "none";
+        case CT_SOURCE_TAF: return "taf";
+        case CT_SOURCE_TAF_INCOMPLETE: return "taf_incomplete";
+        case CT_SOURCE_TAP_STREAM: return "tap_stream";
+        case CT_SOURCE_TAP_CACHED: return "tap_cached";
+        case CT_SOURCE_STREAM: return "stream";
+        default: return "unknown";
+    }
+}
+#endif
+
 void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckRequest *freshReq, TonieFreshnessCheckResponse *freshResp, TonieFreshnessCheckRequest *freshReqCloud, size_t *freshnessCacheLenOut)
 {
     settings_t *settings = client_ctx->settings;
@@ -942,7 +1322,19 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
         }
         if (!requested)
         {
-            freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshnessCache[i];
+            tonie_info_t *cachedTonieInfo = getTonieInfoFromUid(freshnessCache[i], false, settings);
+            if (tap_is_stable_cached_playlist(cachedTonieInfo))
+            {
+                TRACE_VERBOSE("  freshnessCache uid: %016" PRIX64 " ignored for stable cached TAP\r\n", freshnessCache[i]);
+            }
+            else
+            {
+                freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshnessCache[i];
+            }
+            if (cachedTonieInfo != NULL)
+            {
+                freeTonieInfo(cachedTonieInfo);
+            }
         }
     }
 
@@ -965,17 +1357,39 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
         if (custom_box)
             boxAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
+        bool_t tap_freshness = (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED) &&
+                               tonieInfo->json._tap._valid;
+        tonie_audio_playlist_t *tap = tap_freshness ? &tonieInfo->json._tap : NULL;
+        bool_t tap_has_audio_id = tap_freshness && tap->audio_id != 0;
+        bool_t serverAudioIdAvailable = FALSE;
         uint32_t serverAudioId = 0;
-        if (tonieInfo->valid)
+        if (tap_has_audio_id)
+        {
+            serverAudioId = (uint32_t)tap->audio_id;
+            serverAudioIdAvailable = TRUE;
+        }
+        else if (tonieInfo->valid)
         {
             serverAudioId = tonieInfo->tafHeader->audio_id;
+            serverAudioIdAvailable = TRUE;
+        }
+
+        if (serverAudioIdAvailable)
+        {
             checkAudioIdForCustom(&custom_server, date_buffer_server, serverAudioId);
 
             if (custom_server)
                 serverAudioId += TEDDY_BENCH_AUDIO_ID_DEDUCT;
 
-            tonieInfo->updated = boxAudioId < serverAudioId;
-            tonieInfo->updated = tonieInfo->updated || (settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
+            if (tap_has_audio_id)
+            {
+                tonieInfo->updated = boxAudioId != serverAudioId;
+            }
+            else
+            {
+                tonieInfo->updated = boxAudioId < serverAudioId;
+                tonieInfo->updated = tonieInfo->updated || (settings->cloud.updateOnLowerAudioId && (boxAudioId > serverAudioId));
+            }
             if (settings->cloud.prioCustomContent && !settings->cloud.updateOnLowerAudioId)
             {
                 if (custom_box && !custom_server)
@@ -988,7 +1402,7 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
         if (!tonieInfo->json.nocloud)
         {
             freshReqCloud->tonie_infos[freshReqCloud->n_tonie_infos] = freshReq->tonie_infos[i];
-            if (tonieInfo->valid)
+            if (serverAudioIdAvailable)
             {
                 freshReqCloud->tonie_infos[freshReqCloud->n_tonie_infos]->audio_id = serverAudioId;
             }
@@ -1015,7 +1429,7 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
                    date_buffer_box,
                    custom_box ? ", custom" : "");
 
-        if (tonieInfo->valid)
+        if (serverAudioIdAvailable)
         {
             TRACE_INFO_RESUME(", audioid-tc: %08X (%s%s)",
                               serverAudioId,
@@ -1028,8 +1442,50 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
             content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
         }
 
-        if (tonieInfo->json.live || tonieInfo->updated || (tonieInfo->json._source_type == CT_SOURCE_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || isFlex)
+        bool_t stable_cached_tap = tap_is_stable_cached_playlist(tonieInfo);
+        bool_t tap_dynamic_freshness = tap_should_force_dynamic_freshness(tonieInfo);
+        bool_t tap_final_needs_rebuild = tap_has_audio_id &&
+                                         tap->shuffle == TAP_SHUFFLE_NONE &&
+                                         (!tonieInfo->valid ||
+                                          tonieInfo->tafHeader == NULL ||
+                                          tonieInfo->tafHeader->audio_id != tap->audio_id);
+        bool_t updated_freshness = tap_freshness ?
+                                   (tonieInfo->updated || tap_final_needs_rebuild) :
+                                   (tonieInfo->updated && !stable_cached_tap);
+        bool_t stream_freshness = tonieInfo->json._source_type == CT_SOURCE_STREAM;
+        bool_t should_mark_freshness = tonieInfo->json.live || updated_freshness || stream_freshness || tap_dynamic_freshness || isFlex;
+
+#if (TRACE_LEVEL >= TRACE_LEVEL_VERBOSE)
+        if ((tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM) || (tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED))
         {
+            tonie_audio_playlist_t *tap = &tonieInfo->json._tap;
+            bool_t final_exists = tap->_filepath_resolved != NULL && fsFileExists(tap->_filepath_resolved);
+            bool_t final_valid = final_exists && toniefile_is_valid(tap->_filepath_resolved);
+            TRACE_VERBOSE("  tap freshness: source=%s tap_audioid=%08X shuffle=%u tap_cached=%u final_exists=%u final_valid=%u stable_cached=%u boxAudioId=%08X serverAudioId=%08X\r\n",
+                          content_source_type_name(tonieInfo->json._source_type),
+                          (uint32_t)tap->audio_id,
+                          (unsigned int)tap->shuffle,
+                          tap->_cached,
+                          final_exists,
+                          final_valid,
+                          stable_cached_tap,
+                          boxAudioId,
+                          serverAudioId);
+        }
+#endif
+        if (stable_cached_tap && tonieInfo->updated && !updated_freshness)
+        {
+            TRACE_VERBOSE("  stable cached TAP freshness protected: updated=%u ignored\r\n", tonieInfo->updated);
+        }
+        if (should_mark_freshness)
+        {
+            TRACE_VERBOSE("  freshness mark reason: live=%u updated=%u stream=%u dynamic_tap=%u flex=%u freshnessCache=0 cloud=0 stable_cached_tap=%u\r\n",
+                          tonieInfo->json.live,
+                          updated_freshness,
+                          stream_freshness,
+                          tap_dynamic_freshness,
+                          isFlex,
+                          stable_cached_tap);
             freshResp->tonie_marked[freshResp->n_tonie_marked++] = freshReq->tonie_infos[i]->uid;
         }
         freeTonieInfo(tonieInfo);
@@ -1387,6 +1843,80 @@ error_t handleCloudSetupStatusV3(HttpConnection *connection, const char_t *uri, 
     return httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
 }
 
+static error_t sendLocalContentMetaV3(HttpConnection *connection, const char *ruid, uint32_t version, uint32_t fileSize, const char *resumeBehavior, const char *tonieSalesId)
+{
+    cJSON *respJson = cJSON_CreateObject();
+    if (respJson == NULL)
+    {
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    if (cJSON_AddNumberToObject(respJson, "version", version) == NULL ||
+        cJSON_AddStringToObject(respJson, "contentType", "content_tonie") == NULL ||
+        cJSON_AddStringToObject(respJson, "tonieType", "content") == NULL ||
+        cJSON_AddStringToObject(respJson, "resumeBehavior", resumeBehavior) == NULL ||
+        cJSON_AddStringToObject(respJson, "tonieSalesId", tonieSalesId ? tonieSalesId : "") == NULL)
+    {
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    cJSON *contentArray = cJSON_CreateArray();
+    if (contentArray == NULL || !cJSON_AddItemToObject(respJson, "content", contentArray))
+    {
+        cJSON_Delete(contentArray);
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    cJSON *contentItem = cJSON_CreateObject();
+    if (contentItem == NULL || !cJSON_AddItemToArray(contentArray, contentItem))
+    {
+        cJSON_Delete(contentItem);
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    char name[64];
+    osSprintf(name, "teddycloud_00_%s", ruid);
+    if (cJSON_AddStringToObject(contentItem, "type", "audio") == NULL ||
+        cJSON_AddStringToObject(contentItem, "name", name) == NULL ||
+        cJSON_AddStringToObject(contentItem, "auth", "") == NULL)
+    {
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+    cJSON *analytics = cJSON_CreateObject();
+    if (analytics == NULL || !cJSON_AddItemToObject(contentItem, "analytics", analytics))
+    {
+        cJSON_Delete(analytics);
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+    if (cJSON_AddNumberToObject(contentItem, "fileSize", (double)fileSize) == NULL)
+    {
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    char *response_json = cJSON_PrintUnformatted(respJson);
+    if (response_json == NULL)
+    {
+        cJSON_Delete(respJson);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    size_t dataLen = osStrlen(response_json);
+    TRACE_INFO("V3 Content Meta response: size=%" PRIuSIZE ", content=%s\n", dataLen, response_json);
+
+    httpPrepareHeader(connection, "application/json; charset=utf-8", dataLen);
+    error_t error = httpWriteResponse(connection, (uint8_t *)response_json, dataLen, false);
+
+    free(response_json);
+    cJSON_Delete(respJson);
+    return error;
+}
+
 error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char current_time[64];
@@ -1409,8 +1939,54 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
     }
     uint8_t *token = connection->private.authentication_token;
 
-    
-    if (tonieInfo->exists && tonieInfo->valid)
+    bool_t skip_tmp_content_meta = FALSE;
+    if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
+    {
+        tonie_audio_playlist_t *tap = &tonieInfo->json._tap;
+        const char *resumeBehavior = tonieInfo->json.live ? "alwaysReset" : "resume";
+        const char *tonieSalesId = tonieInfo->json.tonie_model ? tonieInfo->json.tonie_model : "";
+
+        if (tap->_valid && tap->shuffle == TAP_SHUFFLE_NONE && tap->_filepath_resolved != NULL)
+        {
+            skip_tmp_content_meta = TRUE;
+            if (tap_final_cache_is_current(tap))
+            {
+                uint32_t fileSize = 0;
+                fsGetFileSize(tap->_filepath_resolved, &fileSize);
+                if (fileSize > TONIEFILE_FRAME_SIZE)
+                {
+                    fileSize -= TONIEFILE_FRAME_SIZE;
+                }
+                else
+                {
+                    fileSize = 0;
+                }
+
+                error = sendLocalContentMetaV3(connection, ruid, (uint32_t)tap->audio_id, fileSize, resumeBehavior, tonieSalesId);
+                freeTonieInfo(tonieInfo);
+                return error;
+            }
+
+            toniefile_live_header_t live_header;
+            uint32_t predicted_taf_size = 0;
+            size_t *runtime_indices = NULL;
+            size_t runtime_files_count = 0;
+
+            if (tap_prepare_runtime_indices(tap, &runtime_indices, &runtime_files_count) == NO_ERROR &&
+                tap_predict_taf_live_header(tap, runtime_indices, runtime_files_count, &live_header, &predicted_taf_size) == NO_ERROR &&
+                predicted_taf_size > TONIEFILE_FRAME_SIZE &&
+                live_header.payload_size > 0)
+            {
+                tap_free_runtime_indices(runtime_indices);
+                error = sendLocalContentMetaV3(connection, ruid, (uint32_t)tap->audio_id, live_header.payload_size, resumeBehavior, tonieSalesId);
+                freeTonieInfo(tonieInfo);
+                return error;
+            }
+            tap_free_runtime_indices(runtime_indices);
+        }
+    }
+
+    if (!skip_tmp_content_meta && tonieInfo->exists && tonieInfo->valid)
     {
         cJSON *respJson = cJSON_CreateObject();
         cJSON_AddNumberToObject(respJson, "version", tonieInfo->tafHeader->audio_id);

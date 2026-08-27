@@ -1,5 +1,48 @@
 #include "json_helper.h"
 
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+static bool_t jsonParseUInt32String(const char *text, uint32_t *value)
+{
+    if (text == NULL || value == NULL)
+    {
+        return false;
+    }
+
+    while (*text == ' ' || *text == '\t' || *text == '\r' || *text == '\n')
+    {
+        text++;
+    }
+
+    if (*text == '\0' || *text == '-' || *text == '+')
+    {
+        return false;
+    }
+
+    errno = 0;
+    char *end = NULL;
+    unsigned long parsed = strtoul(text, &end, 10);
+    if (end == text || errno == ERANGE || parsed > UINT32_MAX)
+    {
+        return false;
+    }
+
+    while (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')
+    {
+        end++;
+    }
+
+    if (*end != '\0')
+    {
+        return false;
+    }
+
+    *value = (uint32_t)parsed;
+    return true;
+}
+
 char *jsonGetString(cJSON *jsonElement, char *name)
 {
     cJSON *attr = cJSON_GetObjectItemCaseSensitive(jsonElement, name);
@@ -75,6 +118,14 @@ uint32_t jsonGetUInt32(cJSON *jsonElement, char *name)
     if (cJSON_IsNumber(attr))
     {
         return attr->valuedouble;
+    }
+    if (cJSON_IsString(attr))
+    {
+        uint32_t value;
+        if (jsonParseUInt32String(attr->valuestring, &value))
+        {
+            return value;
+        }
     }
     return 0;
 }
