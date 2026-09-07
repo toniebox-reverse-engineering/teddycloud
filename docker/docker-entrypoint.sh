@@ -26,21 +26,27 @@ if [ -n "${PUID:-}" ] && [ -n "${PGID:-}" ] && [ "${PUID}" != "0" ] && [ "${PGID
     exit 1
   fi
 
-  # Create or reconcile the teddy group/user with the requested ids. The
-  # `|| ... ||  true` chain handles re-runs (user/group already exists at the
-  # right ids) without failing the entrypoint.
-  groupadd -g "${PGID}" teddy 2>/dev/null \
-    || groupmod -o -g "${PGID}" teddy 2>/dev/null \
-    || true
-  useradd -u "${PUID}" -g "${PGID}" -M -s /bin/bash teddy 2>/dev/null \
-    || usermod -o -u "${PUID}" -g "${PGID}" teddy 2>/dev/null \
-    || true
+  # Resolve the requested ids to an account. Reuse whatever already owns them --
+  # the ubuntu base image ships `ubuntu` at 1000:1000, and 1000 is the most
+  # common PUID/PGID value -- and only create teddy when they are free. Both
+  # steps are best-effort: the privilege drop below names the numeric uid:gid,
+  # which gosu and su-exec accept with no passwd entry at all.
+  if ! getent group "${PGID}" >/dev/null 2>&1; then
+    groupadd -o -g "${PGID}" teddy \
+      || echo "groupadd -g ${PGID} teddy failed; using the numeric gid" >&2
+  fi
+  if ! getent passwd "${PUID}" >/dev/null 2>&1; then
+    useradd -o -u "${PUID}" -g "${PGID}" -M -s /bin/bash teddy \
+      || echo "useradd -u ${PUID} teddy failed; using the numeric uid" >&2
+  fi
 
   echo "Adjusting /teddycloud ownership to ${PUID}:${PGID}..."
   chown -R "${PUID}:${PGID}" /teddycloud
 
-  RUN_AS=("${DROP_PRIVS}" "teddy")
-  echo "Will run teddycloud as ${PUID}:${PGID} via ${DROP_PRIVS}"
+  run_user="$(getent passwd "${PUID}" | cut -d: -f1 || true)"
+  run_group="$(getent group "${PGID}" | cut -d: -f1 || true)"
+  RUN_AS=("${DROP_PRIVS}" "${PUID}:${PGID}")
+  echo "Will run teddycloud as ${PUID}:${PGID} (${run_user:-no passwd entry}:${run_group:-no group entry}) via ${DROP_PRIVS}"
 fi
 
 if [ -n "${DOCKER_TEST:-}" ]; then
