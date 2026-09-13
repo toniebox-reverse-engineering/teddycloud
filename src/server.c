@@ -20,6 +20,7 @@
 #include "handler_rtnl.h"         // for handleRtnl
 #include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
 #include "handler_sse.h"          // for handleApiSse, sse_init
+#include "handler_web_auth.h"     // for web_auth_init, web_auth_requires_login
 #include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
 #include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
 #include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
@@ -51,6 +52,7 @@
 #include "handler_rtnl.h"         // for handleRtnl
 #include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
 #include "handler_sse.h"          // for handleApiSse, sse_init
+#include "handler_web_auth.h"     // for web_auth_init, web_auth_requires_login
 #include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
 #include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
 #include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
@@ -115,10 +117,16 @@ request_type_t request_paths[] = {
     {REQ_POST, "/content/json/set/", SERTY_WEB, &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", SERTY_WEB, &handleApiContentJson},
     {REQ_GET, "/content/", SERTY_WEB, &handleApiContent},
-    /* auth API */
+    /* auth API: register /users/delete and /users/password before /users */
     {REQ_POST, "/api/auth/login", SERTY_WEB, &handleApiAuthLogin},
     {REQ_GET, "/api/auth/logout", SERTY_WEB, &handleApiAuthLogout},
     {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
+    {REQ_GET, "/api/auth/status", SERTY_WEB, &handleApiAuthStatus},
+    {REQ_POST, "/api/auth/users/delete", SERTY_WEB, &handleApiAuthUsersDelete},
+    {REQ_POST, "/api/auth/users/password", SERTY_WEB, &handleApiAuthUsersPassword},
+    {REQ_GET, "/api/auth/users", SERTY_WEB, &handleApiAuthUsersGet},
+    {REQ_POST, "/api/auth/users", SERTY_WEB, &handleApiAuthUsersCreate},
+    {REQ_POST, "/api/auth/enabled", SERTY_WEB, &handleApiAuthEnabled},
     /* plugins API */
     {REQ_GET, "/api/plugins/get", SERTY_WEB, &handleApiPluginsGet},
     /* custom API */
@@ -519,6 +527,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
+        if (!connection->private.api_access_only && web_auth_requires_login() && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
+        {
+            error = web_auth_unauthorized(connection);
+            break;
+        }
+
         for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
         {
             size_t pathLen = osStrlen(request_paths[i].path);
@@ -627,9 +641,18 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     }
     if (!strncmp(value, "Bearer ", 7))
     {
+        const char *token = value + 7;
+        size_t tlen = osStrlen(token);
+        if (tlen > 0 && tlen < sizeof(connection->private.web_bearer_token))
+        {
+            osStrcpy(connection->private.web_bearer_token, token);
+        }
         if (strlen(value) != 7 + 2 * JWT_AUTH_TOKEN_LENGTH)
         {
-            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
+            if (tlen == 0)
+            {
+                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
+            }
             return;
         }
         // TODO: check JWT TOKEN
@@ -885,6 +908,7 @@ void server_init(bool test)
     }
     settings_set_bool("internal.exit", FALSE);
     sse_init();
+    web_auth_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_web_settings;

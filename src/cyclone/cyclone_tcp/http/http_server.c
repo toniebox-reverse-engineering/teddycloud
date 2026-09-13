@@ -469,6 +469,7 @@ void httpConnectionTask(void *param)
             osMemset(&connection->request, 0, sizeof(HttpRequest));
             // Clear response header
             osMemset(&connection->response, 0, sizeof(HttpResponse));
+            osMemset(connection->private.web_bearer_token, 0, sizeof(connection->private.web_bearer_token));
 
             // Read the HTTP request header and parse its contents
             error = httpReadRequestHeader(connection);
