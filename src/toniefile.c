@@ -254,7 +254,6 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
             }
             ctx->file_pos += og.header_len + og.body_len;
             ctx->audio_length += og.header_len + og.body_len;
-
             sha1Update(&ctx->sha1, og.header, og.header_len);
             sha1Update(&ctx->sha1, og.body, og.body_len);
         }
@@ -312,12 +311,20 @@ error_t toniefile_write_header(toniefile_t *ctx)
 {
     uint8_t buffer[TONIEFILE_FRAME_SIZE];
     uint8_t sha1[SHA1_DIGEST_SIZE];
+    bool_t temporary_sha1 = false;
+    error_t error = NO_ERROR;
 
     if (ctx->taf.sha1_hash.data == NULL)
     {
-        // osMemset(sha1, 0xFF, sizeof(sha1));
+        /*
+         * Live TAP headers are written before the final SHA1 is known.
+         * Use a temporary zero hash only for this header write and restore
+         * the unset state afterwards so toniefile_close() writes the final hash.
+         */
+        osMemset(sha1, 0x00, sizeof(sha1));
         ctx->taf.sha1_hash.data = sha1;
         ctx->taf.sha1_hash.len = SHA1_DIGEST_SIZE;
+        temporary_sha1 = true;
     }
 
     ctx->taf.ogg_granule_position = ctx->ogg_granule_position;
@@ -340,15 +347,93 @@ error_t toniefile_write_header(toniefile_t *ctx)
     proto_be[3] = proto_size;
     if (fsWriteFile(ctx->file, proto_be, sizeof(proto_be)) != NO_ERROR)
     {
-        return ERROR_WRITE_FAILED;
+        error = ERROR_WRITE_FAILED;
+    }
+    else
+    {
+        fsSeekFile(ctx->file, 4, SEEK_SET);
+        if (fsWriteFile(ctx->file, buffer, proto_size) != NO_ERROR)
+        {
+            error = ERROR_WRITE_FAILED;
+        }
     }
 
-    fsSeekFile(ctx->file, 4, SEEK_SET);
-    if (fsWriteFile(ctx->file, buffer, proto_size) != NO_ERROR)
+    if (temporary_sha1)
     {
-        return ERROR_WRITE_FAILED;
+        ctx->taf.sha1_hash.data = NULL;
+        ctx->taf.sha1_hash.len = 0;
     }
-    return NO_ERROR;
+
+    return error;
+}
+
+error_t toniefile_write_taf_header(FsFile *file, uint32_t audio_id, const toniefile_live_header_t *live_header)
+{
+    if (file == NULL || live_header == NULL || live_header->payload_size == 0 ||
+        !live_header->has_sha1_hash || !live_header->has_ogg_state ||
+        live_header->track_page_nums_count > TONIEFILE_MAX_CHAPTERS)
+    {
+        return ERROR_FAILURE;
+    }
+
+    TonieboxAudioFileHeader taf;
+    toniebox_audio_file_header__init(&taf);
+    taf.audio_id = audio_id;
+    taf.num_bytes = live_header->payload_size;
+    taf.sha1_hash.data = (uint8_t *)live_header->sha1_hash;
+    taf.sha1_hash.len = SHA1_DIGEST_SIZE;
+    taf.n_track_page_nums = live_header->track_page_nums_count;
+    taf.track_page_nums = (uint32_t *)live_header->track_page_nums;
+    taf.ogg_granule_position = live_header->ogg_granule_position;
+    taf.ogg_packet_count = live_header->ogg_packet_count;
+    taf.taf_block_num = live_header->taf_block_num;
+    taf.pageno = live_header->pageno;
+    taf.has_ogg_granule_position = true;
+    taf.has_ogg_packet_count = true;
+    taf.has_taf_block_num = true;
+    taf.has_pageno = true;
+
+    uint8_t buffer[TONIEFILE_FRAME_SIZE];
+    osMemset(buffer, 0x00, sizeof(buffer));
+    uint32_t proto_size = (uint32_t)toniefile_header(buffer, sizeof(buffer), &taf);
+    if (proto_size == 0)
+    {
+        return ERROR_FAILURE;
+    }
+
+    uint8_t proto_be[4];
+    proto_be[0] = proto_size >> 24;
+    proto_be[1] = proto_size >> 16;
+    proto_be[2] = proto_size >> 8;
+    proto_be[3] = proto_size;
+
+    error_t error = fsSeekFile(file, 0, SEEK_SET);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    error = fsWriteFile(file, proto_be, sizeof(proto_be));
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    error = fsWriteFile(file, buffer, proto_size);
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    size_t remaining = TONIEFILE_FRAME_SIZE - sizeof(proto_be) - proto_size;
+    if (remaining > 0)
+    {
+        uint8_t padding[TONIEFILE_FRAME_SIZE];
+        osMemset(padding, 0x00, sizeof(padding));
+        error = fsWriteFile(file, padding, remaining);
+    }
+
+    return error;
 }
 
 error_t toniefile_close(toniefile_t *ctx)
@@ -695,14 +780,20 @@ error_t ffmpeg_decode_audio(FILE *ffmpeg_pipe, int16_t *buffer, size_t size, siz
     return NO_ERROR;
 }
 
-error_t ffmpeg_convert(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds)
+error_t ffmpeg_convert(char source[TONIEFILE_MAX_SOURCES][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds)
 {
     bool_t active = true;
     bool_t sweep = false;
     return ffmpeg_stream(source, source_len, current_source, target_taf, skip_seconds, &active, &sweep, false, false);
 }
 
-error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream)
+error_t ffmpeg_stream(char source[TONIEFILE_MAX_SOURCES][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream)
+{
+    uint32_t audio_id = (uint32_t)(time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT);
+    return ffmpeg_stream_with_audio_id(source, source_len, current_source, target_taf, skip_seconds, active, sweep, append, isStream, audio_id);
+}
+
+error_t ffmpeg_stream_with_audio_id(char source[TONIEFILE_MAX_SOURCES][PATH_LEN], size_t source_len, size_t *current_source, const char *target_taf, size_t skip_seconds, bool_t *active, bool_t *sweep, bool_t append, bool_t isStream, uint32_t audio_id)
 {
     TRACE_INFO("Encode %" PRIuSIZE " sources: \r\n", source_len);
     for (size_t i = 0; i < source_len; i++)
@@ -742,7 +833,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
     {
         size = get_settings()->encode.stream_max_size - TONIE_HEADER_LENGTH;
     }
-    toniefile_t *taf = toniefile_create(target_taf, time(NULL) - TEDDY_BENCH_AUDIO_ID_DEDUCT, append, size);
+    toniefile_t *taf = toniefile_create(target_taf, audio_id, append, size);
     if (!taf)
     {
         TRACE_ERROR("toniefile_create() failed, aborting\r\n");
@@ -807,13 +898,10 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
             break;
         }
     }
-    if (!(*active))
+    bool_t encoding_aborted_by_active_flag = !(*active);
+    if (encoding_aborted_by_active_flag)
     {
         TRACE_INFO("Encoding aborted, active flag set to false\r\n");
-    }
-    else
-    {
-        *active = false;
     }
 
     if (error == ERROR_END_OF_STREAM)
@@ -833,7 +921,17 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
     {
         ffmpeg_decode_audio_end(ffmpeg_pipe, error);
     }
-    toniefile_close(taf);
+    error_t close_error = toniefile_close(taf);
+
+    if (error == NO_ERROR && close_error != NO_ERROR)
+    {
+        error = close_error;
+    }
+
+    if (!encoding_aborted_by_active_flag && *active)
+    {
+        *active = false;
+    }
 
     if (error == NO_ERROR)
     {
@@ -861,7 +959,7 @@ void ffmpeg_stream_task(void *param)
        stack. osCreateTask's requested stackSize is not honored by the pthread
        backend, so on small default thread stacks (notably musl/Alpine, ~128 KB)
        this stack array overflowed and crashed the stream task. See issue #160. */
-    char (*source)[PATH_LEN] = osAllocMem(sizeof(char[99][PATH_LEN]));
+    char (*source)[PATH_LEN] = osAllocMem(sizeof(char[TONIEFILE_MAX_SOURCES][PATH_LEN]));
     if (source == NULL)
     {
         TRACE_ERROR("ffmpeg_stream_task: failed to allocate source buffer\r\n");

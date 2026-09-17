@@ -739,9 +739,19 @@ bool_t isValidTaf(const char *contentPath, bool checkHashAndSize)
     return valid;
 }
 
+static bool isLiveTafTmpPath(const char *path)
+{
+    static const char suffix[] = ".taf.tmp";
+    size_t pathLen = osStrlen(path);
+    size_t suffixLen = sizeof(suffix) - 1;
+
+    return pathLen >= suffixLen && osStrcmp(&path[pathLen - suffixLen], suffix) == 0;
+}
+
 void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
 {
     bool hasError = false;
+    bool liveTafTmp = isLiveTafTmpPath(tonieInfo->contentPath);
     track_positions_t *trackPos = &tonieInfo->additional.track_positions;
     TonieboxAudioFileHeader *tafHeader = tonieInfo->tafHeader;
     trackPos->count = tafHeader->n_track_page_nums;
@@ -764,14 +774,21 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             if (error != NO_ERROR)
             {
                 hasError = true;
-                TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
+                if (!liveTafTmp || error != ERROR_END_OF_FILE)
+                {
+                    TRACE_ERROR("Failed to seek track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
+                }
                 break;
             }
             error = fsReadFile(file, buffer, sizeof(buffer), &readBytes);
-            if (error != NO_ERROR)
+            if (error != NO_ERROR || readBytes != sizeof(buffer))
             {
+                bool liveTafTmpReadAhead = liveTafTmp && (error == ERROR_END_OF_FILE || (error == NO_ERROR && readBytes != sizeof(buffer)));
                 hasError = true;
-                TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
+                if (!liveTafTmpReadAhead)
+                {
+                    TRACE_ERROR("Failed to read track position at %" PRIuSIZE " with error %s, %s\r\n", filePos, error2text(error), tonieInfo->contentPath);
+                }
                 break;
             }
 
@@ -808,6 +825,12 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             trackPos->count = 0;
             osFreeMem(trackPos->pos);
             trackPos->pos = NULL;
+
+            if (liveTafTmp)
+            {
+                TRACE_VERBOSE("Skipping final track position validation for growing TAF %s\r\n", tonieInfo->contentPath);
+                return;
+            }
 
             if (get_settings()->core.track_pos_taf_validation)
             {
