@@ -117,15 +117,15 @@ request_type_t request_paths[] = {
     {REQ_POST, "/content/json/set/", SERTY_WEB, &handleApiContentJsonSet},
     {REQ_GET, "/content/json/", SERTY_WEB, &handleApiContentJson},
     {REQ_GET, "/content/", SERTY_WEB, &handleApiContent},
-    /* auth API: register /users/delete and /users/password before /users */
+    /* auth API */
     {REQ_POST, "/api/auth/login", SERTY_WEB, &handleApiAuthLogin},
     {REQ_GET, "/api/auth/logout", SERTY_WEB, &handleApiAuthLogout},
     {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
     {REQ_GET, "/api/auth/status", SERTY_WEB, &handleApiAuthStatus},
+    {REQ_GET, "/api/auth/users/get", SERTY_WEB, &handleApiAuthUsersGet},
+    {REQ_POST, "/api/auth/users/create", SERTY_WEB, &handleApiAuthUsersCreate},
     {REQ_POST, "/api/auth/users/delete", SERTY_WEB, &handleApiAuthUsersDelete},
-    {REQ_POST, "/api/auth/users/password", SERTY_WEB, &handleApiAuthUsersPassword},
-    {REQ_GET, "/api/auth/users", SERTY_WEB, &handleApiAuthUsersGet},
-    {REQ_POST, "/api/auth/users", SERTY_WEB, &handleApiAuthUsersCreate},
+    {REQ_POST, "/api/auth/users/updatePassword", SERTY_WEB, &handleApiAuthUsersPassword},
     {REQ_POST, "/api/auth/enabled", SERTY_WEB, &handleApiAuthEnabled},
     /* plugins API */
     {REQ_GET, "/api/plugins/get", SERTY_WEB, &handleApiPluginsGet},

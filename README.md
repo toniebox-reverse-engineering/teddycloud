@@ -37,7 +37,8 @@ Login protection is **off by default**. When enabled, the web interface requires
 - Users are stored as salted SHA-256 hashes in `web_users.json` under the config directory.
 - After five failed logins from the same IP, further attempts are blocked for 10 minutes.
 - Set `TEDDYCLOUD_WEB_AUTH_DISABLE=1` to bypass login (for recovery).
-- If you publish the web UI on the internet, enable login. TeddyCloud does not treat LAN and reverse-proxy traffic differently (a proxy often looks like a local client).
+- Removing `web_users.json` (no users left) turns login protection off again.
+- **Still not recommended for public exposure:** the login only protects the web UI. The direct APIs are still unprotected, so do not host TeddyCloud publicly unless you know how to secure a self-hosted service (for example behind a VPN or an authenticating reverse proxy). TeddyCloud does not treat LAN and reverse-proxy traffic differently (a proxy often looks like a local client).
 
 A Traefik example that separates the web UI (HTTP) from the Toniebox port (TLS passthrough) is in [`docker/docker-compose.traefik.example.yaml`](docker/docker-compose.traefik.example.yaml).
 
