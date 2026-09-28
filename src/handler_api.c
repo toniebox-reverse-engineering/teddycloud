@@ -1670,6 +1670,9 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 }
 
 #define TAF_TRACK_EXPORT_MAX 99
+#define TAF_TEMP_PATH_LEN 512
+#define TAF_TEMP_FILE_LEN (TAF_TEMP_PATH_LEN + 264)
+#define TAF_TEMP_QUOTED_LEN (TAF_TEMP_FILE_LEN * 2 + 8)
 
 static bool shell_quote(const char *in, char *out, size_t out_len)
 {
@@ -1732,22 +1735,65 @@ static void sanitize_track_title(const char *in, char *out, size_t out_len)
 
 static void remove_taf_temp_dir(const char *dir)
 {
-    char quoted[128];
-    char cmd[192];
+    FsDir *handle;
+    FsDirEntry entry;
 
-    if (dir == NULL || osStrncmp(dir, "/tmp/tc-taf-", 12) != 0)
+    if (dir == NULL || osStrstr(dir, "tc-taf-") == NULL)
     {
         return;
     }
-    if (!shell_quote(dir, quoted, sizeof(quoted)))
+
+    handle = fsOpenDir(dir);
+    if (handle != NULL)
     {
-        return;
+        while (fsReadDir(handle, &entry) == NO_ERROR)
+        {
+            char file_path[TAF_TEMP_FILE_LEN];
+
+            if (osStrcmp(entry.name, ".") == 0 || osStrcmp(entry.name, "..") == 0)
+            {
+                continue;
+            }
+            osSnprintf(file_path, sizeof(file_path), "%s/%s", dir, entry.name);
+            fsDeleteFile(file_path);
+        }
+        fsCloseDir(handle);
     }
-    osSnprintf(cmd, sizeof(cmd), "rm -rf %s", quoted);
-    if (system(cmd) != 0)
+
+    if (fsRemoveDir(dir) != NO_ERROR)
     {
         TRACE_WARNING("Could not remove temp dir %s\r\n", dir);
     }
+}
+
+static error_t create_taf_temp_dir(const settings_t *settings, char *out_path, size_t out_size)
+{
+    const char *base = ".";
+    int attempt;
+
+    if (settings != NULL && settings->internal.cachedirfull != NULL && settings->internal.cachedirfull[0] != '\0')
+    {
+        base = settings->internal.cachedirfull;
+    }
+    fsCreateDirEx(base, true);
+
+    srand((unsigned int)time(NULL) ^ (unsigned int)(uintptr_t)out_path);
+
+    for (attempt = 0; attempt < 16; attempt++)
+    {
+        unsigned int token = ((unsigned int)rand() << 16) ^ (unsigned int)rand() ^ (unsigned int)attempt;
+
+        osSnprintf(out_path, out_size, "%s/tc-taf-%08x", base, token);
+        if (fsDirExists(out_path))
+        {
+            continue;
+        }
+        if (fsCreateDirEx(out_path, false) == NO_ERROR)
+        {
+            return NO_ERROR;
+        }
+    }
+    return ERROR_FAILURE;
 }
 
 static error_t copy_span(FILE *src, uint32_t offset, uint32_t end, FILE *dst)
@@ -1852,7 +1898,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     FILE *src = NULL;
     tonie_info_t *tafInfo = NULL;
     toniesJson_item_t *tonieItem = NULL;
-    char tmpdir[] = "/tmp/tc-taf-XXXXXX";
+    char tmpdir[TAF_TEMP_PATH_LEN];
     bool have_dir = false;
     uint32_t pages[TAF_TRACK_EXPORT_MAX];
     int track_numbers[TAF_TRACK_EXPORT_MAX];
@@ -1951,7 +1997,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
         return ERROR_INVALID_PARAMETER;
     }
 
-    if (mkdtemp(tmpdir) == NULL)
+    if (create_taf_temp_dir(settings, tmpdir, sizeof(tmpdir)) != NO_ERROR)
     {
         fclose(src);
         return ERROR_FAILURE;
@@ -1966,7 +2012,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
         uint32_t start_off;
         uint32_t end_off;
         char name[160];
-        char path[256];
+        char path[TAF_TEMP_FILE_LEN];
         FILE *dst;
 
         if ((size_t)chapter + 1 < page_count)
@@ -2038,17 +2084,23 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     }
     else
     {
-        char zip_path[64];
-        char quoted_zip[96];
-        size_t cmd_len = 64;
+        char zip_path[TAF_TEMP_FILE_LEN];
+        char quoted_zip[TAF_TEMP_QUOTED_LEN];
+        size_t cmd_len;
 
         osSnprintf(zip_path, sizeof(zip_path), "%s/tracks.zip", tmpdir);
+        if (!shell_quote(zip_path, quoted_zip, sizeof(quoted_zip)))
+        {
+            error = ERROR_FAILURE;
+            goto cleanup;
+        }
+        cmd_len = osStrlen("zip -j -q -X ") + osStrlen(quoted_zip) + 1;
         for (size_t i = 0; i < track_count; i++)
         {
-            cmd_len += osStrlen(out_paths[i]) + 8;
+            cmd_len += osStrlen(out_paths[i]) * 2 + 8;
         }
         zip_cmd = osAllocMem(cmd_len);
-        if (zip_cmd == NULL || !shell_quote(zip_path, quoted_zip, sizeof(quoted_zip)))
+        if (zip_cmd == NULL)
         {
             error = ERROR_FAILURE;
             goto cleanup;
@@ -2056,7 +2108,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
         osSnprintf(zip_cmd, cmd_len, "zip -j -q -X %s", quoted_zip);
         for (size_t i = 0; i < track_count; i++)
         {
-            char quoted[512];
+            char quoted[TAF_TEMP_QUOTED_LEN];
             size_t used = osStrlen(zip_cmd);
 
             if (!shell_quote(out_paths[i], quoted, sizeof(quoted)))
