@@ -1196,6 +1196,8 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
          error = httpCloseStream(connection); // Test connection??? won't work TODO: exit after some seconds
          if (error)
             break;
+         // Clear the sticky stdio EOF indicator so the next read sees appended blocks
+         fsSeekFile(file, 0, FS_SEEK_CUR);
          continue;
       }
       if (error)
