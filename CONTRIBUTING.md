@@ -69,8 +69,10 @@ under `cyclone/` (git submodules) plus a few other libraries (cJSON, opus, ogg, 
 **Don't edit the vendored submodule sources directly.** Where TeddyCloud needs to change
 vendored behaviour, it keeps a *patched copy* under `src/cyclone/…` and the `Makefile`
 compiles that instead of the submodule original (the `-Isrc/cyclone/…` include path takes
-precedence). If you must change a vendored file, add or extend the copy there rather than
-modifying the submodule.
+precedence). If you must change a vendored file: copy it unmodified from the submodule into
+the matching path under `src/cyclone/…`, then make your change on that copy. Don't run the
+auto-formatter on it — keep the copy identical to upstream except for the actual patch, so
+the diff against upstream stays reviewable.
 
 ## Code style
 
