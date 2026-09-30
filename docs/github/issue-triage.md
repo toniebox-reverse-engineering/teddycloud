@@ -14,9 +14,15 @@ Checkboxes are for you to tick as you action each one — nothing here is applie
 ## 0. PR status across both repos
 
 Only **5 PRs are currently open** in `teddycloud`: #462, #471 (release), #477, #482, #484.
-`teddycloud_web` (the companion frontend repo) has **6 more**: #326–#330, #317. Cross-checked
+`teddycloud_web` (the companion frontend repo) has **5 more**: #326–#330. Cross-checked
 every issue against GitHub's PR-linking metadata plus manual reading where linking wasn't
 automatic (a plain pasted URL in a comment, e.g., doesn't create a GitHub cross-reference).
+
+**Update:** `teddycloud_web` PR #317 ("track listened status for library files") is now
+**merged** — its conflicts against `develop` (in `CHANGELOG.md`, `FileBrowser.tsx`,
+`Columns.tsx`) were resolved and a real bug found in review (missing `encodeURIComponent`
+on file paths in `TeddyCloudApi.ts`'s `apiPostFileSetListened` and in
+`useAssignNextEpisode.ts`) was fixed before it landed on `develop` at commit `6310d2c`.
 
 ### Ready to merge right now (approved + green CI + no conflicts)
 
@@ -46,7 +52,12 @@ Nothing in `teddycloud` (backend) has an approving review yet — see the per-PR
 | [#328](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/328) | chore: update dependencies, add translation check | No reviews | Clean, green — low-risk chore, just unreviewed |
 | [#327](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/327) | feature: List view for Tonies | **CHANGES_REQUESTED** (twice) | UNSTABLE — maintainer wants it to reuse the antd design system, not a bespoke list component |
 | [#326](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/326) | Support serving the web UI under a runtime URL prefix | No formal review yet; maintainer's "feels like this could break everything" comment predates the changelog entry that's already in the diff | No CI has run at all (`gh pr checks` reports none — needs a maintainer to approve the workflow run for this external contributor). Fixes issue #245. **Code review: sound.** Single source of truth (`src/utils/basePath.ts`), a regex anchored on `/web` as a path segment so it can't false-match a prefix like `/webapp`, `withBase()` is idempotent, and it's applied consistently at every root-absolute URL call site (~20 files: API config, router basename, i18n, RTNL EventSource, audio/image URLs, plugin iframes, WASM encoder, cert download). Favicon/manifest hrefs are untouched but fine — Vite auto-rewrites those via `base: "./"` at build time. Blocked only on CI being triggered and a review/approval, not on a code issue. |
-| [#317](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/317) | feat: track listened status for library files | No reviews | **Merge conflicts** (CONFLICTING/DIRTY) — maintainer already asked the author to rebase (2026-09-04), still unresolved |
+
+### Merged just now (this session)
+
+| PR | Title | Note |
+|---|---|---|
+| [teddycloud_web #317](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/317) MERGED | feat: track listened status for library files | From a fork (`pladux/teddycloud_web`), had merge conflicts against `develop` and an `encodeURIComponent` bug — both fixed, then pushed directly to `develop` (commit `6310d2c`). Backend counterpart PR #467 (`teddycloud`) was already merged earlier. |
 
 ### Already fixed by a *merged* PR (issue should just be closed)
 
