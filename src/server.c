@@ -431,7 +431,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                         {
                             // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
                             client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
-                            boxGen = GENERATION_TB2;
+                            boxGen = GENERATION_TB1;
                         }
                         else
                         {
