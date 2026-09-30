@@ -11,20 +11,51 @@ Checkboxes are for you to tick as you action each one — nothing here is applie
 
 ---
 
-## 0. PR status — the part you asked about
+## 0. PR status across both repos
 
-Only **5 PRs are currently open**: #462, #471 (release), #477, #482, #484. Cross-checked every
-issue against GitHub's PR-linking metadata plus manual reading where linking wasn't automatic
-(a plain pasted URL in a comment, e.g., doesn't create a GitHub cross-reference).
+Only **5 PRs are currently open** in `teddycloud`: #462, #471 (release), #477, #482, #484.
+`teddycloud_web` (the companion frontend repo) has **6 more**: #326–#330, #317. Cross-checked
+every issue against GitHub's PR-linking metadata plus manual reading where linking wasn't
+automatic (a plain pasted URL in a comment, e.g., doesn't create a GitHub cross-reference).
+
+### Ready to merge right now (approved + green CI + no conflicts)
+
+| Repo | PR | Title | Status |
+|---|---|---|---|
+| teddycloud_web | [#330](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/330) | feat: add optional web UI login with multiple users | **APPROVED** by henryk86, CI green, clean merge. Frontend half of #85. |
+| teddycloud_web | [#329](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/329) | feat: download TAF tracks as OGG files | Went CHANGES_REQUESTED → **APPROVED** (latest review), CI green, clean merge. Frontend half of #169/#331 — coordinate with backend #484 (see below), which isn't merged yet. |
+
+Nothing in `teddycloud` (backend) has an approving review yet — see the per-PR table below.
+
+### teddycloud (backend) open PRs — none formally approved
+
+| PR | Title | Review | CI / merge state |
+|---|---|---|---|
+| [#484](https://github.com/toniebox-reverse-engineering/teddycloud/pull/484) | feat: export selected TAF tracks as Ogg or Zip | No reviews yet | CI all green, mergeStateStatus CLEAN — closest to ready, just needs someone to look and approve |
+| [#482](https://github.com/toniebox-reverse-engineering/teddycloud/pull/482) | feat: add optional web UI login with cookie sessions | Active back-and-forth (14 COMMENTED reviews from henryk86/ditschi), no approval yet | CI all green — still under discussion, not resolved |
+| [#462](https://github.com/toniebox-reverse-engineering/teddycloud/pull/462) | Feature/rabbit hole tap playlist | No reviews, still **draft** | 2 CI failures (`build-windows-amd64`, `ubuntuAsanTest/ppc64le`) alongside passing reruns — flaky or unresolved, and it's a draft so not merge-eligible regardless |
+| [#477](https://github.com/toniebox-reverse-engineering/teddycloud/pull/477) | fix(server): clear authenticated on every pooled connection reuse | No reviews | **Merge conflicts** (CONFLICTING/DIRTY), needs a rebase before anyone can review it properly |
+| [#471](https://github.com/toniebox-reverse-engineering/teddycloud/pull/471) | Next Version | No reviews | Automated release-prep PR, not a normal review target |
+
+### teddycloud_web (frontend) open PRs — full list
+
+| PR | Title | Review | CI / merge state |
+|---|---|---|---|
+| [#330](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/330) | feat: add optional web UI login with multiple users | **APPROVED** | Clean, green — ready (see above) |
+| [#329](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/329) | feat: download TAF tracks as OGG files | **APPROVED** (after an earlier changes-requested round) | Clean, green — ready pending backend #484 |
+| [#328](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/328) | chore: update dependencies, add translation check | No reviews | Clean, green — low-risk chore, just unreviewed |
+| [#327](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/327) | feature: List view for Tonies | **CHANGES_REQUESTED** (twice) | UNSTABLE — maintainer wants it to reuse the antd design system, not a bespoke list component |
+| [#326](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/326) | Support serving the web UI under a runtime URL prefix | No formal review yet; maintainer's "feels like this could break everything" comment predates the changelog entry that's already in the diff | No CI has run at all (`gh pr checks` reports none — needs a maintainer to approve the workflow run for this external contributor). Fixes issue #245. **Code review: sound.** Single source of truth (`src/utils/basePath.ts`), a regex anchored on `/web` as a path segment so it can't false-match a prefix like `/webapp`, `withBase()` is idempotent, and it's applied consistently at every root-absolute URL call site (~20 files: API config, router basename, i18n, RTNL EventSource, audio/image URLs, plugin iframes, WASM encoder, cert download). Favicon/manifest hrefs are untouched but fine — Vite auto-rewrites those via `base: "./"` at build time. Blocked only on CI being triggered and a review/approval, not on a code issue. |
+| [#317](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/317) | feat: track listened status for library files | No reviews | **Merge conflicts** (CONFLICTING/DIRTY) — maintainer already asked the author to rebase (2026-09-04), still unresolved |
 
 ### Already fixed by a *merged* PR (issue should just be closed)
 
 | Issue | Merged PR | Note |
 |---|---|---|
-| [#419](https://github.com/toniebox-reverse-engineering/teddycloud/issues/419) core.wwwdir/pluginsdir configurable | [#444](https://github.com/toniebox-reverse-engineering/teddycloud/pull/444) MERGED | Done — abandoned attempt #443 was superseded by this one. **Correcting my earlier "quick win" classification — this is done.** |
+| [#419](https://github.com/toniebox-reverse-engineering/teddycloud/issues/419) core.wwwdir/pluginsdir configurable | [#444](https://github.com/toniebox-reverse-engineering/teddycloud/pull/444) MERGED | Done — abandoned attempt #443 was superseded by this one |
 | [#407](https://github.com/toniebox-reverse-engineering/teddycloud/issues/407) Stream started twice | [#479](https://github.com/toniebox-reverse-engineering/teddycloud/pull/479) MERGED | perf: skip encoding for range requests that force a box restart |
 | [#311](https://github.com/toniebox-reverse-engineering/teddycloud/issues/311) Ubuntu AARCH64 build fails | [#461](https://github.com/toniebox-reverse-engineering/teddycloud/pull/461) MERGED | Native arm64 runners |
-| [#131](https://github.com/toniebox-reverse-engineering/teddycloud/issues/131) MQTT event when Tonie removed | [#321](https://github.com/toniebox-reverse-engineering/teddycloud/pull/321) MERGED | Verified in current code: `src/handler_rtnl.c:348` calls `tbs_tag_removed()` → `src/toniebox_state.c:42` fires `mqtt_sendBoxEvent("TagInvalid", "", ...)`. **Correcting my earlier "complex/high" classification — this is implemented** (CC3200/ESP32 scope per the PR title; TB2 coverage unconfirmed). Issue just needs the reporter to confirm and close. |
+| [#131](https://github.com/toniebox-reverse-engineering/teddycloud/issues/131) MQTT event when Tonie removed | [#321](https://github.com/toniebox-reverse-engineering/teddycloud/pull/321) MERGED | Verified in current code: `src/handler_rtnl.c:348` calls `tbs_tag_removed()` → `src/toniebox_state.c:42` fires `mqtt_sendBoxEvent("TagInvalid", "", ...)` (CC3200/ESP32 scope per the PR title; TB2 coverage unconfirmed). Issue just needs the reporter to confirm and close. |
 | [#483](https://github.com/toniebox-reverse-engineering/teddycloud/issues/483) CC3235 → TB2 | direct commit `0b6673f` (no PR, pushed straight to develop) | Fixed by us today |
 
 ### Open PR pending merge — don't start new work, review/merge instead
@@ -32,7 +63,7 @@ issue against GitHub's PR-linking metadata plus manual reading where linking was
 | Issue | Open PR | Note |
 |---|---|---|
 | [#169](https://github.com/toniebox-reverse-engineering/teddycloud/issues/169) `/web` download doesn't split TAF into per-track OGG | [#484](https://github.com/toniebox-reverse-engineering/teddycloud/pull/484) OPEN | PR body says "Closes #169" directly. Companion frontend PR [teddycloud_web#329](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/329) also open. |
-| [#331](https://github.com/toniebox-reverse-engineering/teddycloud/issues/331) Enhance TAF download to OGG w/ chapters | [#484](https://github.com/toniebox-reverse-engineering/teddycloud/pull/484) OPEN | SciLor linked this PR in a comment on #331, but it's **not merged yet** — GitHub didn't auto-link it since the PR's own "Closes" keyword only names #169. **Correcting my earlier claim that this was "already-fixed" — it's an open PR, not merged.** |
+| [#331](https://github.com/toniebox-reverse-engineering/teddycloud/issues/331) Enhance TAF download to OGG w/ chapters | [#484](https://github.com/toniebox-reverse-engineering/teddycloud/pull/484) OPEN | SciLor linked this PR in a comment on #331, but it's **not merged yet** — GitHub didn't auto-link it since the PR's own "Closes" keyword only names #169. |
 | [#85](https://github.com/toniebox-reverse-engineering/teddycloud/issues/85) Real web UI auth | [#482](https://github.com/toniebox-reverse-engineering/teddycloud/pull/482) OPEN | Optional login w/ cookie sessions, exactly what's requested. Companion frontend PR [teddycloud_web#330](https://github.com/toniebox-reverse-engineering/teddycloud_web/pull/330) also open. Author's own note: they no longer personally need this (switched to Authelia+Traefik) but left it open for review. |
 | [#262](https://github.com/toniebox-reverse-engineering/teddycloud/issues/262) TAP times out / box shuts down mid-encode | [#462](https://github.com/toniebox-reverse-engineering/teddycloud/pull/462) OPEN | A commenter on the issue explicitly confirms: "#462 reworks this path... That is the writer side; it does not clear the reader's EOF indicator, so the two changes would be complementary rather than alternatives" — i.e. #462 helps but may not fully close this alone (related to a separate PR #478, already merged, for the EOF/stall issue). |
 
@@ -54,7 +85,7 @@ issue against GitHub's PR-linking metadata plus manual reading where linking was
 
 ### Checked, no related PR found at all
 
-#245 (URL path prefix — the reverse-proxy PRs #292/#328/#329 only fixed a narrower RTNL-activation issue, #291, not the JS asset path problem), #384 (iOS Safari upload — PR #456 fixed a *Firefox* truncation bug, different root cause), #473 (boot loop — only a documented uid workaround exists, no PR fix), #405 (TB2 support — in progress via `teddycloud_web` repo, no teddycloud-side PR yet), #338, #383, #367, #120, #445, #303, #271, #270, #189, #172, #165, #164, #163, #89, #50, #27, #22, and everything in sections 4–7 below not mentioned above.
+#384 (iOS Safari upload — PR #456 fixed a *Firefox* truncation bug, different root cause), #473 (boot loop — only a documented uid workaround exists, no PR fix), #405 (TB2 support — in progress via `teddycloud_web` repo, no teddycloud-side PR yet), #338, #383, #367, #120, #445, #303, #271, #270, #189, #172, #165, #164, #163, #89, #50, #27, #22, and everything in sections 4–7 below not mentioned above (#245 has a PR — see `teddycloud_web` #326 above).
 
 ---
 
@@ -144,7 +175,7 @@ Ranked, best value-for-effort first.
 |---|---|---|---|
 | [310](https://github.com/toniebox-reverse-engineering/teddycloud/issues/310) | Boxine comms deadlock / slow freshnessCheck | **high** | Core reliability issue, still reported unresolved (Dec 2025) |
 | [405](https://github.com/toniebox-reverse-engineering/teddycloud/issues/405) | Toniebox 2 support | high | Actively in progress already (web UI PR merged there, cert extraction still WIP), no teddycloud-side PR |
-| [245](https://github.com/toniebox-reverse-engineering/teddycloud/issues/245) | Support URL path prefix (reverse-proxy deployments) | medium | Checked — existing reverse-proxy PRs (#292/#328/#329) don't cover this; needs build-time/runtime base-path injection into `teddycloud_web` |
+| [245](https://github.com/toniebox-reverse-engineering/teddycloud/issues/245) | Support URL path prefix (reverse-proxy deployments) | medium | **Has an open PR:** `teddycloud_web` #326 — not merge-ready yet (needs changelog entry, maintainer wants more confidence it won't break the default path) |
 | [378](https://github.com/toniebox-reverse-engineering/teddycloud/issues/378) | Expand tonie.json with API data from Tonies account | medium | Prototype exists, but full auth flow + crowdsourcing is a big scope |
 | [267](https://github.com/toniebox-reverse-engineering/teddycloud/issues/267) | Cache TAF header for on-the-fly conversions | medium | Avoids re-encoding; needs persistent header cache |
 | [210](https://github.com/toniebox-reverse-engineering/teddycloud/issues/210) | Freshnesscheck API (mark stale content) | medium | Maintainer's own proposal, scope still undefined |
