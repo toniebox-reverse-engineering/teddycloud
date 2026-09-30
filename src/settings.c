@@ -281,6 +281,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update, only if \"Update content on lower audio id\" is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.autoMarkListenedOnSync", &settings->cloud.autoMarkListenedOnSync, TRUE, "Auto-mark listened on sync", "Automatically mark library content as listened once a Toniebox downloads/plays it from this server", LEVEL_BASIC)
 
     OPTION_TREE_DESC("encode", "TAF encoding", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!", LEVEL_EXPERT)

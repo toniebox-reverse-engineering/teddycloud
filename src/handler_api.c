@@ -25,6 +25,7 @@
 #include "cert.h"
 #include "esp32.h"
 #include "cache.h"
+#include "libraryMeta.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -671,6 +672,27 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         char *filePathAbsolute = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, entry.name);
         pathSafeCanonicalize(filePathAbsolute);
 
+        /* skip content.json sidecar files (<file>.json next to <file>), they are not browsable content.
+         * Only hide them when the sibling still exists - an orphaned .json (sibling deleted, e.g. by
+         * cache eviction that didn't clean up after itself) is intentionally left visible, so it can be
+         * spotted and cleaned up manually. */
+        if (!isDir)
+        {
+            size_t nameLen = osStrlen(entry.name);
+            if (nameLen > 5 && !osStrcasecmp(&entry.name[nameLen - 5], ".json"))
+            {
+                char *siblingPath = strdup(filePathAbsolute);
+                siblingPath[osStrlen(siblingPath) - 5] = '\0';
+                bool_t isSidecar = fsFileExists(siblingPath);
+                osFreeMem(siblingPath);
+                if (isSidecar)
+                {
+                    osFreeMem(filePathAbsolute);
+                    continue;
+                }
+            }
+        }
+
         cJSON *jsonEntry = cJSON_CreateObject();
         cJSON_AddStringToObject(jsonEntry, "name", entry.name);
         cJSON_AddNumberToObject(jsonEntry, "date", convertDateToUnixTime(&entry.modified));
@@ -708,6 +730,8 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
 
+            cJSON_AddBoolToObject(jsonEntry, "listened", library_meta_get_listened(filePathAbsolute));
+
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
         }
         else
@@ -718,6 +742,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 char *filePathAbsoluteSub = NULL;
                 FsDir *subdir = fsOpenDir(filePathAbsolute);
                 FsDirEntry subentry;
+                bool_t subHide = false;
                 if (subdir != NULL)
                 {
                     while (true)
@@ -739,9 +764,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
-                        cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
+                        subHide = contentJson.hide;
                         free_content_json(&contentJson);
                     }
+                    cJSON_AddBoolToObject(jsonEntry, "hide", subHide);
                 }
             }
             else
@@ -756,6 +782,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 item = tonies_byModel(contentJson.tonie_model);
 
                 cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
+                cJSON_AddBoolToObject(jsonEntry, "listened", library_meta_get_listened(filePathAbsolute));
                 if (contentJson._has_cloud_auth)
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
@@ -782,6 +809,65 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
     connection->response.contentLength = osStrlen(jsonString);
 
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+error_t handleApiFileSetListened(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char path[128];
+
+    if (!queryGet(queryString, "path", path, sizeof(path)))
+    {
+        TRACE_ERROR("path missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    pathSafeCanonicalize(path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    pathSafeCanonicalize(pathAbsolute);
+
+    if (!fsFileExists(pathAbsolute))
+    {
+        TRACE_ERROR("File not found: '%s'\r\n", pathAbsolute);
+        osFreeMem(pathAbsolute);
+        return ERROR_NOT_FOUND;
+    }
+
+    char_t post_data[POST_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        osFreeMem(pathAbsolute);
+        return error;
+    }
+
+    char item_data[16];
+    bool_t target_value = false;
+    if (queryGet(post_data, "listened", item_data, sizeof(item_data)))
+    {
+        target_value = !osStrcmp(item_data, "true");
+    }
+
+    if (library_meta_get_listened(pathAbsolute) != target_value)
+    {
+        error = library_meta_set_listened(pathAbsolute, target_value);
+    }
+
+    osFreeMem(pathAbsolute);
+
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    return httpOkResponse(connection);
 }
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
