@@ -48,6 +48,19 @@ reproducible option and is the recommended path on macOS. Linux debug builds com
 with **AddressSanitizer + UBSan** enabled by default — please verify your change is
 clean under them.
 
+## Testing
+
+```bash
+make test      # C unit tests + Python integration tests against a throwaway server
+make test_c    # just the C unit tests (tests/c/)
+```
+
+New pure logic (no running server needed) gets a C test under `tests/c/`; new
+HTTP-level behavior gets a Python test under `tests/py/`, using
+`tests/py/with_server.sh` to start/stop the throwaway server instead of
+duplicating that in the Makefile. See [docs/architecture.md](docs/architecture.md#testing)
+for how these fit together.
+
 ## Vendored / third-party code
 
 TeddyCloud vendors the Oryx Embedded **CycloneTCP / CycloneSSL / CycloneCrypto** stack
