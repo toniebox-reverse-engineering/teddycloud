@@ -64,7 +64,10 @@
       "Bash(ssh-keygen:*)",
       "Bash(ssh-copy-id:*)",
       "Bash(rsync:*-e ssh*)",
-      "Bash(rsync:*--rsh=ssh*)"
+      "Bash(rsync:*--rsh=ssh*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh pr review:*)"
     ]
   }
 }
