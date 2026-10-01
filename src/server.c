@@ -643,43 +643,17 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     }
     if (!strncmp(value, "Bearer ", 7))
     {
+        /* web UI session token, validated later by the web auth handlers */
         const char *token = value + 7;
         size_t tlen = osStrlen(token);
         if (tlen > 0 && tlen < sizeof(connection->private.web_bearer_token))
         {
             osStrcpy(connection->private.web_bearer_token, token);
         }
-        if (strlen(value) != 7 + 2 * JWT_AUTH_TOKEN_LENGTH)
+        else
         {
-            if (tlen == 0)
-            {
-                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
-            }
-            return;
+            TRACE_DEBUG("Authentication: Ignoring bearer token with invalid length %" PRIuSIZE "\r\n", tlen);
         }
-        // TODO: check JWT TOKEN
-        for (int pos = 0; pos < JWT_AUTH_TOKEN_LENGTH; pos++)
-        {
-            char hex_digits[3];
-            char *end_ptr = NULL;
-
-            /* get a hex byte into a buffer for parsing it */
-            osStrncpy(hex_digits, &value[3 + 2 * pos], 2);
-            hex_digits[2] = 0;
-
-            /* will still fail for minus sign and possibly other things, but then the token is just incorrect */
-            connection->private.authentication_token[pos] = (uint8_t)osStrtoul(hex_digits, &end_ptr, 16);
-
-            if (end_ptr != &hex_digits[2])
-            {
-                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
-                return;
-            }
-        }
-        /* if we come across this part, this means the token was most likely correctly *parsed* */
-        connection->request.auth.found = 1;
-        connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
-        connection->status = HTTP_ACCESS_ALLOWED;
     }
 }
 

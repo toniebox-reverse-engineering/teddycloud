@@ -36,7 +36,6 @@
 #include "pcaplog_types.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
-#define JWT_AUTH_TOKEN_LENGTH 32
 
 typedef struct
 {
