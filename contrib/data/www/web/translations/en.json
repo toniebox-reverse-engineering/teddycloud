@@ -10,6 +10,20 @@
         "errorNoOggOpusSupportByApple": "Your browser does not support OGG/Opus (taf) files at the moment. If you are using an Apple device, help us out by submitting a ticket to Apple for a fix!",
         "unknownSource": "Unkown"
     },
+    "auth": {
+        "loginFailed": "Invalid username or password",
+        "loginRateLimited": "Too many login attempts. Try again in a few minutes.",
+        "loginHint": "Sign in to TeddyCloud",
+        "loginSubmit": "Log in",
+        "loginTitle": "Web login",
+        "logout": "Log out",
+        "newPassword": "New password",
+        "password": "Password",
+        "passwordMin": "At least 4 characters",
+        "passwordRequired": "Password is required",
+        "username": "Username",
+        "usernameRequired": "Username is required"
+    },
     "common": {
         "cancel": "Cancel"
     },
@@ -455,6 +469,7 @@
         },
         "hidden": "Hidden",
         "image": "Image",
+        "markAsListened": "Mark as listened",
         "maxSelectedRows": "You can only select up to {{maxSelectedRows}} files",
         "maxSelectedRowsWarning": "Too many files selected!",
         "messages": {
@@ -486,7 +501,9 @@
             "renamingFailed": "Renaming failed",
             "renamingFailedDetails": "Renaming of file \"{{fileSource}}\" to \"{{fileTarget}}\" failed: ",
             "renamingSuccessful": "Renamed file successfully!",
-            "renamingSuccessfulDetails": "Renamed file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!"
+            "renamingSuccessfulDetails": "Renamed file \"{{fileSource}}\" to \"{{fileTarget}}\" successfully!",
+            "toggleListenedFailed": "Could not change listened flag",
+            "toggleListenedFailedDetails": "Could not change listened flag for file \"{{file}}\": "
         },
         "migrateContentToLib": "Migrate TAF to library (by/audioId/)",
         "migrateContentToLibRoot": "Migrate TAF to library (root)",
@@ -528,6 +545,7 @@
             }
         },
         "title": "Filebrowser",
+        "unmarkAsListened": "Mark as not listened",
         "unusedTafsModal": {
             "actions": "Actions",
             "fullPath": "Full path",
@@ -651,6 +669,14 @@
                         "01pluginFeature": "extend TeddyCloud functionality by custom plugins"
                     },
                     "title": "TeddyCloud Plugins"
+                },
+                "15webLogin": {
+                    "items": {
+                        "01optionalLogin": "optional login for the web UI with multiple users (off by default)",
+                        "02rateLimit": "cookie session with rate limiting after repeated failed logins",
+                        "03userLimit": "up to 32 users"
+                    },
+                    "title": "Web UI login"
                 }
             },
             "futureFeatures": {
@@ -1002,7 +1028,7 @@
         "close": "Close",
         "discard": "Discard changes",
         "errorFetchingFieldValue": "Error fetching field value",
-        "errorFetchingFieldValueDetails": "Error fetching field value for \"{{setting}}\"{{overlay}}:",
+        "errorFetchingFieldValueDetails": "Error fetching field value for \"{{setting}}\" {{overlay}}:",
         "errorFetchingSetting": "Error fetching setting!",
         "errorFetchingSettingDetails": "Error fetching setting \"{{setting}}\": ",
         "errorSettingSettingsLevel": "Error setting Settings level",
@@ -1023,6 +1049,28 @@
             "navigationTitle": "GUI Settings",
             "noLocalSettings": "No locally stored values found",
             "title": "GUI Settings & Locally Stored Values"
+        },
+        "webAuth": {
+            "addUser": "Add user",
+            "changePassword": "Change password",
+            "createFirstUser": "Create a user before enabling login protection.",
+            "deleteContent": "Delete user {{username}}?",
+            "deleteLastContent": "Delete last user {{username}}? Login protection will be turned off.",
+            "deleteLastHint": "You can turn login protection back on after creating a user.",
+            "deleteLastTitle": "Delete last user",
+            "deleteTitle": "Delete user",
+            "deleteUser": "Delete",
+            "enabled": "Require login for the web interface",
+            "envOverride": "Login protection is currently disabled by TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "All users have full access to the web interface. Box APIs are not affected.",
+            "loadFailed": "Could not load users",
+            "navigationTitle": "Web login",
+            "passwordChanged": "Password updated",
+            "passwordChangedDetails": "Password for {{username}} was updated.",
+            "changePasswordFor": "Change password for {{username}}",
+            "saveFailed": "Could not save changes",
+            "title": "Web login",
+            "users": "Users"
         },
         "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
         "information": "Information",
@@ -1278,6 +1326,7 @@
             "setupTeddyCloudText": "Congratulations! By reaching this page, you've successfully set up TeddyCloud!",
             "title": "Add your Toniebox to TeddyCloud",
             "UARTHint": {
+                "ackUARTHint": "I have set the correct voltage (3.3 V) and installed the latest required driver.",
                 "description": "Before proceeding, please double-check the following:",
                 "imageAlt1": "Jumper Example 1",
                 "imageAlt2": "Jumper Example 2",
@@ -1479,6 +1528,7 @@
             "certificatesDumpedCAreplacementFlashed": "Certificates dumped and CA replacement flashed",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Set up CH341A programmer connection",
+                "CH341AProgrammerClampConnection": "CH341A Programmer with SOP8 Clamp connected to the IS25LP032D Flash memory",
                 "CH341Sop8remove": "Trim here until it fits properly.",
                 "flashMemoryDumpText1": "Connect the clamp to the IS25LP032D Flash memory. Ensure the red cable on the clamp aligns with the dot on the chip marking pin 1.",
                 "flashMemoryDumpText2": "If the clamp does not hold, it may be colliding with a nearby black block. Trim more plastic if needed. Do not connect the CH341A yet. Double-check cable positions.",
@@ -1556,8 +1606,8 @@
         "confirmDeleteModal": "Confirm delete",
         "connectESP32Modal": {
             "beware": "Beware!",
-            "connectESP32Text1.1": "Please connect the jumper J100 (Boot) and reset the box to put it into the required UARTmode.",
-            "connectESP32Text1.2": "Connect your 3.3V UART to J103:",
+            "connectESP32Text1_1": "Please connect the jumper J100 (Boot) and reset the box to put it into the required UARTmode.",
+            "connectESP32Text1_2": "Connect your 3.3V UART to J103:",
             "connectESP32Text2": "If you`re unsure in which mode the ESP32 is starting, check the following.",
             "downloadMode": "Download mode",
             "downloadModeText": "LED is off, no sound, Serial output:",
@@ -1730,6 +1780,7 @@
                 "flashCAreplacementText1": "Replace the original CA within your flash dump with esptool.",
                 "flashCAreplacementText2": "Reassamble your Toniebox again. If you already set the TeddyCloud hostname, you can skip the DNS step for the ESP32, if not continue with DNS step for the ESP32.",
                 "flashCAreplacementText3": "Your Toniebox should now be able to connect to your TeddyCloud. Do a freshnesscheck and click on \"Check available Boxes\".",
+                "flashESPtoolScreen": "ESPtool Screen",
                 "followLegacyApproach": "Or use the legacy method (no GUI, command line only).",
                 "hint": "There is a direct support of flashing your ESP32 Toniebox with TeddyCloud available!",
                 "installESPTool": "Install recent ESPtool",
@@ -1745,6 +1796,7 @@
             "linkWikiGeneral": "Patching your Toniebox for using with TeddyCloud",
             "linkWikiSpecific": "ESP32 specific setup",
             "navigationTitle": "ESP32",
+            "processing": "Processing...",
             "redirect": "Proceed to HTTPS",
             "title": "ESP32 Box Flashing"
         },
@@ -1833,6 +1885,22 @@
         },
         "alternativeSource": "This Tonie {{originalTonie}} is assigned the content {{assignedContent}}!",
         "alternativeSourceUnknown": "This Tonie {{originalTonie}} is assigned alternative content!",
+        "assignNextEpisode": {
+            "action": "Assign next episode \"{{file}}\"",
+            "failedDetails": "Could not assign \"{{episode}}\": ",
+            "failedMessage": "Assigning next episode failed!",
+            "noneLeft": "No unlistened episodes left in this folder.",
+            "successDetails": "Assigned \"{{episode}}\" as next episode!",
+            "successMessage": "Next episode assigned!"
+        },
+        "assignPrevEpisode": {
+            "action": "Assign previous episode \"{{file}}\"",
+            "failedDetails": "Could not assign \"{{episode}}\": ",
+            "failedMessage": "Assigning previous episode failed!",
+            "noneLeft": "No previous episodes left in this folder.",
+            "successDetails": "Assigned \"{{episode}}\" as previous episode!",
+            "successMessage": "Previous episode assigned!"
+        },
         "cancel": "Cancel",
         "closeAudioPlayer": "Close player",
         "closeAudioPlayerPopover": "Close stops playback!",
@@ -1984,6 +2052,8 @@
             "modelInfoHeading": "Model Info",
             "modelInfoLanguage": "Language",
             "modelInfoModel": "Model",
+            "modelInfoNo": "No",
+            "modelInfoRelease": "Release",
             "modelInfoSeries": "Series",
             "modelInfoTitle": "Title",
             "modelReadOnlyHint": "Original tonie: Model cannot be changed. You can only assign custom audio.",
@@ -2004,6 +2074,7 @@
             "encoding": "Encoding",
             "errorFileProcessing": "Failed to process the audio file: ",
             "filename": "Filename",
+            "loading": "Loading...",
             "loadingWasmEncoder": "Loading WASM encoder...",
             "maxFiles": "You can only add up to {{maxFiles}} files.",
             "navigationTitle": "Audio Encoder",
@@ -2319,7 +2390,10 @@
             "episodes": "Episodes",
             "fontFamily": "Label font",
             "fontFamilyPlaceholder": "Choose a font",
+            "height": "Height",
+            "imageBottom": "Image margin bottom",
             "imageBottomLeft": "Image margin bottom/left",
+            "imageLeft": "Image margin left",
             "imagePosition": "Image position",
             "imageScale": "Image scale",
             "intro": "Search all Tonies and tags - both official and your custom ones - to create your printable Traveltonies sheet.",
@@ -2375,7 +2449,8 @@
             "square": "Square",
             "textFontSize": "Text size",
             "title": "TeddyStudio",
-            "trackTitles": "Track titles (one per line)"
+            "trackTitles": "Track titles (one per line)",
+            "width": "Width"
         },
         "title": "Tonies",
         "tonies": {

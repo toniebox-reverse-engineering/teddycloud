@@ -315,6 +315,15 @@
     ],
     "fileBrowser": {
         "actions": "Akcje",
+        "assignToTonie": {
+            "action": "Przypisz do Tonie",
+            "failedDetails": "Nie udało się przypisać „{{series}}” jako zawartości: ",
+            "failedMessage": "Przypisanie do Tonie nie powiodło się!",
+            "searchPlaceholder": "Szukaj Tonies...",
+            "successDetails": "Plik został pomyślnie przypisany do „{{series}}”!",
+            "successMessage": "Tonie przypisany!",
+            "title": "Przypisz do Tonie"
+        },
         "attention": "Uwaga!",
         "cancel": "Anuluj",
         "confirmDeleteDialog": "Czy na pewno chcesz usunąć {{fileToDelete}}?",
@@ -545,15 +554,6 @@
             "uploadSuccessfulForFile": "Plik \"{{file}}\" przesłany pomyślnie.",
             "uploadText": "Kliknij lub przeciągnij pliki do tego obszaru, aby je przesłać",
             "uploadTimeout": "Przekroczono limit czasu przesyłania po {{ms}}ms"
-        },
-        "assignToTonie": {
-            "action": "Przypisz do Tonie",
-            "failedDetails": "Nie udało się przypisać „{{series}}” jako zawartości: ",
-            "failedMessage": "Przypisanie do Tonie nie powiodło się!",
-            "searchPlaceholder": "Szukaj Tonies...",
-            "successDetails": "Plik został pomyślnie przypisany do „{{series}}”!",
-            "successMessage": "Tonie przypisany!",
-            "title": "Przypisz do Tonie"
         }
     },
     "footer": {
@@ -1278,6 +1278,7 @@
             "setupTeddyCloudText": "Gratulacje! Docierając do tej strony, pomyślnie skonfigurowałeś/aś TeddyCloud!",
             "title": "Dodaj swojego Tonieboxa do TeddyCloud",
             "UARTHint": {
+                "ackUARTHint": "Mam ustawione prawidłowe napięcie (3,3 V) i zainstalowany najnowszy wymagany sterownik.",
                 "description": "Zanim przejdziesz dalej, sprawdź dwukrotnie:",
                 "imageAlt1": "Przykład zworki 1",
                 "imageAlt2": "Przykład zworki 2",
@@ -1479,6 +1480,7 @@
             "certificatesDumpedCAreplacementFlashed": "Certyfikaty wyodrębnione, a zastępczy CA wgrany",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Skonfiguruj połączenie programatora CH341A",
+                "CH341AProgrammerClampConnection": "Programator CH341A z klipsem SOP8 podłączonym do pamięci Flash IS25LP032D",
                 "CH341Sop8remove": "Przytnij tutaj, aż będzie pasować prawidłowo.",
                 "flashMemoryDumpText1": "Podłącz klips do pamięci flash IS25LP032D. Upewnij się, że czerwony przewód na klipsie pokrywa się z kropką oznaczającą pin 1 na układzie.",
                 "flashMemoryDumpText2": "Jeśli klips nie trzyma, może kolidować z pobliskim czarnym elementem. W razie potrzeby przytnij więcej plastiku. Nie podłączaj jeszcze CH341A. Dokładnie sprawdź pozycje przewodów.",
@@ -1556,8 +1558,8 @@
         "confirmDeleteModal": "Potwierdź usunięcie",
         "connectESP32Modal": {
             "beware": "Uwaga!",
-            "connectESP32Text1.1": "Podłącz zworkę J100 (Boot) i zresetuj boxa, aby przełączyć go w wymagany tryb UART.",
-            "connectESP32Text1.2": "Podłącz swój UART 3,3V do J103:",
+            "connectESP32Text1_1": "Podłącz zworkę J100 (Boot) i zresetuj boxa, aby przełączyć go w wymagany tryb UART.",
+            "connectESP32Text1_2": "Podłącz swój UART 3,3V do J103:",
             "connectESP32Text2": "Jeśli nie masz pewności, w jakim trybie uruchamia się ESP32, sprawdź poniższe.",
             "downloadMode": "Tryb pobierania",
             "downloadModeText": "Dioda LED jest wyłączona, brak dźwięku, wyjście szeregowe:",
@@ -1730,6 +1732,7 @@
                 "flashCAreplacementText1": "Zastąp oryginalny CA w swoim zrzucie flasha za pomocą esptool.",
                 "flashCAreplacementText2": "Zmontuj ponownie swojego Tonieboxa. Jeśli już ustawiłeś/aś nazwę hosta TeddyCloud, możesz pominąć krok DNS dla ESP32; jeśli nie, przejdź do kroku DNS dla ESP32.",
                 "flashCAreplacementText3": "Twój Toniebox powinien teraz być w stanie połączyć się z Twoim TeddyCloud. Wykonaj freshnesscheck i kliknij \"Check available Boxes\".",
+                "flashESPtoolScreen": "Ekran ESPtool",
                 "followLegacyApproach": "Lub użyj metody klasycznej (bez GUI, tylko wiersz poleceń).",
                 "hint": "Dostępne jest bezpośrednie wsparcie flashowania Tonieboxa ESP32 z poziomu TeddyCloud!",
                 "installESPTool": "Zainstaluj aktualny ESPtool",
@@ -1745,6 +1748,7 @@
             "linkWikiGeneral": "Patchowanie Tonieboxa do użytku z TeddyCloud",
             "linkWikiSpecific": "Konfiguracja specyficzna dla ESP32",
             "navigationTitle": "ESP32",
+            "processing": "Przetwarzanie...",
             "redirect": "Przejdź do HTTPS",
             "title": "Flashowanie boxa ESP32"
         },
@@ -1833,6 +1837,22 @@
         },
         "alternativeSource": "Do tego Tonie {{originalTonie}} przypisana jest zawartość {{assignedContent}}!",
         "alternativeSourceUnknown": "Do tego Tonie {{originalTonie}} przypisana jest alternatywna zawartość!",
+        "assignNextEpisode": {
+            "action": "Przypisz następny odcinek \"{{file}}\"",
+            "failedDetails": "Nie udało się przypisać \"{{episode}}\": ",
+            "failedMessage": "Nie udało się przypisać następnego odcinka!",
+            "noneLeft": "W tym folderze nie ma już nieodsłuchanych odcinków.",
+            "successDetails": "Przypisano \"{{episode}}\" jako następny odcinek!",
+            "successMessage": "Przypisano następny odcinek!"
+        },
+        "assignPrevEpisode": {
+            "action": "Przypisz poprzedni odcinek \"{{file}}\"",
+            "failedDetails": "Nie udało się przypisać \"{{episode}}\": ",
+            "failedMessage": "Nie udało się przypisać poprzedniego odcinka!",
+            "noneLeft": "W tym folderze nie ma już nieodsłuchanych odcinków.",
+            "successDetails": "Przypisano \"{{episode}}\" jako poprzedni odcinek!",
+            "successMessage": "Przypisano poprzedni odcinek!"
+        },
         "cancel": "Anuluj",
         "closeAudioPlayer": "Zamknij odtwarzacz",
         "closeAudioPlayerPopover": "Zamknięcie zatrzymuje odtwarzanie!",
@@ -1984,6 +2004,8 @@
             "modelInfoHeading": "Informacje o modelu",
             "modelInfoLanguage": "Język",
             "modelInfoModel": "Model",
+            "modelInfoNo": "Nie",
+            "modelInfoRelease": "Wydanie",
             "modelInfoSeries": "Seria",
             "modelInfoTitle": "Tytuł",
             "modelReadOnlyHint": "Oryginalny tonie: model nie może być zmieniony. Możesz przypisać tylko niestandardowe audio.",
@@ -2004,6 +2026,7 @@
             "encoding": "Kodowanie",
             "errorFileProcessing": "Nie udało się przetworzyć pliku audio: ",
             "filename": "Nazwa pliku",
+            "loading": "Wczytywanie...",
             "loadingWasmEncoder": "Wczytywanie kodera WASM...",
             "maxFiles": "Możesz dodać maksymalnie {{maxFiles}} plików.",
             "navigationTitle": "Koder audio",
@@ -2224,14 +2247,14 @@
             "exportToJson": "Eksportuj do JSON",
             "hideSelectedTags": "Ukryj tagi",
             "select": "Wybierz",
+            "selectAll": "Zaznacz wszystko",
             "selectButtonTooltip": "Włącz tryb zaznaczania",
             "selected": "Zaznaczono tagów/Tonies",
             "setLive": "Włącz live",
             "setNoCloud": "Wyłącz chmurę",
             "unselectAll": "Odznacz wszystko",
             "unsetLive": "Wyłącz live",
-            "unsetNoCloud": "Włącz chmurę",
-            "selectAll": "Zaznacz wszystko"
+            "unsetNoCloud": "Włącz chmurę"
         },
         "system-sounds": {
             "navigationTitle": "Dźwięki systemowe",
@@ -2319,7 +2342,10 @@
             "episodes": "Odcinki",
             "fontFamily": "Czcionka etykiety",
             "fontFamilyPlaceholder": "Wybierz czcionkę",
+            "height": "Wysokość",
+            "imageBottom": "Dolny margines obrazu",
             "imageBottomLeft": "Margines obrazu dół/lewo",
+            "imageLeft": "Lewy margines obrazu",
             "imagePosition": "Pozycja obrazu",
             "imageScale": "Skala obrazu",
             "intro": "Przeszukaj wszystkie Tonies i tagi - zarówno oficjalne, jak i Twoje niestandardowe - aby utworzyć drukowalny arkusz Traveltonies.",
@@ -2345,6 +2371,7 @@
             "paperSize": "Rozmiar papieru",
             "placeholder": "Wpisz szukane hasło!",
             "preview": "Podgląd etykiety",
+            "printMarginNotification": "Marginesy wydruku CSS są niezawodnie obsługiwane tylko w Chrome. Aby zapewnić prawidłowy wydruk etykiet, użyj Chrome.",
             "printMode": "Tryb druku",
             "printModeImageAndText": "Obraz + tekst",
             "printModeImageAndTextTooltip": "Wydrukuj obie strony Traveltonie - obraz tagu na jednej stronie oraz tytuł i informacje o odcinku na drugiej",
@@ -2375,7 +2402,7 @@
             "textFontSize": "Rozmiar tekstu",
             "title": "TeddyStudio",
             "trackTitles": "Tytuły ścieżek (jeden na linię)",
-            "printMarginNotification": "Marginesy wydruku CSS są niezawodnie obsługiwane tylko w Chrome. Aby zapewnić prawidłowy wydruk etykiet, użyj Chrome."
+            "width": "Szerokość"
         },
         "title": "Tonies",
         "tonies": {
