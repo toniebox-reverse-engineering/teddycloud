@@ -18,6 +18,9 @@ OPTI_LEVEL    ?= -O2
 TEST_API_HTTP_PORT ?= 18080
 TEST_API_HTTPS_PORT ?= 18443
 TEST_API_HTTPS_API_PORT ?= 18444
+TEST_AUTH_HTTP_PORT ?= 18090
+TEST_AUTH_HTTPS_PORT ?= 18453
+TEST_AUTH_HTTPS_API_PORT ?= 18454
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -823,4 +826,10 @@ test_c:
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
-test: test_c test_api_custom_json_with_server
+test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server
+
+.PHONY: test_auth_pool_reuse_with_server
+test_auth_pool_reuse_with_server: build
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run pooled-connection auth regression test, stop server"
+	$(QUIET)tests/py/with_server.sh $(TEST_AUTH_HTTP_PORT) $(TEST_AUTH_HTTPS_PORT) $(TEST_AUTH_HTTPS_API_PORT) 600 -- \
+		env TEDDYCLOUD_HTTPS_API_PORT=$(TEST_AUTH_HTTPS_API_PORT) tests/py/run_auth_pool_reuse.sh

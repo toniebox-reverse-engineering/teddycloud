@@ -76,7 +76,7 @@ error_t cert_get_rsa_priv(RsaPrivateKey *cert_privkey, uint8_t **priv_data, size
     return NO_ERROR;
 }
 
-error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
+error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv, uint8_t **server_ca_der_out)
 {
     const char *server_ca = settings_get_string("internal.server.ca");
     const char *server_key = settings_get_string("internal.server.ca_key");
@@ -93,6 +93,7 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
     if (pemImportCertificate(server_ca, strlen(server_ca), server_ca_der, &ca_size, NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportCertificate failed\r\n");
+        osFreeMem(server_ca_der);
         return ERROR_FAILURE;
     }
 
@@ -100,6 +101,7 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
     if (x509ParseCertificateEx(server_ca_der, ca_size, cert, true) != NO_ERROR)
     {
         TRACE_ERROR("x509ParseCertificateEx failed\r\n");
+        osFreeMem(server_ca_der);
         return ERROR_FAILURE;
     }
 
@@ -110,11 +112,13 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv)
     if (pemImportRsaPrivateKey(server_key, osStrlen(server_key), NULL, cert_priv) != NO_ERROR)
     {
         TRACE_ERROR("pemImportRsaPrivateKey failed\r\n");
+        osFreeMem(server_ca_der);
         return ERROR_FAILURE;
     }
 
-    /* we must not free this DER because the parsed certificate seems to point there */
-    // osFreeMem(server_ca_der);
+    /* the parsed certificate points into this DER, so it must outlive the certificate:
+       the caller owns it and frees it once done with the certificate */
+    *server_ca_der_out = server_ca_der;
 
     return NO_ERROR;
 }
@@ -124,10 +128,11 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     /* load server CA certificate */
     X509CertInfo issuer_cert;
     RsaPrivateKey issuer_priv;
+    uint8_t *issuer_der = NULL;
 
     if (!self_sign)
     {
-        if (cert_load_ca(&issuer_cert, &issuer_priv) != NO_ERROR)
+        if (cert_load_ca(&issuer_cert, &issuer_priv, &issuer_der) != NO_ERROR)
         {
             TRACE_ERROR("cert_load_ca failed\r\n");
             return ERROR_FAILURE;
@@ -324,6 +329,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
     if (!self_sign)
     {
         rsaFreePrivateKey(&issuer_priv);
+        osFreeMem(issuer_der);
     }
 
     return NO_ERROR;

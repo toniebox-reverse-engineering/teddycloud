@@ -293,6 +293,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
     size_t openRequests = ++openRequestsLast;
     error_t error = NO_ERROR;
     connection->private.api_access_only = is_api_only;
+    connection->private.authenticated = false;
 
     stats_update("connections", 1);
 
