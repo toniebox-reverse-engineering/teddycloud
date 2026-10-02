@@ -575,15 +575,11 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
 
         if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTION") && connection->serverContext->settings.allowOrigin != NULL && osStrlen(connection->serverContext->settings.allowOrigin) > 0)
         {
-            return handleCorsOptions(
-                connection,
-                uri,
-                connection->request.queryString,
-                client_ctx
-            );
+            error = handleCorsOptions(connection, uri,connection->request.queryString, client_ctx);
+            break;
         }
 
-        if (!connection->private.api_access_only && web_auth_requires_login() && osStrcasecmp(connection->request.method, "OPTION") != 0 && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
+        if (!connection->private.api_access_only && web_auth_requires_login() && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
         {
             error = web_auth_unauthorized(connection);
             break;
