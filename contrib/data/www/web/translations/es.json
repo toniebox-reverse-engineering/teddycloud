@@ -10,6 +10,20 @@
         "errorNoOggOpusSupportByApple": "Tu navegador no soporta archivos OGG/Opus (taf) en este momento. Si estás utilizando un dispositivo Apple, ¡ayúdanos enviando un ticket a Apple para solicitar una solución!",
         "unknownSource": "Desconocido"
     },
+    "auth": {
+        "loginFailed": "Usuario o contraseña no válidos",
+        "loginRateLimited": "Demasiados intentos de inicio de sesión. Inténtalo de nuevo en unos minutos.",
+        "loginHint": "Inicia sesión en TeddyCloud",
+        "loginSubmit": "Iniciar sesión",
+        "loginTitle": "Inicio de sesión web",
+        "logout": "Cerrar sesión",
+        "newPassword": "Nueva contraseña",
+        "password": "Contraseña",
+        "passwordMin": "Al menos 4 caracteres",
+        "passwordRequired": "La contraseña es obligatoria",
+        "username": "Usuario",
+        "usernameRequired": "El usuario es obligatorio"
+    },
     "common": {
         "cancel": "Cancelar"
     },
@@ -255,7 +269,7 @@
         "translations": {
             "allTranslationStrings": "Todas las cadenas de traducción",
             "extraKeys": "Claves adicionales",
-            "hint": "Si ves alguna mala traducción, por favor vuelve a contactarnos por Telegram. El francés y el español están actualmente completamente traducidos por ChatGPT.",
+            "hint": "Si encuentras alguna traducción incorrecta, ponte en contacto con nosotros en Telegram. Solo el inglés, el alemán, el francés y el español se mantienen activamente; actualmente, el francés y el español están traducidos completamente mediante IA. Los demás idiomas adicionales no se mantienen activamente, así que no dudes en contribuir con las traducciones que falten. También puedes añadir más idiomas traduciendo un archivo de idioma existente, guardándolo como languagecode.json en la carpeta public/translations y reiniciando el servidor.",
             "key": "Clave",
             "language": "Idioma",
             "missing": "FALTANTE",
@@ -315,6 +329,15 @@
     ],
     "fileBrowser": {
         "actions": "Acciones",
+        "assignToTonie": {
+            "action": "Asignar a Tonie",
+            "failedDetails": "No se pudo asignar a \"{{series}}\": ",
+            "failedMessage": "¡Error al asignar!",
+            "searchPlaceholder": "Buscar Tonies...",
+            "successDetails": "¡Archivo asignado a \"{{series}}\" correctamente!",
+            "successMessage": "¡Tonie asignado!",
+            "title": "Asignar a Tonie"
+        },
         "attention": "¡Atención!",
         "cancel": "Cancelar",
         "confirmDeleteDialog": "¿Estás seguro de que quieres eliminar {{fileToDelete}}?",
@@ -446,6 +469,7 @@
         },
         "hidden": "Oculto",
         "image": "Imagen",
+        "markAsListened": "Marcar como escuchado",
         "maxSelectedRows": "Solo puedes seleccionar hasta {{maxSelectedRows}} archivos",
         "maxSelectedRowsWarning": "¡Demasiados archivos seleccionados!",
         "messages": {
@@ -477,7 +501,9 @@
             "renamingFailed": "Error al renombrar",
             "renamingFailedDetails": "Error al renombrar el archivo \"{{fileSource}}\" a \"{{fileTarget}}\": ",
             "renamingSuccessful": "¡Archivo renombrado con éxito!",
-            "renamingSuccessfulDetails": "Archivo \"{{fileSource}}\" renombrado a \"{{fileTarget}}\" con éxito!"
+            "renamingSuccessfulDetails": "Archivo \"{{fileSource}}\" renombrado a \"{{fileTarget}}\" con éxito!",
+            "toggleListenedFailed": "No se pudo cambiar el estado de escuchado",
+            "toggleListenedFailedDetails": "No se pudo cambiar el estado de escuchado del archivo \"{{file}}\": "
         },
         "migrateContentToLib": "Migrar TAF a la biblioteca (por/audioId/)",
         "migrateContentToLibRoot": "Migrar TAF a la biblioteca (raíz)",
@@ -519,6 +545,7 @@
             }
         },
         "title": "Explorador de archivos",
+        "unmarkAsListened": "Marcar como no escuchado",
         "unusedTafsModal": {
             "actions": "Acciones",
             "fullPath": "Ruta completa",
@@ -642,6 +669,14 @@
                         "01pluginFeature": "Extiende la funcionalidad de TeddyCloud mediante complementos personalizados"
                     },
                     "title": "Complementos de TeddyCloud"
+                },
+                "15webLogin": {
+                    "items": {
+                        "01optionalLogin": "inicio de sesión opcional para la interfaz web con varios usuarios (desactivado por defecto)",
+                        "02rateLimit": "sesión con cookie y bloqueo tras varios intentos fallidos",
+                        "03userLimit": "hasta 32 usuarios"
+                    },
+                    "title": "Inicio de sesión de la interfaz web"
                 }
             },
             "futureFeatures": {
@@ -699,11 +734,7 @@
         "invalidCharactersDetected": "Tu entrada contiene caracteres no válidos, como {{invalidChar}}"
     },
     "language": {
-        "change": "Cambiar idioma",
-        "english": "EN",
-        "french": "FR",
-        "german": "DE",
-        "spanish": "ES"
+        "change": "Cambiar idioma"
     },
     "languageUtil": {
         "af-af": "Afrikáans (Sudáfrica)",
@@ -1019,6 +1050,28 @@
             "noLocalSettings": "No se encontraron valores locales",
             "title": "Configuración de GUI y valores almacenados localmente"
         },
+        "webAuth": {
+            "addUser": "Añadir usuario",
+            "changePassword": "Cambiar contraseña",
+            "createFirstUser": "Crea un usuario antes de activar el inicio de sesión.",
+            "deleteContent": "¿Eliminar el usuario {{username}}?",
+            "deleteLastContent": "¿Eliminar el último usuario {{username}}? La protección de inicio de sesión se desactivará.",
+            "deleteLastHint": "Puedes volver a activar la protección después de crear un usuario.",
+            "deleteLastTitle": "Eliminar el último usuario",
+            "deleteTitle": "Eliminar usuario",
+            "deleteUser": "Eliminar",
+            "enabled": "Exigir inicio de sesión en la interfaz web",
+            "envOverride": "La protección de inicio de sesión está desactivada por TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Todos los usuarios tienen acceso completo a la interfaz web. Las APIs de las cajas no se ven afectadas.",
+            "loadFailed": "No se pudieron cargar los usuarios",
+            "navigationTitle": "Inicio de sesión web",
+            "passwordChanged": "Contraseña actualizada",
+            "passwordChangedDetails": "La contraseña de {{username}} se ha actualizado.",
+            "changePasswordFor": "Cambiar la contraseña de {{username}}",
+            "saveFailed": "No se pudieron guardar los cambios",
+            "title": "Inicio de sesión web",
+            "users": "Usuarios"
+        },
         "hint": "Esta es la configuración predeterminada. Algunas de las configuraciones pueden ser reemplazadas por cada una de tus Tonieboxes. Para cambiar estas configuraciones ve a ",
         "information": "Información",
         "keepScrolling": "Sigue desplazándote para ver más opciones.",
@@ -1273,6 +1326,7 @@
             "setupTeddyCloudText": "¡Felicidades! Al llegar a esta página, ¡has configurado TeddyCloud con éxito!",
             "title": "Añade tu Toniebox a TeddyCloud",
             "UARTHint": {
+                "ackUARTHint": "He configurado el voltaje correcto (3,3 V) e instalado el controlador más reciente necesario.",
                 "description": "Antes de continuar, por favor revisa lo siguiente:",
                 "imageAlt1": "Ejemplo de jumper 1",
                 "imageAlt2": "Ejemplo de jumper 2",
@@ -1474,6 +1528,7 @@
             "certificatesDumpedCAreplacementFlashed": "Certificados extraídos y CA de reemplazo flasheado",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Configurar conexión del programador CH341A",
+                "CH341AProgrammerClampConnection": "Programador CH341A con pinza SOP8 conectado a la memoria flash IS25LP032D",
                 "CH341Sop8remove": "Recorta aquí hasta que encaje correctamente.",
                 "flashMemoryDumpText1": "Conecta la pinza a la memoria flash IS25LP032D. Asegúrate de que el cable rojo en la pinza se alinee con el punto en el chip que marca el pin 1.",
                 "flashMemoryDumpText2": "Si la pinza no se sostiene, puede estar chocando con un bloque negro cercano. Recorta más plástico si es necesario. No conectes aún el CH341A. Revisa nuevamente las posiciones de los cables.",
@@ -1551,8 +1606,8 @@
         "confirmDeleteModal": "Confirmar eliminación",
         "connectESP32Modal": {
             "beware": "¡Cuidado!",
-            "connectESP32Text1.1": "Por favor, conecta el jumper J100 (Boot) y reinicia la caja para ponerla en el modo UART requerido.",
-            "connectESP32Text1.2": "Conecta tu UART de 3.3V a J103:",
+            "connectESP32Text1_1": "Por favor, conecta el jumper J100 (Boot) y reinicia la caja para ponerla en el modo UART requerido.",
+            "connectESP32Text1_2": "Conecta tu UART de 3.3V a J103:",
             "connectESP32Text2": "Si no estás seguro de en qué modo está iniciando el ESP32, verifica lo siguiente.",
             "downloadMode": "Modo de descarga",
             "downloadModeText": "LED apagado, sin sonido, Salida serial:",
@@ -1596,7 +1651,7 @@
             "attention": "Atención",
             "baudRate": "Velocidad de transmisión: ",
             "baudRateInfo": "Si tienes problemas para leer o escribir en la memoria flash, prueba a cambiar la velocidad de transmisión. El valor predeterminado es 921600.",
-            "browserNotSupported": "La funcionalidad de flasheo integrado de la caja ESP32 solo se puede utilizar con navegadores que admiten la API Web Serial. Desafortunadamente, tu navegador actual no admite esta función. Por favor, utiliza un navegador que soporte la API Web Serial, como Chrome o Edge.",
+            "browserNotSupported": "La funcionalidad de flasheo integrado de la caja ESP32 solo se puede utilizar con navegadores que admiten la API Web Serial. Desafortunadamente, tu navegador actual no admite esta función. Por favor, utiliza un navegador que soporte la API Web Serial, como Chrome o Edge o Firefox (> v151).",
             "esp32flasher": {
                 "ackBackUpWithOtherTool": "He creado una copia de seguridad con otra herramienta o soy consciente de que continúo sin una copia de seguridad adicional bajo mi propia responsabilidad.",
                 "ackLatestFirmware": "Confirmo que la caja se conectó a la nube original, recibió el firmware más reciente y pudo reproducir un Tonie correctamente.",
@@ -1712,7 +1767,7 @@
                 "writingFinished": "Escritura finalizada",
                 "writingFlash": "Escribiendo flash de {{size}} MiB..."
             },
-            "hint": "Esta sección solo está disponible cuando se utiliza HTTPS y un navegador que admite la API Web Serial, como Chrome o Edge. Si deseas flashear tu Toniebox ESP32, haz clic en \"Proceder a HTTPS\" y serás redirigido automáticamente a la versión HTTPS. Tu navegador puede advertir que la conexión no es segura. Esto está bien; confírmalo y procede a abrir la página de todos modos. Es posible que debas mostrar más detalles en la advertencia.",
+            "hint": "Esta sección solo está disponible cuando se utiliza HTTPS y un navegador que admite la API Web Serial, como Chrome o Edge o Firefox (> v151). Si deseas flashear tu Toniebox ESP32, haz clic en \"Proceder a HTTPS\" y serás redirigido automáticamente a la versión HTTPS. Tu navegador puede advertir que la conexión no es segura. Esto está bien; confírmalo y procede a abrir la página de todos modos. Es posible que debas mostrar más detalles en la advertencia.",
             "hintLegacyApproach": "Si prefieres no usar un navegador que soporte WebSerial, aún puedes usar el método legado (sin GUI, solo línea de comandos).",
             "httpsSettings": "Configuración de HTTPS",
             "legacy": {
@@ -1725,6 +1780,7 @@
                 "flashCAreplacementText1": "Reemplaza la CA original dentro de tu volcado flash con esptool.",
                 "flashCAreplacementText2": "Vuelve a ensamblar tu Toniebox. Si ya configuraste el nombre de host de TeddyCloud, puedes omitir el paso de DNS para el ESP32, si no, continúa con el paso de DNS para el ESP32.",
                 "flashCAreplacementText3": "Tu Toniebox ahora debería poder conectarse a tu TeddyCloud. Haz una verificación de frescura y haz clic en \"Verificar cajas disponibles\".",
+                "flashESPtoolScreen": "Pantalla de ESPtool",
                 "followLegacyApproach": "O utiliza el método legado (sin GUI, solo línea de comandos).",
                 "hint": "¡Hay soporte directo para flashear tu Toniebox ESP32 con TeddyCloud disponible!",
                 "installESPTool": "Instalar la herramienta ESP reciente",
@@ -1740,6 +1796,7 @@
             "linkWikiGeneral": "Parchear tu Toniebox para usar con TeddyCloud",
             "linkWikiSpecific": "Configuración específica para ESP32",
             "navigationTitle": "ESP32",
+            "processing": "Procesando...",
             "redirect": "Proceder a HTTPS",
             "title": "Flasheo de la caja ESP32"
         },
@@ -1828,6 +1885,22 @@
         },
         "alternativeSource": "Este Tonie {{originalTonie}} tiene asignado el contenido {{assignedContent}}!",
         "alternativeSourceUnknown": "¡Este Tonie {{originalTonie}} tiene asignado contenido alternativo!",
+        "assignNextEpisode": {
+            "action": "Asignar el siguiente episodio \"{{file}}\"",
+            "failedDetails": "No se pudo asignar \"{{episode}}\": ",
+            "failedMessage": "¡Error al asignar el siguiente episodio!",
+            "noneLeft": "No quedan episodios sin escuchar en esta carpeta.",
+            "successDetails": "¡\"{{episode}}\" se asignó como siguiente episodio!",
+            "successMessage": "¡Siguiente episodio asignado!"
+        },
+        "assignPrevEpisode": {
+            "action": "Asignar el episodio anterior \"{{file}}\"",
+            "failedDetails": "No se pudo asignar \"{{episode}}\": ",
+            "failedMessage": "¡Error al asignar el episodio anterior!",
+            "noneLeft": "No hay episodios anteriores disponibles en esta carpeta.",
+            "successDetails": "¡\"{{episode}}\" se asignó como episodio anterior!",
+            "successMessage": "¡Episodio anterior asignado!"
+        },
         "cancel": "Cancelar",
         "closeAudioPlayer": "Cerrar reproductor",
         "closeAudioPlayerPopover": "¡Cerrar detiene la reproducción!",
@@ -1979,6 +2052,8 @@
             "modelInfoHeading": "Info del modelo",
             "modelInfoLanguage": "Idioma",
             "modelInfoModel": "Modelo",
+            "modelInfoNo": "No",
+            "modelInfoRelease": "Lanzamiento",
             "modelInfoSeries": "Serie",
             "modelInfoTitle": "Título",
             "modelReadOnlyHint": "Tonie original: el modelo no se puede cambiar. Solo puedes asignar audio personalizado.",
@@ -1999,6 +2074,7 @@
             "encoding": "Codificación",
             "errorFileProcessing": "No se pudo procesar el archivo de audio: ",
             "filename": "Nombre del archivo",
+            "loading": "Cargando...",
             "loadingWasmEncoder": "Cargando el codificador WASM...",
             "maxFiles": "Solo puedes agregar hasta {{maxFiles}} archivos.",
             "navigationTitle": "Codificador de audio",
@@ -2219,6 +2295,7 @@
             "exportToJson": "Exportar a JSON",
             "hideSelectedTags": "Ocultar tags",
             "select": "Seleccionar",
+            "selectAll": "Seleccionar todo",
             "selectButtonTooltip": "Activar modo de selección",
             "selected": "Tags/Tonies seleccionados",
             "setLive": "Activar live",
@@ -2313,7 +2390,10 @@
             "episodes": "Episodios",
             "fontFamily": "Fuente de etiqueta",
             "fontFamilyPlaceholder": "Elegir una fuente",
+            "height": "Altura",
+            "imageBottom": "Margen inferior de la imagen",
             "imageBottomLeft": "Margen inferior/izquierdo de la imagen",
+            "imageLeft": "Margen izquierdo de la imagen",
             "imagePosition": "Posición de la imagen",
             "imageScale": "Escala de imagen",
             "intro": "Busca todos los Tonies y etiquetas - tanto los oficiales como los personalizados - para crear tu hoja imprimible de Traveltonies (moneda).",
@@ -2339,6 +2419,7 @@
             "paperSize": "Tamaño del papel",
             "placeholder": "¡Introduce un término de búsqueda!",
             "preview": "Vista previa etiqueta",
+            "printMarginNotification": "Los márgenes de impresión CSS solo son compatibles de forma fiable con Chrome. Utiliza Chrome para garantizar una impresión correcta de las etiquetas.",
             "printMode": "Modo",
             "printModeImageAndText": "Imagen + Texto",
             "printModeImageAndTextTooltip": "Imprime ambos lados de tu moneda Traveltonie: imagen por un lado, título e información de episodio por el otro",
@@ -2368,7 +2449,8 @@
             "square": "Cuadrada",
             "textFontSize": "Tamaño de texto",
             "title": "TeddyStudio",
-            "trackTitles": "Títulos (uno por línea)"
+            "trackTitles": "Títulos (uno por línea)",
+            "width": "Ancho"
         },
         "title": "Tonies",
         "tonies": {

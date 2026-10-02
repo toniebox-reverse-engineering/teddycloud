@@ -17,6 +17,7 @@
 #include "toniefile.h"
 #include "toniesJson.h"
 #include "tonie_audio_playlist.h"
+#include "libraryMeta.h"
 #include "cJSON.h"
 
 #include <byteswap.h>
@@ -656,20 +657,33 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         stream_ctx->ctx = &ffmpeg_ctx;
         stream_ctx->taskParams.priority = 0;
         stream_ctx->taskParams.stackSize = 10 * 1024;
-        stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, &stream_ctx->taskParams);
 
-        while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
+        // The answer sends the box back to offset 0, so anything encoded for it is discarded
+        bool force_restart = client_ctx->settings->encode.ffmpeg_stream_restart &&
+                             connection->request.Range.start != 0 &&
+                             fsFileExists(tonieInfo->json._streamFile);
+        if (force_restart)
         {
-            osDelayTask(100);
+            TRACE_INFO("Range request on stream, letting box restart from the beginning\r\n");
+            stream_ctx->quit = true;
+        }
+        else
+        {
+            stream_ctx->taskId = osCreateTask(streamFileRel, &ffmpeg_stream_task, stream_ctx, &stream_ctx->taskParams);
+
+            while (!stream_ctx->active && stream_ctx->error == NO_ERROR)
+            {
+                osDelayTask(100);
+            }
         }
         if (stream_ctx->error == NO_ERROR)
         {
-            if (client_ctx->settings->encode.ffmpeg_sweep_startup_buffer)
+            if (!force_restart && client_ctx->settings->encode.ffmpeg_sweep_startup_buffer)
             {
                 osDelayTask(client_ctx->settings->encode.ffmpeg_sweep_delay_ms);
             }
 
-            uint32_t delay = client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
+            uint32_t delay = force_restart ? 0 : client_ctx->settings->encode.ffmpeg_stream_buffer_ms;
             TRACE_INFO("Serve streaming content from %s, delay %" PRIu32 "ms\r\n", tonieInfo->json.source, delay);
             ffmpeg_ctx.sweep = false;
 
@@ -738,6 +752,17 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
+
+        if (client_ctx->settings->cloud.autoMarkListenedOnSync && tonieInfo->json._source_type == CT_SOURCE_TAF)
+        {
+            /* Download-time heuristic: a future iteration could use the RTNL-derived
+             * "Playback ON/OFF" MQTT events (toniebox_state.c) for a real playback-based signal.
+             * This mutates the library file's own listened flag, not tonieInfo->json (the tag's). */
+            if (!library_meta_get_listened(tonieInfo->contentPath))
+            {
+                library_meta_set_listened(tonieInfo->contentPath, true);
+            }
+        }
 
         if (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE)
         {

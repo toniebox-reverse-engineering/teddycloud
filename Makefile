@@ -18,6 +18,9 @@ OPTI_LEVEL    ?= -O2
 TEST_API_HTTP_PORT ?= 18080
 TEST_API_HTTPS_PORT ?= 18443
 TEST_API_HTTPS_API_PORT ?= 18444
+TEST_AUTH_HTTP_PORT ?= 18090
+TEST_AUTH_HTTPS_PORT ?= 18453
+TEST_AUTH_HTTPS_API_PORT ?= 18454
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -86,27 +89,19 @@ endif
 endif
 endif
 
-ifeq ($(build_os_id),"ubuntu")
-ifeq ($(build_arch),"aarch64")
-# Workaround AddressSanitizer: CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == ((address_range.Init(TotalSpaceSize, PrimaryAllocatorName, kSpaceBeg)))" (0x500000000000, 0xfffffffffffffff4) (tid=8)
-# LLM: Ubuntu's Linux kernel version 6.5.0-25 increased the number of random bits used for ASLR from 28 to 32 on 64-bit systems7.
-# The AddressSanitizer library hasn't been updated to accommodate this change in the ASLR configuration7.
-# This mismatch causes a CHECK failure in the sanitizer_allocator_primary64.h file, specifically at line 131.
-# But this doesn't work!
-CFLAGS_VERSION+=-DSANITIZER_CAN_USE_ALLOCATOR64=0
-endif
-endif
-
-ifeq ($(build_os_id),"debian")
-ifeq ($(build_arch),"aarch64")
-# Workaround AddressSanitizer: CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == ((address_range.Init(TotalSpaceSize, PrimaryAllocatorName, kSpaceBeg)))" (0x500000000000, 0xfffffffffffffff4) (tid=8)
-# LLM: Ubuntu's Linux kernel version 6.5.0-25 increased the number of random bits used for ASLR from 28 to 32 on 64-bit systems7.
-# The AddressSanitizer library hasn't been updated to accommodate this change in the ASLR configuration7.
-# This mismatch causes a CHECK failure in the sanitizer_allocator_primary64.h file, specifically at line 131.
-# But this doesn't work!
-CFLAGS_VERSION+=-DSANITIZER_CAN_USE_ALLOCATOR64=0
-endif
-endif
+# NOTE (issue #311): AddressSanitizer on aarch64 aborts at startup with
+#   CHECK failed: sanitizer_allocator_primary64.h:131 "((kSpaceBeg)) == (...)" (0x500000000000, 0xfffffffffffffff4)
+# when libasan cannot mmap its fixed 64-bit allocator region. TWO triggers cause it:
+#   (1) QEMU-user emulation / small-VA kernels, whose constrained address space cannot
+#       hold the mapping -- this is why the CI cross-built-under-qemu failed; and
+#   (2) high-entropy ASLR (vm.mmap_rnd_bits=32 on recent kernels) colliding with the
+#       allocator base -- this also happens on NATIVE arm64 hardware, probabilistically.
+# Passing -DSANITIZER_CAN_USE_ALLOCATOR64=0 in CFLAGS here has NO effect: that define
+# only matters when libasan itself is compiled, not the application.
+# Fixes: build/test aarch64 on NATIVE arm64 runners (kills trigger 1) and lower ASLR to
+# vm.mmap_rnd_bits=28 in CI (kills trigger 2) -- see publish_docker_matrix_base.yml.
+# libasan from LLVM 17+ (GCC 14+) moved its allocator base 0x600000000000 -> 0x500000000000
+# to tolerate 32-bit ASLR, so a current base image needs no extra workaround; GCC <=13 does.
 
 build_version:=vX.X.X
 build_gitTagPrefix:=$(firstword $(subst _, ,$(build_gitTag)))
@@ -813,41 +808,28 @@ dev-sandbox-restart: dev-sandbox-down
 .PHONY: test_api_custom_json
 test_api_custom_json:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Run custom JSON API tests against running server"
-	$(QUIET)TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 tests/test_tonies_custom_json_api.py
+	$(QUIET)TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 tests/py/test_tonies_custom_json_api.py
 
 .PHONY: test_api_custom_json_with_server
 test_api_custom_json_with_server: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run custom JSON API tests, stop server"
-	$(QUIET)python3 -c 'import socket,sys; ports=[$(TEST_API_HTTP_PORT),$(TEST_API_HTTPS_PORT),$(TEST_API_HTTPS_API_PORT)]; used=[]; [used.append(p) for p in ports if (lambda s: (s.settimeout(0.2), s.connect_ex(("127.0.0.1", p)), s.close()))(socket.socket(socket.AF_INET, socket.SOCK_STREAM))[1] == 0]; sys.exit(1 if used else 0)' || { \
-		$(ECHO) "[ ${RED}ERR${NC}  ] One or more test ports are already in use: $(TEST_API_HTTP_PORT), $(TEST_API_HTTPS_PORT), $(TEST_API_HTTPS_API_PORT)"; \
-		$(ECHO) "[ ${RED}ERR${NC}  ] Please free them manually first. Example:"; \
-		$(ECHO) "             ps -ef | awk '/teddycloud/ && !/awk/ {print}'"; \
-		$(ECHO) "             kill <PID>"; \
-		exit 1; \
-	}
-	$(QUIET)tmp_log=/tmp/teddycloud_test_api_custom_json.log; \
-	srv_pid_file=/tmp/teddycloud_test_api_custom_json.pid; \
-	./bin/teddycloud --config-set "core.server.http_port=$(TEST_API_HTTP_PORT),core.server.https_web_port=$(TEST_API_HTTPS_PORT),core.server.https_api_port=$(TEST_API_HTTPS_API_PORT)" > "$$tmp_log" 2>&1 & \
-	srv_pid=$$!; \
-	echo $$srv_pid > "$$srv_pid_file"; \
-	trap 'kill $$srv_pid >/dev/null 2>&1 || true; rm -f "$$srv_pid_file"' EXIT INT TERM; \
-	ready=0; \
-	for i in $$(seq 1 60); do \
-		if ! kill -0 $$srv_pid >/dev/null 2>&1; then \
-			$(ECHO) "[ ${RED}ERR${NC}  ] Test server exited during startup. Log:"; \
-			sed -n '1,140p' "$$tmp_log"; \
-			exit 1; \
-		fi; \
-		http_code=$$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$(TEST_API_HTTP_PORT)/web/" || true); \
-		if [ "$$http_code" = "200" ]; then \
-			ready=1; \
-			break; \
-		fi; \
-		sleep 0.2; \
-	done; \
-	if [ "$$ready" != "1" ]; then \
-		$(ECHO) "[ ${RED}ERR${NC}  ] Test server did not become ready on port $(TEST_API_HTTP_PORT). Log:"; \
-		sed -n '1,140p' "$$tmp_log"; \
-		exit 1; \
-	fi; \
-	TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/test_tonies_custom_json_api.py
+	$(QUIET)tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
+		env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_tonies_custom_json_api.py
+
+TEST_C_SRC := $(wildcard tests/c/*.c)
+
+.PHONY: test_c
+test_c:
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
+	$(QUIET)mkdir -p $(BIN_DIR)
+	$(QUIET)$(CC) -I include -I cyclone/common -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c
+	$(QUIET)$(BIN_DIR)/test_c
+
+.PHONY: test
+test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server
+
+.PHONY: test_auth_pool_reuse_with_server
+test_auth_pool_reuse_with_server: build
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run pooled-connection auth regression test, stop server"
+	$(QUIET)tests/py/with_server.sh $(TEST_AUTH_HTTP_PORT) $(TEST_AUTH_HTTPS_PORT) $(TEST_AUTH_HTTPS_API_PORT) 600 -- \
+		env TEDDYCLOUD_HTTPS_API_PORT=$(TEST_AUTH_HTTPS_API_PORT) tests/py/run_auth_pool_reuse.sh

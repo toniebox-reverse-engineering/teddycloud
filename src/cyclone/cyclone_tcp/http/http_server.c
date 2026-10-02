@@ -469,6 +469,7 @@ void httpConnectionTask(void *param)
             osMemset(&connection->request, 0, sizeof(HttpRequest));
             // Clear response header
             osMemset(&connection->response, 0, sizeof(HttpResponse));
+            osMemset(connection->private.web_bearer_token, 0, sizeof(connection->private.web_bearer_token));
 
             // Read the HTTP request header and parse its contents
             error = httpReadRequestHeader(connection);
@@ -1196,6 +1197,8 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
          error = httpCloseStream(connection); // Test connection??? won't work TODO: exit after some seconds
          if (error)
             break;
+         // Clear the sticky stdio EOF indicator so the next read sees appended blocks
+         fsSeekFile(file, 0, FS_SEEK_CUR);
          continue;
       }
       if (error)
