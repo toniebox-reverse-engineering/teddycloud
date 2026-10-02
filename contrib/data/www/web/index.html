@@ -2,9 +2,10 @@
 <html lang="en">
     <head>
         <script>
-            // Runtime URL prefix support (keep in sync with src/utils/basePath.ts): the app may be
-            // served under an unknown prefix (e.g. /api/hassio_ingress/<token>/web/...). Vite emits
-            // relative asset URLs, so inject a matching <base href> before anything else loads.
+            // Runtime URL prefix support: the app may be served under an unknown prefix (e.g.
+            // /api/hassio_ingress/<token>/web/...). Vite emits relative asset URLs, so inject a
+            // matching <base href> before anything else loads. src/utils/basePath.ts reads the
+            // prefix back from this element.
             (function () {
                 var m = window.location.pathname.match(/^(.*?)\/web(?=[\/?#]|$)/);
                 var base = document.createElement("base");
@@ -68,7 +69,7 @@
                 }
             })();
         </script>
-      <script type="module" crossorigin src="./assets/index-DG8Ez11R.js"></script>
+      <script type="module" crossorigin src="./assets/index-CiVgNKss.js"></script>
       <link rel="stylesheet" crossorigin href="./assets/index-BnloExRj.css">
     </head>
     <body>
