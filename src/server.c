@@ -102,6 +102,8 @@ typedef struct
 
 error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 
+error_t handleCorsOptions(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
+
 /* const for now. later maybe dynamic? */
 request_type_t request_paths[] = {
     /*binary handler (rtnl)*/
@@ -276,6 +278,48 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
 
     error_t err = httpSendResponseUnsafe(connection, uri, entry->file_path);
     return err;
+}
+
+error_t handleCorsOptions(
+    HttpConnection *connection,
+    const char_t *uri,
+    const char_t *queryString,
+    client_ctx_t *client_ctx)
+{
+    char line[256];
+    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+
+    osSprintf(
+        line,
+        "HTTP/%d.%d 204 No Content\r\n",
+        MSB(connection->request.version),
+        LSB(connection->request.version)
+    );
+
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+    {
+        osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
+        httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    }
+
+    osSprintf(line, "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSprintf(line, "Access-Control-Allow-Headers: Content-Type, Authorization\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSprintf(line, "Access-Control-Max-Age: 86400\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSprintf(line, "Content-Length: 0\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSprintf(line, "\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    return NO_ERROR;
 }
 
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
@@ -529,7 +573,17 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
-        if (!connection->private.api_access_only && web_auth_requires_login() && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
+        if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTION") && connection->serverContext->settings.allowOrigin != NULL && osStrlen(connection->serverContext->settings.allowOrigin) > 0)
+        {
+            return handleCorsOptions(
+                connection,
+                uri,
+                connection->request.queryString,
+                client_ctx
+            );
+        }
+
+        if (!connection->private.api_access_only && web_auth_requires_login() && osStrcasecmp(connection->request.method, "OPTION") != 0 && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
         {
             error = web_auth_unauthorized(connection);
             break;
