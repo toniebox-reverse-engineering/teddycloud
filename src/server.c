@@ -293,8 +293,6 @@ error_t handleCorsOptions(
 
     httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
 
-    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
-
     if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
     {
         osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
