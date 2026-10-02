@@ -289,14 +289,11 @@ error_t handleCorsOptions(
     char line[256];
     const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
 
-    osSprintf(
-        line,
-        "HTTP/%d.%d 204 No Content\r\n",
-        MSB(connection->request.version),
-        LSB(connection->request.version)
-    );
+    osSprintf( line, "HTTP/%d.%d 204 No Content\r\n", MSB(connection->request.version), LSB(connection->request.version));
 
     httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
 
     if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
     {
@@ -573,7 +570,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
-        if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTION") && connection->serverContext->settings.allowOrigin != NULL && osStrlen(connection->serverContext->settings.allowOrigin) > 0)
+        if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTION"))
         {
             error = handleCorsOptions(connection, uri,connection->request.queryString, client_ctx);
             break;
