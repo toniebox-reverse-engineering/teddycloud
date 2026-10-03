@@ -145,11 +145,10 @@ this repository. The `Makefile` builds it (npm) and copies the build
 output into `contrib/data/www/web`, which then gets copied into the
 runtime `data/www/` directory. At request time, `web.c` and
 `httpServerWebRequestCallback()` serve static files straight from
-`core.wwwdir`: `/` and `index.shtm` redirect to `/web` or `/legacy.html`
-depending on `core.new_webgui_as_default`, `/web` is rewritten to
-`/web/index.html`, and anything else is resolved relative to `wwwdir` or
-answered with a 404. `contrib/data/www` also ships `legacy.html`,
-`plugins/`, and `custom_img/` alongside the built SPA.
+`core.wwwdir`: `/` and `index.shtm` redirect to the web UI at `/web`,
+`/web` is rewritten to `/web/index.html`, and anything else is resolved
+relative to `wwwdir` or answered with a 404. `contrib/data/www` also
+ships `plugins/` and `custom_img/` alongside the built SPA.
 
 See the [README](../README.md#contribution-workflow-teddycloud--teddycloud_web)
 for the contribution workflow between this repository and `teddycloud_web`.
