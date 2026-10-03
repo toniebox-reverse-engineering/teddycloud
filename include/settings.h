@@ -99,6 +99,7 @@ typedef struct
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
+    bool autoMarkListenedOnSync;
 } settings_cloud_t;
 
 typedef struct
@@ -119,6 +120,7 @@ typedef struct
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
     bool check_cc3200_cfw;
+    bool web_auth_enabled;
 } settings_frontend_t;
 
 typedef struct
