@@ -162,6 +162,33 @@ error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t 
 
     return error;
 }
+error_t fsCopyFileRange(FILE *src, uint32_t offset, uint32_t end, FILE *dst)
+{
+    uint8_t buffer[FILE_COPY_BUFFER_SIZE];
+
+    if (src == NULL || dst == NULL)
+        return ERROR_INVALID_FILE;
+
+    if (end < offset || fseek(src, (long)offset, SEEK_SET) != 0)
+        return ERROR_FAILURE;
+
+    while (offset < end)
+    {
+        size_t want = end - offset;
+        if (want > sizeof(buffer))
+            want = sizeof(buffer);
+
+        size_t got = fread(buffer, 1, want, src);
+        if (got == 0)
+            return ERROR_FAILURE;
+
+        if (fwrite(buffer, 1, got, dst) != got)
+            return ERROR_FAILURE;
+
+        offset += (uint32_t)got;
+    }
+    return NO_ERROR;
+}
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
 {
     if (!overwrite && fsFileExists(target_path)) {

@@ -1758,43 +1758,6 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
 #define TAF_TRACK_EXPORT_MAX 99
 #define TAF_TEMP_PATH_LEN 512
 #define TAF_TEMP_FILE_LEN (TAF_TEMP_PATH_LEN + 264)
-#define TAF_TEMP_QUOTED_LEN (TAF_TEMP_FILE_LEN * 2 + 8)
-
-static bool shell_quote(const char *in, char *out, size_t out_len)
-{
-    size_t j = 0;
-
-    if (out_len < 3 || in == NULL)
-    {
-        return false;
-    }
-    out[j++] = '\'';
-    for (size_t i = 0; in[i] != '\0'; i++)
-    {
-        if (in[i] == '\'')
-        {
-            if (j + 5 >= out_len)
-            {
-                return false;
-            }
-            out[j++] = '\'';
-            out[j++] = '\\';
-            out[j++] = '\'';
-            out[j++] = '\'';
-        }
-        else
-        {
-            if (j + 2 >= out_len)
-            {
-                return false;
-            }
-            out[j++] = in[i];
-        }
-    }
-    out[j++] = '\'';
-    out[j] = '\0';
-    return true;
-}
 
 static void sanitize_track_title(const char *in, char *out, size_t out_len)
 {
@@ -1882,103 +1845,6 @@ static error_t create_taf_temp_dir(const settings_t *settings, char *out_path, s
     return ERROR_FAILURE;
 }
 
-static error_t copy_span(FILE *src, uint32_t offset, uint32_t end, FILE *dst)
-{
-    uint8_t buf[8192];
-
-    if (end < offset || fseek(src, (long)offset, SEEK_SET) != 0)
-    {
-        return ERROR_FAILURE;
-    }
-    while (offset < end)
-    {
-        size_t want = end - offset;
-        size_t got;
-
-        if (want > sizeof(buf))
-        {
-            want = sizeof(buf);
-        }
-        got = fread(buf, 1, want, src);
-        if (got == 0)
-        {
-            return ERROR_FAILURE;
-        }
-        if (fwrite(buf, 1, got, dst) != got)
-        {
-            return ERROR_FAILURE;
-        }
-        offset += (uint32_t)got;
-    }
-    return NO_ERROR;
-}
-
-static error_t send_regular_file(HttpConnection *connection, const char *path, const char *content_type)
-{
-    FILE *file;
-    long file_size;
-    error_t error = NO_ERROR;
-    uint8_t buf[8192];
-
-    file = fopen(path, "rb");
-    if (file == NULL)
-    {
-        return ERROR_FAILURE;
-    }
-    if (fseek(file, 0, SEEK_END) != 0)
-    {
-        fclose(file);
-        return ERROR_FAILURE;
-    }
-    file_size = ftell(file);
-    if (file_size < 0 || fseek(file, 0, SEEK_SET) != 0)
-    {
-        fclose(file);
-        return ERROR_FAILURE;
-    }
-
-    connection->response.keepAlive = TRUE;
-    connection->response.chunkedEncoding = FALSE;
-    connection->response.statusCode = 200;
-    connection->response.contentLength = (size_t)file_size;
-    connection->response.contentType = content_type;
-    error = httpWriteHeader(connection);
-    if (error)
-    {
-        fclose(file);
-        return error;
-    }
-
-    while (file_size > 0)
-    {
-        size_t want = sizeof(buf);
-        size_t got;
-
-        if ((long)want > file_size)
-        {
-            want = (size_t)file_size;
-        }
-        got = fread(buf, 1, want, file);
-        if (got == 0)
-        {
-            error = ERROR_FAILURE;
-            break;
-        }
-        error = httpWriteStream(connection, buf, got);
-        if (error)
-        {
-            break;
-        }
-        file_size -= (long)got;
-    }
-    fclose(file);
-    if (error == NO_ERROR && file_size == 0)
-    {
-        error = httpFlushStream(connection);
-    }
-    return error;
-}
-
 static error_t handleApiContentTrackExport(HttpConnection *connection, const char *file_path, const char *tracks_param, settings_t *settings)
 {
     FILE *src = NULL;
@@ -1995,8 +1861,6 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     uint64_t num_bytes = 0;
     long file_size = 0;
     error_t error = NO_ERROR;
-    char *zip_cmd = NULL;
-    char content_type[160];
 
     osMemset(out_paths, 0, sizeof(out_paths));
     osMemset(titles, 0, sizeof(titles));
@@ -2138,11 +2002,11 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
         }
         if (chapter > 0)
         {
-            error = copy_span(src, 4096, 4096 + 512, dst);
+            error = fsCopyFileRange(src, 4096, 4096 + 512, dst);
         }
         if (error == NO_ERROR)
         {
-            error = copy_span(src, start_off, end_off, dst);
+            error = fsCopyFileRange(src, start_off, end_off, dst);
         }
         fclose(dst);
         if (error != NO_ERROR)
@@ -2165,58 +2029,34 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
 
     if (track_count == 1)
     {
-        osStrcpy(content_type, "audio/ogg");
-        error = send_regular_file(connection, out_paths[0], content_type);
+        /* the uri only selects the content type by extension */
+        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
     }
     else
     {
         char zip_path[TAF_TEMP_FILE_LEN];
-        char quoted_zip[TAF_TEMP_QUOTED_LEN];
-        size_t cmd_len;
+        char *argv[5 + TAF_TRACK_EXPORT_MAX + 1];
+        size_t n = 0;
 
         osSnprintf(zip_path, sizeof(zip_path), "%s/tracks.zip", tmpdir);
-        if (!shell_quote(zip_path, quoted_zip, sizeof(quoted_zip)))
-        {
-            error = ERROR_FAILURE;
-            goto cleanup;
-        }
-        cmd_len = osStrlen("zip -j -q -X ") + osStrlen(quoted_zip) + 1;
+        argv[n++] = "zip";
+        argv[n++] = "-j";
+        argv[n++] = "-q";
+        argv[n++] = "-X";
+        argv[n++] = zip_path;
         for (size_t i = 0; i < track_count; i++)
         {
-            cmd_len += osStrlen(out_paths[i]) * 2 + 8;
+            argv[n++] = out_paths[i];
         }
-        zip_cmd = osAllocMem(cmd_len);
-        if (zip_cmd == NULL)
-        {
-            error = ERROR_FAILURE;
-            goto cleanup;
-        }
-        osSnprintf(zip_cmd, cmd_len, "zip -j -q -X %s", quoted_zip);
-        for (size_t i = 0; i < track_count; i++)
-        {
-            char quoted[TAF_TEMP_QUOTED_LEN];
-            size_t used = osStrlen(zip_cmd);
+        argv[n] = NULL;
 
-            if (!shell_quote(out_paths[i], quoted, sizeof(quoted)))
-            {
-                error = ERROR_FAILURE;
-                goto cleanup;
-            }
-            if (used + osStrlen(quoted) + 2 >= cmd_len)
-            {
-                error = ERROR_FAILURE;
-                goto cleanup;
-            }
-            osSprintf(zip_cmd + used, " %s", quoted);
-        }
-        if (system(zip_cmd) != 0)
+        if (osSpawnvp("zip", argv) != 0)
         {
             TRACE_ERROR("Failed to zip selected TAF tracks from %s\r\n", file_path);
             error = ERROR_FAILURE;
             goto cleanup;
         }
-        osStrcpy(content_type, "application/zip");
-        error = send_regular_file(connection, zip_path, content_type);
+        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
     }
 
 cleanup:
@@ -2230,10 +2070,6 @@ cleanup:
         {
             free(out_paths[i]);
         }
-    }
-    if (zip_cmd != NULL)
-    {
-        osFreeMem(zip_cmd);
     }
     if (have_dir)
     {
