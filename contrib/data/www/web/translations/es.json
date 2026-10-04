@@ -1075,7 +1075,6 @@
         "hint": "Esta es la configuración predeterminada. Algunas de las configuraciones pueden ser reemplazadas por cada una de tus Tonieboxes. Para cambiar estas configuraciones ve a ",
         "information": "Información",
         "keepScrolling": "Sigue desplazándote para ver más opciones.",
-        "legacyGui": "Interfaz de administración heredada",
         "levelLabel": "Nivel de configuración",
         "navigationTitle": "Configuración",
         "notifications": {
