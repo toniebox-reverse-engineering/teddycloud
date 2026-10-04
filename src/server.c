@@ -608,20 +608,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         {
             if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
             {
-                if (!client_ctx->settings->core.new_webgui_as_default)
-                {
-                    uri = "/legacy.html";
-                }
-                else
-                {
-                    uri = "/web";
-                    httpPrepareHeader(connection, "", 0);
-                    connection->response.keepAlive = false;
-                    connection->response.location = uri;
-                    connection->response.statusCode = 301;
-                    return httpWriteResponseString(connection, "", false);
-                    continue;
-                }
+                uri = "/web";
+                httpPrepareHeader(connection, "", 0);
+                connection->response.keepAlive = false;
+                connection->response.location = uri;
+                connection->response.statusCode = 301;
+                return httpWriteResponseString(connection, "", false);
             }
 
             if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))

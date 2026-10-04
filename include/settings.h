@@ -343,8 +343,6 @@ typedef struct
     uint32_t http_client_timeout;
     uint32_t file_upload_timeout_ms;
 
-    bool new_webgui_as_default;
-
     settings_level settings_level;
 
     bool tonies_json_auto_update;

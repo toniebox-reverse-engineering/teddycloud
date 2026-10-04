@@ -688,7 +688,7 @@ bool web_auth_is_public_request(const char_t *uri, const char_t *method)
     }
     /* Login page is part of the SPA and must load before the session exists.
      * The HTTP parser rewrites "/" to the default document "index.shtm" (without leading slash). */
-    if (!osStrcmp(uri, "/") || !osStrcmp(uri, "index.shtm") || !osStrcmp(uri, "/index.shtm") || !osStrcmp(uri, "/legacy.html") || !osStrcmp(uri, "/favicon.ico"))
+    if (!osStrcmp(uri, "/") || !osStrcmp(uri, "index.shtm") || !osStrcmp(uri, "/index.shtm") || !osStrcmp(uri, "/favicon.ico"))
     {
         return true;
     }
