@@ -1755,6 +1755,329 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
+#define TAF_TRACK_EXPORT_MAX 99
+#define TAF_TEMP_PATH_LEN 512
+#define TAF_TEMP_FILE_LEN (TAF_TEMP_PATH_LEN + 264)
+
+static void sanitize_track_title(const char *in, char *out, size_t out_len)
+{
+    size_t j = 0;
+
+    if (in == NULL)
+    {
+        in = "";
+    }
+    for (size_t i = 0; in[i] != '\0' && j + 1 < out_len; i++)
+    {
+        unsigned char c = (unsigned char)in[i];
+        if (c < 0x20 || c == '/' || c == '\\' || c == '"' || c == '`' || c == '$')
+        {
+            out[j++] = '_';
+        }
+        else
+        {
+            out[j++] = (char)c;
+        }
+    }
+    out[j] = '\0';
+}
+
+static void remove_taf_temp_dir(const char *dir)
+{
+    FsDir *handle;
+    FsDirEntry entry;
+
+    if (dir == NULL || osStrstr(dir, "tc-taf-") == NULL)
+    {
+        return;
+    }
+
+    handle = fsOpenDir(dir);
+    if (handle != NULL)
+    {
+        while (fsReadDir(handle, &entry) == NO_ERROR)
+        {
+            char file_path[TAF_TEMP_FILE_LEN];
+
+            if (osStrcmp(entry.name, ".") == 0 || osStrcmp(entry.name, "..") == 0)
+            {
+                continue;
+            }
+            osSnprintf(file_path, sizeof(file_path), "%s/%s", dir, entry.name);
+            fsDeleteFile(file_path);
+        }
+        fsCloseDir(handle);
+    }
+
+    if (fsRemoveDir(dir) != NO_ERROR)
+    {
+        TRACE_WARNING("Could not remove temp dir %s\r\n", dir);
+    }
+}
+
+static error_t create_taf_temp_dir(const settings_t *settings, char *out_path, size_t out_size)
+{
+    const char *base = ".";
+    int attempt;
+
+    if (settings != NULL && settings->internal.cachedirfull != NULL && settings->internal.cachedirfull[0] != '\0')
+    {
+        base = settings->internal.cachedirfull;
+    }
+    fsCreateDirEx(base, true);
+
+    srand((unsigned int)time(NULL) ^ (unsigned int)(uintptr_t)out_path);
+
+    for (attempt = 0; attempt < 16; attempt++)
+    {
+        unsigned int token = ((unsigned int)rand() << 16) ^ (unsigned int)rand() ^ (unsigned int)attempt;
+
+        osSnprintf(out_path, out_size, "%s/tc-taf-%08x", base, token);
+        if (fsDirExists(out_path))
+        {
+            continue;
+        }
+        if (fsCreateDirEx(out_path, false) == NO_ERROR)
+        {
+            return NO_ERROR;
+        }
+    }
+    return ERROR_FAILURE;
+}
+
+static error_t handleApiContentTrackExport(HttpConnection *connection, const char *file_path, const char *tracks_param, settings_t *settings)
+{
+    FILE *src = NULL;
+    tonie_info_t *tafInfo = NULL;
+    toniesJson_item_t *tonieItem = NULL;
+    char tmpdir[TAF_TEMP_PATH_LEN];
+    bool have_dir = false;
+    uint32_t pages[TAF_TRACK_EXPORT_MAX];
+    int track_numbers[TAF_TRACK_EXPORT_MAX];
+    char titles[TAF_TRACK_EXPORT_MAX][96];
+    char *out_paths[TAF_TRACK_EXPORT_MAX];
+    size_t page_count = 0;
+    size_t track_count = 0;
+    uint64_t num_bytes = 0;
+    long file_size = 0;
+    error_t error = NO_ERROR;
+
+    osMemset(out_paths, 0, sizeof(out_paths));
+    osMemset(titles, 0, sizeof(titles));
+
+    src = fopen(file_path, "rb");
+    if (src == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+    if (fseek(src, 0, SEEK_END) != 0)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+    file_size = ftell(src);
+    if (file_size < 4096)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+
+    tafInfo = getTonieInfo(file_path, false, settings);
+    if (tafInfo == NULL || !tafInfo->valid || tafInfo->tafHeader == NULL || tafInfo->tafHeader->n_track_page_nums == 0)
+    {
+        if (tafInfo != NULL)
+        {
+            freeTonieInfo(tafInfo);
+        }
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+
+    page_count = tafInfo->tafHeader->n_track_page_nums;
+    if (page_count > TAF_TRACK_EXPORT_MAX)
+    {
+        page_count = TAF_TRACK_EXPORT_MAX;
+    }
+    osMemcpy(pages, tafInfo->tafHeader->track_page_nums, page_count * sizeof(uint32_t));
+    num_bytes = tafInfo->tafHeader->num_bytes;
+    tonieItem = tonies_byAudioId(tafInfo->tafHeader->audio_id);
+    if (tonieItem != NULL)
+    {
+        size_t name_count = tonieItem->tracks_count;
+        if (name_count > page_count)
+        {
+            name_count = page_count;
+        }
+        for (size_t i = 0; i < name_count; i++)
+        {
+            sanitize_track_title(tonieItem->tracks[i], titles[i], sizeof(titles[i]));
+        }
+    }
+    freeTonieInfo(tafInfo);
+    tafInfo = NULL;
+
+    {
+        const char *p = tracks_param;
+        while (*p != '\0' && track_count < TAF_TRACK_EXPORT_MAX)
+        {
+            char *end = NULL;
+            long value;
+
+            while (*p == ',' || *p == ' ')
+            {
+                p++;
+            }
+            if (*p == '\0')
+            {
+                break;
+            }
+            value = strtol(p, &end, 10);
+            if (end == p || value < 1 || (size_t)value > page_count)
+            {
+                fclose(src);
+                return ERROR_INVALID_PARAMETER;
+            }
+            track_numbers[track_count++] = (int)value;
+            p = end;
+        }
+    }
+    if (track_count == 0)
+    {
+        fclose(src);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    if (create_taf_temp_dir(settings, tmpdir, sizeof(tmpdir)) != NO_ERROR)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+    have_dir = true;
+
+    for (size_t i = 0; i < track_count; i++)
+    {
+        int chapter = track_numbers[i] - 1;
+        uint32_t start_block = pages[chapter];
+        uint32_t end_block;
+        uint32_t start_off;
+        uint32_t end_off;
+        char name[160];
+        char path[TAF_TEMP_FILE_LEN];
+        FILE *dst;
+
+        if ((size_t)chapter + 1 < page_count)
+        {
+            end_block = pages[chapter + 1];
+        }
+        else
+        {
+            end_block = (uint32_t)(num_bytes / 4096);
+        }
+        start_off = 4096u + start_block * 4096u;
+        end_off = 4096u + end_block * 4096u;
+        if (end_off > (uint32_t)file_size)
+        {
+            end_off = (uint32_t)file_size;
+        }
+        if (end_block <= start_block || start_off >= end_off)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+
+        if (titles[chapter][0] != '\0')
+        {
+            osSnprintf(name, sizeof(name), "%02d %s.ogg", track_numbers[i], titles[chapter]);
+        }
+        else
+        {
+            osSnprintf(name, sizeof(name), "%02d.ogg", track_numbers[i]);
+        }
+        osSnprintf(path, sizeof(path), "%s/%s", tmpdir, name);
+        dst = fopen(path, "wb");
+        if (dst == NULL)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+        if (chapter > 0)
+        {
+            error = fsCopyFileRange(src, 4096, 4096 + 512, dst);
+        }
+        if (error == NO_ERROR)
+        {
+            error = fsCopyFileRange(src, start_off, end_off, dst);
+        }
+        fclose(dst);
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+        out_paths[i] = strdup(path);
+        if (out_paths[i] == NULL)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+    }
+    fclose(src);
+    src = NULL;
+    if (error != NO_ERROR)
+    {
+        goto cleanup;
+    }
+
+    if (track_count == 1)
+    {
+        /* the uri only selects the content type by extension */
+        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
+    }
+    else
+    {
+        char zip_path[TAF_TEMP_FILE_LEN];
+        char *argv[5 + TAF_TRACK_EXPORT_MAX + 1];
+        size_t n = 0;
+
+        osSnprintf(zip_path, sizeof(zip_path), "%s/tracks.zip", tmpdir);
+        argv[n++] = "zip";
+        argv[n++] = "-j";
+        argv[n++] = "-q";
+        argv[n++] = "-X";
+        argv[n++] = zip_path;
+        for (size_t i = 0; i < track_count; i++)
+        {
+            argv[n++] = out_paths[i];
+        }
+        argv[n] = NULL;
+
+        if (osSpawnvp("zip", argv) != 0)
+        {
+            TRACE_ERROR("Failed to zip selected TAF tracks from %s\r\n", file_path);
+            error = ERROR_FAILURE;
+            goto cleanup;
+        }
+        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
+    }
+
+cleanup:
+    if (src != NULL)
+    {
+        fclose(src);
+    }
+    for (size_t i = 0; i < track_count; i++)
+    {
+        if (out_paths[i] != NULL)
+        {
+            free(out_paths[i]);
+        }
+    }
+    if (have_dir)
+    {
+        remove_taf_temp_dir(tmpdir);
+    }
+    return error;
+}
+
 error_t handleApiContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
@@ -1782,6 +2105,14 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[8]);
 
     TRACE_DEBUG("Request for '%s', ogg: %s\r\n", file_path, ogg);
+
+    char tracks_param[TAF_TRACK_EXPORT_MAX * 4];
+    if (queryGet(queryString, "tracks", tracks_param, sizeof(tracks_param)))
+    {
+        error_t export_error = handleApiContentTrackExport(connection, file_path, tracks_param, client_ctx->settings);
+        free(file_path);
+        return export_error;
+    }
 
     error_t error;
     size_t n;
