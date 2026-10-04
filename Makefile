@@ -829,7 +829,13 @@ test_c:
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
-test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server
+test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server test_cors_preflight_with_server
+
+.PHONY: test_cors_preflight_with_server
+test_cors_preflight_with_server: build
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run CORS preflight test, stop server"
+	$(QUIET)tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
+		env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_cors_preflight.py
 
 .PHONY: test_auth_pool_reuse_with_server
 test_auth_pool_reuse_with_server: build
