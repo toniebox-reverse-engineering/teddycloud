@@ -43,12 +43,26 @@ sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) else 1)
 done
 
 tmp_log="$(mktemp /tmp/teddycloud_test_XXXXXX.log)"
+
+# --config-set persists to config/, and tests may create users; snapshot what
+# they touch and restore it on exit so a test run leaves the dev config alone.
+CONFIG_DIR="$REPO_ROOT/config"
+BACKUP_FILES=(config.ini web_users.json)
+backup_dir="$(mktemp -d /tmp/teddycloud_test_cfg_XXXXXX)"
+for f in "${BACKUP_FILES[@]}"; do
+    if [ -e "$CONFIG_DIR/$f" ]; then cp -p "$CONFIG_DIR/$f" "$backup_dir/$f"; else touch "$backup_dir/$f.absent"; fi
+done
 "$BIN" --config-set "core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTPS_WEB_PORT,core.server.https_api_port=$HTTPS_API_PORT" \
     >"$tmp_log" 2>&1 &
 srv_pid=$!
 
 cleanup() {
     kill "$srv_pid" >/dev/null 2>&1 || true
+    wait "$srv_pid" 2>/dev/null || true # the server may write config on shutdown
+    for f in "${BACKUP_FILES[@]}"; do
+        if [ -e "$backup_dir/$f.absent" ]; then rm -f "$CONFIG_DIR/$f"; else cp -p "$backup_dir/$f" "$CONFIG_DIR/$f"; fi
+    done
+    rm -rf "$backup_dir"
     rm -f "$tmp_log"
 }
 trap cleanup EXIT INT TERM
