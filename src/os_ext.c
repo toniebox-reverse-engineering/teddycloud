@@ -25,6 +25,47 @@ int osPclose(FILE *stream)
 #endif
 }
 
+bool osShellQuote(char *dest, size_t dest_size, const char *src)
+{
+#ifdef _WIN32
+    /* cmd.exe: everything inside double quotes is literal except '"' itself */
+    if (strchr(src, '"'))
+    {
+        return false;
+    }
+    int len = snprintf(dest, dest_size, "\"%s\"", src);
+    return len >= 0 && (size_t)len < dest_size;
+#else
+    /* sh: everything inside single quotes is literal, a ' becomes '\'' */
+    if (dest_size < 3)
+    {
+        return false;
+    }
+    size_t j = 0;
+    dest[j++] = '\'';
+    for (; *src; src++)
+    {
+        size_t n = (*src == '\'') ? 4 : 1;
+        if (j + n + 2 > dest_size) /* keep room for the closing quote and NUL */
+        {
+            return false;
+        }
+        if (n == 4)
+        {
+            memcpy(&dest[j], "'\\''", 4);
+        }
+        else
+        {
+            dest[j] = *src;
+        }
+        j += n;
+    }
+    dest[j++] = '\'';
+    dest[j] = '\0';
+    return true;
+#endif
+}
+
 void osStringToUpper(char *str)
 {
     while (*str)

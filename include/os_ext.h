@@ -1,10 +1,19 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "os_port.h"
 
 FILE *osPopen(const char *command, const char *type);
 int osPclose(FILE *stream);
+
+/*
+ * Quotes `src` as one literal argument for the shell osPopen() runs
+ * (/bin/sh, or cmd.exe on Windows). Returns false if the result does not
+ * fit into dest_size, or on Windows if src contains a '"', which cmd.exe
+ * cannot escape (and Windows file names cannot contain).
+ */
+bool osShellQuote(char *dest, size_t dest_size, const char *src);
 void osStringToUpper(char *str);
 void osStringToLower(char *str);
 
