@@ -17,11 +17,15 @@ Single class against a running server:
 import http.client
 import json
 import os
+import subprocess
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from urllib.parse import quote, urlparse
 
 BASE = urlparse(os.environ.get("TEDDYCLOUD_BASE_URL", "http://127.0.0.1:80"))
+BIN = Path(__file__).resolve().parents[2] / "bin" / "teddycloud"
 BOUNDARY = "----hardening"
 
 
@@ -155,6 +159,36 @@ class Tap495(Base):
             if self.server_alive():
                 request("POST", "/api/fileDelete", self.CONTENT_JSON)
                 request("POST", "/api/dirDelete", self.CONTENT_DIR)  # rmdir, only removes it if empty
+
+
+class Crawler508(Base):
+    """With onBlacklistDomain enabled (the default) an else-if skipped the crawler check."""
+
+    def test_crawler_locks_access(self):
+        for name, value in (
+            ("security_mit.onBlacklistDomain", "true"),
+            ("security_mit.onCrawler", "true"),
+            ("security_mit.lockAccess", "true"),
+            ("security_mit.httpsOnly", "false"),
+        ):
+            self.assertEqual(request("POST", f"/api/settings/set/{name}", value)[0], 200)
+        _, text = request("GET", "/web/", headers={"User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)"})
+        self.assertTrue("locked to mitigate security risks" in text, "crawler User-Agent was not detected")
+
+
+class KeyPermissions512(Base):
+    """Generated private keys were left readable for other local users (default umask)."""
+
+    def test_generated_key_is_owner_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            subprocess.run(
+                [BIN, "--generate-client-cert", "0123456789ab", "--destination", d],
+                check=True,
+                capture_output=True,
+                preexec_fn=lambda: os.umask(0o022),  # what most systems use
+            )
+            mode = os.stat(os.path.join(d, "private.der")).st_mode & 0o777
+            self.assertEqual(mode & 0o077, 0, f"private.der has mode {mode:o}")
 
 
 class Secrets505(Base):
