@@ -1239,34 +1239,44 @@ error_t file_save_start_suffix(void *in_ctx, const char *name, const char *filen
     }
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
+    ctx->filename = NULL;
     for (int suffix = 0; suffix < 100; suffix++)
     {
+        char *candidate;
         if (suffix)
         {
-            ctx->filename = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
+            candidate = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
         }
         else
         {
-            ctx->filename = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
+            candidate = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
         }
-        sanitizePath(ctx->filename, false);
+        sanitizePath(candidate, false);
 
-        if (fsFileExists(ctx->filename))
+        if (fsFileExists(candidate))
         {
-            osFreeMem(ctx->filename);
+            osFreeMem(candidate);
             continue;
         }
-        else
-        {
-            TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
-            break;
-        }
+
+        /* only keep the first free name; never leave ctx->filename dangling */
+        ctx->filename = candidate;
+        TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
+        break;
+    }
+
+    if (ctx->filename == NULL)
+    {
+        TRACE_ERROR("No free filename suffix available for '%s'\r\n", filename);
+        return ERROR_FILE_OPENING_FAILED;
     }
 
     ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
 
     if (ctx->file == NULL)
     {
+        osFreeMem(ctx->filename);
+        ctx->filename = NULL;
         return ERROR_FILE_OPENING_FAILED;
     }
 
@@ -1303,6 +1313,8 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
     char message[128];
     char overlay[16];
 
+    message[0] = '\0';
+
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
     if (rootPath == NULL || !fsDirExists(rootPath))
@@ -1330,6 +1342,13 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
         switch (multipart_handle(connection, &cbr, &ctx))
         {
         case NO_ERROR:
+            if (ctx.filename == NULL)
+            {
+                /* multipart parsed, but no file part was received */
+                statusCode = 400;
+                osSnprintf(message, sizeof(message), "No file received");
+                break;
+            }
             statusCode = 200;
             TRACE_INFO("Received new file:\r\n");
             TRACE_INFO("  '%s'\r\n", ctx.filename);
@@ -1337,6 +1356,7 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
             break;
         default:
             statusCode = 500;
+            osSnprintf(message, sizeof(message), "Firmware upload failed");
             break;
         }
 
