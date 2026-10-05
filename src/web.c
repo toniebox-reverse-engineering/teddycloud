@@ -124,25 +124,38 @@ void web_dl_cbr(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload
                 return;
             }
         }
+        if (ctx->file == NULL)
+        {
+            /* open failed earlier or file already closed */
+            return;
+        }
+
         error_t errorWrite = NO_ERROR;
         if (length > 0)
         {
             errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
         }
 
+        bool_t finished = false;
         if (error == ERROR_END_OF_STREAM)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
         }
         else if (error != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("body error=%s\r\n", error2text(error));
         }
         if (errorWrite != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("write error=%s\r\n", error2text(error));
+        }
+
+        if (finished)
+        {
+            fsCloseFile(ctx->file);
+            ctx->file = NULL;
         }
     }
 }
