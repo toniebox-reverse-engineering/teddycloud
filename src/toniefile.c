@@ -770,6 +770,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
             if (*current_source < source_len)
             {
                 error = ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+                ffmpeg_pipe = NULL;
                 if (error != NO_ERROR)
                 {
                     TRACE_ERROR("Could not close FFmpeg pipe error=%s\r\n", error2text(error));
