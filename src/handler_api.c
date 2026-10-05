@@ -1163,26 +1163,38 @@ error_t file_save_end_cert(void *in_ctx)
     fsCloseFile(ctx->file);
     ctx->file = NULL;
 
-    /* file was uploaded, this is the cert-specific handler */
-    if (!osStrcasecmp(ctx->filename, "ca.der"))
+    /* file was uploaded, this is the cert-specific handler. ctx->filename is the
+       full path, so compare its file name. Store the path as <certdir>/<name>,
+       the relative form box overlays get on creation, not the absolute path. */
+    const char *name = pathGetFilename(ctx->filename);
+    const char *setting = NULL;
+    if (!osStrcasecmp(name, "ca.der"))
     {
-        TRACE_INFO("Set ca.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.ca", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.ca";
     }
-    else if (!osStrcasecmp(ctx->filename, "client.der"))
+    else if (!osStrcasecmp(name, "client.der"))
     {
-        TRACE_INFO("Set client.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.crt", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.crt";
     }
-    else if (!osStrcasecmp(ctx->filename, "private.der"))
+    else if (!osStrcasecmp(name, "private.der"))
     {
-        TRACE_INFO("Set private.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.key", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.key";
+    }
+
+    if (setting)
+    {
+        char *path = custom_asprintf("%s%c%s", settings_get_string_ovl("core.certdir", ctx->overlay), PATH_SEPARATOR, name);
+        TRACE_INFO("Set %s to %s\r\n", setting, path);
+        settings_set_string_ovl(setting, path, ctx->overlay);
+        osFreeMem(path);
     }
     else
     {
         TRACE_INFO("Unknown file type %s\r\n", ctx->filename);
     }
+
+    osFreeMem(ctx->filename);
+    ctx->filename = NULL;
 
     return NO_ERROR;
 }

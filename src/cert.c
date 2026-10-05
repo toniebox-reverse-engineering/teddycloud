@@ -18,27 +18,9 @@
 #include "pkcs8_key_format.h"
 #include "server_helpers.h"
 
-#ifndef _WIN32
-#include <sys/stat.h>
-#endif
-
 #include "tls_adapter.h"
 #include "settings.h"
 #include "cert.h"
-
-/* Restrict a private-key file to owner read/write (0600) on POSIX so it is
-   not left world-readable with the default umask. No-op on Windows. */
-static void cert_restrict_key_permissions(const char *path)
-{
-#ifndef _WIN32
-    if (chmod(path, S_IRUSR | S_IWUSR) != 0)
-    {
-        TRACE_WARNING("Could not restrict permissions on key file '%s'\r\n", path);
-    }
-#else
-    (void)path;
-#endif
-}
 
 static int hex2int(char ch)
 {
@@ -328,7 +310,10 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
             osFreeMem(priv_file_full);
             return ERROR_FAILURE;
         }
-        cert_restrict_key_permissions(priv_file_full);
+        if (!osChmodOwnerOnly(priv_file_full))
+        {
+            TRACE_WARNING("Could not restrict permissions of '%s'\r\n", priv_file_full);
+        }
         osFreeMem(priv_file_full);
         if (priv_pem_data)
         {
@@ -1015,7 +1000,10 @@ error_t cert_generate_signed_ec(
             osFreeMem(cert_pem_data);
             return ERROR_FAILURE;
         }
-        cert_restrict_key_permissions(priv_file_full);
+        if (!osChmodOwnerOnly(priv_file_full))
+        {
+            TRACE_WARNING("Could not restrict permissions of '%s'\r\n", priv_file_full);
+        }
         osFreeMem(priv_file_full);
 
         if (priv_pem_format)
