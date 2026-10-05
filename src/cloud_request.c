@@ -21,6 +21,7 @@
 #include "platform.h"         // for resolve_free, resolve_get_ip, resolve_...
 #include "rand.h"             // for rand_get_algo, rand_get_context
 #include "settings.h"         // for settings_t, get_settings, settings_cert_t
+#include "str_ext.h"          // for split_url
 #include "stdbool.h"          // for bool, true, false
 #include "tls.h"              // for TlsContext, _TlsContext (ptr only)
 #include "tls_adapter.h"      // for tls_context_key_log_init
@@ -533,56 +534,4 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
     httpClientDeinit(&httpClientContext);
 
     return error;
-}
-
-bool_t split_url(const char *location, char *uri_base, char *uri_path, char *query_string, size_t buf_size)
-{
-    if (buf_size == 0)
-    {
-        return false;
-    }
-
-    const char *scheme_end = strstr(location, "://");
-    if (!scheme_end)
-    {
-        TRACE_ERROR("Invalid URL: Scheme not found\n");
-        return false;
-    }
-    // Move pointer to start after "://"
-    scheme_end += 3;
-
-    const char *path_start = strchr(scheme_end, '/');
-    if (!path_start)
-    {
-        TRACE_ERROR("Invalid URL: Path not found\n");
-        return false;
-    }
-    const char *query_start = strchr(path_start, '?');
-
-    // Base URI without scheme
-    size_t base_len = path_start - scheme_end;
-    // Path runs up to the query string (if any) or the end of the location
-    size_t path_len = query_start ? (size_t)(query_start - path_start) : osStrlen(path_start);
-    // Query string follows the '?'
-    size_t query_len = query_start ? osStrlen(query_start + 1) : 0;
-
-    if (base_len >= buf_size || path_len >= buf_size || query_len >= buf_size)
-    {
-        TRACE_ERROR("Invalid URL: component exceeds buffer size\n");
-        return false;
-    }
-
-    osMemcpy(uri_base, scheme_end, base_len);
-    uri_base[base_len] = '\0';
-
-    osMemcpy(uri_path, path_start, path_len);
-    uri_path[path_len] = '\0';
-
-    if (query_len > 0)
-    {
-        osMemcpy(query_string, query_start + 1, query_len);
-    }
-    query_string[query_len] = '\0';
-
-    return true;
 }

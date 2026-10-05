@@ -16,86 +16,9 @@
 #include "toniesJson.h"
 #include "server_helpers.h"
 #include "toniebox_state.h"
+#include "str_ext.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
-
-/* Hex-encodes as many bytes of data as fit into output (incl. NUL terminator) and returns the number of bytes consumed. */
-static size_t hexEncode(const uint8_t *data, size_t len, char_t *output, size_t output_size)
-{
-    size_t i = 0;
-    for (; i < len && (i + 1) * 2 < output_size; i++)
-    {
-        osSprintf(&output[i * 2], "%02X", data[i]);
-    }
-    output[i * 2] = '\0';
-    return i;
-}
-
-/* Escapes as many bytes of input as fit into output (incl. NUL terminator) and returns the number of bytes consumed. */
-static size_t escapeString(const char_t *input, size_t size, char_t *output, size_t output_size);
-static size_t escapeString(const char_t *input, size_t size, char_t *output, size_t output_size)
-{
-    // Replacement sequences for special characters
-    const char_t *replacements[] = {
-        "\"", "\"\"", // Double quote (")
-        "\n", "\\n",  // Newline
-        "\r", "\\r"   // Carriage return
-    };
-    const size_t num_replacements = sizeof(replacements) / sizeof(replacements[0]);
-
-    size_t input_length = size;
-
-    /* ToDo: this escaped_length code is not used - intentional through refacotring? */
-    size_t escaped_length = 0;
-
-    // First pass to count the number of additional characters required for escaping
-    for (size_t i = 0; i < input_length; i++)
-    {
-        for (size_t j = 0; j < num_replacements; j++)
-        {
-            if (input[i] == replacements[j][0])
-            {
-                escaped_length += osStrlen(replacements[j]) - 1;
-                break;
-            }
-        }
-    }
-
-    size_t i = 0;
-    size_t j = 0;
-    // Second pass to actually escape the characters, a character expands to at most 2 bytes
-    for (; i < input_length && j + 2 < output_size; i++)
-    {
-        bool_t replaced = false;
-        for (size_t k = 0; k < num_replacements; k++)
-        {
-            if (input[i] == replacements[k][0])
-            {
-                size_t len = osStrlen(replacements[k]);
-                osStrcpy(&output[j], replacements[k]);
-                j += len;
-                replaced = true;
-                break;
-            }
-        }
-
-        if (!replaced)
-        {
-            if (isalnum(input[i]))
-            {
-                output[j++] = input[i];
-            }
-            else
-            {
-                output[j++] = '.';
-            }
-        }
-    }
-
-    // Null-terminate the escaped string
-    output[j] = '\0';
-    return i;
-}
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {

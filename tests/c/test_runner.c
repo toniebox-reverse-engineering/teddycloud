@@ -17,6 +17,9 @@ typedef struct
 static const test_case_t tests[] = {
     {"os_spawnvp", test_os_spawnvp},
     {"os_shell_quote", test_os_shell_quote},
+    {"hex_encode", test_hex_encode},
+    {"escape_string", test_escape_string},
+    {"split_url", test_split_url},
 };
 
 int main(void)

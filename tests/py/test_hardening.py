@@ -121,6 +121,42 @@ class Encode501(Base):
         self.assertEqual(status, 500)
 
 
+class Tap495(Base):
+    """A TAP playlist with more than 255 entries wrapped the uint8_t load index, leaving
+    entries uninitialised that tap_free() then freed."""
+
+    RUID = "0000049500000495"
+    CONTENT_DIR = RUID[:8]
+    CONTENT_JSON = f"{RUID[:8]}/{RUID[8:]}.json"
+
+    def set_content_json(self, form):
+        return request(
+            "POST", f"/content/json/set/{self.RUID}", form, {"Content-Type": "application/x-www-form-urlencoded"}
+        )
+
+    def test_playlist_with_300_entries(self):
+        if request("GET", f"/content/json/get/{self.RUID}")[0] == 200:
+            self.skipTest(f"content JSON for {self.RUID} already exists, not touching it")
+        playlist = {
+            "type": "tap",
+            "audio_id": 495,
+            "filepath": "lib://__hardening.taf",
+            "name": "hardening",
+            "files": [{"filepath": f"lib://{i}.mp3", "name": ""} for i in range(300)],
+        }
+        self.put_library("__hardening.tap", json.dumps(playlist).encode())
+        try:
+            self.assertEqual(self.set_content_json("source=" + quote("lib://__hardening.tap"))[0], 200)
+            # set loads the existing content JSON first, so this call parses and frees the playlist
+            self.set_content_json("hide=true")
+        except OSError:
+            pass  # a dropped connection is fine, tearDown checks that the server survived
+        finally:
+            if self.server_alive():
+                request("POST", "/api/fileDelete", self.CONTENT_JSON)
+                request("POST", "/api/dirDelete", self.CONTENT_DIR)  # rmdir, only removes it if empty
+
+
 class Secrets505(Base):
     """getIndex with nolevel=t returned the LEVEL_SECRET values, i.e. the private keys."""
 
