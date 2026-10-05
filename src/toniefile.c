@@ -583,20 +583,73 @@ FILE *ffmpeg_decode_audio_start(const char *input_source)
     return ffmpeg_decode_audio_start_skip(input_source, 0, 0);
 }
 
+/* Wraps a string in single quotes for safe use inside a /bin/sh command line,
+   escaping any embedded single quote as '\''. Returns a newly allocated string
+   the caller must free, or NULL on allocation failure. */
+static char *ffmpeg_shell_quote(const char *s)
+{
+    size_t len = osStrlen(s);
+    /* worst case every char is a single quote -> 4 bytes each, plus the two
+       surrounding quotes and the NUL terminator */
+    char *out = osAllocMem(len * 4 + 3);
+    if (out == NULL)
+    {
+        return NULL;
+    }
+    size_t j = 0;
+    out[j++] = '\'';
+    for (size_t i = 0; i < len; i++)
+    {
+        if (s[i] == '\'')
+        {
+            out[j++] = '\'';
+            out[j++] = '\\';
+            out[j++] = '\'';
+            out[j++] = '\'';
+        }
+        else
+        {
+            out[j++] = s[i];
+        }
+    }
+    out[j++] = '\'';
+    out[j] = '\0';
+    return out;
+}
+
 FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_seconds, size_t skip_bytes)
 {
 #ifdef FFMPEG_DECODING
     TRACE_INFO("Start ffmpeg for decoding...\r\n");
 
+    /* input_source is attacker-controllable (content source URL/path), so it
+       must be shell-quoted - never interpolated raw into the command line. */
+    char *quoted_source = ffmpeg_shell_quote(input_source);
+    if (quoted_source == NULL)
+    {
+        TRACE_ERROR("Could not allocate ffmpeg command\r\n");
+        return NULL;
+    }
+
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
+    int written;
     if (skip_bytes == 0)
     {
-        snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", input_source, skip_seconds);
+        written = snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i %s -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", quoted_source, skip_seconds);
     }
     else
     {
-        snprintf(ffmpeg_command, sizeof(ffmpeg_command), "tail -c +%" PRIuSIZE " \"%s\" | ffmpeg -i - -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", skip_bytes + 1, input_source, skip_seconds);
+        written = snprintf(ffmpeg_command, sizeof(ffmpeg_command), "tail -c +%" PRIuSIZE " %s | ffmpeg -i - -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", skip_bytes + 1, quoted_source, skip_seconds);
+    }
+    osFreeMem(quoted_source);
+
+    /* bail out on truncation so a partially built (and potentially
+       quote-unbalanced) command is never executed */
+    if (written < 0 || (size_t)written >= sizeof(ffmpeg_command))
+    {
+        TRACE_ERROR("ffmpeg command too long for source\r\n");
+        return NULL;
     }
 
     TRACE_INFO("FFmpeg command: %s\r\n", ffmpeg_command);
