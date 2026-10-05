@@ -753,6 +753,11 @@ error_t esp32_fixup_nvs(FsFile *file, size_t offset, size_t length, bool modify)
                     return error;
                 }
 
+                if (nvs_item.span == 0)
+                {
+                    TRACE_ERROR("NVS item span is 0, aborting to avoid an endless loop\r\n");
+                    break;
+                }
                 entry += nvs_item.span - 1;
             }
         }
@@ -844,6 +849,11 @@ error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *na
                 }
             }
 
+            if (nvs_item.span == 0)
+            {
+                TRACE_ERROR("NVS item span is 0, aborting to avoid an endless loop\r\n");
+                break;
+            }
             entry += nvs_item.span - 1;
         }
 
