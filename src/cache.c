@@ -297,7 +297,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 
     while (pos != NULL)
     {
-        if (pos->hash == hash_from_url)
+        if (pos->cached_url && pos->hash == hash_from_url)
         {
             TRACE_INFO("Hash match found for hash: %08X. Checking full cached URL...\r\n", hash_from_url);
 
@@ -354,7 +354,7 @@ cache_entry_t *cache_fetch_by_path(const char *path)
 
     while (pos != NULL)
     {
-        if (pos->hash == hash_from_uri)
+        if (pos->cached_url && pos->hash == hash_from_uri)
         {
             TRACE_DEBUG("Hash match found for hash: %08X. Checking full URI...\r\n", hash_from_uri);
 
