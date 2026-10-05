@@ -829,7 +829,18 @@ test_c:
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
-test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server test_cors_preflight_with_server
+test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server test_cors_preflight_with_server test_hardening_with_server
+
+HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Encode494
+
+# one fresh server per test class, a crash must only fail its own test
+.PHONY: test_hardening_with_server
+test_hardening_with_server: build
+	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start a fresh server per test, run robustness tests, stop server"
+	$(QUIET)rc=0; for t in $(HARDENING_TESTS); do \
+		tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
+			env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_hardening.py $$t || rc=1; \
+	done; exit $$rc
 
 .PHONY: test_cors_preflight_with_server
 test_cors_preflight_with_server: build
