@@ -196,14 +196,18 @@ error_t web_download(const char *url, const char *filename, uint32_t *statusCode
         return error;
     }
 
+    /* The body is only written on HTTP 200; without this check a non-200
+       response would be reported as success whenever a stale file from an
+       earlier download happens to still exist. */
+    if (*statusCode != 200)
+    {
+        TRACE_ERROR("download failed, HTTP status=%" PRIu32 "\r\n", *statusCode);
+        return (*statusCode == 404) ? ERROR_NOT_FOUND : ERROR_FAILURE;
+    }
+
     if (fsFileExists(filename))
     {
         return NO_ERROR;
-    }
-
-    if (*statusCode == 404)
-    {
-        return ERROR_NOT_FOUND;
     }
 
     return ERROR_FAILURE;
