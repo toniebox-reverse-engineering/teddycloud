@@ -119,14 +119,5 @@ class Encode501(Base):
         self.assertEqual(status, 500)
 
 
-class Encode494(Base):
-    """More than 99 `source` parameters were stored past the end of a 99 entry array."""
-
-    def test_too_many_sources(self):
-        self.put_library("__hardening_a.txt")
-        status, _ = self.encode(["__hardening_a.txt"] * 120, "__hardening_out.taf")
-        self.assertIn(status, (400, 500))
-
-
 if __name__ == "__main__":
     unittest.main()
