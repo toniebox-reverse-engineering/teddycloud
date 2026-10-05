@@ -66,13 +66,25 @@ error_t checkSecMitHandlers(HttpConnection *connection, const char_t *uri, const
     {
         return NO_ERROR;
     }
-    else if (settings->security_mit.onBlacklistDomain)
+
+    /* Both mitigations are independent - run each enabled one, don't let
+       the first enabled check suppress the others. */
+    error_t error = NO_ERROR;
+    if (settings->security_mit.onBlacklistDomain)
     {
-        return handleSecMitDomain(connection, uri, queryString, client_ctx);
+        error = handleSecMitDomain(connection, uri, queryString, client_ctx);
+        if (error != NO_ERROR)
+        {
+            return error;
+        }
     }
-    else if (settings->security_mit.onCrawler)
+    if (settings->security_mit.onCrawler)
     {
-        return handleSecMitCrawler(connection, uri, queryString, client_ctx);
+        error = handleSecMitCrawler(connection, uri, queryString, client_ctx);
+        if (error != NO_ERROR)
+        {
+            return error;
+        }
     }
 
     return NO_ERROR;
