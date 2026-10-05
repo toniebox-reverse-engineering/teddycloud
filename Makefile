@@ -831,7 +831,7 @@ test_c:
 .PHONY: test
 test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server test_cors_preflight_with_server test_hardening_with_server
 
-HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501
+HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Secrets505
 
 # one fresh server per test class, a crash must only fail its own test
 .PHONY: test_hardening_with_server

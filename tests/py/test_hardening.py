@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Robustness regression tests: malformed input must not crash the server.
-Every test checks that the server still answers afterwards.
+Robustness regression tests: malformed input must not crash the server and
+secrets must not leak. Every test checks that the server still answers
+afterwards.
 
 A crash kills the server for all following tests, so the Makefile starts a
 fresh server per test class:
@@ -14,6 +15,7 @@ Single class against a running server:
 """
 
 import http.client
+import json
 import os
 import time
 import unittest
@@ -117,6 +119,16 @@ class Encode501(Base):
         self.put_library("__hardening_b.txt")
         status, _ = self.encode(["__hardening_a.txt", "__hardening_b.txt"], "__hardening_out.taf")
         self.assertEqual(status, 500)
+
+
+class Secrets505(Base):
+    """getIndex with nolevel=t returned the LEVEL_SECRET values, i.e. the private keys."""
+
+    def test_index_has_no_private_keys(self):
+        status, text = request("GET", "/api/settings/getIndex?internal=t&nolevel=t")
+        self.assertEqual(status, 200)
+        leaked = [o["ID"] for o in json.loads(text)["options"] if "PRIVATE KEY" in str(o.get("value", ""))]
+        self.assertEqual(leaked, [])
 
 
 if __name__ == "__main__":
