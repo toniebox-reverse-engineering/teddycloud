@@ -2438,7 +2438,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     }
 
     char multisource[99][PATH_LEN];
-    uint8_t multisource_size = 0;
+    size_t multisource_size = 0;
     char source[PATH_LEN];
     char target[PATH_LEN];
 
@@ -2462,10 +2462,17 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     }
     else
     {
-        while (queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
+        while (multisource_size < sizeof(multisource) / sizeof(multisource[0]) &&
+               queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
         {
             sanitizePath(source, false);
-            osSprintf(multisource[multisource_size], "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            int_t written = osSnprintf(multisource[multisource_size], PATH_LEN, "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            if (written < 0 || written >= PATH_LEN)
+            {
+                TRACE_ERROR("Source path too long!\r\n");
+                osFreeMem(targetAbsolute);
+                return ERROR_INVALID_REQUEST;
+            }
             sanitizePath(multisource[multisource_size], false);
             // TRACE_INFO("Source %s\r\n", multisource[multisource_size]);
             if (!fsFileExists(multisource[multisource_size]))
@@ -2483,7 +2490,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
             return ERROR_INVALID_REQUEST;
         }
 
-        TRACE_INFO("Encode %" PRIu8 " files to %s\r\n", multisource_size, targetAbsolute);
+        TRACE_INFO("Encode %" PRIuSIZE " files to %s\r\n", multisource_size, targetAbsolute);
         size_t current_source = 0;
         error = ffmpeg_convert(multisource, multisource_size, &current_source, targetAbsolute, 0);
         osFreeMem(targetAbsolute);
