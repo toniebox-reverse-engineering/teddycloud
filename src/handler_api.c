@@ -307,6 +307,13 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
             continue;
         }
 
+        /* Never expose secret options (e.g. private keys) through the index,
+           regardless of the level/nolevel filter below. */
+        if (opt->level == LEVEL_SECRET)
+        {
+            continue;
+        }
+
         settings_level user_level = get_settings_ovl(overlay)->core.settings_level;
         if (!isNoLevel && opt->level > user_level)
         {
