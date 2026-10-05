@@ -19,8 +19,21 @@
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
 
-static void escapeString(const char_t *input, size_t size, char_t *output);
-static void escapeString(const char_t *input, size_t size, char_t *output)
+/* Hex-encodes as many bytes of data as fit into output (incl. NUL terminator) and returns the number of bytes consumed. */
+static size_t hexEncode(const uint8_t *data, size_t len, char_t *output, size_t output_size)
+{
+    size_t i = 0;
+    for (; i < len && (i + 1) * 2 < output_size; i++)
+    {
+        osSprintf(&output[i * 2], "%02X", data[i]);
+    }
+    output[i * 2] = '\0';
+    return i;
+}
+
+/* Escapes as many bytes of input as fit into output (incl. NUL terminator) and returns the number of bytes consumed. */
+static size_t escapeString(const char_t *input, size_t size, char_t *output, size_t output_size);
+static size_t escapeString(const char_t *input, size_t size, char_t *output, size_t output_size)
 {
     // Replacement sequences for special characters
     const char_t *replacements[] = {
@@ -48,9 +61,10 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
         }
     }
 
+    size_t i = 0;
     size_t j = 0;
-    // Second pass to actually escape the characters
-    for (size_t i = 0; i < input_length; i++)
+    // Second pass to actually escape the characters, a character expands to at most 2 bytes
+    for (; i < input_length && j + 2 < output_size; i++)
     {
         bool_t replaced = false;
         for (size_t k = 0; k < num_replacements; k++)
@@ -80,6 +94,7 @@ static void escapeString(const char_t *input, size_t size, char_t *output)
 
     // Null-terminate the escaped string
     output[j] = '\0';
+    return i;
 }
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -220,12 +235,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                   rpc->log2->function);
         sse_rawData(buffer);
 
-        if (rpc->log2->field6.len > 0)
+        for (size_t pos = 0; pos < rpc->log2->field6.len;)
         {
-            for (size_t i = 0; i < rpc->log2->field6.len; i++)
-            {
-                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
-            }
+            pos += hexEncode(&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
             sse_rawData(buffer);
         }
 
@@ -235,12 +247,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                   rpc->log2->field8);
         sse_rawData(buffer);
 
-        if (rpc->log2->field9.len > 0)
+        for (size_t pos = 0; pos < rpc->log2->field9.len;)
         {
-            for (size_t i = 0; i < rpc->log2->field9.len; i++)
-            {
-                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
-            }
+            pos += hexEncode(&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
             sse_rawData(buffer);
         }
         sse_rawData("\"}");
@@ -555,18 +564,18 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
                       rpc->log2->field6.len);
             fsWriteFile(file, buffer, osStrlen(buffer));
 
-            if (rpc->log2->field6.len > 0)
+            for (size_t pos = 0; pos < rpc->log2->field6.len;)
             {
-                for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                {
-                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
-                }
+                pos += hexEncode(&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
                 fsWriteFile(file, buffer, osStrlen(buffer));
             }
 
-            osSprintf(buffer, ";\"");
-            escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
-            fsWriteFile(file, buffer, osStrlen(buffer));
+            fsWriteFile(file, ";\"", 2);
+            for (size_t pos = 0; pos < rpc->log2->field6.len;)
+            {
+                pos += escapeString((char_t *)&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
+                fsWriteFile(file, buffer, osStrlen(buffer));
+            }
 
             osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
                       rpc->log2->field8, // TODO hasfield
@@ -575,17 +584,17 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
 
             if (rpc->log2->has_field9)
             {
-                if (rpc->log2->field9.len > 0)
+                for (size_t pos = 0; pos < rpc->log2->field9.len;)
                 {
-                    for (size_t i = 0; i < rpc->log2->field9.len; i++)
-                    {
-                        osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
-                    }
+                    pos += hexEncode(&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
                     fsWriteFile(file, buffer, osStrlen(buffer));
                 }
-                osSprintf(buffer, ";\"");
-                escapeString((char_t *)rpc->log2->field9.data, rpc->log2->field9.len, &buffer[2]);
-                fsWriteFile(file, buffer, osStrlen(buffer));
+                fsWriteFile(file, ";\"", 2);
+                for (size_t pos = 0; pos < rpc->log2->field9.len;)
+                {
+                    pos += escapeString((char_t *)&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
+                    fsWriteFile(file, buffer, osStrlen(buffer));
+                }
                 char_t *output = "\";";
                 fsWriteFile(file, output, osStrlen(output));
             }
