@@ -14,6 +14,13 @@ int osPclose(FILE *stream);
  * cannot escape (and Windows file names cannot contain).
  */
 bool osShellQuote(char *dest, size_t dest_size, const char *src);
+
+/*
+ * Makes a file readable and writable by its owner only (0600), for files
+ * holding private keys. Call it right after creating the file, before the
+ * key is written. No-op on Windows. Returns false if chmod failed.
+ */
+bool osChmodOwnerOnly(const char *path);
 void osStringToUpper(char *str);
 void osStringToLower(char *str);
 

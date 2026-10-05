@@ -1140,6 +1140,18 @@ error_t file_save_end(void *in_ctx)
     return NO_ERROR;
 }
 
+/* uploaded box certificates include private.der, keep them readable by teddyCloud only */
+static error_t file_save_start_cert(void *in_ctx, const char *name, const char *filename)
+{
+    error_t error = file_save_start(in_ctx, name, filename);
+    const char *path = ((file_save_ctx *)in_ctx)->filename;
+    if (error == NO_ERROR && !osChmodOwnerOnly(path))
+    {
+        TRACE_WARNING("Could not restrict permissions of '%s'\r\n", path);
+    }
+    return error;
+}
+
 error_t file_save_end_cert(void *in_ctx)
 {
     file_save_ctx *ctx = (file_save_ctx *)in_ctx;
@@ -1210,7 +1222,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
 
-        cbr.multipart_start = &file_save_start;
+        cbr.multipart_start = &file_save_start_cert;
         cbr.multipart_add = &file_save_add;
         cbr.multipart_end = &file_save_end_cert;
 

@@ -407,7 +407,8 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                     TRACE_DEBUG("URI Path: %s\r\n", uri_path);
                     TRACE_DEBUG("Query String: %s\r\n", query_string);
 
-                    error = web_request(uri_base, 443, true, uri_path, query_string, "GET", NULL, 0, NULL, cbr, false, false, NULL);
+                    /* pass statusCode on, so the caller gets the status of the final response, not the 302 */
+                    error = web_request(uri_base, 443, true, uri_path, query_string, "GET", NULL, 0, NULL, cbr, false, false, statusCode);
                     break;
                 }
             }

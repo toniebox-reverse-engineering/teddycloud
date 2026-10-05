@@ -19,6 +19,7 @@
 #include "fs_ext.h"         // for fsOpenFileEx
 #include "fs_port.h"        // for FS_SEEK_SET, FsDirEntry, FS_FILE_MODE_WRITE
 #include "hash/sha256.h"    // for sha256Update, sha256Final, sha256Init
+#include "os_ext.h"         // for osChmodOwnerOnly
 #include "os_port.h"        // for osFreeMem, osAllocMem, osStrcpy, osStrlen
 #include "path.h"           // for pathAddSlash, pathCanonicalize, pathCombine
 #include "pem_import.h"     // for pemImportCertificate
@@ -1130,6 +1131,11 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             {
                 TRACE_ERROR("Failed to open output file\r\n");
                 return ERROR_FAILURE;
+            }
+            /* the CERT folder holds the box's private key */
+            if (!osChmodOwnerOnly(outFileName))
+            {
+                TRACE_WARNING("Could not restrict permissions of '%s'\r\n", outFileName);
             }
 
             FIL fp;

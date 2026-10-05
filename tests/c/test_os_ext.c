@@ -1,5 +1,8 @@
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "os_ext.h"
 #include "tests.h"
@@ -25,6 +28,23 @@ static void check_round_trip(const char *src)
     osPclose(pipe);
     out[n] = '\0';
     assert(strcmp(out, src) == 0);
+}
+
+void test_os_chmod_owner_only(void)
+{
+    char path[] = "/tmp/teddycloud_test_XXXXXX";
+    int fd = mkstemp(path);
+    assert(fd >= 0);
+    close(fd);
+    assert(chmod(path, 0644) == 0);
+
+    assert(osChmodOwnerOnly(path));
+    struct stat st;
+    assert(stat(path, &st) == 0);
+    assert((st.st_mode & 0777) == 0600);
+
+    unlink(path);
+    assert(!osChmodOwnerOnly(path));
 }
 
 void test_os_shell_quote(void)

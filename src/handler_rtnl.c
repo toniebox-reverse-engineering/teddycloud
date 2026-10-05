@@ -37,7 +37,8 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         {
             break;
         }
-        uint32_t protoLength = (uint32_t)((buffer[pos] << 24) | (buffer[pos + 1] << 16) | (buffer[pos + 2] << 8) | buffer[pos + 3]);
+        /* buffer is signed char_t, read the bytes unsigned so a byte >= 0x80 is not sign-extended */
+        uint32_t protoLength = (uint32_t)read_big_endian32((const uint8_t *)&buffer[pos]);
 
         if (pos + 4 + protoLength > size)
         {

@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #include <process.h>
 #else
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
@@ -22,6 +23,16 @@ int osPclose(FILE *stream)
     return _pclose(stream);
 #else
     return pclose(stream);
+#endif
+}
+
+bool osChmodOwnerOnly(const char *path)
+{
+#ifdef _WIN32
+    (void)path;
+    return true;
+#else
+    return chmod(path, S_IRUSR | S_IWUSR) == 0;
 #endif
 }
 
