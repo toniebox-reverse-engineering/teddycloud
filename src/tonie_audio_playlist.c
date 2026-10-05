@@ -165,6 +165,7 @@ void tap_free(tonie_audio_playlist_t *tap)
     for (size_t i = 0; i < tap->filesCount; i++)
     {
         osFreeMem(tap->files[i].filepath);
+        osFreeMem(tap->files[i]._filepath_resolved);
         osFreeMem(tap->files[i].name);
     }
     if (tap->filesCount > 0)
