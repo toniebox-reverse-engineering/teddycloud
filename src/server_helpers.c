@@ -678,6 +678,12 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
             // The "::" symbol is preceded by a number?
             if (value >= 0)
             {
+                // Too many 16-bit words? (bounds the w[] write)
+                if (i >= 8)
+                {
+                    error = ERROR_INVALID_SYNTAX;
+                    break;
+                }
                 // Save the current 16-bit word
                 ipAddr->w[i++] = htons(value);
                 // Prepare to decode the next 16-bit word
