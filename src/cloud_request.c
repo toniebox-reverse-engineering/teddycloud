@@ -395,7 +395,12 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
 
                     char uri_base[256], uri_path[256], query_string[256];
                     // TODO: handling of relative URLs
-                    split_url(location, uri_base, uri_path, query_string);
+                    if (!split_url(location, uri_base, uri_path, query_string, sizeof(uri_base)))
+                    {
+                        TRACE_ERROR("Failed to parse redirect Location: %s\r\n", location);
+                        error = ERROR_INVALID_RESPONSE;
+                        break;
+                    }
 
                     TRACE_DEBUG("URI Base: %s\r\n", uri_base);
                     TRACE_DEBUG("URI Path: %s\r\n", uri_path);
@@ -530,13 +535,18 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
     return error;
 }
 
-void split_url(const char *location, char *uri_base, char *uri_path, char *query_string)
+bool_t split_url(const char *location, char *uri_base, char *uri_path, char *query_string, size_t buf_size)
 {
+    if (buf_size == 0)
+    {
+        return false;
+    }
+
     const char *scheme_end = strstr(location, "://");
     if (!scheme_end)
     {
         TRACE_ERROR("Invalid URL: Scheme not found\n");
-        return;
+        return false;
     }
     // Move pointer to start after "://"
     scheme_end += 3;
@@ -545,33 +555,34 @@ void split_url(const char *location, char *uri_base, char *uri_path, char *query
     if (!path_start)
     {
         TRACE_ERROR("Invalid URL: Path not found\n");
-        return;
+        return false;
     }
     const char *query_start = strchr(path_start, '?');
 
-    if (query_start)
+    // Base URI without scheme
+    size_t base_len = path_start - scheme_end;
+    // Path runs up to the query string (if any) or the end of the location
+    size_t path_len = query_start ? (size_t)(query_start - path_start) : osStrlen(path_start);
+    // Query string follows the '?'
+    size_t query_len = query_start ? osStrlen(query_start + 1) : 0;
+
+    if (base_len >= buf_size || path_len >= buf_size || query_len >= buf_size)
     {
-        // Copy base URI without scheme
-        strncpy(uri_base, scheme_end, path_start - scheme_end);
-        uri_base[path_start - scheme_end] = '\0';
-
-        // Copy path
-        strncpy(uri_path, path_start, query_start - path_start);
-        uri_path[query_start - path_start] = '\0';
-
-        // Copy query string
-        strcpy(query_string, query_start + 1);
+        TRACE_ERROR("Invalid URL: component exceeds buffer size\n");
+        return false;
     }
-    else
+
+    osMemcpy(uri_base, scheme_end, base_len);
+    uri_base[base_len] = '\0';
+
+    osMemcpy(uri_path, path_start, path_len);
+    uri_path[path_len] = '\0';
+
+    if (query_len > 0)
     {
-        // Copy base URI without scheme
-        strncpy(uri_base, scheme_end, path_start - scheme_end);
-        uri_base[path_start - scheme_end] = '\0';
-
-        // Copy path
-        strcpy(uri_path, path_start);
-
-        // No query string
-        query_string[0] = '\0';
+        osMemcpy(query_string, query_start + 1, query_len);
     }
+    query_string[query_len] = '\0';
+
+    return true;
 }
