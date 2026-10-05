@@ -37,7 +37,7 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         {
             break;
         }
-        uint32_t protoLength = (uint32_t)((buffer[pos] << 24) | (buffer[pos + 1] << 16) | (buffer[pos + 2] << 8) | buffer[pos + 3]);
+        uint32_t protoLength = ((uint32_t)(uint8_t)buffer[pos] << 24) | ((uint32_t)(uint8_t)buffer[pos + 1] << 16) | ((uint32_t)(uint8_t)buffer[pos + 2] << 8) | (uint32_t)(uint8_t)buffer[pos + 3];
 
         if (pos + 4 + protoLength > size)
         {
