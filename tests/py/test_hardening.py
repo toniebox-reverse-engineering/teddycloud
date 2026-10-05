@@ -27,6 +27,10 @@ from urllib.parse import quote, urlparse
 BASE = urlparse(os.environ.get("TEDDYCLOUD_BASE_URL", "http://127.0.0.1:80"))
 BIN = Path(__file__).resolve().parents[2] / "bin" / "teddycloud"
 BOUNDARY = "----hardening"
+# Known, not yet understood: an upload built by multipart() never gets a response
+# once the body reaches 64 KB (16 KB works). curl uploads 88 KB to the same
+# endpoint fine, so it depends on how the body is sent. Stay below this size.
+MAX_MULTIPART_BODY = 16000
 
 
 def request(method, path, body=None, headers=None, timeout=10):
@@ -40,7 +44,8 @@ def request(method, path, body=None, headers=None, timeout=10):
 
 
 def multipart(parts, boundary=BOUNDARY):
-    """parts: list of (filename, bytes). Returns (body, headers)."""
+    """parts: list of (filename, bytes). Returns (body, headers).
+    Bodies are limited to MAX_MULTIPART_BODY, see the note there."""
     body = b""
     for name, data in parts:
         body += (
@@ -48,6 +53,10 @@ def multipart(parts, boundary=BOUNDARY):
             "Content-Type: application/octet-stream\r\n\r\n"
         ).encode() + data + b"\r\n"
     body += f"--{boundary}--\r\n".encode()
+    if len(body) > MAX_MULTIPART_BODY:
+        raise ValueError(
+            f"multipart body is {len(body)} bytes, larger uploads than {MAX_MULTIPART_BODY} bytes hang (see MAX_MULTIPART_BODY)"
+        )
     return body, {"Content-Type": f"multipart/form-data; boundary={boundary}"}
 
 
