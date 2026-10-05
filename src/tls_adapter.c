@@ -716,7 +716,10 @@ error_t tlsParseCertificateList(TlsContext *context,
                 error = x509CheckNameConstraints(subjectName, issuerCertInfo);
                 // Should the application reject the certificate?
                 if (error)
-                    return ERROR_BAD_CERTIFICATE;
+                {
+                    error = ERROR_BAD_CERTIFICATE;
+                    break;
+                }
 
                 // Check the version of the certificate
                 if (issuerCertInfo->tbsCert.version < X509_VERSION_3)
