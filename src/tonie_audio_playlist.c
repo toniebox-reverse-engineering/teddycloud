@@ -1,11 +1,16 @@
 #include "tonie_audio_playlist.h"
 
 #include "fs_port.h"
+#include "str.h"
 #include "toniefile.h"
 #include "server_helpers.h"
 #include "cJSON.h"
 #include "json_helper.h"
 #include "handler.h"
+
+/* Upper bound on playlist entries, matching the fixed source array the
+   ffmpeg encoder (ffmpeg_stream/ffmpeg_convert) operates on. */
+#define TAP_MAX_FILES 99
 
 bool_t is_valid_tap_file(char *filename)
 {
@@ -72,13 +77,24 @@ error_t tap_load(char *filename, tonie_audio_playlist_t *tap)
             tap->name = jsonGetString(tapJson, "name");
             const cJSON *filesJson = cJSON_GetObjectItemCaseSensitive(tapJson, "files");
             tap->filesCount = cJSON_GetArraySize(filesJson);
+            /* The downstream encoder works on a fixed char[TAP_MAX_FILES][PATH_LEN]
+               array, so never load more entries than it can process. */
+            if (tap->filesCount > TAP_MAX_FILES)
+            {
+                TRACE_WARNING("TAP has %" PRIuSIZE " files, truncating to %d\r\n", tap->filesCount, TAP_MAX_FILES);
+                tap->filesCount = TAP_MAX_FILES;
+            }
             if (tap->filesCount > 0)
             {
                 tap->files = osAllocMem(tap->filesCount * sizeof(tap_file_t));
-                uint8_t i = 0;
+                size_t i = 0;
                 cJSON *fileJson;
                 cJSON_ArrayForEach(fileJson, filesJson)
                 {
+                    if (i >= tap->filesCount)
+                    {
+                        break;
+                    }
                     tap->files[i].filepath = jsonGetString(fileJson, "filepath");
                     tap->files[i]._filepath_resolved = strdup(tap->files[i].filepath);
                     resolveSpecialPathPrefix(&tap->files[i]._filepath_resolved, get_settings());
@@ -186,8 +202,8 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
     if (force || !tonieInfo->valid || tonieInfo->tafHeader->audio_id != tap->audio_id)
     {
         char *tmp_taf = custom_asprintf("%s.tmp", tap->_filepath_resolved);
-        char source[99][PATH_LEN];
-        if (tap->filesCount == 0)
+        char source[TAP_MAX_FILES][PATH_LEN];
+        if (tap->filesCount == 0 || tap->filesCount > TAP_MAX_FILES)
         {
             osFreeMem(tmp_taf);
             freeTonieInfo(tonieInfo);
@@ -196,7 +212,7 @@ error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bo
 
         for (size_t i = 0; i < tap->filesCount; i++)
         {
-            osStrcpy(source[i], tap->files[i]._filepath_resolved);
+            strSafeCopy(source[i], tap->files[i]._filepath_resolved, PATH_LEN);
         }
         // toniefile_t *taf = toniefile_create(tmp_taf, tap->audio_id, false, 0);
         error = ffmpeg_stream(source, tap->filesCount, current_source, tmp_taf, 0, active, &sweep, false, false);
