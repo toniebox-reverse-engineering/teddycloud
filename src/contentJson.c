@@ -51,7 +51,10 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
 
             while (pos < fileSize)
             {
-                fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead);
+                if (fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) != NO_ERROR || sizeRead == 0)
+                {
+                    break;
+                }
                 pos += sizeRead;
             }
             fsCloseFile(fsFile);

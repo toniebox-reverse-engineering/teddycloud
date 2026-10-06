@@ -50,7 +50,10 @@ error_t tap_load(char *filename, tonie_audio_playlist_t *tap)
 
     while (pos < fileSize)
     {
-        fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead);
+        if (fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) != NO_ERROR || sizeRead == 0)
+        {
+            break;
+        }
         pos += sizeRead;
     }
     fsCloseFile(fsFile);
