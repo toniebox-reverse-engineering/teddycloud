@@ -386,10 +386,18 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                 if (item->tracks_count > 0)
                 {
                     item->tracks = osAllocMem(item->tracks_count * sizeof(char *));
-                    uint8_t i = 0;
+                    size_t i = 0;
                     const cJSON *track;
                     cJSON_ArrayForEach(track, tracks)
                     {
+                        /* tracks_count is a uint8_t and was assigned from a
+                           (possibly larger, truncated) array size; never write
+                           past the allocation, and use a size_t index so it
+                           cannot wrap. */
+                        if (i >= item->tracks_count)
+                        {
+                            break;
+                        }
                         if (track != NULL && cJSON_IsString(track) && track->valuestring != NULL)
                         {
                             item->tracks[i++] = strdup(track->valuestring);
