@@ -1606,11 +1606,25 @@ error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const ch
     char *hash = strtok_r(NULL, "?", &savelocalUri);
     
     if (!typeStr || !hash) {
-        osFreeMem(localUri);    
+        osFreeMem(localUri);
         osFreeMem(query);
         return ERROR_FAILURE;
     }
-    
+
+    /* hash is concatenated into a local file path (local_dir + hash + ".bin")
+       and served with the Unsafe streamer, so it must be a plain hex string -
+       otherwise "/" or ".." would allow reading files outside the OTA dir. */
+    for (const char *h = hash; *h != '\0'; h++)
+    {
+        if (!((*h >= '0' && *h <= '9') || (*h >= 'a' && *h <= 'f') || (*h >= 'A' && *h <= 'F')))
+        {
+            TRACE_WARNING(" >> Rejecting V3 OTA request with non-hex hash\r\n");
+            osFreeMem(localUri);
+            osFreeMem(query);
+            return ERROR_FAILURE;
+        }
+    }
+
     cloudapi_ota_t fileId = (cloudapi_ota_t)atoi(typeStr);
     
     TRACE_INFO(" >> V3 OTA-Request for type %d with hash %s\r\n", fileId, hash);
