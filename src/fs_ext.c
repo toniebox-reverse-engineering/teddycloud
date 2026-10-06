@@ -254,7 +254,7 @@ error_t fsCreateDirEx(const char_t *path, bool_t recursive)
 
 error_t fsRemoveFilename(char *dir)
 {
-    if (dir == NULL)
+    if (dir == NULL || dir[0] == '\0')
     {
         return ERROR_INVALID_PARAMETER;
     }
