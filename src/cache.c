@@ -158,6 +158,16 @@ cache_entry_t *cache_add(const char *url)
         return NULL;
     }
 
+    /* Return the existing entry if this URL is already cached. cache_entry_add()
+       drops a duplicate without linking it, so without this the freshly built
+       entry (and its three strdup'd strings) would be orphaned and leaked - which
+       happens a lot because tonies.json repeats the same picture URL. */
+    cache_entry_t *existing = cache_fetch_by_url(url);
+    if (existing != NULL)
+    {
+        return existing;
+    }
+
     uint8_t sha256_calc[SHA256_DIGEST_SIZE];
     char sha256_calc_str[2 * SHA256_DIGEST_SIZE + 1];
 
