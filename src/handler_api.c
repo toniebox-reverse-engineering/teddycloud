@@ -67,6 +67,32 @@ void sanitizePath(char *path, bool isDir)
 
     pathCanonicalize(path);
 
+    /* Strip any leading "../" (and a bare "..") that survived canonicalization,
+       so a user-supplied relative path cannot climb above the base directory it
+       is later joined to. Without this the "merge to prevent directory traversal"
+       contract does not actually hold: "../../etc" stays "../../etc" and escapes
+       once prepended to the root. */
+    {
+        size_t strip = 0;
+        while (osStrncmp(path + strip, "../", 3) == 0)
+        {
+            strip += 3;
+        }
+        if (osStrcmp(path + strip, "..") == 0)
+        {
+            strip += 2;
+        }
+        if (strip > 0)
+        {
+            size_t w = 0;
+            for (size_t r = strip; path[r] != '\0'; r++)
+            {
+                path[w++] = path[r];
+            }
+            path[w] = '\0';
+        }
+    }
+
     /* Merge all double (or more) slashes // */
     for (i = 0, j = 0; path[i]; ++i)
     {
