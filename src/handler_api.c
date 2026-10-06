@@ -1642,6 +1642,13 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         TRACE_INFO("wifi pass '%s'\r\n", wifi_pass);
     }
 
+    /* filename is joined to the firmware dir; reject separators and ".." */
+    if (osStrchr(filename, '/') || osStrchr(filename, '\\') || osStrstr(filename, ".."))
+    {
+        TRACE_ERROR("Invalid firmware filename '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+
     const char *sep = osStrchr(filename, '_');
     if (!sep || strlen(&sep[1]) < 12)
     {
@@ -1650,6 +1657,16 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     }
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
+
+    /* mac ends up in file/dir names; require 12 hex chars so it cannot contain separators or ".." */
+    for (size_t i = 0; i < 12; i++)
+    {
+        if (!((mac[i] >= '0' && mac[i] <= '9') || (mac[i] >= 'a' && mac[i] <= 'f') || (mac[i] >= 'A' && mac[i] <= 'F')))
+        {
+            TRACE_ERROR("Invalid MAC '%s'\r\n", mac);
+            return ERROR_NOT_FOUND;
+        }
+    }
 
     char *file_path = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, filename);
     char *patched_path = custom_asprintf("%s%cpatched_%s.bin", rootPath, PATH_SEPARATOR, mac);

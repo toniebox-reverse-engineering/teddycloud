@@ -263,6 +263,11 @@ class Extract522(Base):
         )
         self.assertEqual(status, 404)
 
+    def test_patch_firmware_rejects_traversal(self):
+        for filename in ("x_../../../../", "../../etc/x_0123456789ab", "a/b_0123456789ab", "x_zzzzzzzzzzzz"):
+            status, _ = request("POST", "/api/esp32/patchFirmware?filename=" + quote(filename))
+            self.assertEqual(status, 404, filename)
+
 
 class Settings528(Base):
     """Settings are looked up by name; every option listed in the index must be found."""
