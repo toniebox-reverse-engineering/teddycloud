@@ -24,6 +24,7 @@ class Box:
             if profile.generation == 2:
                 raise NotImplementedError("TB2 needs the EC client certificate of the server_tb2 CA and its TLS chain, not simulated yet")
         self.profile = profile
+        self._contexts = {}
         self.mac = mac.lower()
         self.host = host
         self.port = https_port
@@ -52,8 +53,14 @@ class Box:
     def close(self):
         self._dir.cleanup()
 
-    def connect(self, use_cert=True):
+    def connect(self, use_cert=True, session=None):
         # IP literal: no SNI, like a real box (the server picks other certs when SNI is present)
+        ctx = self._contexts.get(use_cert) or self._context(use_cert)
+        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=5),
+                               server_hostname=(self.profile.tls.sni if self.profile and self.profile.tls.sni else None),
+                               session=session)
+
+    def _context(self, use_cert):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -65,11 +72,12 @@ class Box:
                 ctx.set_ciphers(tls.ciphers)
         if use_cert:
             ctx.load_cert_chain(certfile=self.cert, keyfile=self.key)
-        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=5), server_hostname=(tls.sni if tls and tls.sni else None))
+        self._contexts[use_cert] = ctx
+        return ctx
 
-    def request(self, method, path, body=b"", headers=None, use_cert=True):
+    def request(self, method, path, body=b"", headers=None, use_cert=True, session=None):
         """One request on a fresh connection. Returns (status, headers, body)."""
-        s = self.connect(use_cert)
+        s = self.connect(use_cert, session)
         try:
             head = f"{method} {path} HTTP/1.1\r\nHost: {self.host}\r\nUser-Agent: {self.user_agent}\r\nConnection: close\r\n"
             head += f"Content-Length: {len(body)}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in (headers or {}).items())

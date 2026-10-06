@@ -61,6 +61,14 @@ def test_box_with_cert_is_authenticated(box):
     assert status == 200, body
 
 
+def test_box_is_authenticated_on_a_second_connection(box):
+    first = box.connect()
+    session = first.session
+    first.close()
+    status, _, _ = box.request("GET", "/v1/time", session=session)
+    assert status == 200
+
+
 def test_request_without_cert_is_rejected(box):
     assert box.request("GET", "/v1/time", use_cert=False)[0] == 401
 
