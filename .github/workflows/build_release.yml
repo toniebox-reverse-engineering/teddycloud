@@ -31,6 +31,13 @@ jobs:
         mkdir -p data/www/web
         cp -r contrib/data/www/web/. data/www/web/
 
+    # generating the test certificates takes minutes, see tests/py/with_server.sh
+    - name: Cache test template
+      uses: actions/cache@v4
+      with:
+        path: bin/test-template
+        key: test-template-${{ hashFiles('src/cert.c', 'include/cert.h') }}
+
     - name: Run all tests
       run: make test
 

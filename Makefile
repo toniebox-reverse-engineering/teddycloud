@@ -15,15 +15,15 @@ EXECUTABLE     = $(BIN_DIR)/teddycloud$(EXEC_EXT)
 LINK_LO_FILE   = $(EXECUTABLE).lo
 PLATFORM      ?= linux
 OPTI_LEVEL    ?= -O2
-TEST_API_HTTP_PORT ?= 18080
-TEST_API_HTTPS_PORT ?= 18443
-TEST_API_HTTPS_API_PORT ?= 18444
-TEST_AUTH_HTTP_PORT ?= 18090
-TEST_AUTH_HTTPS_PORT ?= 18453
-TEST_AUTH_HTTPS_API_PORT ?= 18454
-TEST_WEB_LEGACY_HTTP_PORT ?= 18100
-TEST_WEB_LEGACY_HTTPS_PORT ?= 18463
-TEST_WEB_LEGACY_HTTPS_API_PORT ?= 18464
+TEST_API_HTTP_PORT ?= 0
+TEST_API_HTTPS_PORT ?= 0
+TEST_API_HTTPS_API_PORT ?= 0
+TEST_AUTH_HTTP_PORT ?= 0
+TEST_AUTH_HTTPS_PORT ?= 0
+TEST_AUTH_HTTPS_API_PORT ?= 0
+TEST_WEB_LEGACY_HTTP_PORT ?= 0
+TEST_WEB_LEGACY_HTTPS_PORT ?= 0
+TEST_WEB_LEGACY_HTTPS_API_PORT ?= 0
 
 ifeq ($(OS),Windows_NT)
 	SHELL_ENV ?= cmd
@@ -817,7 +817,7 @@ test_api_custom_json:
 test_api_custom_json_with_server: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run custom JSON API tests, stop server"
 	$(QUIET)tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
-		env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_tonies_custom_json_api.py
+		python3 tests/py/test_tonies_custom_json_api.py
 
 TEST_C_SRC := $(wildcard tests/c/*.c)
 
@@ -842,23 +842,23 @@ test_hardening_with_server: build
 	$(QUIET)rc=0; for t in $(HARDENING_TESTS); do \
 		ASAN_OPTIONS="$${ASAN_OPTIONS:+$$ASAN_OPTIONS:}max_malloc_fill_size=1073741824" \
 		tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
-			env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_hardening.py $$t || rc=1; \
+			python3 tests/py/test_hardening.py $$t || rc=1; \
 	done; exit $$rc
 
 .PHONY: test_cors_preflight_with_server
 test_cors_preflight_with_server: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run CORS preflight test, stop server"
 	$(QUIET)tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 30 -- \
-		env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_API_HTTP_PORT) python3 tests/py/test_cors_preflight.py
+		python3 tests/py/test_cors_preflight.py
 
 .PHONY: test_auth_pool_reuse_with_server
 test_auth_pool_reuse_with_server: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, run pooled-connection auth regression test, stop server"
 	$(QUIET)tests/py/with_server.sh $(TEST_AUTH_HTTP_PORT) $(TEST_AUTH_HTTPS_PORT) $(TEST_AUTH_HTTPS_API_PORT) 600 -- \
-		env TEDDYCLOUD_HTTPS_API_PORT=$(TEST_AUTH_HTTPS_API_PORT) tests/py/run_auth_pool_reuse.sh
+		tests/py/run_auth_pool_reuse.sh
 
 .PHONY: test_web_legacy_gone_with_server
 test_web_legacy_gone_with_server: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Start server, verify legacy admin GUI is gone, stop server"
 	$(QUIET)tests/py/with_server.sh $(TEST_WEB_LEGACY_HTTP_PORT) $(TEST_WEB_LEGACY_HTTPS_PORT) $(TEST_WEB_LEGACY_HTTPS_API_PORT) 600 -- \
-		env TEDDYCLOUD_BASE_URL=http://127.0.0.1:$(TEST_WEB_LEGACY_HTTP_PORT) python3 tests/py/test_web_legacy_gone.py
+		python3 tests/py/test_web_legacy_gone.py
