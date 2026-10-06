@@ -731,6 +731,7 @@ bool settings_set_by_string_id(const char *item, const char *value, uint8_t sett
 void settings_load_all_certs();
 error_t settings_try_load_certs_id(uint8_t settingsId);
 error_t settings_load_certs_id(uint8_t settingsId);
+void settings_load_client_certs_id(uint8_t settingsId);
 bool test_boxine_ca(uint8_t settingsId);
 
 #endif
