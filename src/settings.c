@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "version.h"
 #include "debug.h"
@@ -42,6 +43,22 @@ static char *settings_sanitize_box_id(const char *input_id);
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
+/* name-sorted index into Option_Map_Overlay for O(log n) lookups by name;
+   rebuilt whenever the option map is (re)built, freed in settings_deinit_ovl */
+static setting_item_t **Option_Sorted_Overlay[MAX_OVERLAYS];
+
+static int settings_option_name_qsort_cmp(const void *a, const void *b)
+{
+    const setting_item_t *x = *(setting_item_t *const *)a;
+    const setting_item_t *y = *(setting_item_t *const *)b;
+    return osStrcmp(x->option_name, y->option_name);
+}
+
+static int settings_option_name_bsearch_cmp(const void *key, const void *elem)
+{
+    const setting_item_t *opt = *(setting_item_t *const *)elem;
+    return osStrcmp((const char *)key, opt->option_name);
+}
 static uint16_t settings_size = 0;
 static char *config_file_path = NULL;
 static char *config_overlay_file_path = NULL;
@@ -367,6 +384,22 @@ static void option_map_init(uint8_t settingsId)
     }
 
     osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
+
+    /* (Re)build the name-sorted lookup index. Leaves Option_Map_Overlay in its
+       original declaration order (the web UI relies on it); only this parallel
+       pointer array is sorted. */
+    if (Option_Sorted_Overlay[settingsId] == NULL)
+    {
+        Option_Sorted_Overlay[settingsId] = osAllocMem(sizeof(setting_item_t *) * settings_size);
+    }
+    if (Option_Sorted_Overlay[settingsId] != NULL)
+    {
+        for (uint16_t idx = 0; idx < settings_size; idx++)
+        {
+            Option_Sorted_Overlay[settingsId][idx] = &Option_Map_Overlay[settingsId][idx];
+        }
+        qsort(Option_Sorted_Overlay[settingsId], settings_size, sizeof(setting_item_t *), settings_option_name_qsort_cmp);
+    }
 }
 
 static setting_item_t *get_option_map(const char *overlay)
@@ -700,6 +733,9 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
 
     osFreeMem(Option_Map_Overlay[overlayNumber]);
     Option_Map_Overlay[overlayNumber] = NULL;
+
+    osFreeMem(Option_Sorted_Overlay[overlayNumber]);
+    Option_Sorted_Overlay[overlayNumber] = NULL;
 }
 
 void settings_deinit()
@@ -1235,6 +1271,20 @@ static setting_item_t *settings_get_by_name_id(const char *item, uint8_t setting
         TRACE_ERROR("Overlay %d not found\r\n", settingsId);
         return NULL;
     }
+    /* Fast path: binary search the name-sorted index built in option_map_init. */
+    setting_item_t **sorted = Option_Sorted_Overlay[settingsId];
+    if (sorted != NULL)
+    {
+        setting_item_t **found = bsearch(item, sorted, settings_size, sizeof(setting_item_t *), settings_option_name_bsearch_cmp);
+        if (found != NULL)
+        {
+            return *found;
+        }
+        TRACE_WARNING("Setting item '%s' not found\r\n", item);
+        return NULL;
+    }
+
+    /* Fallback: linear scan if the sorted index is unavailable. */
     while (option_map[pos].type != TYPE_END)
     {
         if (!strcmp(item, option_map[pos].option_name))
