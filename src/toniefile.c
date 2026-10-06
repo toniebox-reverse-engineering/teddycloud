@@ -125,13 +125,25 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         ctx->file = fsOpenFileEx(fullPath, "r+");
         TRACE_INFO("Append to TAF: %s\n", fullPath);
 
-        char buffer[TONIEFILE_FRAME_SIZE];
-        size_t read_length = 0;
-        fsSeekFile(ctx->file, 4, SEEK_SET);
-        fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
-        tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
-        audio_id = tafHeader->audio_id;
-        ctx->taf.audio_id = audio_id;
+        if (ctx->file != NULL)
+        {
+            char buffer[TONIEFILE_FRAME_SIZE];
+            size_t read_length = 0;
+            fsSeekFile(ctx->file, 4, SEEK_SET);
+            fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
+            tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
+            if (tafHeader == NULL)
+            {
+                TRACE_ERROR("Cannot parse existing TAF header, refusing to append: %s\n", fullPath);
+                fsCloseFile(ctx->file);
+                osFreeMem(ctx->taf.track_page_nums);
+                osFreeMem(ctx);
+                return NULL;
+            }
+            audio_id = tafHeader->audio_id;
+            ctx->taf.audio_id = audio_id;
+            toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+        }
     }
     else
     {
