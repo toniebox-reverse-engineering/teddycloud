@@ -200,6 +200,70 @@ class KeyPermissions512(Base):
             self.assertEqual(mode & 0o077, 0, f"private.der has mode {mode:o}")
 
 
+class Traversal513(Base):
+    """A relative path starting with ".." survived sanitizePath() and escaped the base directory."""
+
+    OUTSIDE = Path(__file__).resolve().parents[2] / "data" / "__hardening513.txt"  # next to data/library
+
+    def test_dotdot_path_stays_in_root(self):
+        self.OUTSIDE.write_text("must survive")
+        try:
+            request("POST", "/api/fileDelete?special=library", "../__hardening513.txt")
+            self.assertTrue(self.OUTSIDE.exists(), "fileDelete removed a file outside the library directory")
+        finally:
+            self.OUTSIDE.unlink(missing_ok=True)
+
+
+class Ota(Base):
+    """Local V3 OTA delivery: /v3/ota/<type>/<hash> serves <firmware>/ota/<type>/<hash>.bin.
+    OTA hashes with ".." can't be tested over HTTP, the URI is canonicalised before the handler runs."""
+
+    FIRMWARE = Path(__file__).resolve().parents[2] / "data" / "firmware"
+
+    def setUp(self):
+        super().setUp()
+        self.files = []
+        for name, value in (("cloud.enabled", "false"), ("cloud.localOta", "true")):
+            self.assertEqual(request("POST", f"/api/settings/set/{name}", value)[0], 200)
+
+    def tearDown(self):
+        for f in self.files:
+            f.unlink(missing_ok=True)
+        for d in ("ota/1", "ota"):
+            try:
+                (self.FIRMWARE / d).rmdir()  # only removes the directories the test created, if empty
+            except OSError:
+                pass
+        super().tearDown()
+
+    def put_firmware(self, relative, data):
+        f = self.FIRMWARE / relative
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(data)
+        self.files.append(f)
+
+
+class Range515(Ota):
+    """A Range start behind the end of the file made Content-Length underflow to ~4 GB."""
+
+    def test_range_start_past_end(self):
+        self.put_firmware("ota/1/abcdef.bin", b"0123456789")
+        status, text = request("GET", "/v3/ota/1/abcdef", headers={"Range": "bytes=100-"}, timeout=5)
+        self.assertEqual((status, text), (200, "0123456789"))
+
+
+class Extract522(Base):
+    """extractCerts used the filename and MAC as path components without validation."""
+
+    def test_traversal_mac_is_rejected(self):
+        # "../../../../" is 12 characters and resolves to an existing directory, so an
+        # unfixed server fails later on the missing firmware file instead of creating anything
+        status, _ = request(
+            "POST", "/api/esp32/extractCerts?filename=" + quote("x_../../../../") + "&overwrite=false"
+        )
+        self.assertEqual(status, 404)
+
+
 class Secrets505(Base):
     """getIndex with nolevel=t returned the LEVEL_SECRET values, i.e. the private keys."""
 
