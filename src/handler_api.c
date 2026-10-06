@@ -1469,6 +1469,14 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
         return ERROR_FAILURE;
     }
 
+    /* filename is joined to the firmware dir and opened; reject any path
+       separators or ".." so it cannot point outside that directory. */
+    if (osStrchr(filename, '/') || osStrchr(filename, '\\') || osStrstr(filename, ".."))
+    {
+        TRACE_ERROR("Invalid firmware filename '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+
     bool overwrite = false;
     bool overwriteBase = false;
     if (queryGet(queryString, "overwrite", overwrite_s, sizeof(overwrite_s)))
@@ -1488,6 +1496,17 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
     osStringToLower(mac);
+
+    /* mac becomes a directory name under the cert dir; require 12 hex chars so
+       it cannot contain separators or ".." and escape the cert directory. */
+    for (size_t i = 0; i < 12; i++)
+    {
+        if (!((mac[i] >= '0' && mac[i] <= '9') || (mac[i] >= 'a' && mac[i] <= 'f')))
+        {
+            TRACE_ERROR("Invalid MAC '%s'\r\n", mac);
+            return ERROR_NOT_FOUND;
+        }
+    }
 
     char *file_path = custom_asprintf("%s%c%s", firmwareRootPath, PATH_SEPARATOR, filename);
     char *target_dir = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, mac);
