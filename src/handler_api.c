@@ -1608,6 +1608,8 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     char patch_host[32] = {0};
     char wifi_ssid[64] = {0};
     char wifi_pass[64] = {0};
+    char port_text[8] = {0};
+    uint32_t port = 0;
     char filename[255] = {0};
     char mac[13] = {0};
     osStrcpy(old_patch_host, "");
@@ -1628,6 +1630,12 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     if (queryGet(queryString, "hostname_old", old_patch_host, sizeof(old_patch_host)))
     {
         TRACE_INFO("Patch hostnames with old hostname '%s'\r\n", old_patch_host);
+    }
+
+    if (queryGet(queryString, "port", port_text, sizeof(port_text)))
+    {
+        port = (uint32_t)strtoul(port_text, NULL, 10);
+        TRACE_INFO("Patch port %" PRIu32 "\r\n", port);
     }
 
     if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
@@ -1716,6 +1724,15 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (port != 0)
+    {
+        if (esp32_patch_port(patched_path, port) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch port\r\n");
             return ERROR_NOT_FOUND;
         }
     }

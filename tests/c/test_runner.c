@@ -23,6 +23,7 @@ static const test_case_t tests[] = {
     {"escape_string", test_escape_string},
     {"split_url", test_split_url},
     {"ipv4_is_public", test_ipv4_is_public},
+    {"esp32_port_patch", test_esp32_port_patch},
 };
 
 int main(void)

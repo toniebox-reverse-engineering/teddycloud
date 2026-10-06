@@ -9,3 +9,4 @@ void test_hex_encode(void);
 void test_escape_string(void);
 void test_split_url(void);
 void test_ipv4_is_public(void);
+void test_esp32_port_patch(void);
