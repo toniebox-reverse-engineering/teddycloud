@@ -784,11 +784,13 @@ static error_t httpServerConfigureTls(
 
     tls_context_key_log_init(tlsContext);
 
-    // Session cache that will be used to save/resume TLS sessions
-    error = tlsSetCache(tlsContext, tlsCache);
-    // Any error to report?
-    if (error)
-        return error;
+    // A resumed session carries no client certificate, so the box cannot be identified on it
+    if (authMode == TLS_CLIENT_AUTH_NONE)
+    {
+        error = tlsSetCache(tlsContext, tlsCache);
+        if (error)
+            return error;
+    }
 
     // Enable secure renegotiation, otherwise modern OpenSSL clients (e.g., Python 3 requests) reject the connection
     error = tlsEnableSecureRenegotiation(tlsContext, TRUE);
