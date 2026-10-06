@@ -825,13 +825,13 @@ TEST_C_SRC := $(wildcard tests/c/*.c)
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I cyclone/common -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c
+	$(QUIET)$(CC) -I include -I cyclone/common -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
 test: test_c test_api_custom_json_with_server test_auth_pool_reuse_with_server test_web_legacy_gone_with_server test_cors_preflight_with_server test_hardening_with_server
 
-HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Tap495 Crawler508 KeyPermissions512 Secrets505 Traversal513 Range515 Extract522
+HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Tap495 Crawler508 KeyPermissions512 Secrets505 Traversal513 Range515 Extract522 Settings528
 
 # one fresh server per test class, a crash must only fail its own test.
 # ASan fills only the first 4 KiB of a new allocation with garbage by default;

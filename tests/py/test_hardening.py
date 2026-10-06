@@ -264,6 +264,26 @@ class Extract522(Base):
         self.assertEqual(status, 404)
 
 
+class Settings528(Base):
+    """Settings are looked up by name; every option listed in the index must be found."""
+
+    def test_every_listed_setting_is_found(self):
+        status, text = request("GET", "/api/settings/getIndex?internal=t")
+        self.assertEqual(status, 200)
+        options = json.loads(text)["options"]
+        self.assertGreater(len(options), 100)
+        missing = []
+        for option in options:
+            if option.get("type") in ("header", None) or "ID" not in option:
+                continue
+            status, value = request("GET", "/api/settings/get/" + option["ID"])
+            if status != 200:
+                missing.append((option["ID"], status))
+            elif option.get("type") in ("string", "bool", "int", "uint") and "value" in option:
+                self.assertEqual(value, str(option["value"]).lower() if option["type"] == "bool" else str(option["value"]), option["ID"])
+        self.assertEqual(missing, [])
+
+
 class Secrets505(Base):
     """getIndex with nolevel=t returned the LEVEL_SECRET values, i.e. the private keys."""
 
