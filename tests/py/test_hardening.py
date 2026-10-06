@@ -272,6 +272,69 @@ class Extract522(Base):
             self.assertEqual(status, 404, filename)
 
 
+class PrivateFetch(Base):
+    """A tonie `pic` URL is downloaded into the image cache and served back from /cache/: it must not be
+    possible to make the server read internal services (SSRF), unless core.allowPrivateFetch is set."""
+
+    def setUp(self):
+        super().setUp()
+        import hashlib
+        import threading
+        import http.server
+
+        self.hits = []
+        hits = self.hits
+
+        class Internal(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                hits.append(self.path)
+                body = b"INTERNAL-SECRET"
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        self.internal = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Internal)
+        threading.Thread(target=self.internal.serve_forever, daemon=True).start()
+        self.sha = lambda url: hashlib.sha256(url.encode()).hexdigest().upper()
+        self.set("tonie_json.cache_images", "true")
+        self.set("core.allowPrivateFetch", "false")  # the server is shared with the other test of this class
+
+    def tearDown(self):
+        self.internal.shutdown()
+        self.internal.server_close()
+        super().tearDown()
+
+    def set(self, name, value):
+        self.assertEqual(request("POST", f"/api/settings/set/{name}", value)[0], 200)
+        self.assertEqual(request("GET", "/api/triggerWriteConfig")[0], 200)  # a reload would drop it otherwise
+        time.sleep(1.5)
+
+    def fetch_via_cache(self, name):
+        url = f"http://127.0.0.1:{self.internal.server_address[1]}/{name}.txt"
+        audio_id = 999000 + sum(map(ord, name))  # unique per name, duplicates are rejected
+        entry = [{"model": "ZZZ_" + name, "series": "S", "audio_id": [audio_id], "hash": [f"{audio_id:040x}"],
+                  "title": "t", "tracks": ["a"], "pic": url}]
+        self.assertEqual(request("POST", "/api/toniesCustomJsonUpsert", json.dumps(entry), {"Content-Type": "application/json"})[0], 200)
+        self.assertEqual(request("GET", "/api/toniesJsonReload")[0], 200)
+        time.sleep(1)
+        return request("GET", f"/cache/{self.sha(url)}.txt")
+
+    def test_private_address_is_refused_by_default(self):
+        status, text = self.fetch_via_cache("blocked")
+        self.assertEqual(self.hits, [], "the server connected to a private address")
+        self.assertNotIn("INTERNAL-SECRET", text)
+
+    def test_private_address_can_be_allowed(self):
+        self.set("core.allowPrivateFetch", "true")
+        status, text = self.fetch_via_cache("allowed")
+        self.assertEqual((status, text), (200, "INTERNAL-SECRET"))
+        self.assertEqual(self.hits, ["/allowed.txt"])
+
+
 class Settings528(Base):
     """Settings are looked up by name; every option listed in the index must be found."""
 

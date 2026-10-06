@@ -8,3 +8,4 @@ void test_fs_remove_filename(void);
 void test_hex_encode(void);
 void test_escape_string(void);
 void test_split_url(void);
+void test_ipv4_is_public(void);

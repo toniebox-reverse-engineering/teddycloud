@@ -214,6 +214,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
     OPTION_BOOL("core.boxCertAuth", &settings->core.boxCertAuth, TRUE, "HTTPS box cert auth", "Client certificates are required for access to the HTTPS API for the boxes", LEVEL_EXPERT)
+    OPTION_BOOL("core.allowPrivateFetch", &settings->core.allowPrivateFetch, FALSE, "Allow downloads from private networks", "Allow the server to download from addresses in the local/private network (e.g. images of tonies hosted on a NAS). Off by default, as a user-supplied URL could otherwise make the server read internal services (SSRF).", LEVEL_EXPERT)
     OPTION_BOOL("core.allowNewBox", &settings->core.allowNewBox, TRUE, "Allow new boxes", "Allow new boxes to be added, if they try to connect", LEVEL_BASIC)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)

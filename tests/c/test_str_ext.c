@@ -109,3 +109,44 @@ void test_split_url(void)
     assert(!split_url("https://h/1234567?q", b, p, q, 8));
     assert(!split_url("https://h/p?12345678", b, p, q, 8));
 }
+
+static bool is_public(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+    const uint8_t ip[4] = {a, b, c, d};
+    return ipv4_is_public(ip);
+}
+
+void test_ipv4_is_public(void)
+{
+    /* public */
+    assert(is_public(8, 8, 8, 8));
+    assert(is_public(1, 1, 1, 1));
+    assert(is_public(172, 15, 255, 255)); /* just below 172.16/12 */
+    assert(is_public(172, 32, 0, 1));     /* just above */
+    assert(is_public(100, 63, 255, 255)); /* just below 100.64/10 */
+    assert(is_public(100, 128, 0, 1));    /* just above */
+    assert(is_public(198, 17, 0, 1));
+    assert(is_public(198, 20, 0, 1));
+    assert(is_public(223, 255, 255, 255));
+
+    /* not public */
+    assert(!is_public(0, 0, 0, 0));
+    assert(!is_public(10, 1, 2, 3));
+    assert(!is_public(100, 64, 0, 1));
+    assert(!is_public(100, 127, 255, 255));
+    assert(!is_public(127, 0, 0, 1));
+    assert(!is_public(127, 255, 255, 254));
+    assert(!is_public(169, 254, 169, 254)); /* cloud metadata */
+    assert(!is_public(172, 16, 0, 1));
+    assert(!is_public(172, 31, 255, 255));
+    assert(!is_public(192, 0, 0, 1));
+    assert(!is_public(192, 0, 2, 1));
+    assert(!is_public(192, 168, 1, 1));
+    assert(!is_public(198, 18, 0, 1));
+    assert(!is_public(198, 19, 255, 255));
+    assert(!is_public(198, 51, 100, 7));
+    assert(!is_public(203, 0, 113, 9));
+    assert(!is_public(224, 0, 0, 1));
+    assert(!is_public(240, 0, 0, 1));
+    assert(!is_public(255, 255, 255, 255));
+}

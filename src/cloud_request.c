@@ -252,6 +252,16 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
         ipv4AddrToString(ipAddr.ipv4Addr, host);
         TRACE_INFO("  trying IP: %s\n", host);
 
+        /* Downloads of user supplied URLs (image cache, redirects) must not reach internal services (SSRF).
+           The address checked is the one connected to, so a changing DNS answer can't get around it.
+           Cloud requests go to the configured cloud host and are not affected. */
+        if (!isCloud && !settings->core.allowPrivateFetch && !ipv4_is_public((const uint8_t *)&ipAddr.ipv4Addr))
+        {
+            TRACE_ERROR("Refusing to connect to non-public address %s (host '%s'), see core.allowPrivateFetch\r\n", host, server);
+            error = ERROR_ACCESS_DENIED;
+            break;
+        }
+
         do
         {
             error = httpClientConnect(&httpClientContext, &ipAddr,

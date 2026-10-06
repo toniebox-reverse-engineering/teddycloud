@@ -22,6 +22,7 @@ static const test_case_t tests[] = {
     {"hex_encode", test_hex_encode},
     {"escape_string", test_escape_string},
     {"split_url", test_split_url},
+    {"ipv4_is_public", test_ipv4_is_public},
 };
 
 int main(void)

@@ -335,6 +335,7 @@ typedef struct
     char *allowOrigin;
     bool boxCertAuth;
     bool allowNewBox;
+    bool allowPrivateFetch;
 
     bool flex_enabled;
     char *flex_uid;

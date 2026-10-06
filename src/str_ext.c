@@ -102,3 +102,21 @@ bool split_url(const char *location, char *uri_base, char *uri_path, char *query
 
     return true;
 }
+
+bool ipv4_is_public(const uint8_t ip[4])
+{
+    uint8_t a = ip[0], b = ip[1], c = ip[2];
+    return !(a == 0                                  /* 0.0.0.0/8 this network */
+             || a == 10                              /* 10.0.0.0/8 private */
+             || (a == 100 && (b & 0xC0) == 64)       /* 100.64.0.0/10 shared address space */
+             || a == 127                             /* 127.0.0.0/8 loopback */
+             || (a == 169 && b == 254)               /* 169.254.0.0/16 link-local, cloud metadata */
+             || (a == 172 && (b & 0xF0) == 16)       /* 172.16.0.0/12 private */
+             || (a == 192 && b == 0 && c == 0)       /* 192.0.0.0/24 IETF protocol assignments */
+             || (a == 192 && b == 0 && c == 2)       /* 192.0.2.0/24 documentation */
+             || (a == 192 && b == 168)               /* 192.168.0.0/16 private */
+             || (a == 198 && (b & 0xFE) == 18)       /* 198.18.0.0/15 benchmarking */
+             || (a == 198 && b == 51 && c == 100)    /* 198.51.100.0/24 documentation */
+             || (a == 203 && b == 0 && c == 113)     /* 203.0.113.0/24 documentation */
+             || a >= 224);                           /* multicast, reserved, broadcast */
+}

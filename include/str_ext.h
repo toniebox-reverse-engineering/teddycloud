@@ -24,3 +24,10 @@ size_t escapeString(const char *input, size_t size, char *output, size_t output_
  * scheme or path, or a part does not fit.
  */
 bool split_url(const char *location, char *uri_base, char *uri_path, char *query_string, size_t buf_size);
+
+/*
+ * True if the IPv4 address (4 bytes, a.b.c.d) is a public unicast address. False for everything a server
+ * must not be made to fetch from on behalf of a user: "this" network, loopback, private (RFC 1918),
+ * shared/CGNAT, link-local (cloud metadata), IETF/test/benchmark ranges, multicast, reserved, broadcast.
+ */
+bool ipv4_is_public(const uint8_t ip[4]);
