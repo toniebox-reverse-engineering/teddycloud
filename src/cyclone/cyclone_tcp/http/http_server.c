@@ -1089,20 +1089,36 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    }
 
    // Format HTTP response header
-   //  TODO add status 416 on invalid ranges
    if (connection->request.Range.start > 0)
    {
       connection->request.Range.size = file_length;
-      if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-         connection->request.Range.end = connection->request.Range.size - 1;
 
-      if (connection->response.contentRange == NULL)
-         connection->response.contentRange = osAllocMem(255);
+      uint32_t rangeStart = connection->request.Range.start;
+      uint32_t rangeEnd = connection->request.Range.end;
+      /* open-ended ("bytes=N-") or oversized end -> last byte */
+      if (rangeEnd == 0 || rangeEnd >= file_length)
+         rangeEnd = (file_length > 0) ? file_length - 1 : 0;
 
-      osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
-      connection->response.statusCode = 206;
-      connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
-      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+      /* Reject an unsatisfiable range (start past the data, start after end,
+         or empty resource) instead of computing end-start+1, which would
+         underflow to a ~4 GB contentLength and desync the connection. Fall
+         back to serving the full content. */
+      if (file_length == 0 || rangeStart >= file_length || rangeStart > rangeEnd ||
+          (connection->response.contentRange == NULL &&
+           (connection->response.contentRange = osAllocMem(255)) == NULL))
+      {
+         connection->request.Range.start = 0;
+         connection->response.statusCode = 200;
+         connection->response.contentLength = length;
+      }
+      else
+      {
+         connection->request.Range.end = rangeEnd;
+         osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, rangeStart, rangeEnd, connection->request.Range.size);
+         connection->response.statusCode = 206;
+         connection->response.contentLength = rangeEnd - rangeStart + 1;
+         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+      }
    }
    else
    {
@@ -1125,6 +1141,13 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
 
    // Send the header to the client
    error = httpWriteHeader(connection);
+   // The Content-Range string has now been serialized into the header; free it
+   // here so it does not leak (the response struct is zeroed per request).
+   if (connection->response.contentRange != NULL)
+   {
+      osFreeMem((void *)connection->response.contentRange);
+      connection->response.contentRange = NULL;
+   }
    // Any error to report?
    if (error)
    {
