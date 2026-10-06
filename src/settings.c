@@ -19,7 +19,7 @@
 
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
-static void settings_deinit_ovl(uint8_t overlayNumber);
+static void settings_deinit_ovl(uint8_t overlayNumber, bool reload);
 static void overlay_settings_init();
 static void settings_generate_internal_dirs(settings_t *settings);
 static void settings_changed();
@@ -46,6 +46,68 @@ static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
 /* name-sorted index into Option_Map_Overlay for O(log n) lookups by name;
    rebuilt whenever the option map is (re)built, freed in settings_deinit_ovl */
 static setting_item_t **Option_Sorted_Overlay[MAX_OVERLAYS];
+
+/* Request threads read settings strings/arrays without a lock while the main loop reloads and replaces
+   them (settings_loop -> settings_load, settings changes). Freeing the old memory right away is a
+   use-after-free for such a reader, so replaced memory is parked here and released after a grace period.
+   ponytail: fixed grace period; a request running longer than that could still read freed memory
+   (http client timeouts are far below). Proper fix: reference-counted settings snapshots. */
+#define SETTINGS_FREE_GRACE_S 120
+typedef struct
+{
+    void *ptr;
+    time_t when;
+} settings_parked_t;
+static settings_parked_t *settings_parked = NULL;
+static size_t settings_parked_len = 0;
+
+static void settings_free_later(void *ptr)
+{
+    if (ptr == NULL)
+    {
+        return;
+    }
+    mutex_lock(MUTEX_SETTINGS_FREE);
+    settings_parked_t *grown = realloc(settings_parked, sizeof(settings_parked_t) * (settings_parked_len + 1));
+    if (grown != NULL)
+    {
+        settings_parked = grown;
+        settings_parked[settings_parked_len].ptr = ptr;
+        settings_parked[settings_parked_len].when = time(NULL);
+        settings_parked_len++;
+    }
+    else
+    {
+        osFreeMem(ptr); // out of memory: better a (very unlikely) race than a leak
+    }
+    mutex_unlock(MUTEX_SETTINGS_FREE);
+}
+
+/* all: also release what is still within the grace period (shutdown) */
+static void settings_free_parked(bool all)
+{
+    mutex_lock(MUTEX_SETTINGS_FREE);
+    time_t now = time(NULL);
+    size_t keep = 0;
+    for (size_t i = 0; i < settings_parked_len; i++)
+    {
+        if (all || now - settings_parked[i].when >= SETTINGS_FREE_GRACE_S)
+        {
+            osFreeMem(settings_parked[i].ptr);
+        }
+        else
+        {
+            settings_parked[keep++] = settings_parked[i];
+        }
+    }
+    settings_parked_len = keep;
+    if (keep == 0 && settings_parked != NULL)
+    {
+        free(settings_parked);
+        settings_parked = NULL;
+    }
+    mutex_unlock(MUTEX_SETTINGS_FREE);
+}
 
 static int settings_option_name_qsort_cmp(const void *a, const void *b)
 {
@@ -458,7 +520,7 @@ static void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit_ovl(i);
+        settings_deinit_ovl(i, true);
 
         option_map_init(i);
 
@@ -598,52 +660,69 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     fsFixPath(*resolvedPath);
 }
 
+/* Builds the new paths on the side and swaps the pointers in one go: readers see either the old (parked,
+   still valid) or the new complete path, never a half written one. */
+static char *settings_alloc_path()
+{
+    char *path = osAllocMem(256);
+    osMemset(path, 0, 256);
+    return path;
+}
+
 static void settings_generate_internal_dirs(settings_t *settings)
 {
-    osFreeMem(settings->internal.basedirfull);
-    osFreeMem(settings->internal.certdirfull);
-    osFreeMem(settings->internal.configdirfull);
-    osFreeMem(settings->internal.contentdirrel);
-    osFreeMem(settings->internal.contentdirfull);
-    osFreeMem(settings->internal.librarydirfull);
-    osFreeMem(settings->internal.datadirfull);
-    osFreeMem(settings->internal.wwwdirfull);
-    osFreeMem(settings->internal.pluginsdirfull);
-    osFreeMem(settings->internal.firmwaredirfull);
-    osFreeMem(settings->internal.cachedirfull);
+    char *basedirfull = settings_alloc_path();
+    char *certdirfull = settings_alloc_path();
+    char *configdirfull = settings_alloc_path();
+    char *contentdirrel = settings_alloc_path();
+    char *contentdirfull = settings_alloc_path();
+    char *librarydirfull = settings_alloc_path();
+    char *datadirfull = settings_alloc_path();
+    char *wwwdirfull = settings_alloc_path();
+    char *pluginsdirfull = settings_alloc_path();
+    char *firmwaredirfull = settings_alloc_path();
+    char *cachedirfull = settings_alloc_path();
 
-    settings->internal.basedirfull = osAllocMem(256);
-    settings->internal.certdirfull = osAllocMem(256);
-    settings->internal.configdirfull = osAllocMem(256);
-    settings->internal.contentdirrel = osAllocMem(256);
-    settings->internal.contentdirfull = osAllocMem(256);
-    settings->internal.librarydirfull = osAllocMem(256);
-    settings->internal.datadirfull = osAllocMem(256);
-    settings->internal.wwwdirfull = osAllocMem(256);
-    settings->internal.pluginsdirfull = osAllocMem(256);
-    settings->internal.firmwaredirfull = osAllocMem(256);
-    settings->internal.cachedirfull = osAllocMem(256);
+    char *tmpPath = settings_alloc_path();
+    settings_resolve_dir(&basedirfull, settings->internal.basedir, settings->internal.cwd);
 
-    char *tmpPath = osAllocMem(256);
-    settings_resolve_dir(&settings->internal.basedirfull, settings->internal.basedir, settings->internal.cwd);
+    settings_resolve_dir(&certdirfull, settings->core.certdir, basedirfull);
+    settings_resolve_dir(&datadirfull, settings->core.datadir, basedirfull);
+    settings_resolve_dir(&configdirfull, settings->core.configdir, basedirfull);
 
-    settings_resolve_dir(&settings->internal.certdirfull, settings->core.certdir, settings->internal.basedirfull);
-    settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.basedirfull);
-    settings_resolve_dir(&settings->internal.configdirfull, settings->core.configdir, settings->internal.basedirfull);
-
-    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
-    settings_resolve_dir(&settings->internal.pluginsdirfull, settings->core.pluginsdir, settings->internal.wwwdirfull);
-    settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
-    settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
+    settings_resolve_dir(&wwwdirfull, settings->core.wwwdir, datadirfull);
+    settings_resolve_dir(&pluginsdirfull, settings->core.pluginsdir, wwwdirfull);
+    settings_resolve_dir(&firmwaredirfull, settings->core.firmwaredir, datadirfull);
+    settings_resolve_dir(&cachedirfull, settings->core.cachedir, datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
-    settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
-    settings_resolve_dir(&settings->internal.contentdirfull, tmpPath, settings->internal.datadirfull);
-    fsCreateDir(settings->internal.contentdirfull);
+    settings_resolve_dir(&contentdirrel, tmpPath, settings->core.datadir);
+    settings_resolve_dir(&contentdirfull, tmpPath, datadirfull);
+    fsCreateDir(contentdirfull);
 
-    settings_resolve_dir(&settings->internal.librarydirfull, settings->core.librarydir, settings->internal.datadirfull);
+    settings_resolve_dir(&librarydirfull, settings->core.librarydir, datadirfull);
 
     osFreeMem(tmpPath);
+
+#define SETTINGS_SWAP_PATH(field)             \
+    do                                        \
+    {                                         \
+        char *old = settings->internal.field; \
+        settings->internal.field = field;     \
+        settings_free_later(old);             \
+    } while (0)
+    SETTINGS_SWAP_PATH(basedirfull);
+    SETTINGS_SWAP_PATH(certdirfull);
+    SETTINGS_SWAP_PATH(configdirfull);
+    SETTINGS_SWAP_PATH(contentdirrel);
+    SETTINGS_SWAP_PATH(contentdirfull);
+    SETTINGS_SWAP_PATH(librarydirfull);
+    SETTINGS_SWAP_PATH(datadirfull);
+    SETTINGS_SWAP_PATH(wwwdirfull);
+    SETTINGS_SWAP_PATH(pluginsdirfull);
+    SETTINGS_SWAP_PATH(firmwaredirfull);
+    SETTINGS_SWAP_PATH(cachedirfull);
+#undef SETTINGS_SWAP_PATH
 }
 
 static void settings_changed()
@@ -657,14 +736,8 @@ void settings_changed_id(uint8_t settingsId)
 
     Settings_Overlay[settingsId].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings_id((settingsId)));
-    if (config_file_path != NULL)
-    {
-        osFreeMem(config_file_path);
-    }
-    if (config_overlay_file_path != NULL)
-    {
-        osFreeMem(config_overlay_file_path);
-    }
+    settings_free_later(config_file_path);
+    settings_free_later(config_overlay_file_path);
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
 
@@ -676,7 +749,10 @@ void settings_changed_id(uint8_t settingsId)
     mutex_unlock(MUTEX_SETTINGS);
 }
 
-static void settings_deinit_ovl(uint8_t overlayNumber)
+/* reload: the overlay is re-initialised right after, readers may still use it. Old strings/arrays are
+   parked (see settings_free_later), the pointers stay valid (no NULL window) until the init replaces
+   them, and the option map is kept (option_map_init refreshes it in place). */
+static void settings_deinit_ovl(uint8_t overlayNumber, bool reload)
 {
     if (overlayNumber >= MAX_OVERLAYS)
     {
@@ -705,14 +781,28 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
         case TYPE_STRING:
             if (*((char **)opt->ptr))
             {
-                osFreeMem(*((char **)opt->ptr));
-                *((char **)opt->ptr) = NULL;
+                if (reload)
+                {
+                    settings_free_later(*((char **)opt->ptr));
+                }
+                else
+                {
+                    osFreeMem(*((char **)opt->ptr));
+                    *((char **)opt->ptr) = NULL;
+                }
             }
             break;
         case TYPE_U64_ARRAY:
             if (opt->size > 0)
             {
-                osFreeMem(*((uint64_t **)opt->ptr));
+                if (reload)
+                {
+                    settings_free_later(*((uint64_t **)opt->ptr));
+                }
+                else
+                {
+                    osFreeMem(*((uint64_t **)opt->ptr));
+                }
                 opt->size = 0;
             }
             break;
@@ -722,6 +812,11 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
         pos++;
     }
     Settings_Overlay[overlayNumber].internal.config_init = false;
+
+    if (reload)
+    {
+        return;
+    }
 
     if (overlayNumber == 0)
     {
@@ -742,8 +837,9 @@ void settings_deinit()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit_ovl(i);
+        settings_deinit_ovl(i, false);
     }
+    settings_free_parked(true);
 }
 
 static void settings_init_opt(setting_item_t *opt)
@@ -1105,8 +1201,11 @@ static error_t settings_load_ovl(bool overlay)
                             TRACE_DEBUG("%s=%f\r\n", opt->option_name, *((float *)opt->ptr));
                             break;
                         case TYPE_STRING:
-                            osFreeMem(*((char **)opt->ptr));
-                            *((char **)opt->ptr) = strdup(value_str);
+                            {
+                                char *old = *((char **)opt->ptr);
+                                *((char **)opt->ptr) = strdup(value_str);
+                                settings_free_later(old);
+                            }
                             TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((char **)opt->ptr));
                             break;
 
@@ -1604,10 +1703,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
         settings_changed_id(settingsId);
     }
 
-    if (old_ptr)
-    {
-        osFreeMem(old_ptr);
-    }
+    settings_free_later(old_ptr);
 
     return true;
 }
@@ -1664,7 +1760,7 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
         if (opt->size > 0)
         {
             opt->size = 0;
-            osFreeMem(*ptr);
+            settings_free_later(*ptr);
         }
     }
 
@@ -1689,6 +1785,7 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
 void settings_loop()
 {
     FsFileStat stat;
+    settings_free_parked(false);
     if (fsGetFileStat(config_file_path, &stat) == NO_ERROR)
     {
         if (compareDateTime(&stat.modified, &settings_last_load))

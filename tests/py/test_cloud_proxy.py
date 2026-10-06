@@ -50,10 +50,9 @@ def setting(name, value):
     # triggers one) would drop them. The web UI persists with triggerWriteConfig as well.
     assert api("GET", "/api/triggerWriteConfig")[0] == 200
     _current[name] = value
-    # The server's main loop reloads the settings (250 ms poll) after every change and frees the strings
-    # other threads may still read: ASan reports a use-after-free in a request that races with it
-    # (tmp/test-plan.md, server findings). Let the reload settle before sending box traffic.
-    time.sleep(0.8)
+    # The box's overlay follows the global value only after the next reload of the config (main loop: 250 ms
+    # poll, file time granularity); the API readback is true earlier, so there is nothing better to poll.
+    time.sleep(1.2)
 
 
 def alive():
@@ -73,11 +72,8 @@ def cloud():
 @pytest.fixture(scope="module")
 def box(cloud):
     b = Box(None, SANDBOX, BASE.hostname, HTTPS_API_PORT, profile=profiles.CC3200)
-    # The first request creates the box's overlay and saves the config, the main loop reloads it 250 ms
-    # later. A cloud request in flight then reads freed settings (use-after-free, server finding in
-    # tmp/test-plan.md): create the overlay with the cloud still disabled and let the reload finish.
-    b.request("GET", "/v1/time")
-    time.sleep(1)
+    b.request("GET", "/v1/time")  # creates the overlay (cloud still disabled: answered locally)
+    time.sleep(1.2)  # the new overlay is saved and reloaded
     yield b
     b.close()
 
@@ -136,3 +132,31 @@ def test_redirect_loop_is_bounded(box, cloud):
     box.request("GET", "/v1/time")
     assert time.time() - start < 30
     assert len(cloud.requests) <= 6
+
+
+def test_settings_reload_while_cloud_requests_run(box, cloud):
+    """The main loop reloads the settings on every config change and replaced the strings other threads were
+    reading (use-after-free, ASan crash in web_request). Hammer cloud requests while forcing reloads."""
+    import threading
+
+    stop = threading.Event()
+    results = []
+
+    def requests_loop():
+        while not stop.is_set():
+            try:
+                results.append(box.request("GET", "/v1/time")[2])
+            except OSError:
+                results.append(None)
+
+    t = threading.Thread(target=requests_loop)
+    t.start()
+    try:
+        for i in range(12):
+            assert api("POST", "/api/settings/set/hass.name", f"reload {i}")[0] == 200
+            assert api("GET", "/api/triggerWriteConfig")[0] == 200
+            time.sleep(0.4)
+    finally:
+        stop.set()
+        t.join(15)
+    assert len(results) > 20 and results.count(b"CLOUDTIME") > 10, results
