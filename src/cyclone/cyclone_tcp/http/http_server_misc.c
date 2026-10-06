@@ -493,7 +493,7 @@ void httpParseHeaderField(HttpConnection *connection,
    else if (osStrcasecmp(name, "User-Agent") == 0)
    {
       strSafeCopy(connection->request.userAgent, value,
-                  sizeof(connection->request.userAgent) + 1);
+                  sizeof(connection->request.userAgent));
    }
 }
 
