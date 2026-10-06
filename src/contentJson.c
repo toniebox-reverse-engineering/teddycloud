@@ -158,6 +158,10 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
         error = save_content_json(jsonPath, content_json);
         if (error == NO_ERROR)
         {
+            /* The reload memsets content_json to 0; free the fields parsed in
+               this pass first so they are not leaked (e.g. on a _version
+               mismatch, where everything was already allocated). */
+            free_content_json(content_json);
             load_content_json(content_path, content_json, true, settings);
         }
     }
