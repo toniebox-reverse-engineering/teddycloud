@@ -18,7 +18,12 @@ BIN = REPO / "bin" / "teddycloud"
 
 
 class Box:
-    def __init__(self, mac, base_dir, host, https_port, user_agent="TB/sim"):
+    def __init__(self, mac, base_dir, host, https_port, user_agent="TB/sim", profile=None):
+        if profile is not None:
+            mac, user_agent = profile.mac, profile.user_agent
+            if profile.generation == 2:
+                raise NotImplementedError("TB2 needs the EC client certificate of the server_tb2 CA and its TLS chain, not simulated yet")
+        self.profile = profile
         self.mac = mac.lower()
         self.host = host
         self.port = https_port
@@ -52,9 +57,15 @@ class Box:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
+        tls = self.profile.tls if self.profile else None
+        if tls:
+            ctx.minimum_version = getattr(ssl.TLSVersion, tls.min_version)
+            ctx.maximum_version = getattr(ssl.TLSVersion, tls.max_version)
+            if tls.ciphers:
+                ctx.set_ciphers(tls.ciphers)
         if use_cert:
             ctx.load_cert_chain(certfile=self.cert, keyfile=self.key)
-        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=5))
+        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=5), server_hostname=(tls.sni if tls and tls.sni else None))
 
     def request(self, method, path, body=b"", headers=None, use_cert=True):
         """One request on a fresh connection. Returns (status, headers, body)."""
