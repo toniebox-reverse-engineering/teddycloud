@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cert_dir="$(mktemp -d)"
 trap 'rm -rf "$cert_dir"' EXIT INT TERM
 
-"$REPO_ROOT/bin/teddycloud" --generate-client-cert deadbeef0001 --destination "$cert_dir" >/dev/null
+"$REPO_ROOT/bin/teddycloud" --base_path "${TC_SANDBOX:-$REPO_ROOT}" --generate-client-cert deadbeef0001 --destination "$cert_dir" >/dev/null
 openssl x509 -inform der -in "$cert_dir/client.der" -outform pem -out "$cert_dir/client.pem"
 openssl rsa -inform der -in "$cert_dir/private.der" -outform pem -out "$cert_dir/private.pem" 2>/dev/null
 

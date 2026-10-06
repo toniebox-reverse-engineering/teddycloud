@@ -22,7 +22,7 @@ jobs:
         submodules: recursive
 
     - name: Install dependencies
-      run: sudo apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential openssl faketime python3 curl
+      run: sudo apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential openssl faketime python3 python3-pytest curl
 
     # the tests start a server and check the web UI it serves
     - name: Build web UI

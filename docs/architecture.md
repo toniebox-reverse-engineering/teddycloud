@@ -169,7 +169,7 @@ Tests live under `tests/`, split by what they need to exercise:
   a given set of ports, waits for it to answer, runs the given command,
   and always stops the server afterwards - so each test's Makefile target
   is a few lines instead of duplicating the start/wait/cleanup logic. Run
-  a single suite with e.g. `make test_api_custom_json_with_server`.
+  a single suite with e.g. `make test_py TESTS=custom_json`.
 
 `make test` runs both: the C unit tests, then the Python integration
 suite against a throwaway server instance.

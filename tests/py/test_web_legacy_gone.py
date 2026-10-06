@@ -10,7 +10,7 @@ Verifies the sunset of the legacy admin GUI:
 Recommended usage:
 
 1) Fully automated via Makefile (build + start server + run tests + stop server):
-   make test_web_legacy_gone_with_server
+   make test_py TESTS=legacy_gone
 
 2) Against an already running TeddyCloud server:
    TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 tests/py/test_web_legacy_gone.py

@@ -2,7 +2,7 @@
 """
 CORS preflight must be answered without a login, even when web login is enabled.
 
-Run via: make test_cors_preflight_with_server
+Run via: make test_py TESTS=cors
 """
 
 import http.client

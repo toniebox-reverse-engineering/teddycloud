@@ -7,7 +7,7 @@ afterwards.
 A crash kills the server for all following tests, so the Makefile starts a
 fresh server per test class:
 
-    make test_hardening_with_server
+    make test_py TESTS=hardening
 
 Single class against a running server:
 
