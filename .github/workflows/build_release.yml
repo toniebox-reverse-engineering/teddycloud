@@ -9,6 +9,10 @@ on:
   pull_request:
     branches: [ "master", "develop" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' || github.event_name == 'pull_request' }}
+
 jobs:
   # runs next to the builds; if a test fails, the whole run is cancelled
   tests:

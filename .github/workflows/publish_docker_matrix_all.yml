@@ -19,6 +19,10 @@ on:
       - master
       - develop
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' || github.event_name == 'pull_request' }}
+
 jobs:
   test_commit_hash:
     runs-on: ubuntu-latest
