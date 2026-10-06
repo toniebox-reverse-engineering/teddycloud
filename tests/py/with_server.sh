@@ -63,7 +63,8 @@ sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) else 1)
 done
 
 tmp_log="$(mktemp /tmp/teddycloud_test_XXXXXX.log)"
-PORT_SETTINGS="core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTPS_WEB_PORT,core.server.https_api_port=$HTTPS_API_PORT"
+# no tonies.json download from the internet, tests must not depend on the network
+PORT_SETTINGS="core.tonies_json_auto_update=false,core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTPS_WEB_PORT,core.server.https_api_port=$HTTPS_API_PORT"
 
 # Generating the server certificates takes minutes, hence the template is
 # created once and reused. It is regenerated when the certificate code changes
@@ -71,7 +72,7 @@ PORT_SETTINGS="core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTP
 TEMPLATE="${TC_TEST_TEMPLATE:-$REPO_ROOT/bin/test-template}"
 WEB_UI="$REPO_ROOT/data/www/web"
 # bump the layout number when the template directory structure below changes
-TEMPLATE_LAYOUT=2
+TEMPLATE_LAYOUT=4
 TEMPLATE_STAMP="$( (echo "$TEMPLATE_LAYOUT"; cat "$REPO_ROOT/src/cert.c" "$REPO_ROOT/include/cert.h") | sha256sum | cut -d' ' -f1)"
 srv_pid=
 LINEBUF=; command -v stdbuf >/dev/null && LINEBUF="stdbuf -oL -eL" # the log is otherwise lost when the server is killed
@@ -126,6 +127,9 @@ if [ "$(cat "$TEMPLATE/.complete" 2>/dev/null)" != "$TEMPLATE_STAMP" ]; then
         fail_log "Template server did not become ready"
     fi
     stop_server
+    # the cloud client needs a client certificate (normally a genuine box's); any one will do for a fake cloud
+    "$BIN" --base_path "$TEMPLATE" --generate-client-cert 000000000000 --destination "$TEMPLATE/certs/client" >/dev/null
+    openssl x509 -in "$TEMPLATE/certs/server/ca-root.pem" -outform der -out "$TEMPLATE/certs/client/ca.der"
     echo "$TEMPLATE_STAMP" >"$TEMPLATE/.complete"
 fi
 
@@ -147,6 +151,11 @@ rc=0
 if [ "$rc" -ne 0 ]; then
     stop_server # the log is buffered until the server exits
     echo "[ERR] Test command failed ($rc). Server log, last lines:" >&2
-    tail -n 80 "$tmp_log" >&2
+    # an ASan report is long, show it from its start
+    if grep -q "ERROR: AddressSanitizer" "$tmp_log"; then
+        sed -n '/ERROR: AddressSanitizer/,/^SUMMARY/p' "$tmp_log" | head -60 >&2
+    fi
+    tail -n 40 "$tmp_log" >&2
+    cp "$tmp_log" "$REPO_ROOT/bin/test-last-server.log" && echo "[ERR] full server log: bin/test-last-server.log" >&2
 fi
 exit "$rc"
