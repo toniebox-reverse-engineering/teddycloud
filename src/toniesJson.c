@@ -312,7 +312,10 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
 
         while (pos < fileSize)
         {
-            fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead);
+            if (fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) != NO_ERROR || sizeRead == 0)
+            {
+                break;
+            }
             pos += sizeRead;
         }
         fsCloseFile(fsFile);
