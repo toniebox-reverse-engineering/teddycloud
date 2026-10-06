@@ -10,6 +10,37 @@ on:
     branches: [ "master", "develop" ]
 
 jobs:
+  # runs next to the builds; if a test fails, the whole run is cancelled
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # only for cancelling this run
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: sudo apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential openssl faketime python3 curl
+
+    # the tests start a server and check the web UI it serves
+    - name: Build web UI
+      run: |
+        make web
+        mkdir -p data/www/web
+        cp -r contrib/data/www/web/. data/www/web/
+
+    - name: Run all tests
+      run: make test
+
+    - name: Cancel the run on failed tests
+      if: failure()
+      continue-on-error: true # PRs from forks only get a read-only token
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh run cancel ${{ github.run_id }} --repo "$GITHUB_REPOSITORY"
+
   build-windows-amd64:
     runs-on: windows-latest
     outputs:
