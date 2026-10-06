@@ -599,6 +599,7 @@ settings_t *get_settings_cn(const char *commonName)
                 osFreeMem(crt);
                 osFreeMem(key);
 
+                settings_generate_internal_dirs(&Settings_Overlay[i]);
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS);
@@ -1908,6 +1909,13 @@ void settings_load_all_certs()
     }
 }
 
+void settings_load_client_certs_id(uint8_t settingsId)
+{
+    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+}
+
 error_t settings_try_load_certs_id(uint8_t settingsId)
 {
     ERR_RETURN(load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId));
@@ -1922,9 +1930,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     load_cert("internal.server_tb2.key", "core.server_cert_tb2.file.key", "core.server_cert_tb2.data.key", settingsId);
 
     /* do not fail when client-role certs are missing */
-    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
-    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
-    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+    settings_load_client_certs_id(settingsId);
 
     test_boxine_ca(settingsId);
 

@@ -1212,6 +1212,7 @@ error_t file_save_end_cert(void *in_ctx)
         char *path = custom_asprintf("%s%c%s", settings_get_string_ovl("core.certdir", ctx->overlay), PATH_SEPARATOR, name);
         TRACE_INFO("Set %s to %s\r\n", setting, path);
         settings_set_string_ovl(setting, path, ctx->overlay);
+        settings_load_client_certs_id(get_overlay_id(ctx->overlay));
         osFreeMem(path);
     }
     else
@@ -1236,6 +1237,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
+    error_t dirError = rootPath != NULL && !fsDirExists(rootPath) ? fsCreateDirEx(rootPath, true) : NO_ERROR;
 
     if (rootPath == NULL)
     {
@@ -1243,14 +1245,10 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         osSnprintf(message, sizeof(message), "internal.certdirfull not set to a valid path");
         TRACE_ERROR("internal.certdirfull not set to a valid path\r\n");
     }
-    else if (!fsDirExists(rootPath))
+    else if (dirError != NO_ERROR || !fsDirExists(rootPath))
     {
-        error_t error = fsCreateDirEx(rootPath, true);
-        if (error != NO_ERROR || !fsDirExists(rootPath))
-        {
-            osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(error));
-            TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(error));
-        }
+        osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(dirError));
+        TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(dirError));
     }
     else
     {
