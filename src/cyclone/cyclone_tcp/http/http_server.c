@@ -1076,7 +1076,16 @@ error_t httpSendResponseStreamUnsafe(HttpConnection *connection, const char_t *u
    }
    else if (connection->private.client_ctx.skip_taf_header)
    {
-      length -= TONIE_HEADER_LENGTH;
+      /* Guard against a content file shorter than the TAF header, which would
+         underflow length to a huge value and be sent as the Content-Length. */
+      if (length >= TONIE_HEADER_LENGTH)
+      {
+         length -= TONIE_HEADER_LENGTH;
+      }
+      else
+      {
+         length = 0;
+      }
    }
    file_length = length;
    if (isStream)
