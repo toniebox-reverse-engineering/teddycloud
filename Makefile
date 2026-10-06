@@ -820,7 +820,7 @@ test: test_c test_py test_auth_pool_reuse_with_server
 PYTHON ?= python3
 HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Tap495 Crawler508 KeyPermissions512 Secrets505 Traversal513 Range515 Extract522 Settings528
 # every entry gets a fresh sandboxed server (see tests/py/with_server.sh), a crash must only fail its own test
-PY_TESTS := tests/py/test_tonies_custom_json_api.py tests/py/test_cors_preflight.py tests/py/test_web_legacy_gone.py \
+PY_TESTS := tests/py/test_tonies_custom_json_api.py tests/py/test_cors_preflight.py tests/py/test_web_legacy_gone.py tests/py/test_box_sim.py \
 	$(addprefix tests/py/test_hardening.py::,$(HARDENING_TESTS))
 
 # make test_py TESTS=cors            only entries containing "cors"

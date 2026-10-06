@@ -70,8 +70,11 @@ PORT_SETTINGS="core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTP
 # (stamp in .complete), or delete the directory. CI caches it with the same key.
 TEMPLATE="${TC_TEST_TEMPLATE:-$REPO_ROOT/bin/test-template}"
 WEB_UI="$REPO_ROOT/data/www/web"
-TEMPLATE_STAMP="$(cat "$REPO_ROOT/src/cert.c" "$REPO_ROOT/include/cert.h" | sha256sum | cut -d' ' -f1)"
+# bump the layout number when the template directory structure below changes
+TEMPLATE_LAYOUT=2
+TEMPLATE_STAMP="$( (echo "$TEMPLATE_LAYOUT"; cat "$REPO_ROOT/src/cert.c" "$REPO_ROOT/include/cert.h") | sha256sum | cut -d' ' -f1)"
 srv_pid=
+LINEBUF=; command -v stdbuf >/dev/null && LINEBUF="stdbuf -oL -eL" # the log is otherwise lost when the server is killed
 SANDBOX=
 
 wait_ready() { # <pid> <timeout_seconds> [any]  (any: every HTTP answer counts, not only 200)
@@ -87,7 +90,7 @@ wait_ready() { # <pid> <timeout_seconds> [any]  (any: every HTTP answer counts, 
 }
 
 start_server() { # <base dir>
-    (cd "$1" && exec "$BIN" --base_path "$1" --config-set "$PORT_SETTINGS") >"$tmp_log" 2>&1 &
+    (cd "$1" && exec $LINEBUF "$BIN" --base_path "$1" --config-set "$PORT_SETTINGS") >"$tmp_log" 2>&1 &
     srv_pid=$!
 }
 
@@ -115,7 +118,7 @@ trap cleanup EXIT INT TERM
 if [ "$(cat "$TEMPLATE/.complete" 2>/dev/null)" != "$TEMPLATE_STAMP" ]; then
     echo "[INFO] Creating test template in $TEMPLATE (generates certificates, takes a while)..." >&2
     rm -rf "$TEMPLATE"
-    mkdir -p "$TEMPLATE/config" "$TEMPLATE/data/www" "$TEMPLATE/data/content/default" "$TEMPLATE/data/firmware" "$TEMPLATE/data/cache" "$TEMPLATE/data/library" "$TEMPLATE/certs/server" "$TEMPLATE/certs/client"
+    mkdir -p "$TEMPLATE/config" "$TEMPLATE/data/www" "$TEMPLATE/data/content/default" "$TEMPLATE/data/firmware" "$TEMPLATE/data/cache" "$TEMPLATE/data/library" "$TEMPLATE/certs/server" "$TEMPLATE/certs/client" "$TEMPLATE/certs/server_tb2" "$TEMPLATE/certs/client/tb2"
     start_server "$TEMPLATE"
     if ! wait_ready "$srv_pid" 900 any; then
         stop_server
@@ -131,7 +134,7 @@ cp -a "$TEMPLATE/." "$SANDBOX/"
 rm -f "$SANDBOX/.complete"
 # the web UI is a symlink, so the template stays relocatable (and cacheable)
 [ -d "$WEB_UI" ] && ln -s "$WEB_UI" "$SANDBOX/data/www/web"
-export TC_SANDBOX="$SANDBOX"
+export TC_SANDBOX="$SANDBOX" TC_TEMPLATE="$TEMPLATE" # TC_TEMPLATE: tests may cache things signed by the template CA (box certs) there
 
 start_server "$SANDBOX"
 
@@ -139,4 +142,11 @@ if ! wait_ready "$srv_pid" "$READY_TIMEOUT"; then
     fail_log "Test server did not become ready on port $HTTP_PORT within ${READY_TIMEOUT}s"
 fi
 
-"$@"
+rc=0
+"$@" || rc=$?
+if [ "$rc" -ne 0 ]; then
+    stop_server # the log is buffered until the server exits
+    echo "[ERR] Test command failed ($rc). Server log, last lines:" >&2
+    tail -n 80 "$tmp_log" >&2
+fi
+exit "$rc"
