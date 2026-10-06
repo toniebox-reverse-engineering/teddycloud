@@ -2513,7 +2513,6 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         return error;
     }
 
-    char multisource[99][PATH_LEN];
     size_t multisource_size = 0;
     char source[PATH_LEN];
     char target[PATH_LEN];
@@ -2538,7 +2537,16 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     }
     else
     {
-        while (multisource_size < sizeof(multisource) / sizeof(multisource[0]) &&
+        /* ~405 KB; keep it off the request-thread stack (ffmpeg_convert takes
+           char[99][PATH_LEN], which a char (*)[PATH_LEN] decays to). */
+        char(*multisource)[PATH_LEN] = osAllocMem(sizeof(char[99][PATH_LEN]));
+        if (multisource == NULL)
+        {
+            osFreeMem(targetAbsolute);
+            return ERROR_OUT_OF_MEMORY;
+        }
+
+        while (multisource_size < 99 &&
                queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
         {
             sanitizePath(source, false);
@@ -2547,6 +2555,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
             {
                 TRACE_ERROR("Source path too long!\r\n");
                 osFreeMem(targetAbsolute);
+                osFreeMem(multisource);
                 return ERROR_INVALID_REQUEST;
             }
             sanitizePath(multisource[multisource_size], false);
@@ -2555,6 +2564,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
             {
                 TRACE_ERROR("Source %s does not exist!\r\n", multisource[multisource_size]);
                 osFreeMem(targetAbsolute);
+                osFreeMem(multisource);
                 return ERROR_INVALID_REQUEST;
             }
             multisource_size++;
@@ -2563,6 +2573,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         {
             TRACE_ERROR("Source missing!\r\n");
             osFreeMem(targetAbsolute);
+            osFreeMem(multisource);
             return ERROR_INVALID_REQUEST;
         }
 
@@ -2570,6 +2581,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         size_t current_source = 0;
         error = ffmpeg_convert(multisource, multisource_size, &current_source, targetAbsolute, 0);
         osFreeMem(targetAbsolute);
+        osFreeMem(multisource);
         if (error != NO_ERROR)
         {
             TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
