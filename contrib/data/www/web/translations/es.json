@@ -12,8 +12,8 @@
     },
     "auth": {
         "loginFailed": "Usuario o contraseña no válidos",
-        "loginRateLimited": "Demasiados intentos de inicio de sesión. Inténtalo de nuevo en unos minutos.",
         "loginHint": "Inicia sesión en TeddyCloud",
+        "loginRateLimited": "Demasiados intentos de inicio de sesión. Inténtalo de nuevo en unos minutos.",
         "loginSubmit": "Iniciar sesión",
         "loginTitle": "Inicio de sesión web",
         "logout": "Cerrar sesión",
@@ -22,7 +22,10 @@
         "passwordMin": "Al menos 4 caracteres",
         "passwordRequired": "La contraseña es obligatoria",
         "username": "Usuario",
-        "usernameRequired": "El usuario es obligatorio"
+        "usernameRequired": "El usuario es obligatorio",
+        "statusLoadFailed": "No se pudo cargar el estado de autenticación",
+        "statusLoadFailedDetails": "No se pudo cargar el estado de autenticación. Comprueba la conexión con TeddyCloud e inténtalo de nuevo.",
+        "retry": "Reintentar"
     },
     "common": {
         "cancel": "Cancelar"
@@ -422,6 +425,24 @@
                 "renameFile": {
                     "text": "Renombra el archivo. Nota: Si este archivo está asignado a un Tonie/Tag, la referencia no se actualizará automáticamente.",
                     "title": "Renombrar archivo"
+                },
+                "downloadFile": {
+                    "title": "Descargar archivo",
+                    "text": "Descarga el archivo seleccionado o, en el caso de archivos TAF, lo descarga como archivo OGG."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Marcar como escuchado",
+                        "text": "El archivo está marcado actualmente como no escuchado. Haz clic para marcarlo como escuchado."
+                    },
+                    "listened": {
+                        "title": "Marcar como no escuchado",
+                        "text": "El archivo está marcado actualmente como escuchado. Haz clic para marcarlo como no escuchado."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Asignar a Tonie",
+                    "text": "Asigna el archivo seleccionado como contenido a un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -1050,28 +1071,6 @@
             "noLocalSettings": "No se encontraron valores locales",
             "title": "Configuración de GUI y valores almacenados localmente"
         },
-        "webAuth": {
-            "addUser": "Añadir usuario",
-            "changePassword": "Cambiar contraseña",
-            "createFirstUser": "Crea un usuario antes de activar el inicio de sesión.",
-            "deleteContent": "¿Eliminar el usuario {{username}}?",
-            "deleteLastContent": "¿Eliminar el último usuario {{username}}? La protección de inicio de sesión se desactivará.",
-            "deleteLastHint": "Puedes volver a activar la protección después de crear un usuario.",
-            "deleteLastTitle": "Eliminar el último usuario",
-            "deleteTitle": "Eliminar usuario",
-            "deleteUser": "Eliminar",
-            "enabled": "Exigir inicio de sesión en la interfaz web",
-            "envOverride": "La protección de inicio de sesión está desactivada por TEDDYCLOUD_WEB_AUTH_DISABLE.",
-            "intro": "Todos los usuarios tienen acceso completo a la interfaz web. Las APIs de las cajas no se ven afectadas.",
-            "loadFailed": "No se pudieron cargar los usuarios",
-            "navigationTitle": "Inicio de sesión web",
-            "passwordChanged": "Contraseña actualizada",
-            "passwordChangedDetails": "La contraseña de {{username}} se ha actualizado.",
-            "changePasswordFor": "Cambiar la contraseña de {{username}}",
-            "saveFailed": "No se pudieron guardar los cambios",
-            "title": "Inicio de sesión web",
-            "users": "Usuarios"
-        },
         "hint": "Esta es la configuración predeterminada. Algunas de las configuraciones pueden ser reemplazadas por cada una de tus Tonieboxes. Para cambiar estas configuraciones ve a ",
         "information": "Información",
         "keepScrolling": "Sigue desplazándote para ver más opciones.",
@@ -1127,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "¡Tonies(.custom).json recargado con éxito!",
         "tryToRestartTC": "Intentando reiniciar TeddyCloud",
         "warning": "¡Atención! Nivel de configuración",
-        "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'."
+        "warningHint": "Actualmente, los campos de texto deben guardarse explícitamente hasta que se implemente una mejor solución. Para hacerlo, haz clic en el símbolo de guardar al final del campo. Si faltan configuraciones, aumenta el 'Nivel de configuración'.",
+        "webAuth": {
+            "addUser": "Añadir usuario",
+            "changePassword": "Cambiar contraseña",
+            "changePasswordFor": "Cambiar la contraseña de {{username}}",
+            "createFirstUser": "Crea un usuario antes de activar el inicio de sesión.",
+            "deleteContent": "¿Eliminar el usuario {{username}}?",
+            "deleteLastContent": "¿Eliminar el último usuario {{username}}? La protección de inicio de sesión se desactivará.",
+            "deleteLastHint": "Puedes volver a activar la protección después de crear un usuario.",
+            "deleteLastTitle": "Eliminar el último usuario",
+            "deleteTitle": "Eliminar usuario",
+            "deleteUser": "Eliminar",
+            "enabled": "Exigir inicio de sesión en la interfaz web",
+            "envOverride": "La protección de inicio de sesión está desactivada por TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Todos los usuarios tienen acceso completo a la interfaz web. Las APIs de las cajas no se ven afectadas.",
+            "loadFailed": "No se pudieron cargar los usuarios",
+            "navigationTitle": "Inicio de sesión web",
+            "passwordChanged": "Contraseña actualizada",
+            "passwordChangedDetails": "La contraseña de {{username}} se ha actualizado.",
+            "saveFailed": "No se pudieron guardar los cambios",
+            "title": "Inicio de sesión web",
+            "users": "Usuarios"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "¡Hay una nueva versión disponible!",

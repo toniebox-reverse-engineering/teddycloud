@@ -12,8 +12,8 @@
     },
     "auth": {
         "loginFailed": "Nom d'utilisateur ou mot de passe invalide",
-        "loginRateLimited": "Trop de tentatives de connexion. Réessaie dans quelques minutes.",
         "loginHint": "Connectez-vous à TeddyCloud",
+        "loginRateLimited": "Trop de tentatives de connexion. Réessaie dans quelques minutes.",
         "loginSubmit": "Se connecter",
         "loginTitle": "Connexion web",
         "logout": "Se déconnecter",
@@ -22,7 +22,10 @@
         "passwordMin": "Au moins 4 caractères",
         "passwordRequired": "Le mot de passe est requis",
         "username": "Nom d'utilisateur",
-        "usernameRequired": "Le nom d'utilisateur est requis"
+        "usernameRequired": "Le nom d'utilisateur est requis",
+        "statusLoadFailed": "Impossible de charger l’état d’authentification",
+        "statusLoadFailedDetails": "L’état d’authentification n’a pas pu être chargé. Vérifiez la connexion à TeddyCloud et réessayez.",
+        "retry": "Réessayer"
     },
     "common": {
         "cancel": "Annuler"
@@ -422,6 +425,24 @@
                 "renameFile": {
                     "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
                     "title": "Renommer le fichier"
+                },
+                "downloadFile": {
+                    "title": "Télécharger le fichier",
+                    "text": "Télécharge le fichier sélectionné ou, pour les fichiers TAF, le télécharge au format OGG."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Marquer comme écouté",
+                        "text": "Le fichier est actuellement marqué comme non écouté. Cliquez pour le marquer comme écouté."
+                    },
+                    "listened": {
+                        "title": "Marquer comme non écouté",
+                        "text": "Le fichier est actuellement marqué comme écouté. Cliquez pour le marquer comme non écouté."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Assigner à un Tonie",
+                    "text": "Assigne le fichier sélectionné comme contenu à un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -1050,28 +1071,6 @@
             "noLocalSettings": "Aucune valeur locale trouvée",
             "title": "Paramètres GUI et valeurs stockées localement"
         },
-        "webAuth": {
-            "addUser": "Ajouter un utilisateur",
-            "changePassword": "Changer le mot de passe",
-            "createFirstUser": "Créez un utilisateur avant d'activer la connexion.",
-            "deleteContent": "Supprimer l'utilisateur {{username}} ?",
-            "deleteLastContent": "Supprimer le dernier utilisateur {{username}} ? La protection par connexion sera désactivée.",
-            "deleteLastHint": "Vous pourrez réactiver la protection après avoir créé un utilisateur.",
-            "deleteLastTitle": "Supprimer le dernier utilisateur",
-            "deleteTitle": "Supprimer l'utilisateur",
-            "deleteUser": "Supprimer",
-            "enabled": "Exiger une connexion pour l'interface web",
-            "envOverride": "La protection par connexion est actuellement désactivée par TEDDYCLOUD_WEB_AUTH_DISABLE.",
-            "intro": "Tous les utilisateurs ont un accès complet à l'interface web. Les API des boîtes ne sont pas concernées.",
-            "loadFailed": "Impossible de charger les utilisateurs",
-            "navigationTitle": "Connexion web",
-            "passwordChanged": "Mot de passe mis à jour",
-            "passwordChangedDetails": "Le mot de passe de {{username}} a été mis à jour.",
-            "changePasswordFor": "Changer le mot de passe de {{username}}",
-            "saveFailed": "Impossible d'enregistrer les modifications",
-            "title": "Connexion web",
-            "users": "Utilisateurs"
-        },
         "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
         "information": "Informations",
         "keepScrolling": "Continuez à faire défiler pour voir plus d'options.",
@@ -1127,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json rechargé avec succès!",
         "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
         "warning": "Attention ! Niveau des paramètres",
-        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'.",
+        "webAuth": {
+            "addUser": "Ajouter un utilisateur",
+            "changePassword": "Changer le mot de passe",
+            "changePasswordFor": "Changer le mot de passe de {{username}}",
+            "createFirstUser": "Créez un utilisateur avant d'activer la connexion.",
+            "deleteContent": "Supprimer l'utilisateur {{username}} ?",
+            "deleteLastContent": "Supprimer le dernier utilisateur {{username}} ? La protection par connexion sera désactivée.",
+            "deleteLastHint": "Vous pourrez réactiver la protection après avoir créé un utilisateur.",
+            "deleteLastTitle": "Supprimer le dernier utilisateur",
+            "deleteTitle": "Supprimer l'utilisateur",
+            "deleteUser": "Supprimer",
+            "enabled": "Exiger une connexion pour l'interface web",
+            "envOverride": "La protection par connexion est actuellement désactivée par TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Tous les utilisateurs ont un accès complet à l'interface web. Les API des boîtes ne sont pas concernées.",
+            "loadFailed": "Impossible de charger les utilisateurs",
+            "navigationTitle": "Connexion web",
+            "passwordChanged": "Mot de passe mis à jour",
+            "passwordChangedDetails": "Le mot de passe de {{username}} a été mis à jour.",
+            "saveFailed": "Impossible d'enregistrer les modifications",
+            "title": "Connexion web",
+            "users": "Utilisateurs"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "Une nouvelle version est disponible !",

@@ -12,8 +12,8 @@
     },
     "auth": {
         "loginFailed": "Invalid username or password",
-        "loginRateLimited": "Too many login attempts. Try again in a few minutes.",
         "loginHint": "Sign in to TeddyCloud",
+        "loginRateLimited": "Too many login attempts. Try again in a few minutes.",
         "loginSubmit": "Log in",
         "loginTitle": "Web login",
         "logout": "Log out",
@@ -21,6 +21,9 @@
         "password": "Password",
         "passwordMin": "At least 4 characters",
         "passwordRequired": "Password is required",
+        "retry": "Retry",
+        "statusLoadFailed": "Could not load authentication status",
+        "statusLoadFailedDetails": "The authentication status could not be loaded. Check the connection to TeddyCloud and try again.",
         "username": "Username",
         "usernameRequired": "Username is required"
     },
@@ -387,9 +390,17 @@
         "filter": "Filter within current folder",
         "help": {
             "actionItems": {
+                "assignToTonie": {
+                    "text": "Assigns the selected file as content to a Tonie/Tag.",
+                    "title": "Assign to Tonie"
+                },
                 "deleteFileFolder": {
                     "text": "Deletes the file or folder (only if the folder is empty). Note: If this file is assigned to a Tonie/Tag, the reference will not be updated.",
                     "title": "Delete File/Folder"
+                },
+                "downloadFile": {
+                    "text": "Downloads the selected file or, for TAF files, downloads it as an OGG file.",
+                    "title": "Download File"
                 },
                 "duplicateTAPFile": {
                     "text": "Creates a duplicate of the selected TAP file.",
@@ -402,6 +413,16 @@
                 "editTAPPlaylist": {
                     "text": "Opens the TeddyAudio Playlist Editor to manage TAP files.",
                     "title": "Edit TAP Playlist"
+                },
+                "markAsListened": {
+                    "listened": {
+                        "text": "The file is currently marked as listened. Click to mark it as not listened.",
+                        "title": "Mark as Not Listened"
+                    },
+                    "unlistened": {
+                        "text": "The file is currently marked as not listened. Click to mark it as listened.",
+                        "title": "Mark as Listened"
+                    }
                 },
                 "migrateToAudioIdFolder": {
                     "text": "Moves the TAF file into the library's 'by/audioId' folder and updates the source in the JSON file.",
@@ -1050,28 +1071,6 @@
             "noLocalSettings": "No locally stored values found",
             "title": "GUI Settings & Locally Stored Values"
         },
-        "webAuth": {
-            "addUser": "Add user",
-            "changePassword": "Change password",
-            "createFirstUser": "Create a user before enabling login protection.",
-            "deleteContent": "Delete user {{username}}?",
-            "deleteLastContent": "Delete last user {{username}}? Login protection will be turned off.",
-            "deleteLastHint": "You can turn login protection back on after creating a user.",
-            "deleteLastTitle": "Delete last user",
-            "deleteTitle": "Delete user",
-            "deleteUser": "Delete",
-            "enabled": "Require login for the web interface",
-            "envOverride": "Login protection is currently disabled by TEDDYCLOUD_WEB_AUTH_DISABLE.",
-            "intro": "All users have full access to the web interface. Box APIs are not affected.",
-            "loadFailed": "Could not load users",
-            "navigationTitle": "Web login",
-            "passwordChanged": "Password updated",
-            "passwordChangedDetails": "Password for {{username}} was updated.",
-            "changePasswordFor": "Change password for {{username}}",
-            "saveFailed": "Could not save changes",
-            "title": "Web login",
-            "users": "Users"
-        },
         "hint": "This are the default settings. Some of the settings might be overwritten by each of your Tonieboxes. To change these settings go to ",
         "information": "Information",
         "keepScrolling": "Keep scrolling to see more options.",
@@ -1127,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json reloaded successfully!",
         "tryToRestartTC": "Try to restart TeddyCloud",
         "warning": "Attention! Settings level",
-        "warningHint": "If you are missing settings, increase the 'Settings level'."
+        "warningHint": "If you are missing settings, increase the 'Settings level'.",
+        "webAuth": {
+            "addUser": "Add user",
+            "changePassword": "Change password",
+            "changePasswordFor": "Change password for {{username}}",
+            "createFirstUser": "Create a user before enabling login protection.",
+            "deleteContent": "Delete user {{username}}?",
+            "deleteLastContent": "Delete last user {{username}}? Login protection will be turned off.",
+            "deleteLastHint": "You can turn login protection back on after creating a user.",
+            "deleteLastTitle": "Delete last user",
+            "deleteTitle": "Delete user",
+            "deleteUser": "Delete",
+            "enabled": "Require login for the web interface",
+            "envOverride": "Login protection is currently disabled by TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "All users have full access to the web interface. Box APIs are not affected.",
+            "loadFailed": "Could not load users",
+            "navigationTitle": "Web login",
+            "passwordChanged": "Password updated",
+            "passwordChangedDetails": "Password for {{username}} was updated.",
+            "saveFailed": "Could not save changes",
+            "title": "Web login",
+            "users": "Users"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "There is a new version available!",

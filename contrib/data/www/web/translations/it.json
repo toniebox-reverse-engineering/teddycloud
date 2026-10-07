@@ -10,6 +10,23 @@
         "errorNoOggOpusSupportByApple": "Al momento il tuo browser non supporta i file OGG/Opus (taf). Se utilizzi un dispositivo Apple, aiutaci segnalando il problema ad Apple!",
         "unknownSource": "Sconosciuto"
     },
+    "auth": {
+        "loginFailed": "Nome utente o password non validi",
+        "loginHint": "Accedi a TeddyCloud",
+        "loginRateLimited": "Troppi tentativi di accesso. Riprova tra qualche minuto.",
+        "loginSubmit": "Accedi",
+        "loginTitle": "Accesso Web",
+        "logout": "Esci",
+        "newPassword": "Nuova password",
+        "password": "Password",
+        "passwordMin": "Almeno 4 caratteri",
+        "passwordRequired": "La password è obbligatoria",
+        "username": "Nome utente",
+        "usernameRequired": "Il nome utente è obbligatorio",
+        "statusLoadFailed": "Impossibile caricare lo stato di autenticazione",
+        "statusLoadFailedDetails": "Impossibile caricare lo stato di autenticazione. Controlla la connessione a TeddyCloud e riprova.",
+        "retry": "Riprova"
+    },
     "common": {
         "cancel": "Annulla"
     },
@@ -408,6 +425,24 @@
                 "renameFile": {
                     "text": "Rinomina il file. Nota: se questo file è assegnato a un Tonie/Tag, il riferimento non verrà aggiornato automaticamente.",
                     "title": "Rinomina file"
+                },
+                "downloadFile": {
+                    "title": "Scarica file",
+                    "text": "Scarica il file selezionato oppure, per i file TAF, lo scarica come file OGG."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Segna come ascoltato",
+                        "text": "Il file è attualmente segnato come non ascoltato. Fai clic per segnarlo come ascoltato."
+                    },
+                    "listened": {
+                        "title": "Segna come non ascoltato",
+                        "text": "Il file è attualmente segnato come ascoltato. Fai clic per segnarlo come non ascoltato."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Assegna a Tonie",
+                    "text": "Assegna il file selezionato come contenuto a un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -455,6 +490,7 @@
         },
         "hidden": "Nascosto",
         "image": "Immagine",
+        "markAsListened": "Segna come ascoltato",
         "maxSelectedRows": "Puoi selezionare al massimo {{maxSelectedRows}} file",
         "maxSelectedRowsWarning": "Sono stati selezionati troppi file!",
         "messages": {
@@ -486,7 +522,9 @@
             "renamingFailed": "Ridenominazione non riuscita",
             "renamingFailedDetails": "Ridenominazione del file \"{{fileSource}}\" in \"{{fileTarget}}\" non riuscita: ",
             "renamingSuccessful": "File rinominato correttamente!",
-            "renamingSuccessfulDetails": "File \"{{fileSource}}\" rinominato correttamente in \"{{fileTarget}}\"!"
+            "renamingSuccessfulDetails": "File \"{{fileSource}}\" rinominato correttamente in \"{{fileTarget}}\"!",
+            "toggleListenedFailed": "Impossibile modificare lo stato di ascolto",
+            "toggleListenedFailedDetails": "Impossibile modificare lo stato di ascolto per il file \"{{file}}\": "
         },
         "migrateContentToLib": "Migra TAF nella libreria (by/audioId/)",
         "migrateContentToLibRoot": "Migra TAF nella libreria (radice)",
@@ -528,6 +566,7 @@
             }
         },
         "title": "Gestione file",
+        "unmarkAsListened": "Segna come non ascoltato",
         "unusedTafsModal": {
             "actions": "Azioni",
             "fullPath": "Percorso completo",
@@ -651,6 +690,14 @@
                         "01pluginFeature": "estendere le funzionalità di TeddyCloud tramite plugin personalizzati"
                     },
                     "title": "Plugin TeddyCloud"
+                },
+                "15webLogin": {
+                    "items": {
+                        "01optionalLogin": "accesso opzionale per l'interfaccia Web con più utenti (disattivato per impostazione predefinita)",
+                        "02rateLimit": "sessione tramite cookie con limitazione dei tentativi dopo ripetuti accessi non riusciti",
+                        "03userLimit": "fino a 32 utenti"
+                    },
+                    "title": "Accesso all'interfaccia Web"
                 }
             },
             "futureFeatures": {
@@ -1079,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json ricaricato correttamente!",
         "tryToRestartTC": "Prova a riavviare TeddyCloud",
         "warning": "Attenzione! Livello impostazioni",
-        "warningHint": "Se mancano delle impostazioni, aumenta il 'Livello impostazioni'."
+        "warningHint": "Se mancano delle impostazioni, aumenta il 'Livello impostazioni'.",
+        "webAuth": {
+            "addUser": "Aggiungi utente",
+            "changePassword": "Cambia password",
+            "changePasswordFor": "Cambia password per {{username}}",
+            "createFirstUser": "Crea un utente prima di abilitare la protezione tramite accesso.",
+            "deleteContent": "Eliminare l'utente {{username}}?",
+            "deleteLastContent": "Eliminare l'ultimo utente {{username}}? La protezione tramite accesso verrà disattivata.",
+            "deleteLastHint": "Puoi riattivare la protezione tramite accesso dopo aver creato un utente.",
+            "deleteLastTitle": "Elimina ultimo utente",
+            "deleteTitle": "Elimina utente",
+            "deleteUser": "Elimina",
+            "enabled": "Richiedi l'accesso per l'interfaccia Web",
+            "envOverride": "La protezione tramite accesso è attualmente disattivata da TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Tutti gli utenti hanno accesso completo all'interfaccia Web. Le API del Toniebox non sono interessate.",
+            "loadFailed": "Impossibile caricare gli utenti",
+            "navigationTitle": "Accesso Web",
+            "passwordChanged": "Password aggiornata",
+            "passwordChangedDetails": "La password per {{username}} è stata aggiornata.",
+            "saveFailed": "Impossibile salvare le modifiche",
+            "title": "Accesso Web",
+            "users": "Utenti"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "È disponibile una nuova versione!",

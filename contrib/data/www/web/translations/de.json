@@ -12,8 +12,8 @@
     },
     "auth": {
         "loginFailed": "Ungültiger Benutzername oder Passwort",
-        "loginRateLimited": "Zu viele Anmeldeversuche. Versuche es in ein paar Minuten erneut.",
         "loginHint": "Bei TeddyCloud anmelden",
+        "loginRateLimited": "Zu viele Anmeldeversuche. Versuche es in ein paar Minuten erneut.",
         "loginSubmit": "Anmelden",
         "loginTitle": "Web-Login",
         "logout": "Abmelden",
@@ -22,7 +22,10 @@
         "passwordMin": "Mindestens 4 Zeichen",
         "passwordRequired": "Passwort ist erforderlich",
         "username": "Benutzername",
-        "usernameRequired": "Benutzername ist erforderlich"
+        "usernameRequired": "Benutzername ist erforderlich",
+        "statusLoadFailed": "Authentifizierungsstatus konnte nicht geladen werden",
+        "statusLoadFailedDetails": "Der Authentifizierungsstatus konnte nicht geladen werden. Prüfe die Verbindung zu TeddyCloud und versuche es erneut.",
+        "retry": "Erneut versuchen"
     },
     "common": {
         "cancel": "Abbrechen"
@@ -422,6 +425,24 @@
                 "renameFile": {
                     "text": "Benennt die Datei um. Hinweis: Wenn diese Datei einem Tonie/Tag zugewiesen ist, wird der Verweis nicht automatisch aktualisiert.",
                     "title": "Datei umbenennen"
+                },
+                "downloadFile": {
+                    "title": "Datei herunterladen",
+                    "text": "Lädt die ausgewählte Datei herunter oder lädt TAF-Dateien als OGG-Datei herunter."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Als gehört markieren",
+                        "text": "Die Datei ist derzeit als nicht gehört markiert. Klicke, um sie als gehört zu markieren."
+                    },
+                    "listened": {
+                        "title": "Als nicht gehört markieren",
+                        "text": "Die Datei ist derzeit als gehört markiert. Klicke, um sie als nicht gehört zu markieren."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Tonie zuweisen",
+                    "text": "Weist die ausgewählte Datei einem Tonie/Tag als Inhalt zu."
                 }
             },
             "actionItemsMulti": {
@@ -1050,28 +1071,6 @@
             "noLocalSettings": "Keine lokal gespeicherten Werte gefunden",
             "title": "GUI-Einstellungen & lokal gespeicherte Werte"
         },
-        "webAuth": {
-            "addUser": "Benutzer hinzufügen",
-            "changePassword": "Passwort ändern",
-            "createFirstUser": "Lege zuerst einen Benutzer an, bevor du den Login aktivierst.",
-            "deleteContent": "Benutzer {{username}} löschen?",
-            "deleteLastContent": "Letzten Benutzer {{username}} löschen? Der Login-Schutz wird dabei ausgeschaltet.",
-            "deleteLastHint": "Du kannst den Login-Schutz wieder einschalten, sobald ein Benutzer existiert.",
-            "deleteLastTitle": "Letzten Benutzer löschen",
-            "deleteTitle": "Benutzer löschen",
-            "deleteUser": "Löschen",
-            "enabled": "Login für die Weboberfläche verlangen",
-            "envOverride": "Der Login-Schutz ist aktuell durch TEDDYCLOUD_WEB_AUTH_DISABLE deaktiviert.",
-            "intro": "Alle Benutzer haben vollen Zugriff auf die Weboberfläche. Die Box-APIs sind nicht betroffen.",
-            "loadFailed": "Benutzer konnten nicht geladen werden",
-            "navigationTitle": "Web-Login",
-            "passwordChanged": "Passwort aktualisiert",
-            "passwordChangedDetails": "Passwort für {{username}} wurde aktualisiert.",
-            "changePasswordFor": "Passwort für {{username}} ändern",
-            "saveFailed": "Änderungen konnten nicht gespeichert werden",
-            "title": "Web-Login",
-            "users": "Benutzer"
-        },
         "hint": "Dies sind die Default-Einstellungen. Einige der Einstellungen können von deinen Toniebox spezifischen Einstellungen überschrieben werden. Um diese zu ändern, gehe zu ",
         "information": "Information",
         "keepScrolling": "Weiter scrollen, um weitere Optionen zu sehen.",
@@ -1127,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json erfolgreich neu geladen!",
         "tryToRestartTC": "Versuche, TeddyCloud neu zu starten",
         "warning": "Achtung! Settings level",
-        "warningHint": "Falls du Einstellungen vermisst, erhöhe das 'Settings level'."
+        "warningHint": "Falls du Einstellungen vermisst, erhöhe das 'Settings level'.",
+        "webAuth": {
+            "addUser": "Benutzer hinzufügen",
+            "changePassword": "Passwort ändern",
+            "changePasswordFor": "Passwort für {{username}} ändern",
+            "createFirstUser": "Lege zuerst einen Benutzer an, bevor du den Login aktivierst.",
+            "deleteContent": "Benutzer {{username}} löschen?",
+            "deleteLastContent": "Letzten Benutzer {{username}} löschen? Der Login-Schutz wird dabei ausgeschaltet.",
+            "deleteLastHint": "Du kannst den Login-Schutz wieder einschalten, sobald ein Benutzer existiert.",
+            "deleteLastTitle": "Letzten Benutzer löschen",
+            "deleteTitle": "Benutzer löschen",
+            "deleteUser": "Löschen",
+            "enabled": "Login für die Weboberfläche verlangen",
+            "envOverride": "Der Login-Schutz ist aktuell durch TEDDYCLOUD_WEB_AUTH_DISABLE deaktiviert.",
+            "intro": "Alle Benutzer haben vollen Zugriff auf die Weboberfläche. Die Box-APIs sind nicht betroffen.",
+            "loadFailed": "Benutzer konnten nicht geladen werden",
+            "navigationTitle": "Web-Login",
+            "passwordChanged": "Passwort aktualisiert",
+            "passwordChangedDetails": "Passwort für {{username}} wurde aktualisiert.",
+            "saveFailed": "Änderungen konnten nicht gespeichert werden",
+            "title": "Web-Login",
+            "users": "Benutzer"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "Es ist eine neue Version verfügbar!",
