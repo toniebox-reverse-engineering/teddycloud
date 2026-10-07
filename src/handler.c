@@ -755,6 +755,7 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
     track_positions_t *trackPos = &tonieInfo->additional.track_positions;
     TonieboxAudioFileHeader *tafHeader = tonieInfo->tafHeader;
     trackPos->count = tafHeader->n_track_page_nums;
+    trackPos->length = 0;
     if (trackPos->count > 0)
     {
         trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
@@ -811,6 +812,22 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             if (i == 0)
             {
                 correction = granulePosition;
+            }
+        }
+        if (!hasError && tafHeader->num_bytes >= 4096)
+        {
+            /* the granule position of the last ogg page is the total length */
+            uint8_t buffer[14];
+            size_t readBytes = 0;
+            size_t filePos = 4096 + 4096 * ((tafHeader->num_bytes - 1) / 4096);
+            if (fsSeekFile(file, filePos, SEEK_SET) == NO_ERROR && fsReadFile(file, buffer, sizeof(buffer), &readBytes) == NO_ERROR && readBytes == sizeof(buffer) && osMemcmp(buffer, "OggS", 4) == 0)
+            {
+                uint64_t granulePosition = 0;
+                osMemcpy(&granulePosition, &buffer[6], 8);
+                if (granulePosition >= correction)
+                {
+                    trackPos->length = (uint32_t)((granulePosition - correction) / 48000);
+                }
             }
         }
         if (hasError)
@@ -993,6 +1010,7 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
         osFreeMem(tonieInfo->additional.track_positions.pos);
         tonieInfo->additional.track_positions.pos = NULL;
         tonieInfo->additional.track_positions.count = 0;
+        tonieInfo->additional.track_positions.length = 0;
     }
 
     free_content_json(&tonieInfo->json);
