@@ -8,6 +8,8 @@
 #include "debug.h"
 #include "settings.h"
 #include "mqtt_server.h"
+#include "box_cert.h"
+#include "box_cert_check.h"
 #include "tls.h"
 #include "rand.h"
 #include "tls_adapter.h"
@@ -411,52 +413,67 @@ static void mqtt_server_publish(client_ctx_t *client_ctx, const char *topic, con
     }
 }
 
-static void mqtt_connection_update_context_from_cert(MqttClientConnection *conn)
+/* False when a box presents a certificate the box certificate check refuses. An unknown
+ * box only counts as a box while core.allowNewBox is on, like on the box port. */
+static bool mqtt_connection_update_context_from_cert(MqttClientConnection *conn)
 {
-    if (conn->tlsContext != NULL && osStrlen(conn->tlsContext->client_cert_subject) > 0)
+    if (conn->tlsContext == NULL)
     {
-        char_t *subject = conn->tlsContext->client_cert_subject;
-        char_t *issuer = conn->tlsContext->client_cert_issuer;
-
-        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "Toniebox SubCA") != NULL
-            || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL || osStrstr(issuer, "Toniebox Root CA") != NULL)
-        {
-            char_t *commonName = NULL;
-            if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
-            {
-                commonName = strdup(&subject[2]);
-                commonName[osStrlen(commonName) - 1] = '\0';
-            } else if (osStrlen(subject) == 12) {
-                commonName = strdup(subject);
-            }
-
-            if (commonName != NULL) {
-                settings_t *box_settings = get_settings_cn(commonName);
-                if (box_settings != NULL && box_settings->internal.config_used)
-                {
-                    conn->client_ctx.settings = box_settings;
-                    conn->client_ctx.settingsNoOverlay = box_settings;
-                    conn->client_ctx.state = get_toniebox_state_id(box_settings->internal.overlayNumber);
-                    conn->client_ctx.state->box.id = conn->client_ctx.settings->commonName;
-                    conn->client_ctx.state->box.name = conn->client_ctx.settings->boxName;
-                }
-                osFreeMem(commonName);
-            }
-        }
+        return true;
     }
+
+    char_t *subject = conn->tlsContext->client_cert_subject;
+    char_t *issuer = conn->tlsContext->client_cert_issuer;
+    char_t boxId[BOX_CERT_ID_SIZE];
+
+    if (!box_cert_issuer_known(issuer, subject) || !box_cert_id(subject, boxId))
+    {
+        return true;
+    }
+
+    if (get_overlay_id(boxId) == 0 && !get_settings()->core.allowNewBox)
+    {
+        return true;
+    }
+    settings_t *box_settings = get_settings_cn(boxId);
+    if (box_settings == NULL || !box_settings->internal.config_used)
+    {
+        return true;
+    }
+    if (!box_cert_accepted(conn->tlsContext, box_settings))
+    {
+        return false;
+    }
+
+    conn->client_ctx.settings = box_settings;
+    conn->client_ctx.settingsNoOverlay = box_settings;
+    conn->client_ctx.state = get_toniebox_state_id(box_settings->internal.overlayNumber);
+    conn->client_ctx.state->box.id = conn->client_ctx.settings->commonName;
+    conn->client_ctx.state->box.name = conn->client_ctx.settings->boxName;
+    return true;
 }
+
+static error_t handle_mqtt_disconnect(MqttClientConnection *conn, MqttMessageType type, const char *topic, const uint8_t *payload, size_t payload_len);
 
 static error_t handle_mqtt_connect(MqttClientConnection *conn, MqttMessageType type, const char *topic, const uint8_t *payload, size_t payload_len)
 {
-    mqtt_connection_update_context_from_cert(conn);
-    TRACE_INFO("MQTT: connection established for %s\r\n", conn->client_ctx.settings->commonName);
-    
-    uint8_t connack[] = {0x20, 0x02, 0x00, 0x00};
+    bool accepted = mqtt_connection_update_context_from_cert(conn);
+    if (accepted)
+    {
+        TRACE_INFO("MQTT: connection established for %s\r\n", conn->client_ctx.settings->commonName);
+    }
+
+    uint8_t connack[] = {0x20, 0x02, 0x00, accepted ? 0x00 : 0x05}; // 0x05: not authorized
     size_t written = 0;
-    if (conn->tlsContext)
-        return tlsWrite(conn->tlsContext, connack, sizeof(connack), &written, 0);
-    else
-        return socketSend(conn->socket, connack, sizeof(connack), &written, 0);
+    error_t error = conn->tlsContext ? tlsWrite(conn->tlsContext, connack, sizeof(connack), &written, 0)
+                                     : socketSend(conn->socket, connack, sizeof(connack), &written, 0);
+    if (!accepted)
+    {
+        TRACE_WARNING("MQTT: box certificate refused\r\n");
+        handle_mqtt_disconnect(conn, MQTT_MSG_DISCONNECT, NULL, NULL, 0);
+        return ERROR_ACCESS_DENIED;
+    }
+    return error;
 }
 
 static error_t handle_mqtt_pingreq(MqttClientConnection *conn, MqttMessageType type, const char *topic, const uint8_t *payload, size_t payload_len)

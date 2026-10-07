@@ -811,7 +811,7 @@ TEST_C_SRC := $(wildcard tests/c/*.c)
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I cyclone/common -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c
+	$(QUIET)$(CC) -I include -I cyclone/common -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/box_cert.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
@@ -820,7 +820,7 @@ test: test_c test_py test_auth_pool_reuse_with_server
 PYTHON ?= python3
 HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Tap495 Crawler508 KeyPermissions512 Secrets505 Traversal513 Range515 Extract522 PrivateFetch Settings528
 # every entry gets a fresh sandboxed server (see tests/py/with_server.sh), a crash must only fail its own test
-PY_TESTS := tests/py/test_tonies_custom_json_api.py tests/py/test_cors_preflight.py tests/py/test_web_legacy_gone.py tests/py/test_box_sim.py tests/py/test_box_profiles.py tests/py/test_box_cert_upload.py tests/py/test_cloud_proxy.py tests/py/test_taf_length.py \
+PY_TESTS := tests/py/test_tonies_custom_json_api.py tests/py/test_cors_preflight.py tests/py/test_web_legacy_gone.py tests/py/test_box_sim.py tests/py/test_box_profiles.py tests/py/test_box_cert_check.py tests/py/test_box_cert_upload.py tests/py/test_cloud_proxy.py tests/py/test_taf_length.py \
 	$(addprefix tests/py/test_hardening.py::,$(HARDENING_TESTS))
 
 # make test_py TESTS=cors            only entries containing "cors"
