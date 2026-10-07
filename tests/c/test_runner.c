@@ -26,6 +26,8 @@ static const test_case_t tests[] = {
     {"esp32_port_patch", test_esp32_port_patch},
     {"socket_receive_line_from_full_buffer", test_socket_receive_line_from_full_buffer},
     {"socket_receive_line_capped_at_size", test_socket_receive_line_capped_at_size},
+    {"box_cert_id", test_box_cert_id},
+    {"box_cert_issuer_known", test_box_cert_issuer_known},
 };
 
 int main(void)
