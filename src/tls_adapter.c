@@ -15,8 +15,10 @@
 #include "fs_ext.h"                   // for fsOpenFileEx
 #include "fs_port.h"                  // for FS_FILE_MODE_READ
 #include "fs_port_posix.h"            // for fsReadFile, fsCloseFile, fsOpen...
+#include "hash/sha256.h"              // for sha256Compute
 #include "os_port.h"                  // for osFreeMem, osAllocMem, osMemset
 #include "pem_common.h"               // for pemEncodeFile
+#include "pkix/pem_import.h"          // for pemImportCertificate
 #include "pkix/x509_cert_parse.h"     // for x509ParseCertificate
 #include "pkix/x509_cert_validate.h"  // for x509CheckNameConstraints, x509C...
 #include "settings.h"                 // for settings_get_string_id, setting...
@@ -449,6 +451,29 @@ static void copyAsString(char *dst, size_t dstLen, size_t srcLen, const char_t *
     dst[len] = '\0';
 }
 
+/* Box certificates of TeddyCloud are issued directly by one of its CAs. */
+static bool issued_by(const X509CertInfo *cert, const char_t *caPem)
+{
+    size_t pemLength = caPem ? osStrlen(caPem) : 0;
+    size_t derLength = 0;
+
+    if (pemLength == 0 || pemImportCertificate(caPem, pemLength, NULL, &derLength, NULL) != NO_ERROR)
+    {
+        return false;
+    }
+
+    uint8_t *der = osAllocMem(derLength);
+    X509CertInfo *ca = osAllocMem(sizeof(X509CertInfo));
+    bool issued = der != NULL && ca != NULL &&
+                  pemImportCertificate(caPem, pemLength, der, &derLength, NULL) == NO_ERROR &&
+                  x509ParseCertificate(der, derLength, ca) == NO_ERROR &&
+                  x509ValidateCertificate(cert, ca, 0) == NO_ERROR;
+
+    osFreeMem(ca);
+    osFreeMem(der);
+    return issued;
+}
+
 static void copyAsHex(char *dst, size_t dstLen, size_t payloadLen, const uint8_t *payloadData)
 {
     if (payloadLen == 0 || dstLen == 0)
@@ -470,6 +495,34 @@ static void copyAsHex(char *dst, size_t dstLen, size_t payloadLen, const uint8_t
 
     // Null-terminate the output string.
     dst[maxHexBytes * 2] = '\0';
+}
+
+bool tls_cert_fingerprint(const char_t *pem, char_t sha256[65], char_t *subject, size_t subjectSize)
+{
+    size_t pemLength = pem ? osStrlen(pem) : 0;
+    size_t derLength = 0;
+
+    if (pemLength == 0 || pemImportCertificate(pem, pemLength, NULL, &derLength, NULL) != NO_ERROR)
+    {
+        return false;
+    }
+
+    uint8_t *der = osAllocMem(derLength);
+    X509CertInfo *cert = osAllocMem(sizeof(X509CertInfo));
+    bool parsed = der != NULL && cert != NULL &&
+                  pemImportCertificate(pem, pemLength, der, &derLength, NULL) == NO_ERROR &&
+                  x509ParseCertificate(der, derLength, cert) == NO_ERROR;
+    if (parsed)
+    {
+        uint8_t digest[SHA256_DIGEST_SIZE];
+        sha256Compute(der, derLength, digest);
+        copyAsHex(sha256, 65, sizeof(digest), digest);
+        copyAsString(subject, subjectSize, cert->tbsCert.subject.commonName.length, cert->tbsCert.subject.commonName.value);
+    }
+
+    osFreeMem(cert);
+    osFreeMem(der);
+    return parsed;
 }
 
 /**
@@ -626,6 +679,11 @@ error_t tlsParseCertificateList(TlsContext *context,
             copyAsString(context->client_cert_issuer, sizeof(context->client_cert_issuer), certInfo->tbsCert.issuer.commonName.length, certInfo->tbsCert.issuer.commonName.value);
             copyAsString(context->client_cert_subject, sizeof(context->client_cert_subject), certInfo->tbsCert.subject.commonName.length, certInfo->tbsCert.subject.commonName.value);
             copyAsHex(context->client_cert_serial, sizeof(context->client_cert_serial), certInfo->tbsCert.serialNumber.length, certInfo->tbsCert.serialNumber.value);
+            uint8_t sha256[SHA256_DIGEST_SIZE];
+            sha256Compute(p, n, sha256);
+            copyAsHex(context->client_cert_sha256, sizeof(context->client_cert_sha256), sizeof(sha256), sha256);
+            context->client_cert_trusted = issued_by(certInfo, settings_get_string("internal.server.ca")) ||
+                                           issued_by(certInfo, settings_get_string("internal.server_tb2.ca"));
         }
 
         // Check if the end-user certificate can be matched with a trusted CA

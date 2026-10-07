@@ -12,3 +12,5 @@ void test_ipv4_is_public(void);
 void test_esp32_port_patch(void);
 void test_socket_receive_line_from_full_buffer(void);
 void test_socket_receive_line_capped_at_size(void);
+void test_box_cert_id(void);
+void test_box_cert_issuer_known(void);

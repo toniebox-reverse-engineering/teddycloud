@@ -34,6 +34,8 @@
 #include "mqtt_server.h"          // for mqtt_server_init, mqtt_server_task
 #include "stdbool.h"              // for true, bool, false
 #include "tls.h"                  // for _TlsContext, tlsLoadCertificate
+#include "box_cert.h"             // for box_cert_id, box_cert_issuer_known
+#include "box_cert_check.h"       // for box_cert_accepted
 #include "tls_adapter.h"          // for tls_context_key_log_init, tlsCache
 #include "toniebox_state.h"       // for get_toniebox_state, get_toniebox_s...
 #include "toniebox_state_type.h"  // for toniebox_state_box_t, toniebox_sta...
@@ -341,6 +343,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         TRACE_DEBUG("  Issuer:     '%s'\r\n", connection->tlsContext->client_cert_issuer);
         TRACE_DEBUG("  Subject:    '%s'\r\n", connection->tlsContext->client_cert_subject);
         TRACE_DEBUG("  Serial:     '%s'\r\n", connection->tlsContext->client_cert_serial);
+        TRACE_DEBUG("  SHA256:     '%s'\r\n", connection->tlsContext->client_cert_sha256);
         request_source = connection->tlsContext->client_cert_subject;
     }
     else
@@ -364,44 +367,28 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         char_t *issuer = connection->tlsContext->client_cert_issuer;
         uint32_t boxGen = GENERATION_UNKNOWN;
 
-        if (osStrstr(issuer, "Boxine Factory SubCA") != NULL || osStrstr(issuer, "Toniebox SubCA") != NULL
-            || osStrstr(issuer, "TeddyCloud") != NULL || osStrstr(subject, "TeddyCloud") != NULL || osStrstr(issuer, "Toniebox Root CA") != NULL)
+        if (box_cert_issuer_known(issuer, subject))
         {
-            char_t *commonName = NULL;
-            if (osStrlen(subject) == 15 && !osStrncmp(subject, "b'", 2) && subject[14] == '\'') // tonies standard cn with b'[MAC]'
+            char_t boxId[BOX_CERT_ID_SIZE];
+            bool hasBoxId = box_cert_id(subject, boxId);
+            const char_t *commonName = hasBoxId ? boxId : subject;
+
+            if (hasBoxId && get_overlay_id(commonName) == 0)
             {
-                commonName = strdup(&subject[2]);
-                commonName[osStrlen(commonName) - 1] = '\0';
-            } else if (osStrlen(subject) == 12) {
-                commonName = strdup(subject);
-            }
-            if (commonName != NULL) {
-                if (get_overlay_id(commonName) == 0)
+                if (client_ctx->settings->core.allowNewBox)
                 {
-                    if (client_ctx->settings->core.allowNewBox)
-                    {
-                        TRACE_INFO("Added new client certificate with CN=%s\n", commonName);
-                    }
-                    else
-                    {
-                        TRACE_WARNING("Found unknown client certificate with CN=%s\n", commonName);
-                    }
+                    TRACE_INFO("Added new client certificate with CN=%s\n", commonName);
                 }
-                if (get_overlay_id(commonName) > 0 || client_ctx->settings->core.allowNewBox)
+                else
                 {
-                    client_ctx->settings = get_settings_cn(commonName);
-                    connection->private.authenticated = client_ctx->settings->toniebox.api_access;
+                    TRACE_WARNING("Found unknown client certificate with CN=%s\n", commonName);
                 }
-                osFreeMem(commonName);
-                // TODO: CHECK THE CERTIFICATES FOR REAL!!!!!
             }
-            else
+            if (get_overlay_id(commonName) > 0 || client_ctx->settings->core.allowNewBox)
             {
-                if (get_overlay_id(subject) > 0 || client_ctx->settings->core.allowNewBox)
-                {
-                    client_ctx->settings = get_settings_cn(subject);
-                    connection->private.authenticated = client_ctx->settings->toniebox.api_access;
-                }
+                client_ctx->settings = get_settings_cn(commonName);
+                connection->private.authenticated = client_ctx->settings->toniebox.api_access &&
+                                                    box_cert_accepted(connection->tlsContext, client_ctx->settings);
             }
             client_ctx->state = get_toniebox_state_id(client_ctx->settings->internal.overlayNumber);
 

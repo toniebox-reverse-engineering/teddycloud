@@ -37,7 +37,9 @@
 #define TLS_PRIVATE_CONTEXT       \
     char client_cert_issuer[128]; \
     char client_cert_subject[32]; \
-    char client_cert_serial[64];
+    char client_cert_serial[64];  \
+    char client_cert_sha256[65];  \
+    bool_t client_cert_trusted;
 
 // Desired trace level (for debugging purposes)
 #define TLS_TRACE_LEVEL TRACE_LEVEL_WARNING
