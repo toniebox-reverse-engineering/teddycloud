@@ -5,12 +5,10 @@ API tests for custom tonies JSON endpoints.
 Recommended usage:
 
 1) Fully automated via Makefile (build + start server + run tests + stop server):
-   make test_api_custom_json_with_server
+   make test_py TESTS=custom_json
 
 2) Against an already running TeddyCloud server:
-   make test_api_custom_json
-   or:
-   TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 tests/test_tonies_custom_json_api.py
+   TEDDYCLOUD_BASE_URL=http://127.0.0.1:80 python3 -m pytest tests/py/test_tonies_custom_json_api.py
 """
 
 import json

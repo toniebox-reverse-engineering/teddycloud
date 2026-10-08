@@ -9,7 +9,49 @@ on:
   pull_request:
     branches: [ "master", "develop" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' || github.event_name == 'pull_request' }}
+
 jobs:
+  # runs next to the builds; if a test fails, the whole run is cancelled
+  tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # only for cancelling this run
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: sudo apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential openssl faketime python3 python3-pytest curl ffmpeg
+
+    # the tests start a server and check the web UI it serves
+    - name: Build web UI
+      run: |
+        make web
+        mkdir -p data/www/web
+        cp -r contrib/data/www/web/. data/www/web/
+
+    # generating the test certificates takes minutes, see tests/py/with_server.sh
+    - name: Cache test template
+      uses: actions/cache@v4
+      with:
+        path: bin/test-template
+        key: test-template-${{ hashFiles('src/cert.c', 'include/cert.h') }}
+
+    - name: Run all tests
+      run: make test
+
+    - name: Cancel the run on failed tests
+      if: failure()
+      continue-on-error: true # PRs from forks only get a read-only token
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh run cancel ${{ github.run_id }} --repo "$GITHUB_REPOSITORY"
+
   build-windows-amd64:
     runs-on: windows-latest
     outputs:

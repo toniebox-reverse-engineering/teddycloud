@@ -6,6 +6,21 @@
 #include "cJSON.h"
 #include "mqtt_server.h"
 
+/* Streams a "name: value\r\n" header line without buffering it into a fixed
+   stack buffer, so an arbitrarily long header/value from an upstream response
+   cannot overflow. */
+static void httpSendHeaderLine(HttpConnection *connection, const char *name, const char *value)
+{
+    if (value == NULL)
+    {
+        value = "";
+    }
+    httpSend(connection, name, osStrlen(name), HTTP_FLAG_DELAY);
+    httpSend(connection, ": ", 2, HTTP_FLAG_DELAY);
+    httpSend(connection, value, osStrlen(value), HTTP_FLAG_DELAY);
+    httpSend(connection, "\r\n", 2, HTTP_FLAG_DELAY);
+}
+
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx)
 {
     osMemset(ctx, 0, sizeof(cbr_ctx_t));
@@ -245,7 +260,6 @@ void cbrCloudResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[256];
     bool passthrough = true;
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
@@ -255,9 +269,7 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
             char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
             if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
             {
-                osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-                httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-                line[0] = '\0';
+                httpSendHeaderLine(ctx->connection, "Access-Control-Allow-Origin", allowOrigin);
             }
         }
     }
@@ -285,16 +297,14 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
             if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
             {
                 TRACE_DEBUG(">> cbrCloudHeaderPassthrough: %s = %s\r\n", header, value);
-                osSprintf(line, "%s: %s\r\n", header, value);
+                httpSendHeaderLine(ctx->connection, header, value);
             }
         }
         else
         {
             TRACE_DEBUG(">> cbrCloudHeaderPassthrough: NULL\r\n");
-            osStrcpy(line, "\r\n");
+            httpSend(ctx->connection, "\r\n", 2, HTTP_FLAG_DELAY);
         }
-
-        httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     }
 
     ctx->status = PROX_STATUS_HEAD;
@@ -745,6 +755,7 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
     track_positions_t *trackPos = &tonieInfo->additional.track_positions;
     TonieboxAudioFileHeader *tafHeader = tonieInfo->tafHeader;
     trackPos->count = tafHeader->n_track_page_nums;
+    trackPos->length = 0;
     if (trackPos->count > 0)
     {
         trackPos->pos = osAllocMem(trackPos->count * sizeof(uint32_t));
@@ -801,6 +812,22 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             if (i == 0)
             {
                 correction = granulePosition;
+            }
+        }
+        if (!hasError && tafHeader->num_bytes >= 4096)
+        {
+            /* the granule position of the last ogg page is the total length */
+            uint8_t buffer[14];
+            size_t readBytes = 0;
+            size_t filePos = 4096 + 4096 * ((tafHeader->num_bytes - 1) / 4096);
+            if (fsSeekFile(file, filePos, SEEK_SET) == NO_ERROR && fsReadFile(file, buffer, sizeof(buffer), &readBytes) == NO_ERROR && readBytes == sizeof(buffer) && osMemcmp(buffer, "OggS", 4) == 0)
+            {
+                uint64_t granulePosition = 0;
+                osMemcpy(&granulePosition, &buffer[6], 8);
+                if (granulePosition >= correction)
+                {
+                    trackPos->length = (uint32_t)((granulePosition - correction) / 48000);
+                }
             }
         }
         if (hasError)
@@ -983,6 +1010,7 @@ void freeTonieInfo(tonie_info_t *tonieInfo)
         osFreeMem(tonieInfo->additional.track_positions.pos);
         tonieInfo->additional.track_positions.pos = NULL;
         tonieInfo->additional.track_positions.count = 0;
+        tonieInfo->additional.track_positions.length = 0;
     }
 
     free_content_json(&tonieInfo->json);
@@ -1223,7 +1251,7 @@ void cbrGenericResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
     // This is fine: https://www.youtube.com/watch?v=0oBx7Jg4m-o
     const char *statusText = httpStatusCodeText(cloud_ctx->statusCode);
 
-    osSprintf(line, "HTTP/%d.%d %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
+    osSnprintf(line, sizeof(line), "HTTP/%d.%d %u %s\r\n", MSB(cloud_ctx->version), LSB(cloud_ctx->version), cloud_ctx->statusCode, statusText);
     httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_CONN;
 }
@@ -1231,7 +1259,6 @@ void cbrGenericResponsePassthrough(void *src_ctx, HttpClientContext *cloud_ctx)
 void cbrGenericHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
-    char line[2048];
 
     if (ctx->status != PROX_STATUS_HEAD) // Only once
     {
@@ -1240,9 +1267,7 @@ void cbrGenericHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, co
             char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
             if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
             {
-                osSprintf(line, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-                httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
-                line[0] = '\0';
+                httpSendHeaderLine(ctx->connection, "Access-Control-Allow-Origin", allowOrigin);
             }
         }
     }
@@ -1252,16 +1277,15 @@ void cbrGenericHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, co
         if (osStrcmp(header, "Access-Control-Allow-Origin") != 0)
         {
             TRACE_DEBUG(">> cbrGenericHeaderPassthrough: %s = %s\r\n", header, value);
-            osSprintf(line, "%s: %s\r\n", header, value);
+            httpSendHeaderLine(ctx->connection, header, value);
         }
     }
     else
     {
         TRACE_DEBUG(">> cbrGenericHeaderPassthrough: NULL\r\n");
-        osStrcpy(line, "\r\n");
+        httpSend(ctx->connection, "\r\n", 2, HTTP_FLAG_DELAY);
     }
 
-    httpSend(ctx->connection, line, osStrlen(line), HTTP_FLAG_DELAY);
     ctx->status = PROX_STATUS_HEAD;
 }
 

@@ -99,6 +99,8 @@ typedef enum
     RTNL3_TYPE_PLAYBACK_STOPPED = 13,
 } rtnl_log3_type;
 
+int32_t read_big_endian32(const uint8_t *buf);
+
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx);
 void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *client_ctx);
 void rtnlEventLog(HttpConnection *connection, TonieRtnlRPC *rpc);

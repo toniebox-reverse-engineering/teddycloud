@@ -125,13 +125,25 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
         ctx->file = fsOpenFileEx(fullPath, "r+");
         TRACE_INFO("Append to TAF: %s\n", fullPath);
 
-        char buffer[TONIEFILE_FRAME_SIZE];
-        size_t read_length = 0;
-        fsSeekFile(ctx->file, 4, SEEK_SET);
-        fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
-        tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
-        audio_id = tafHeader->audio_id;
-        ctx->taf.audio_id = audio_id;
+        if (ctx->file != NULL)
+        {
+            char buffer[TONIEFILE_FRAME_SIZE];
+            size_t read_length = 0;
+            fsSeekFile(ctx->file, 4, SEEK_SET);
+            fsReadFile(ctx->file, buffer, TONIEFILE_FRAME_SIZE - 4, &read_length);
+            tafHeader = toniebox_audio_file_header__unpack(NULL, read_length, (uint8_t *)buffer);
+            if (tafHeader == NULL)
+            {
+                TRACE_ERROR("Cannot parse existing TAF header, refusing to append: %s\n", fullPath);
+                fsCloseFile(ctx->file);
+                osFreeMem(ctx->taf.track_page_nums);
+                osFreeMem(ctx);
+                return NULL;
+            }
+            audio_id = tafHeader->audio_id;
+            ctx->taf.audio_id = audio_id;
+            toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+        }
     }
     else
     {
@@ -590,13 +602,32 @@ FILE *ffmpeg_decode_audio_start_skip(const char *input_source, size_t skip_secon
 
     // Construct the FFmpeg command based on the input source
     char ffmpeg_command[1024]; // Adjust the buffer size as needed
+
+    /* input_source is attacker-controllable (content source URL/path), so it
+       must be shell-quoted - never interpolated raw into the command line. */
+    char quoted_source[sizeof(ffmpeg_command)];
+    if (!osShellQuote(quoted_source, sizeof(quoted_source), input_source))
+    {
+        TRACE_ERROR("ffmpeg source cannot be passed to the shell: %s\r\n", input_source);
+        return NULL;
+    }
+
+    int written;
     if (skip_bytes == 0)
     {
-        snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i \"%s\" -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", input_source, skip_seconds);
+        written = snprintf(ffmpeg_command, sizeof(ffmpeg_command), "ffmpeg -i %s -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", quoted_source, skip_seconds);
     }
     else
     {
-        snprintf(ffmpeg_command, sizeof(ffmpeg_command), "tail -c +%" PRIuSIZE " \"%s\" | ffmpeg -i - -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", skip_bytes + 1, input_source, skip_seconds);
+        written = snprintf(ffmpeg_command, sizeof(ffmpeg_command), "tail -c +%" PRIuSIZE " %s | ffmpeg -i - -f s16le -acodec pcm_s16le -ar 48000 -ac 2 -ss %" PRIuSIZE " -", skip_bytes + 1, quoted_source, skip_seconds);
+    }
+
+    /* bail out on truncation so a partially built (and potentially
+       quote-unbalanced) command is never executed */
+    if (written < 0 || (size_t)written >= sizeof(ffmpeg_command))
+    {
+        TRACE_ERROR("ffmpeg command too long for source\r\n");
+        return NULL;
     }
 
     TRACE_INFO("FFmpeg command: %s\r\n", ffmpeg_command);
@@ -770,6 +801,7 @@ error_t ffmpeg_stream(char source[99][PATH_LEN], size_t source_len, size_t *curr
             if (*current_source < source_len)
             {
                 error = ffmpeg_decode_audio_end(ffmpeg_pipe, error);
+                ffmpeg_pipe = NULL;
                 if (error != NO_ERROR)
                 {
                     TRACE_ERROR("Could not close FFmpeg pipe error=%s\r\n", error2text(error));

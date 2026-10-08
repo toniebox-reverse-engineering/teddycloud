@@ -2,6 +2,7 @@
 #define TRACE_LEVEL TRACE_LEVEL_INFO
 
 #include "esp32.h"
+#include "esp32_port.h"
 
 #include <errno.h>          // for error_t
 #include <inttypes.h>       // for PRIX32, PRIu32, PRIX8, PRIX16, PRIX64
@@ -19,6 +20,7 @@
 #include "fs_ext.h"         // for fsOpenFileEx
 #include "fs_port.h"        // for FS_SEEK_SET, FsDirEntry, FS_FILE_MODE_WRITE
 #include "hash/sha256.h"    // for sha256Update, sha256Final, sha256Init
+#include "os_ext.h"         // for osChmodOwnerOnly
 #include "os_port.h"        // for osFreeMem, osAllocMem, osStrcpy, osStrlen
 #include "path.h"           // for pathAddSlash, pathCanonicalize, pathCombine
 #include "pem_import.h"     // for pemImportCertificate
@@ -352,8 +354,16 @@ struct ESP32_nvs_item
     };
 };
 
+/* state_bitmap holds 2 bits per entry */
+#define NVS_STATE_BITMAP_SLOTS (sizeof(((struct ESP32_nvs_page_header *)0)->state_bitmap) * 4)
+
 uint8_t esp32_nvs_state_get(struct ESP32_nvs_page_header *page_header, uint8_t index)
 {
+    if (index >= NVS_STATE_BITMAP_SLOTS)
+    {
+        /* out of range: report as not written so callers skip it */
+        return NVS_STATE_EMPTY;
+    }
     int bmp_idx = index / 4;
     int bmp_bit = (index % 4) * 2;
     uint8_t bmp = (page_header->state_bitmap[bmp_idx] >> (bmp_bit)) & 3;
@@ -363,6 +373,10 @@ uint8_t esp32_nvs_state_get(struct ESP32_nvs_page_header *page_header, uint8_t i
 
 void esp32_nvs_state_set(struct ESP32_nvs_page_header *page_header, uint8_t index, uint8_t state)
 {
+    if (index >= NVS_STATE_BITMAP_SLOTS)
+    {
+        return;
+    }
     int bmp_idx = index / 4;
     int bmp_bit = (index % 4) * 2;
 
@@ -477,12 +491,14 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
     if (item->nsIndex == 0)
     {
         TRACE_INFO("      Namespace   %s\r\n", item->key);
-        if (item->uint8 > MAX_NAMESPACE_COUNT)
+        if (item->uint8 >= MAX_NAMESPACE_COUNT)
         {
             TRACE_ERROR("namespace index is %" PRIu32 ", which seems invalid", item->uint8);
             return ERROR_FAILURE;
         }
-        osStrcpy((*namespaces)[item->uint8], item->key);
+        /* item->key is a fixed 16-byte field that need not be NUL-terminated */
+        osMemcpy((*namespaces)[item->uint8], item->key, MAX_KEY_SIZE - 1);
+        (*namespaces)[item->uint8][MAX_KEY_SIZE - 1] = '\0';
 
         uint32_t crc_header_calc = crc32_header(item);
         TRACE_INFO("      Header CRC  %08" PRIX32 " (calc %08" PRIX32 ")\r\n", item->crc32, crc_header_calc);
@@ -495,7 +511,7 @@ static error_t process_nvs_item(FsFile *file, size_t offset, size_t part_offset,
     }
     else
     {
-        if (item->nsIndex > MAX_NAMESPACE_COUNT)
+        if (item->nsIndex >= MAX_NAMESPACE_COUNT)
         {
             TRACE_ERROR("      Namespace   index is %" PRIu32 ", which seems invalid", item->nsIndex);
         }
@@ -739,6 +755,11 @@ error_t esp32_fixup_nvs(FsFile *file, size_t offset, size_t length, bool modify)
                     return error;
                 }
 
+                if (nvs_item.span == 0)
+                {
+                    TRACE_ERROR("NVS item span is 0, aborting to avoid an endless loop\r\n");
+                    break;
+                }
                 entry += nvs_item.span - 1;
             }
         }
@@ -800,7 +821,7 @@ error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *na
 
             if (nvs_item.nsIndex == 0)
             {
-                if (nvs_item.uint8 > MAX_NAMESPACE_COUNT)
+                if (nvs_item.uint8 >= MAX_NAMESPACE_COUNT)
                 {
                     TRACE_ERROR("namespace index is %" PRIu32 ", which seems invalid", nvs_item.uint8);
                     return ERROR_FAILURE;
@@ -830,6 +851,11 @@ error_t esp32_nvs_del(FsFile *file, size_t offset, size_t length, const char *na
                 }
             }
 
+            if (nvs_item.span == 0)
+            {
+                TRACE_ERROR("NVS item span is 0, aborting to avoid an endless loop\r\n");
+                break;
+            }
             entry += nvs_item.span - 1;
         }
 
@@ -1106,6 +1132,11 @@ error_t esp32_fat_extract_folder(FsFile *file, size_t offset, size_t length, con
             {
                 TRACE_ERROR("Failed to open output file\r\n");
                 return ERROR_FAILURE;
+            }
+            /* the CERT folder holds the box's private key */
+            if (!osChmodOwnerOnly(outFileName))
+            {
+                TRACE_WARNING("Could not restrict permissions of '%s'\r\n", outFileName);
             }
 
             FIL fp;
@@ -1905,4 +1936,50 @@ error_t esp32_patch_host(const char *patchedPath, const char *hostname, const ch
         osFreeMem(bin_data);
     }
     return ret;
+}
+
+error_t esp32_patch_port(const char *patchedPath, uint32_t port)
+{
+    if (!esp32_port_supported(port))
+    {
+        TRACE_ERROR("Port %" PRIu32 " not supported, must be 1..32767\r\n", port);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    TRACE_INFO("Patching port %" PRIu32 " in '%s'\r\n", port, patchedPath);
+
+    uint32_t size = 0;
+    if (fsGetFileSize(patchedPath, &size))
+    {
+        TRACE_ERROR("File does not exist '%s'\r\n", patchedPath);
+        return ERROR_NOT_FOUND;
+    }
+
+    FsFile *file = fsOpenFileEx(patchedPath, "rb+");
+    if (file == NULL)
+    {
+        TRACE_ERROR("Failed to open firmware\r\n");
+        return ERROR_NOT_FOUND;
+    }
+
+    uint8_t *image = osAllocMem(size);
+    error_t error = image ? file_read_block(file, 0, image, size) : ERROR_OUT_OF_MEMORY;
+    if (!error)
+    {
+        int patched = esp32_port_patch(image, size, (uint16_t)port);
+        TRACE_INFO(" patched %d connect function(s)\r\n", patched);
+        if (patched == 0)
+        {
+            TRACE_ERROR("Connect function not found, firmware version not supported\r\n");
+            error = ERROR_NOT_FOUND;
+        }
+    }
+    if (!error)
+    {
+        error = file_write_block(file, 0, image, size);
+    }
+
+    fsCloseFile(file);
+    osFreeMem(image);
+    return error;
 }

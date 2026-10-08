@@ -16,71 +16,9 @@
 #include "toniesJson.h"
 #include "server_helpers.h"
 #include "toniebox_state.h"
+#include "str_ext.h"
 
 #include "proto/toniebox.pb.rtnl.pb-c.h"
-
-static void escapeString(const char_t *input, size_t size, char_t *output);
-static void escapeString(const char_t *input, size_t size, char_t *output)
-{
-    // Replacement sequences for special characters
-    const char_t *replacements[] = {
-        "\"", "\"\"", // Double quote (")
-        "\n", "\\n",  // Newline
-        "\r", "\\r"   // Carriage return
-    };
-    const size_t num_replacements = sizeof(replacements) / sizeof(replacements[0]);
-
-    size_t input_length = size;
-
-    /* ToDo: this escaped_length code is not used - intentional through refacotring? */
-    size_t escaped_length = 0;
-
-    // First pass to count the number of additional characters required for escaping
-    for (size_t i = 0; i < input_length; i++)
-    {
-        for (size_t j = 0; j < num_replacements; j++)
-        {
-            if (input[i] == replacements[j][0])
-            {
-                escaped_length += osStrlen(replacements[j]) - 1;
-                break;
-            }
-        }
-    }
-
-    size_t j = 0;
-    // Second pass to actually escape the characters
-    for (size_t i = 0; i < input_length; i++)
-    {
-        bool_t replaced = false;
-        for (size_t k = 0; k < num_replacements; k++)
-        {
-            if (input[i] == replacements[k][0])
-            {
-                size_t len = osStrlen(replacements[k]);
-                osStrcpy(&output[j], replacements[k]);
-                j += len;
-                replaced = true;
-                break;
-            }
-        }
-
-        if (!replaced)
-        {
-            if (isalnum(input[i]))
-            {
-                output[j++] = input[i];
-            }
-            else
-            {
-                output[j++] = '.';
-            }
-        }
-    }
-
-    // Null-terminate the escaped string
-    output[j] = '\0';
-}
 
 error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -99,7 +37,8 @@ error_t handleRtnl(HttpConnection *connection, const char_t *uri, const char_t *
         {
             break;
         }
-        uint32_t protoLength = (uint32_t)((buffer[pos] << 24) | (buffer[pos + 1] << 16) | (buffer[pos + 2] << 8) | buffer[pos + 3]);
+        /* buffer is signed char_t, read the bytes unsigned so a byte >= 0x80 is not sign-extended */
+        uint32_t protoLength = (uint32_t)read_big_endian32((const uint8_t *)&buffer[pos]);
 
         if (pos + 4 + protoLength > size)
         {
@@ -167,6 +106,26 @@ int64_t read_big_endian64(const uint8_t *buf)
     return ((int64_t)read_big_endian32(buf)) | (((uint64_t)read_big_endian32(&buf[4])) << 32);
 }
 
+/* field6 is a protobuf bytes field: protobuf-c neither pads it to any size nor
+   NUL-terminates it. Return a NUL-terminated heap copy of field6 starting at
+   `offset` (empty string if shorter), so string consumers cannot over-read past
+   the allocation. Caller frees. */
+static char *rtnl_field6_strdup(const TonieRtnlLog2 *log2, size_t offset)
+{
+    size_t len = (log2->field6.len > offset) ? (log2->field6.len - offset) : 0;
+    char *out = osAllocMem(len + 1);
+    if (out == NULL)
+    {
+        return NULL;
+    }
+    if (len > 0)
+    {
+        osMemcpy(out, log2->field6.data + offset, len);
+    }
+    out[len] = '\0';
+    return out;
+}
+
 static char *absolute_url(const char *url_or_path)
 {
     char *url = strdup(url_or_path);
@@ -220,12 +179,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                   rpc->log2->function);
         sse_rawData(buffer);
 
-        if (rpc->log2->field6.len > 0)
+        for (size_t pos = 0; pos < rpc->log2->field6.len;)
         {
-            for (size_t i = 0; i < rpc->log2->field6.len; i++)
-            {
-                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
-            }
+            pos += hexEncode(&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
             sse_rawData(buffer);
         }
 
@@ -235,12 +191,9 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                   rpc->log2->field8);
         sse_rawData(buffer);
 
-        if (rpc->log2->field9.len > 0)
+        for (size_t pos = 0; pos < rpc->log2->field9.len;)
         {
-            for (size_t i = 0; i < rpc->log2->field9.len; i++)
-            {
-                osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
-            }
+            pos += hexEncode(&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
             sse_rawData(buffer);
         }
         sse_rawData("\"}");
@@ -333,7 +286,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
     {
         char str_buf[33];
 
-        if (rpc->log2->function_group == RTNL2_FUGR_TAG)
+        if (rpc->log2->function_group == RTNL2_FUGR_TAG && rpc->log2->field6.len >= 8)
         {
             if (rpc->log2->function == RTNL2_FUNC_TAG_INVALID_CC3200 || rpc->log2->function == RTNL2_FUNC_TAG_INVALID_ESP32)
             {
@@ -348,7 +301,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                 tbs_tag_removed(client_ctx, read_big_endian64(rpc->log2->field6.data), true);
             }
         }
-        else if ((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID))
+        else if (((rpc->log2->function_group == RTNL2_FUGR_AUDIO_A && (rpc->log2->function == RTNL2_FUNC_AUDIO_ID_CC3200 || rpc->log2->function == RTNL2_FUNC_AUDIO_ID_ESP32)) || (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B && rpc->log2->function == RTNL2_FUNC_AUDIO_ID)) && rpc->log2->field6.len >= 4)
         {
             uint32_t audioId = read_little_endian32(rpc->log2->field6.data);
             client_ctx->state->tag.audio_id = audioId;
@@ -398,7 +351,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
                 osFreeMem(url);
             }
         }
-        else if (rpc->log2->function_group == RTNL2_FUGR_TILT)
+        else if (rpc->log2->function_group == RTNL2_FUGR_TILT && rpc->log2->field6.len >= 4)
         {
             if (rpc->log2->function == RTNL2_FUNC_TILT_A_ESP32)
             {
@@ -417,7 +370,7 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_VOLUME)
         {
-            if (rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_CC3200 || rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32)
+            if ((rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_CC3200 || rpc->log2->function == RTNL2_FUNC_VOLUME_CHANGE_ESP32) && rpc->log2->field6.len >= 12)
             {
                 /* DE210000 DBFFFFFF 01000000 */ /* 963C0000 D8FFFFFF 00000000 */
                 int32_t volumedB = read_little_endian32(&rpc->log2->field6.data[4]);
@@ -441,19 +394,32 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
         {
             if (rpc->log2->function == RTNL2_FUNC_FIRMWARE_VERSION)
             {
-                const char *rtnlVersion = (const char *)rpc->log2->field6.data;
-                settings_set_string_id("internal.toniebox_firmware.rtnlVersion", rtnlVersion, client_ctx->settings->internal.overlayNumber);
+                char *rtnlVersion = rtnl_field6_strdup(rpc->log2, 0);
+                if (rtnlVersion != NULL)
+                {
+                    settings_set_string_id("internal.toniebox_firmware.rtnlVersion", rtnlVersion, client_ctx->settings->internal.overlayNumber);
+                    osFreeMem(rtnlVersion);
+                }
             }
             else if (rpc->log2->function == RTNL2_FUNC_FIRMWARE_FULL_VERSION)
             {
-                const char *rtnlFullVersion = (const char *)rpc->log2->field6.data;
-                settings_set_string_id("internal.toniebox_firmware.rtnlFullVersion", rtnlFullVersion, client_ctx->settings->internal.overlayNumber);
+                char *rtnlFullVersion = rtnl_field6_strdup(rpc->log2, 0);
+                if (rtnlFullVersion != NULL)
+                {
+                    settings_set_string_id("internal.toniebox_firmware.rtnlFullVersion", rtnlFullVersion, client_ctx->settings->internal.overlayNumber);
+                    osFreeMem(rtnlFullVersion);
+                }
             }
-            else if (rpc->log2->function == RTNL2_FUNC_FIRMWARE_INFOS)
+            else if (rpc->log2->function == RTNL2_FUNC_FIRMWARE_INFOS && rpc->log2->field6.len > 8)
             {
                 // Raw2 | #158 Uptime: 13505 Func:  8-7146 Payload: 'A93394604657000032363430633166003036204D61792032303A32310009000000030000000100000000000000' ASCII: '.3.`FW..2640c1f.06 May 20:21.................'
                 // TODO
-                settings_set_string_id("internal.toniebox_firmware.rtnlDetail", (const char *)&rpc->log2->field6.data[8], client_ctx->settings->internal.overlayNumber);
+                char *rtnlDetail = rtnl_field6_strdup(rpc->log2, 8);
+                if (rtnlDetail != NULL)
+                {
+                    settings_set_string_id("internal.toniebox_firmware.rtnlDetail", rtnlDetail, client_ctx->settings->internal.overlayNumber);
+                    osFreeMem(rtnlDetail);
+                }
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_NETWORK_HTTP)
@@ -462,13 +428,23 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             {
                 // Raw2 | #102 Uptime: 7606 Func:  6-791 Payload: '45550030010000' ASCII: 'EU.0...'
                 // TODO
-                settings_set_string_id("internal.toniebox_firmware.rtnlRegion", (const char *)rpc->log2->field6.data, client_ctx->settings->internal.overlayNumber);
+                char *rtnlRegion = rtnl_field6_strdup(rpc->log2, 0);
+                if (rtnlRegion != NULL)
+                {
+                    settings_set_string_id("internal.toniebox_firmware.rtnlRegion", rtnlRegion, client_ctx->settings->internal.overlayNumber);
+                    osFreeMem(rtnlRegion);
+                }
             }
             else if (rpc->log2->function == RTNL2_FUNC_NETWORK_DOMAIN)
             {
                 // Raw2 | #142 Uptime: 13973 Func:  6-1009 Payload: '70726F642E726576766F7800C0000000A80000007B0000008D000000' ASCII: 'prod.revvox.........{.......'
-                settings_set_string_id("internal.rtnl.prodDomain", (const char *)rpc->log2->field6.data, client_ctx->settings->internal.overlayNumber);
-                settings_set_string("internal.rtnl.prodDomain", (const char *)rpc->log2->field6.data);
+                char *prodDomain = rtnl_field6_strdup(rpc->log2, 0);
+                if (prodDomain != NULL)
+                {
+                    settings_set_string_id("internal.rtnl.prodDomain", prodDomain, client_ctx->settings->internal.overlayNumber);
+                    settings_set_string("internal.rtnl.prodDomain", prodDomain);
+                    osFreeMem(prodDomain);
+                }
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_NETWORK_TCP)
@@ -476,17 +452,25 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             if (rpc->log2->function == RTNL2_FUNC_NETWORK_DOMAIN)
             {
                 // Raw2 | #171 Uptime: 19080 Func: 37-1009 Payload: '72746E6C2E726576766F7800C0000000A80000007B0000008D000000' ASCII: 'rtnl.revvox.........{.......'
-                settings_set_string_id("internal.rtnl.rtnlDomain", (const char *)rpc->log2->field6.data, client_ctx->settings->internal.overlayNumber);
-                settings_set_string("internal.rtnl.rtnlDomain", (const char *)rpc->log2->field6.data);
+                char *rtnlDomain = rtnl_field6_strdup(rpc->log2, 0);
+                if (rtnlDomain != NULL)
+                {
+                    settings_set_string_id("internal.rtnl.rtnlDomain", rtnlDomain, client_ctx->settings->internal.overlayNumber);
+                    settings_set_string("internal.rtnl.rtnlDomain", rtnlDomain);
+                    osFreeMem(rtnlDomain);
+                }
             }
         }
         else if (rpc->log2->function_group == RTNL2_FUGR_AUDIO_B)
         {
             if (rpc->log2->function == RTNL2_FUNC_AUDIO_PLAY)
             {
-                char *filepath = strdup((const char *)rpc->log2->field6.data);
-                tbs_playback_file(client_ctx, filepath);
-                osFreeMem(filepath);
+                char *filepath = rtnl_field6_strdup(rpc->log2, 0);
+                if (filepath != NULL)
+                {
+                    tbs_playback_file(client_ctx, filepath);
+                    osFreeMem(filepath);
+                }
             }
         }
     }
@@ -555,18 +539,18 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
                       rpc->log2->field6.len);
             fsWriteFile(file, buffer, osStrlen(buffer));
 
-            if (rpc->log2->field6.len > 0)
+            for (size_t pos = 0; pos < rpc->log2->field6.len;)
             {
-                for (size_t i = 0; i < rpc->log2->field6.len; i++)
-                {
-                    osSprintf(&buffer[i * 2], "%02X", rpc->log2->field6.data[i]);
-                }
+                pos += hexEncode(&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
                 fsWriteFile(file, buffer, osStrlen(buffer));
             }
 
-            osSprintf(buffer, ";\"");
-            escapeString((char_t *)rpc->log2->field6.data, rpc->log2->field6.len, &buffer[2]);
-            fsWriteFile(file, buffer, osStrlen(buffer));
+            fsWriteFile(file, ";\"", 2);
+            for (size_t pos = 0; pos < rpc->log2->field6.len;)
+            {
+                pos += escapeString((char_t *)&rpc->log2->field6.data[pos], rpc->log2->field6.len - pos, buffer, sizeof(buffer));
+                fsWriteFile(file, buffer, osStrlen(buffer));
+            }
 
             osSprintf(buffer, "\";%" PRIu32 ";%" PRIuSIZE ";",
                       rpc->log2->field8, // TODO hasfield
@@ -575,17 +559,17 @@ void rtnlEventDump(HttpConnection *connection, TonieRtnlRPC *rpc, settings_t *se
 
             if (rpc->log2->has_field9)
             {
-                if (rpc->log2->field9.len > 0)
+                for (size_t pos = 0; pos < rpc->log2->field9.len;)
                 {
-                    for (size_t i = 0; i < rpc->log2->field9.len; i++)
-                    {
-                        osSprintf(&buffer[i * 2], "%02X", rpc->log2->field9.data[i]);
-                    }
+                    pos += hexEncode(&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
                     fsWriteFile(file, buffer, osStrlen(buffer));
                 }
-                osSprintf(buffer, ";\"");
-                escapeString((char_t *)rpc->log2->field9.data, rpc->log2->field9.len, &buffer[2]);
-                fsWriteFile(file, buffer, osStrlen(buffer));
+                fsWriteFile(file, ";\"", 2);
+                for (size_t pos = 0; pos < rpc->log2->field9.len;)
+                {
+                    pos += escapeString((char_t *)&rpc->log2->field9.data[pos], rpc->log2->field9.len - pos, buffer, sizeof(buffer));
+                    fsWriteFile(file, buffer, osStrlen(buffer));
+                }
                 char_t *output = "\";";
                 fsWriteFile(file, output, osStrlen(output));
             }

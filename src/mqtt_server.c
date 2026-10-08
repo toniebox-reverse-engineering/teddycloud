@@ -185,10 +185,6 @@ error_t mqtt_server_tls_init(TlsContext *tlsContext)
     if (error)
         return error;
 
-    error = tlsSetCache(tlsContext, tlsCache);
-    if (error)
-        return error;
-
     error = tlsEnableSecureRenegotiation(tlsContext, TRUE);
     if (error)
         return error;

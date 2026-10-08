@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "version.h"
 #include "debug.h"
@@ -18,7 +19,7 @@
 
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
-static void settings_deinit_ovl(uint8_t overlayNumber);
+static void settings_deinit_ovl(uint8_t overlayNumber, bool reload);
 static void overlay_settings_init();
 static void settings_generate_internal_dirs(settings_t *settings);
 static void settings_changed();
@@ -42,6 +43,84 @@ static char *settings_sanitize_box_id(const char *input_id);
 #define OVERLAY_CONFIG_PREFIX "overlay."
 static settings_t Settings_Overlay[MAX_OVERLAYS];
 static setting_item_t *Option_Map_Overlay[MAX_OVERLAYS];
+/* name-sorted index into Option_Map_Overlay for O(log n) lookups by name;
+   rebuilt whenever the option map is (re)built, freed in settings_deinit_ovl */
+static setting_item_t **Option_Sorted_Overlay[MAX_OVERLAYS];
+
+/* Request threads read settings strings/arrays without a lock while the main loop reloads and replaces
+   them (settings_loop -> settings_load, settings changes). Freeing the old memory right away is a
+   use-after-free for such a reader, so replaced memory is parked here and released after a grace period.
+   ponytail: fixed grace period; a request running longer than that could still read freed memory
+   (http client timeouts are far below). Proper fix: reference-counted settings snapshots. */
+#define SETTINGS_FREE_GRACE_S 120
+typedef struct
+{
+    void *ptr;
+    time_t when;
+} settings_parked_t;
+static settings_parked_t *settings_parked = NULL;
+static size_t settings_parked_len = 0;
+
+static void settings_free_later(void *ptr)
+{
+    if (ptr == NULL)
+    {
+        return;
+    }
+    mutex_lock(MUTEX_SETTINGS_FREE);
+    settings_parked_t *grown = realloc(settings_parked, sizeof(settings_parked_t) * (settings_parked_len + 1));
+    if (grown != NULL)
+    {
+        settings_parked = grown;
+        settings_parked[settings_parked_len].ptr = ptr;
+        settings_parked[settings_parked_len].when = time(NULL);
+        settings_parked_len++;
+    }
+    else
+    {
+        osFreeMem(ptr); // out of memory: better a (very unlikely) race than a leak
+    }
+    mutex_unlock(MUTEX_SETTINGS_FREE);
+}
+
+/* all: also release what is still within the grace period (shutdown) */
+static void settings_free_parked(bool all)
+{
+    mutex_lock(MUTEX_SETTINGS_FREE);
+    time_t now = time(NULL);
+    size_t keep = 0;
+    for (size_t i = 0; i < settings_parked_len; i++)
+    {
+        if (all || now - settings_parked[i].when >= SETTINGS_FREE_GRACE_S)
+        {
+            osFreeMem(settings_parked[i].ptr);
+        }
+        else
+        {
+            settings_parked[keep++] = settings_parked[i];
+        }
+    }
+    settings_parked_len = keep;
+    if (keep == 0 && settings_parked != NULL)
+    {
+        free(settings_parked);
+        settings_parked = NULL;
+    }
+    mutex_unlock(MUTEX_SETTINGS_FREE);
+}
+
+static int settings_option_name_qsort_cmp(const void *a, const void *b)
+{
+    const setting_item_t *x = *(setting_item_t *const *)a;
+    const setting_item_t *y = *(setting_item_t *const *)b;
+    return osStrcmp(x->option_name, y->option_name);
+}
+
+static int settings_option_name_bsearch_cmp(const void *key, const void *elem)
+{
+    const setting_item_t *opt = *(setting_item_t *const *)elem;
+    return osStrcmp((const char *)key, opt->option_name);
+}
 static uint16_t settings_size = 0;
 static char *config_file_path = NULL;
 static char *config_overlay_file_path = NULL;
@@ -85,8 +164,6 @@ static void option_map_init(uint8_t settingsId)
     OPTION_STRING("core.sslkeylogfile", &settings->core.sslkeylogfile, "", "SSL-key logfile", "SSL/TLS key log filename", LEVEL_EXPERT)
     OPTION_UNSIGNED("core.server.http_client_timeout", &settings->core.http_client_timeout, 2000, 250, 10000, "Connection timeout", "HTTP client connection timeout (default: 500ms)", LEVEL_DETAIL)
     OPTION_UNSIGNED("core.file_upload_timeout_ms", &settings->core.file_upload_timeout_ms, 120000, 15000, 300000, "File upload timeout", "Client-side timeout for file uploads in ms (15s–5min). Default 120s for large audio files.", LEVEL_DETAIL)
-    OPTION_BOOL("core.new_webgui_as_default", &settings->core.new_webgui_as_default, TRUE, "New WebGUI", "Use new WebGUI as default", LEVEL_EXPERT)
-
     OPTION_TREE_DESC("core.server_cert", "HTTPS server certificates", LEVEL_EXPERT)
     OPTION_TREE_DESC("core.client_cert.file", "File certificates", LEVEL_EXPERT)
     OPTION_STRING("core.server_cert.file.ca", &settings->core.server_cert.file.ca, "certs/server/ca-root.pem", "CA certificate", "CA certificate", LEVEL_EXPERT)
@@ -137,6 +214,7 @@ static void option_map_init(uint8_t settingsId)
 
     OPTION_STRING("core.allowOrigin", &settings->core.allowOrigin, "", "CORS Allow-Origin", "Set CORS Access-Control-Allow-Origin header", LEVEL_EXPERT)
     OPTION_BOOL("core.boxCertAuth", &settings->core.boxCertAuth, TRUE, "HTTPS box cert auth", "Client certificates are required for access to the HTTPS API for the boxes", LEVEL_EXPERT)
+    OPTION_BOOL("core.allowPrivateFetch", &settings->core.allowPrivateFetch, FALSE, "Allow downloads from private networks", "Allow the server to download from addresses in the local/private network (e.g. images of tonies hosted on a NAS). Off by default, as a user-supplied URL could otherwise make the server read internal services (SSRF).", LEVEL_EXPERT)
     OPTION_BOOL("core.allowNewBox", &settings->core.allowNewBox, TRUE, "Allow new boxes", "Allow new boxes to be added, if they try to connect", LEVEL_BASIC)
 
     OPTION_BOOL("core.flex_enabled", &settings->core.flex_enabled, TRUE, "Enable Flex-Tonie", "When enabled this UID always gets assigned the audio selected from web interface", LEVEL_DETAIL)
@@ -281,6 +359,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("cloud.prioCustomContent", &settings->cloud.prioCustomContent, TRUE, "Prioritize custom content", "Prioritize custom content over tonies content (force update, only if \"Update content on lower audio id\" is disabled)", LEVEL_EXPERT)
     OPTION_BOOL("cloud.updateOnLowerAudioId", &settings->cloud.updateOnLowerAudioId, TRUE, "Update content on lower audio id", "Update content on a lower audio id", LEVEL_EXPERT)
     OPTION_BOOL("cloud.dumpRuidAuthContentJson", &settings->cloud.dumpRuidAuthContentJson, TRUE, "Dump rUID/auth", "Dump the rUID and authentication into the content JSON.", LEVEL_EXPERT)
+    OPTION_BOOL("cloud.autoMarkListenedOnSync", &settings->cloud.autoMarkListenedOnSync, TRUE, "Auto-mark listened on sync", "Automatically mark library content as listened once a Toniebox downloads/plays it from this server", LEVEL_BASIC)
 
     OPTION_TREE_DESC("encode", "TAF encoding", LEVEL_EXPERT)
     OPTION_UNSIGNED("encode.bitrate", &settings->encode.bitrate, 96, 0, 256, "Opus bitrate", "Opus bitrate, tested 64, 96(default), 128, 192, 256 - be aware that this increases the TAF size!", LEVEL_EXPERT)
@@ -296,6 +375,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_BOOL("frontend.ignore_web_version_mismatch", &settings->frontend.ignore_web_version_mismatch, FALSE, "Ignore web version mismatch", "Ignore web version mismatch and don't show the mismatch warning", LEVEL_EXPERT)
     OPTION_BOOL("frontend.confirm_audioplayer_close", &settings->frontend.confirm_audioplayer_close, TRUE, "Confirm audioplayer close", "Confirm dialog when closing the audioplayer during active playback", LEVEL_BASIC)
     OPTION_BOOL("frontend.check_cc3200_cfw", &settings->frontend.check_cc3200_cfw, FALSE, "Check for CFW on CC3200 box", "Enable detection of CFW on CC3200 boxes to link MAC addresses to IPs.", LEVEL_DETAIL)
+    OPTION_BOOL("frontend.web_auth_enabled", &settings->frontend.web_auth_enabled, FALSE, "Web UI login", "Require a login for the web interface. Manage users in the web UI. Disabled by default. Set TEDDYCLOUD_WEB_AUTH_DISABLE=1 to bypass.", LEVEL_BASIC)
 
     OPTION_TREE_DESC("toniebox", "Toniebox", LEVEL_BASIC)
     OPTION_BOOL("toniebox.api_access", &settings->toniebox.api_access, TRUE, "API access", "Grant access to the API (default value for new boxes)", LEVEL_EXPERT)
@@ -367,6 +447,22 @@ static void option_map_init(uint8_t settingsId)
     }
 
     osMemcpy(Option_Map_Overlay[settingsId], option_map_array, sizeof(option_map_array));
+
+    /* (Re)build the name-sorted lookup index. Leaves Option_Map_Overlay in its
+       original declaration order (the web UI relies on it); only this parallel
+       pointer array is sorted. */
+    if (Option_Sorted_Overlay[settingsId] == NULL)
+    {
+        Option_Sorted_Overlay[settingsId] = osAllocMem(sizeof(setting_item_t *) * settings_size);
+    }
+    if (Option_Sorted_Overlay[settingsId] != NULL)
+    {
+        for (uint16_t idx = 0; idx < settings_size; idx++)
+        {
+            Option_Sorted_Overlay[settingsId][idx] = &Option_Map_Overlay[settingsId][idx];
+        }
+        qsort(Option_Sorted_Overlay[settingsId], settings_size, sizeof(setting_item_t *), settings_option_name_qsort_cmp);
+    }
 }
 
 static setting_item_t *get_option_map(const char *overlay)
@@ -425,7 +521,7 @@ static void overlay_settings_init()
 {
     for (uint8_t i = 1; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit_ovl(i);
+        settings_deinit_ovl(i, true);
 
         option_map_init(i);
 
@@ -503,6 +599,7 @@ settings_t *get_settings_cn(const char *commonName)
                 osFreeMem(crt);
                 osFreeMem(key);
 
+                settings_generate_internal_dirs(&Settings_Overlay[i]);
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS);
@@ -565,52 +662,69 @@ void settings_resolve_dir(char **resolvedPath, char *path, char *basePath)
     fsFixPath(*resolvedPath);
 }
 
+/* Builds the new paths on the side and swaps the pointers in one go: readers see either the old (parked,
+   still valid) or the new complete path, never a half written one. */
+static char *settings_alloc_path()
+{
+    char *path = osAllocMem(256);
+    osMemset(path, 0, 256);
+    return path;
+}
+
 static void settings_generate_internal_dirs(settings_t *settings)
 {
-    osFreeMem(settings->internal.basedirfull);
-    osFreeMem(settings->internal.certdirfull);
-    osFreeMem(settings->internal.configdirfull);
-    osFreeMem(settings->internal.contentdirrel);
-    osFreeMem(settings->internal.contentdirfull);
-    osFreeMem(settings->internal.librarydirfull);
-    osFreeMem(settings->internal.datadirfull);
-    osFreeMem(settings->internal.wwwdirfull);
-    osFreeMem(settings->internal.pluginsdirfull);
-    osFreeMem(settings->internal.firmwaredirfull);
-    osFreeMem(settings->internal.cachedirfull);
+    char *basedirfull = settings_alloc_path();
+    char *certdirfull = settings_alloc_path();
+    char *configdirfull = settings_alloc_path();
+    char *contentdirrel = settings_alloc_path();
+    char *contentdirfull = settings_alloc_path();
+    char *librarydirfull = settings_alloc_path();
+    char *datadirfull = settings_alloc_path();
+    char *wwwdirfull = settings_alloc_path();
+    char *pluginsdirfull = settings_alloc_path();
+    char *firmwaredirfull = settings_alloc_path();
+    char *cachedirfull = settings_alloc_path();
 
-    settings->internal.basedirfull = osAllocMem(256);
-    settings->internal.certdirfull = osAllocMem(256);
-    settings->internal.configdirfull = osAllocMem(256);
-    settings->internal.contentdirrel = osAllocMem(256);
-    settings->internal.contentdirfull = osAllocMem(256);
-    settings->internal.librarydirfull = osAllocMem(256);
-    settings->internal.datadirfull = osAllocMem(256);
-    settings->internal.wwwdirfull = osAllocMem(256);
-    settings->internal.pluginsdirfull = osAllocMem(256);
-    settings->internal.firmwaredirfull = osAllocMem(256);
-    settings->internal.cachedirfull = osAllocMem(256);
+    char *tmpPath = settings_alloc_path();
+    settings_resolve_dir(&basedirfull, settings->internal.basedir, settings->internal.cwd);
 
-    char *tmpPath = osAllocMem(256);
-    settings_resolve_dir(&settings->internal.basedirfull, settings->internal.basedir, settings->internal.cwd);
+    settings_resolve_dir(&certdirfull, settings->core.certdir, basedirfull);
+    settings_resolve_dir(&datadirfull, settings->core.datadir, basedirfull);
+    settings_resolve_dir(&configdirfull, settings->core.configdir, basedirfull);
 
-    settings_resolve_dir(&settings->internal.certdirfull, settings->core.certdir, settings->internal.basedirfull);
-    settings_resolve_dir(&settings->internal.datadirfull, settings->core.datadir, settings->internal.basedirfull);
-    settings_resolve_dir(&settings->internal.configdirfull, settings->core.configdir, settings->internal.basedirfull);
-
-    settings_resolve_dir(&settings->internal.wwwdirfull, settings->core.wwwdir, settings->internal.datadirfull);
-    settings_resolve_dir(&settings->internal.pluginsdirfull, settings->core.pluginsdir, settings->internal.wwwdirfull);
-    settings_resolve_dir(&settings->internal.firmwaredirfull, settings->core.firmwaredir, settings->internal.datadirfull);
-    settings_resolve_dir(&settings->internal.cachedirfull, settings->core.cachedir, settings->internal.datadirfull);
+    settings_resolve_dir(&wwwdirfull, settings->core.wwwdir, datadirfull);
+    settings_resolve_dir(&pluginsdirfull, settings->core.pluginsdir, wwwdirfull);
+    settings_resolve_dir(&firmwaredirfull, settings->core.firmwaredir, datadirfull);
+    settings_resolve_dir(&cachedirfull, settings->core.cachedir, datadirfull);
 
     settings_resolve_dir(&tmpPath, settings->core.contentdir, "content");
-    settings_resolve_dir(&settings->internal.contentdirrel, tmpPath, settings->core.datadir);
-    settings_resolve_dir(&settings->internal.contentdirfull, tmpPath, settings->internal.datadirfull);
-    fsCreateDir(settings->internal.contentdirfull);
+    settings_resolve_dir(&contentdirrel, tmpPath, settings->core.datadir);
+    settings_resolve_dir(&contentdirfull, tmpPath, datadirfull);
+    fsCreateDir(contentdirfull);
 
-    settings_resolve_dir(&settings->internal.librarydirfull, settings->core.librarydir, settings->internal.datadirfull);
+    settings_resolve_dir(&librarydirfull, settings->core.librarydir, datadirfull);
 
     osFreeMem(tmpPath);
+
+#define SETTINGS_SWAP_PATH(field)             \
+    do                                        \
+    {                                         \
+        char *old = settings->internal.field; \
+        settings->internal.field = field;     \
+        settings_free_later(old);             \
+    } while (0)
+    SETTINGS_SWAP_PATH(basedirfull);
+    SETTINGS_SWAP_PATH(certdirfull);
+    SETTINGS_SWAP_PATH(configdirfull);
+    SETTINGS_SWAP_PATH(contentdirrel);
+    SETTINGS_SWAP_PATH(contentdirfull);
+    SETTINGS_SWAP_PATH(librarydirfull);
+    SETTINGS_SWAP_PATH(datadirfull);
+    SETTINGS_SWAP_PATH(wwwdirfull);
+    SETTINGS_SWAP_PATH(pluginsdirfull);
+    SETTINGS_SWAP_PATH(firmwaredirfull);
+    SETTINGS_SWAP_PATH(cachedirfull);
+#undef SETTINGS_SWAP_PATH
 }
 
 static void settings_changed()
@@ -624,14 +738,8 @@ void settings_changed_id(uint8_t settingsId)
 
     Settings_Overlay[settingsId].internal.config_changed = true;
     settings_generate_internal_dirs(get_settings_id((settingsId)));
-    if (config_file_path != NULL)
-    {
-        osFreeMem(config_file_path);
-    }
-    if (config_overlay_file_path != NULL)
-    {
-        osFreeMem(config_overlay_file_path);
-    }
+    settings_free_later(config_file_path);
+    settings_free_later(config_overlay_file_path);
     config_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_FILE);
     config_overlay_file_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, CONFIG_OVERLAY_FILE);
 
@@ -643,7 +751,10 @@ void settings_changed_id(uint8_t settingsId)
     mutex_unlock(MUTEX_SETTINGS);
 }
 
-static void settings_deinit_ovl(uint8_t overlayNumber)
+/* reload: the overlay is re-initialised right after, readers may still use it. Old strings/arrays are
+   parked (see settings_free_later), the pointers stay valid (no NULL window) until the init replaces
+   them, and the option map is kept (option_map_init refreshes it in place). */
+static void settings_deinit_ovl(uint8_t overlayNumber, bool reload)
 {
     if (overlayNumber >= MAX_OVERLAYS)
     {
@@ -672,14 +783,28 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
         case TYPE_STRING:
             if (*((char **)opt->ptr))
             {
-                osFreeMem(*((char **)opt->ptr));
-                *((char **)opt->ptr) = NULL;
+                if (reload)
+                {
+                    settings_free_later(*((char **)opt->ptr));
+                }
+                else
+                {
+                    osFreeMem(*((char **)opt->ptr));
+                    *((char **)opt->ptr) = NULL;
+                }
             }
             break;
         case TYPE_U64_ARRAY:
             if (opt->size > 0)
             {
-                osFreeMem(*((uint64_t **)opt->ptr));
+                if (reload)
+                {
+                    settings_free_later(*((uint64_t **)opt->ptr));
+                }
+                else
+                {
+                    osFreeMem(*((uint64_t **)opt->ptr));
+                }
                 opt->size = 0;
             }
             break;
@@ -689,6 +814,11 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
         pos++;
     }
     Settings_Overlay[overlayNumber].internal.config_init = false;
+
+    if (reload)
+    {
+        return;
+    }
 
     if (overlayNumber == 0)
     {
@@ -700,14 +830,18 @@ static void settings_deinit_ovl(uint8_t overlayNumber)
 
     osFreeMem(Option_Map_Overlay[overlayNumber]);
     Option_Map_Overlay[overlayNumber] = NULL;
+
+    osFreeMem(Option_Sorted_Overlay[overlayNumber]);
+    Option_Sorted_Overlay[overlayNumber] = NULL;
 }
 
 void settings_deinit()
 {
     for (uint8_t i = 0; i < MAX_OVERLAYS; i++)
     {
-        settings_deinit_ovl(i);
+        settings_deinit_ovl(i, false);
     }
+    settings_free_parked(true);
 }
 
 static void settings_init_opt(setting_item_t *opt)
@@ -1069,8 +1203,11 @@ static error_t settings_load_ovl(bool overlay)
                             TRACE_DEBUG("%s=%f\r\n", opt->option_name, *((float *)opt->ptr));
                             break;
                         case TYPE_STRING:
-                            osFreeMem(*((char **)opt->ptr));
-                            *((char **)opt->ptr) = strdup(value_str);
+                            {
+                                char *old = *((char **)opt->ptr);
+                                *((char **)opt->ptr) = strdup(value_str);
+                                settings_free_later(old);
+                            }
                             TRACE_DEBUG("%s=%s\r\n", opt->option_name, *((char **)opt->ptr));
                             break;
 
@@ -1235,6 +1372,20 @@ static setting_item_t *settings_get_by_name_id(const char *item, uint8_t setting
         TRACE_ERROR("Overlay %d not found\r\n", settingsId);
         return NULL;
     }
+    /* Fast path: binary search the name-sorted index built in option_map_init. */
+    setting_item_t **sorted = Option_Sorted_Overlay[settingsId];
+    if (sorted != NULL)
+    {
+        setting_item_t **found = bsearch(item, sorted, settings_size, sizeof(setting_item_t *), settings_option_name_bsearch_cmp);
+        if (found != NULL)
+        {
+            return *found;
+        }
+        TRACE_WARNING("Setting item '%s' not found\r\n", item);
+        return NULL;
+    }
+
+    /* Fallback: linear scan if the sorted index is unavailable. */
     while (option_map[pos].type != TYPE_END)
     {
         if (!strcmp(item, option_map[pos].option_name))
@@ -1554,10 +1705,7 @@ bool settings_set_string_id(const char *item, const char *value, uint8_t setting
         settings_changed_id(settingsId);
     }
 
-    if (old_ptr)
-    {
-        osFreeMem(old_ptr);
-    }
+    settings_free_later(old_ptr);
 
     return true;
 }
@@ -1614,7 +1762,7 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
         if (opt->size > 0)
         {
             opt->size = 0;
-            osFreeMem(*ptr);
+            settings_free_later(*ptr);
         }
     }
 
@@ -1639,6 +1787,7 @@ bool settings_set_u64_array_id(const char *item, const uint64_t *value, size_t l
 void settings_loop()
 {
     FsFileStat stat;
+    settings_free_parked(false);
     if (fsGetFileStat(config_file_path, &stat) == NO_ERROR)
     {
         if (compareDateTime(&stat.modified, &settings_last_load))
@@ -1760,6 +1909,13 @@ void settings_load_all_certs()
     }
 }
 
+void settings_load_client_certs_id(uint8_t settingsId)
+{
+    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
+    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
+    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+}
+
 error_t settings_try_load_certs_id(uint8_t settingsId)
 {
     ERR_RETURN(load_cert("internal.server.ca", "core.server_cert.file.ca", "core.server_cert.data.ca", settingsId));
@@ -1774,9 +1930,7 @@ error_t settings_try_load_certs_id(uint8_t settingsId)
     load_cert("internal.server_tb2.key", "core.server_cert_tb2.file.key", "core.server_cert_tb2.data.key", settingsId);
 
     /* do not fail when client-role certs are missing */
-    load_cert("internal.client.ca", "core.client_cert.file.ca", "core.client_cert.data.ca", settingsId);
-    load_cert("internal.client.crt", "core.client_cert.file.crt", "core.client_cert.data.crt", settingsId);
-    load_cert("internal.client.key", "core.client_cert.file.key", "core.client_cert.data.key", settingsId);
+    settings_load_client_certs_id(settingsId);
 
     test_boxine_ca(settingsId);
 

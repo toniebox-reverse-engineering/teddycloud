@@ -6,6 +6,7 @@ services:
     # environment:
     #  - PUID=1000 #optional (run as non-root; UID for /teddycloud files)
     #  - PGID=1000 #optional (run as non-root; GID for /teddycloud files)
+    #  - TEDDYCLOUD_WEB_AUTH_DISABLE=1 #optional (bypass web UI login)
     # ports:
     #  - 80:80 #optional (for the webinterface)
     #  - 8443:8443 #optional (for the webinterface)

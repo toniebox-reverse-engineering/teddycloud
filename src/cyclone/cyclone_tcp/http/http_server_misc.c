@@ -200,7 +200,7 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
 
    //The Method token indicates the method to be performed on the
    //resource identified by the Request-URI
-   error = strSafeCopy(connection->request.method, token, HTTP_SERVER_METHOD_MAX_LEN);
+   error = strSafeCopy(connection->request.method, token, HTTP_SERVER_METHOD_MAX_LEN + 1);
    //Any error to report?
    if(error)
       return ERROR_INVALID_REQUEST;
@@ -493,7 +493,7 @@ void httpParseHeaderField(HttpConnection *connection,
    else if (osStrcasecmp(name, "User-Agent") == 0)
    {
       strSafeCopy(connection->request.userAgent, value,
-                  sizeof(connection->request.userAgent) + 1);
+                  sizeof(connection->request.userAgent));
    }
 }
 

@@ -10,6 +10,23 @@
         "errorNoOggOpusSupportByApple": "Votre navigateur ne prend pas en charge les fichiers OGG/Opus (taf) pour le moment. Si vous utilisez un appareil Apple, aidez-nous en soumettant un ticket à Apple pour demander une solution !",
         "unknownSource": "Inconnu"
     },
+    "auth": {
+        "loginFailed": "Nom d'utilisateur ou mot de passe invalide",
+        "loginHint": "Connectez-vous à TeddyCloud",
+        "loginRateLimited": "Trop de tentatives de connexion. Réessaie dans quelques minutes.",
+        "loginSubmit": "Se connecter",
+        "loginTitle": "Connexion web",
+        "logout": "Se déconnecter",
+        "newPassword": "Nouveau mot de passe",
+        "password": "Mot de passe",
+        "passwordMin": "Au moins 4 caractères",
+        "passwordRequired": "Le mot de passe est requis",
+        "username": "Nom d'utilisateur",
+        "usernameRequired": "Le nom d'utilisateur est requis",
+        "statusLoadFailed": "Impossible de charger l’état d’authentification",
+        "statusLoadFailedDetails": "L’état d’authentification n’a pas pu être chargé. Vérifiez la connexion à TeddyCloud et réessayez.",
+        "retry": "Réessayer"
+    },
     "common": {
         "cancel": "Annuler"
     },
@@ -255,7 +272,7 @@
         "translations": {
             "allTranslationStrings": "Toutes les chaînes de traduction",
             "extraKeys": "Clés supplémentaires",
-            "hint": "Si tu vois une mauvaise traduction, reviens vers nous sur Telegram. Le français et l'espagnol sont actuellement complètement traduits par ChatGPT.",
+            "hint": "Si vous remarquez une mauvaise traduction, veuillez nous contacter sur Telegram. Seuls l'anglais, l'allemand, le français et l'espagnol sont activement maintenus, le français et l'espagnol étant actuellement entièrement traduits par IA. Toutes les autres langues supplémentaires ne sont pas activement maintenues ; n'hésitez donc pas à contribuer aux traductions manquantes. Vous pouvez également ajouter d'autres langues en traduisant un fichier de langue existant, en l'enregistrant sous languagecode.json dans le dossier public/translations, puis en redémarrant le serveur.",
             "key": "Clé",
             "language": "Langue",
             "missing": "MANQUANT",
@@ -315,6 +332,15 @@
     ],
     "fileBrowser": {
         "actions": "Actions",
+        "assignToTonie": {
+            "action": "Assigner à une Tonie",
+            "failedDetails": "Impossible d'assigner à \"{{series}}\" : ",
+            "failedMessage": "Échec de l'assignation !",
+            "searchPlaceholder": "Rechercher des Tonies...",
+            "successDetails": "Fichier assigné à \"{{series}}\" avec succès !",
+            "successMessage": "Tonie assignée !",
+            "title": "Assigner à une Tonie"
+        },
         "attention": "Veuillez noter !",
         "cancel": "Annuler",
         "confirmDeleteDialog": "Êtes-vous sûr de vouloir supprimer {{fileToDelete}}?",
@@ -334,10 +360,10 @@
             "placeholder": "Entrez le nom du dossier"
         },
         "customJsonSnippetModal": {
-            "allFiles": "Affiche l’extrait de tous les fichiers TAF avec des données d’en-tête valides.",
+            "allFiles": "Affiche l'extrait de tous les fichiers TAF avec des données d'en-tête valides.",
             "noValidHeaders": "Aucun en-tête TAF valide trouvé.",
             "ok": "OK",
-            "selectedFiles": "Affiche uniquement l’extrait des fichiers TAF sélectionnés.",
+            "selectedFiles": "Affiche uniquement l'extrait des fichiers TAF sélectionnés.",
             "title": "Extrait tonies.custom.json"
         },
         "date": "Date",
@@ -399,6 +425,24 @@
                 "renameFile": {
                     "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
                     "title": "Renommer le fichier"
+                },
+                "downloadFile": {
+                    "title": "Télécharger le fichier",
+                    "text": "Télécharge le fichier sélectionné ou, pour les fichiers TAF, le télécharge au format OGG."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Marquer comme écouté",
+                        "text": "Le fichier est actuellement marqué comme non écouté. Cliquez pour le marquer comme écouté."
+                    },
+                    "listened": {
+                        "title": "Marquer comme non écouté",
+                        "text": "Le fichier est actuellement marqué comme écouté. Cliquez pour le marquer comme non écouté."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Assigner à un Tonie",
+                    "text": "Assigne le fichier sélectionné comme contenu à un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -446,6 +490,7 @@
         },
         "hidden": "Caché",
         "image": "Image",
+        "markAsListened": "Marquer comme écouté",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
         "maxSelectedRowsWarning": "Trop de fichiers sélectionnés !",
         "messages": {
@@ -477,7 +522,9 @@
             "renamingFailed": "Échec du renommage",
             "renamingFailedDetails": "Échec du renommage du fichier \"{{fileSource}}\" en \"{{fileTarget}}\" : ",
             "renamingSuccessful": "Fichier renommé avec succès!",
-            "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!"
+            "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!",
+            "toggleListenedFailed": "Impossible de modifier le statut écouté",
+            "toggleListenedFailedDetails": "Impossible de modifier le statut écouté du fichier \"{{file}}\" : "
         },
         "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
         "migrateContentToLibRoot": "Migrer TAF vers la bibliothèque (racine)",
@@ -519,6 +566,7 @@
             }
         },
         "title": "Navigateur de fichiers",
+        "unmarkAsListened": "Marquer comme non écouté",
         "unusedTafsModal": {
             "actions": "Actions",
             "fullPath": "Chemin complet",
@@ -642,6 +690,14 @@
                         "01pluginFeature": "Étendez les fonctionnalités de TeddyCloud avec des plugins personnalisés"
                     },
                     "title": "Plugins TeddyCloud"
+                },
+                "15webLogin": {
+                    "items": {
+                        "01optionalLogin": "connexion optionnelle à l'interface web avec plusieurs utilisateurs (désactivée par défaut)",
+                        "02rateLimit": "session par cookie avec blocage après plusieurs échecs de connexion",
+                        "03userLimit": "jusqu'à 32 utilisateurs"
+                    },
+                    "title": "Connexion à l'interface web"
                 }
             },
             "futureFeatures": {
@@ -699,11 +755,7 @@
         "invalidCharactersDetected": "Ta saisie contient des caractères invalides, tels que {{invalidChar}}"
     },
     "language": {
-        "change": "Changer de langue",
-        "english": "EN",
-        "french": "FR",
-        "german": "DE",
-        "spanish": "ES"
+        "change": "Changer de langue"
     },
     "languageUtil": {
         "af-af": "Afrikaans (Afrique du Sud)",
@@ -1022,7 +1074,6 @@
         "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
         "information": "Informations",
         "keepScrolling": "Continuez à faire défiler pour voir plus d'options.",
-        "legacyGui": "Ancienne GUI Admin",
         "levelLabel": "Niveau des paramètres",
         "navigationTitle": "Paramètres",
         "notifications": {
@@ -1075,7 +1126,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json rechargé avec succès!",
         "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
         "warning": "Attention ! Niveau des paramètres",
-        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'.",
+        "webAuth": {
+            "addUser": "Ajouter un utilisateur",
+            "changePassword": "Changer le mot de passe",
+            "changePasswordFor": "Changer le mot de passe de {{username}}",
+            "createFirstUser": "Créez un utilisateur avant d'activer la connexion.",
+            "deleteContent": "Supprimer l'utilisateur {{username}} ?",
+            "deleteLastContent": "Supprimer le dernier utilisateur {{username}} ? La protection par connexion sera désactivée.",
+            "deleteLastHint": "Vous pourrez réactiver la protection après avoir créé un utilisateur.",
+            "deleteLastTitle": "Supprimer le dernier utilisateur",
+            "deleteTitle": "Supprimer l'utilisateur",
+            "deleteUser": "Supprimer",
+            "enabled": "Exiger une connexion pour l'interface web",
+            "envOverride": "La protection par connexion est actuellement désactivée par TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Tous les utilisateurs ont un accès complet à l'interface web. Les API des boîtes ne sont pas concernées.",
+            "loadFailed": "Impossible de charger les utilisateurs",
+            "navigationTitle": "Connexion web",
+            "passwordChanged": "Mot de passe mis à jour",
+            "passwordChangedDetails": "Le mot de passe de {{username}} a été mis à jour.",
+            "saveFailed": "Impossible d'enregistrer les modifications",
+            "title": "Connexion web",
+            "users": "Utilisateurs"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "Une nouvelle version est disponible !",
@@ -1273,6 +1346,7 @@
             "setupTeddyCloudText": "Félicitations ! En atteignant cette page, vous avez réussi à configurer TeddyCloud !",
             "title": "Ajoutez votre Toniebox à TeddyCloud",
             "UARTHint": {
+                "ackUARTHint": "J'ai réglé la tension correcte (3,3 V) et installé le dernier pilote requis.",
                 "description": "Avant de continuer, vérifie bien les points suivants :",
                 "imageAlt1": "Exemple de cavalier 1",
                 "imageAlt2": "Exemple de cavalier 2",
@@ -1474,6 +1548,7 @@
             "certificatesDumpedCAreplacementFlashed": "Certificats extraits et remplacement de CA flashé",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Configurer la connexion du programmeur CH341A",
+                "CH341AProgrammerClampConnection": "Programmateur CH341A avec pince SOP8 connecté à la mémoire flash IS25LP032D",
                 "CH341Sop8remove": "Raccourcis ici jusqu'à ce qu'elle s'ajuste correctement.",
                 "flashMemoryDumpText1": "Connecte la pince à la mémoire flash IS25LP032D. Assure-toi que le câble rouge de la pince est aligné avec le point sur la puce marquant la broche 1.",
                 "flashMemoryDumpText2": "Si la pince ne tient pas, elle peut entrer en collision avec un bloc noir à proximité. Raccourcis plus de plastique si nécessaire. Ne connecte pas encore le CH341A. Vérifie à nouveau les positions des câbles.",
@@ -1551,8 +1626,8 @@
         "confirmDeleteModal": "Confirmer la suppression",
         "connectESP32Modal": {
             "beware": "Attention !",
-            "connectESP32Text1.1": "Veuillez connecter le jumper J100 (Boot) et réinitialiser la boîte pour la mettre en mode UART requis.",
-            "connectESP32Text1.2": "Connectez votre UART de 3,3V à J103:",
+            "connectESP32Text1_1": "Veuillez connecter le jumper J100 (Boot) et réinitialiser la boîte pour la mettre en mode UART requis.",
+            "connectESP32Text1_2": "Connectez votre UART de 3,3V à J103:",
             "connectESP32Text2": "Si vous n'êtes pas sûr du mode dans lequel démarre l'ESP32, vérifiez ce qui suit.",
             "downloadMode": "Mode de téléchargement",
             "downloadModeText": "LED éteinte, pas de son, Sortie série :",
@@ -1596,7 +1671,7 @@
             "attention": "Attention",
             "baudRate": "Taux de baud : ",
             "baudRateInfo": "Si tu rencontres des problèmes pour lire ou écrire dans la mémoire flash, essaie de changer le taux de baud. La valeur par défaut est 921600.",
-            "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
+            "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge ou Firefox (> v151).",
             "esp32flasher": {
                 "ackBackUpWithOtherTool": "He creado una copia de seguridad con otra herramienta o soy consciente de que continúo sin una copia de seguridad adicional bajo mi propia responsabilidad.",
                 "ackLatestFirmware": "Confirmo que la caja se conectó a la nube original, recibió el firmware más reciente y pudo reproducir un Tonie correctamente.",
@@ -1712,7 +1787,7 @@
                 "writingFinished": "Écriture terminée",
                 "writingFlash": "Écriture de {{size}} MiB de mémoire flash..."
             },
-            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l'avertissement.",
+            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge ou Firefox (> v151). Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l'avertissement.",
             "hintLegacyApproach": "Si vous préférez ne pas utiliser un navigateur prenant en charge WebSerial, vous pouvez toujours utiliser l'approche héritée via votre ligne de commande.",
             "httpsSettings": "Paramètres HTTPS",
             "legacy": {
@@ -1725,6 +1800,7 @@
                 "flashCAreplacementText1": "Remplacez le CA d'origine dans votre dump flash avec esptool.",
                 "flashCAreplacementText2": "Remontez votre Toniebox. Si vous avez déjà défini le nom d'hôte de TeddyCloud, vous pouvez ignorer l'étape DNS pour l'ESP32, sinon continuez avec l'étape DNS pour l'ESP32.",
                 "flashCAreplacementText3": "Votre Toniebox devrait maintenant pouvoir se connecter à votre TeddyCloud. Effectuez un contrôle de fraîcheur et cliquez sur \"Vérifier les boîtes disponibles\".",
+                "flashESPtoolScreen": "Écran ESPtool",
                 "followLegacyApproach": "Ou utilisez la méthode ancienne (pas de GUI, uniquement en ligne de commande).",
                 "hint": "Il existe un support direct pour flasher votre Toniebox ESP32 avec TeddyCloud !",
                 "installESPTool": "Installer l'outil ESP récent",
@@ -1740,6 +1816,7 @@
             "linkWikiGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkWikiSpecific": "Configuration spécifique ESP32",
             "navigationTitle": "ESP32",
+            "processing": "Traitement en cours...",
             "redirect": "Continuer vers HTTPS",
             "title": "ESP32 Flashage de la boîte"
         },
@@ -1828,6 +1905,22 @@
         },
         "alternativeSource": "Cette Tonie {{originalTonie}} est assignée à un contenu {{assignedContent}} !",
         "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
+        "assignNextEpisode": {
+            "action": "Assigner l'épisode suivante \"{{file}}\"",
+            "failedDetails": "Impossible assigner \"{{episode}}\" : ",
+            "failedMessage": "Échec de assignation de l'épisode suivant !",
+            "noneLeft": "Aucun épisode non écouté restant dans ce dossier.",
+            "successDetails": "\"{{episode}}\" a été assigné comme épisode suivant !",
+            "successMessage": "Épisode suivant assigné !"
+        },
+        "assignPrevEpisode": {
+            "action": "Assigner l'épisode précédent \"{{file}}\"",
+            "failedDetails": "Impossible assigner \"{{episode}}\" : ",
+            "failedMessage": "Échec de l'attribution de l'épisode précédent !",
+            "noneLeft": "Aucun épisode précédent restant dans ce dossier.",
+            "successDetails": "\"{{episode}}\" a été assigné comme épisode précédent !",
+            "successMessage": "Épisode précédent assigné !"
+        },
         "cancel": "Annuler",
         "closeAudioPlayer": "Fermer le lecteur audio",
         "closeAudioPlayerPopover": "Fermer arrête la lecture!",
@@ -1979,6 +2072,8 @@
             "modelInfoHeading": "Infos du modèle",
             "modelInfoLanguage": "Langue",
             "modelInfoModel": "Modèle",
+            "modelInfoNo": "Non",
+            "modelInfoRelease": "Sortie",
             "modelInfoSeries": "Série",
             "modelInfoTitle": "Titre",
             "modelReadOnlyHint": "Tonie original : le modèle ne peut pas être modifié. Vous pouvez uniquement assigner un audio personnalisé.",
@@ -1999,6 +2094,7 @@
             "encoding": "Encodage",
             "errorFileProcessing": "Échec du traitement du fichier audio : ",
             "filename": "Nom du fichier",
+            "loading": "Chargement...",
             "loadingWasmEncoder": "Chargement de l'encodeur WASM...",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
@@ -2219,6 +2315,7 @@
             "exportToJson": "Exporter en JSON",
             "hideSelectedTags": "Masquer les tags",
             "select": "Sélectionner",
+            "selectAll": "Tout sélectionner",
             "selectButtonTooltip": "Activer le mode de sélection",
             "selected": "Tags/Tonies sélectionnés",
             "setLive": "Activer live",
@@ -2313,7 +2410,10 @@
             "episodes": "Épisodes",
             "fontFamily": "Police de l'étiquette",
             "fontFamilyPlaceholder": "Choisir une police",
+            "height": "Hauteur",
+            "imageBottom": "Marge de l'image en bas",
             "imageBottomLeft": "Marge de l'image en bas / à gauche",
+            "imageLeft": "Marge de l'image à gauche",
             "imagePosition": "Position de l'image",
             "imageScale": "Échelle de l'image",
             "intro": "Recherche tous les Tonies et Tags, officiels et tes propres, pour créer ta feuille imprimable de Traveltonies (pièce).",
@@ -2339,6 +2439,7 @@
             "paperSize": "Format du papier",
             "placeholder": "Saisis un terme de recherche !",
             "preview": "Aperçu étiquette",
+            "printMarginNotification": "Les marges d'impression CSS ne sont prises en charge de manière fiable que dans Chrome. Utilise Chrome pour garantir une impression correcte des étiquettes.",
             "printMode": "Mode",
             "printModeImageAndText": "Image + Texte",
             "printModeImageAndTextTooltip": "Imprime les deux côtés de ta pièce Traveltonie : image d'un côté, titre et infos de l'épisode de l'autre",
@@ -2368,7 +2469,8 @@
             "square": "Carrée",
             "textFontSize": "Taille du texte",
             "title": "TeddyStudio",
-            "trackTitles": "Titres (un par ligne)"
+            "trackTitles": "Titres (un par ligne)",
+            "width": "Largeur"
         },
         "title": "Tonies",
         "tonies": {

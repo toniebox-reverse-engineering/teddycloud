@@ -32,3 +32,6 @@ fake-server-tb2/*
 /dev-sandbox/run/
 /dev-sandbox/.teddycloud-native.pid
 *.pcap
+
+# scratch notes, not committed
+tmp/

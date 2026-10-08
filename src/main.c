@@ -262,6 +262,8 @@ int_t main(int argc, char *argv[])
         const char *encode_test;
         int skip_seconds;
         const char *esp32_hostpatch;
+        const char *esp32_portpatch;
+        int port;
         const char *esp32_fixup;
         const char *esp32_inject;
         const char *esp32_extract;
@@ -293,6 +295,8 @@ int_t main(int argc, char *argv[])
                 {"encode_test", required_argument, 0, 'E'},
                 {"skip-seconds", required_argument, 0, 'S'},
                 {"esp32-hostpatch", required_argument, 0, 'P'},
+                {"esp32-portpatch", required_argument, 0, 0x104},
+                {"port", required_argument, 0, 0x105},
                 {"oldrtnlhost", required_argument, 0, 0x100},
                 {"oldapihost", required_argument, 0, 0x101},
                 {"esp32-fixup", required_argument, 0, 'F'},
@@ -333,6 +337,8 @@ int_t main(int argc, char *argv[])
             OPT_SIMPLE_STR('E', encode_test);
             OPT_SIMPLE_INT('S', skip_seconds);
             OPT_SIMPLE_STR('P', esp32_hostpatch);
+            OPT_SIMPLE_STR(0x104, esp32_portpatch);
+            OPT_SIMPLE_INT(0x105, port);
             OPT_SIMPLE_STR('F', esp32_fixup);
             OPT_SIMPLE_STR('I', esp32_inject);
             OPT_SIMPLE_STR('X', esp32_extract);
@@ -362,6 +368,7 @@ int_t main(int argc, char *argv[])
     autogen &= !options.encode;
     autogen &= !options.encode_test;
     autogen &= !options.esp32_hostpatch;
+    autogen &= !options.esp32_portpatch;
     autogen &= !options.esp32_fixup;
     autogen &= !options.esp32_inject;
     autogen &= !options.esp32_extract;
@@ -489,6 +496,22 @@ int_t main(int argc, char *argv[])
         if (error == 0)
         {
             error = esp32_fixup(options.esp32_hostpatch, true);
+        }
+        exit_cleanup(error);
+    }
+
+    if (options.esp32_portpatch)
+    {
+        if (!options.port)
+        {
+            TRACE_ERROR("Missing --port\r\n");
+            exit_cleanup(-1);
+        }
+
+        int_t error = esp32_patch_port(options.esp32_portpatch, options.port);
+        if (error == 0)
+        {
+            error = esp32_fixup(options.esp32_portpatch, true);
         }
         exit_cleanup(error);
     }
@@ -686,6 +709,10 @@ static void print_usage(char *argv[])
         "    Patch hosts in ESP32 image and does a fixup of the image afterwards.\r\n"
         "    Requires: --hostname <NEWHOST> to specify the new host.\r\n"
         "    Optional: --oldrtnlhost <HOST> and --oldapihost <HOST> to specify old hosts to be replaced.\r\n"
+        "\r\n"
+        "  --esp32-portpatch <FILE>\r\n"
+        "    Patch the port the box connects to in an ESP32 image and does a fixup of the image afterwards.\r\n"
+        "    Requires: --port <PORT> (1..32767, 443 restores the original).\r\n"
         "\r\n"
         "  --esp32-fixup <FILE>\r\n"
         "    Perform a checksum fixup operation on an ESP32 image.\r\n"

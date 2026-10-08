@@ -20,6 +20,7 @@
 #include "handler_rtnl.h"         // for handleRtnl
 #include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
 #include "handler_sse.h"          // for handleApiSse, sse_init
+#include "handler_web_auth.h"     // for web_auth_init, web_auth_requires_login
 #include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
 #include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
 #include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
@@ -51,6 +52,7 @@
 #include "handler_rtnl.h"         // for handleRtnl
 #include "handler_security_mit.h" // for handleSecMitRobotsTxt, checkSecMit...
 #include "handler_sse.h"          // for handleApiSse, sse_init
+#include "handler_web_auth.h"     // for web_auth_init, web_auth_requires_login
 #include "http/http_common.h"     // for HTTP_AUTH_MODE_DIGEST
 #include "http/http_server.h"     // for _HttpConnection, HttpServerSettings
 #include "mutex_manager.h"        // for mutex_unlock, mutex_lock, MUTEX_CL...
@@ -119,6 +121,12 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/auth/login", SERTY_WEB, &handleApiAuthLogin},
     {REQ_GET, "/api/auth/logout", SERTY_WEB, &handleApiAuthLogout},
     {REQ_POST, "/api/auth/refresh-token", SERTY_WEB, &handleApiAuthRefreshToken},
+    {REQ_GET, "/api/auth/status", SERTY_WEB, &handleApiAuthStatus},
+    {REQ_GET, "/api/auth/users/get", SERTY_WEB, &handleApiAuthUsersGet},
+    {REQ_POST, "/api/auth/users/create", SERTY_WEB, &handleApiAuthUsersCreate},
+    {REQ_POST, "/api/auth/users/delete", SERTY_WEB, &handleApiAuthUsersDelete},
+    {REQ_POST, "/api/auth/users/updatePassword", SERTY_WEB, &handleApiAuthUsersPassword},
+    {REQ_POST, "/api/auth/enabled", SERTY_WEB, &handleApiAuthEnabled},
     /* plugins API */
     {REQ_GET, "/api/plugins/get", SERTY_WEB, &handleApiPluginsGet},
     /* custom API */
@@ -137,6 +145,7 @@ request_type_t request_paths[] = {
     {REQ_POST, "/api/pcmUpload", SERTY_WEB, &handleApiPcmUpload},
     {REQ_POST, "/api/tafUpload", SERTY_WEB, &handleApiTafUpload},
     {REQ_GET, "/api/fileIndexV2", SERTY_WEB, &handleApiFileIndexV2},
+    {REQ_POST, "/api/fileSetListened", SERTY_WEB, &handleApiFileSetListened},
     {REQ_GET, "/api/fileIndex", SERTY_WEB, &handleApiFileIndex},
     {REQ_GET, "/api/stats", SERTY_WEB, &handleApiStats},
     {REQ_GET, "/api/toniesJsonSearch", SERTY_WEB, &handleApiToniesJsonSearch},
@@ -269,6 +278,43 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
     return err;
 }
 
+static error_t handleCorsOptions(
+    HttpConnection *connection,
+    const char_t *uri,
+    const char_t *queryString,
+    client_ctx_t *client_ctx)
+{
+    char line[256];
+    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+
+    osSnprintf(line, sizeof(line), "HTTP/%d.%d 204 No Content\r\n", MSB(connection->request.version), LSB(connection->request.version));
+
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
+    {
+        osSnprintf(line, sizeof(line), "Access-Control-Allow-Origin: %s\r\nVary: Origin\r\n", allowOrigin);
+        httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+    }
+
+    osSnprintf(line, sizeof(line), "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSnprintf(line, sizeof(line), "Access-Control-Allow-Headers: Content-Type, Authorization\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSnprintf(line, sizeof(line), "Access-Control-Max-Age: 86400\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSnprintf(line, sizeof(line), "Content-Length: 0\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    osSnprintf(line, sizeof(line), "\r\n");
+    httpSend(connection, line, osStrlen(line), HTTP_FLAG_DELAY);
+
+    return NO_ERROR;
+}
+
 error_t resGetData(const char_t *path, const uint8_t **data, size_t *length)
 {
     TRACE_DEBUG("resGetData: %s (static response)\n", path);
@@ -284,6 +330,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
     size_t openRequests = ++openRequestsLast;
     error_t error = NO_ERROR;
     connection->private.api_access_only = is_api_only;
+    connection->private.authenticated = false;
 
     stats_update("connections", 1);
 
@@ -430,7 +477,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                         {
                             // CC3235 User-Agent: TB/%firmware-ts% SP/%sp% HW/%hw%
                             client_ctx->settings->internal.toniebox_firmware.boxIC = BOX_CC3235;
-                            boxGen = GENERATION_TB2;
+                            boxGen = GENERATION_TB1;
                         }
                         else
                         {
@@ -519,6 +566,18 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
+        if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTIONS"))
+        {
+            error = handleCorsOptions(connection, uri, connection->request.queryString, client_ctx);
+            break;
+        }
+
+        if (!connection->private.api_access_only && web_auth_requires_login() && !web_auth_is_public_request(uri, connection->request.method) && !web_auth_is_authenticated(connection, NULL, 0))
+        {
+            error = web_auth_unauthorized(connection);
+            break;
+        }
+
         for (size_t i = 0; i < sizeof(request_paths) / sizeof(request_paths[0]); i++)
         {
             size_t pathLen = osStrlen(request_paths[i].path);
@@ -547,20 +606,12 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
         {
             if (!strcmp(uri, "/") || !strcmp(uri, "index.shtm"))
             {
-                if (!client_ctx->settings->core.new_webgui_as_default)
-                {
-                    uri = "/legacy.html";
-                }
-                else
-                {
-                    uri = "/web";
-                    httpPrepareHeader(connection, "", 0);
-                    connection->response.keepAlive = false;
-                    connection->response.location = uri;
-                    connection->response.statusCode = 301;
-                    return httpWriteResponseString(connection, "", false);
-                    continue;
-                }
+                uri = "/web";
+                httpPrepareHeader(connection, "", 0);
+                connection->response.keepAlive = false;
+                connection->response.location = uri;
+                connection->response.statusCode = 301;
+                return httpWriteResponseString(connection, "", false);
             }
 
             if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
@@ -627,34 +678,17 @@ void httpParseAuthorizationField(HttpConnection *connection, char_t *value)
     }
     if (!strncmp(value, "Bearer ", 7))
     {
-        if (strlen(value) != 7 + 2 * JWT_AUTH_TOKEN_LENGTH)
+        /* web UI session token, validated later by the web auth handlers */
+        const char *token = value + 7;
+        size_t tlen = osStrlen(token);
+        if (tlen > 0 && tlen < sizeof(connection->private.web_bearer_token))
         {
-            TRACE_WARNING("Authentication: Failed to parse auth token '%s'\r\n", value);
-            return;
+            osStrcpy(connection->private.web_bearer_token, token);
         }
-        // TODO: check JWT TOKEN
-        for (int pos = 0; pos < JWT_AUTH_TOKEN_LENGTH; pos++)
+        else
         {
-            char hex_digits[3];
-            char *end_ptr = NULL;
-
-            /* get a hex byte into a buffer for parsing it */
-            osStrncpy(hex_digits, &value[3 + 2 * pos], 2);
-            hex_digits[2] = 0;
-
-            /* will still fail for minus sign and possibly other things, but then the token is just incorrect */
-            connection->private.authentication_token[pos] = (uint8_t)osStrtoul(hex_digits, &end_ptr, 16);
-
-            if (end_ptr != &hex_digits[2])
-            {
-                TRACE_WARNING("Authentication: Failed to parse auth token '%s'\n", value);
-                return;
-            }
+            TRACE_DEBUG("Authentication: Ignoring bearer token with invalid length %" PRIuSIZE "\r\n", tlen);
         }
-        /* if we come across this part, this means the token was most likely correctly *parsed* */
-        connection->request.auth.found = 1;
-        connection->request.auth.mode = HTTP_AUTH_MODE_DIGEST;
-        connection->status = HTTP_ACCESS_ALLOWED;
     }
 }
 
@@ -750,11 +784,13 @@ static error_t httpServerConfigureTls(
 
     tls_context_key_log_init(tlsContext);
 
-    // Session cache that will be used to save/resume TLS sessions
-    error = tlsSetCache(tlsContext, tlsCache);
-    // Any error to report?
-    if (error)
-        return error;
+    // A resumed session carries no client certificate, so the box cannot be identified on it
+    if (authMode == TLS_CLIENT_AUTH_NONE)
+    {
+        error = tlsSetCache(tlsContext, tlsCache);
+        if (error)
+            return error;
+    }
 
     // Enable secure renegotiation, otherwise modern OpenSSL clients (e.g., Python 3 requests) reject the connection
     error = tlsEnableSecureRenegotiation(tlsContext, TRUE);
@@ -885,6 +921,7 @@ void server_init(bool test)
     }
     settings_set_bool("internal.exit", FALSE);
     sse_init();
+    web_auth_init();
 
     HttpServerSettings http_settings;
     HttpServerSettings https_web_settings;
