@@ -762,6 +762,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
+            if (tafInfo->additional.track_positions.length > 0)
+            {
+                cJSON_AddNumberToObject(tafHeaderEntry, "lengthSeconds", tafInfo->additional.track_positions.length);
+            }
 
             cJSON_AddBoolToObject(jsonEntry, "listened", library_meta_get_listened(filePathAbsolute));
 
@@ -4963,6 +4967,10 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             for (size_t i = 0; i < tafInfo->additional.track_positions.count; i++)
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
+            }
+            if (tafInfo->additional.track_positions.length > 0)
+            {
+                cJSON_AddNumberToObject(jsonEntry, "lengthSeconds", tafInfo->additional.track_positions.length);
             }
 
             char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
