@@ -194,7 +194,7 @@ class KeyPermissions512(Base):
     def test_generated_key_is_owner_only(self):
         with tempfile.TemporaryDirectory() as d:
             subprocess.run(
-                [BIN, "--generate-client-cert", "0123456789ab", "--destination", d],
+                [BIN, "--base_path", str(BASE_DIR), "--generate-client-cert", "0123456789ab", "--destination", d],
                 check=True,
                 capture_output=True,
                 cwd=BASE_DIR,  # the CA to sign with is read from certs/server below the cwd

@@ -363,6 +363,8 @@ error_t cert_generate_mac(const char *mac, const char *dest)
     if (cert_generate_signed(subj, serial, 7, CERT_RSA_SIZE, false, true, client_file, private_file) != NO_ERROR)
     {
         TRACE_ERROR("cert_generate_signed failed\r\n");
+        osFreeMem(client_file);
+        osFreeMem(private_file);
         return ERROR_FAILURE;
     }
     osFreeMem(client_file);
