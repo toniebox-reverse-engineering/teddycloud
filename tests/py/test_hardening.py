@@ -197,6 +197,7 @@ class KeyPermissions512(Base):
                 [BIN, "--generate-client-cert", "0123456789ab", "--destination", d],
                 check=True,
                 capture_output=True,
+                cwd=BASE_DIR,  # the CA to sign with is read from certs/server below the cwd
                 preexec_fn=lambda: os.umask(0o022),  # what most systems use
             )
             mode = os.stat(os.path.join(d, "private.der")).st_mode & 0o777
