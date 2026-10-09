@@ -158,6 +158,7 @@ typedef struct
 typedef struct
 {
     bool api_access;
+    char *certPin;
     bool overrideCloud;
     settings_box_generation boxGeneration;
 
@@ -304,6 +305,8 @@ typedef struct
     time_t *last_ruid_time;
     char *ip;
     bool online;
+    char *boxCertStatus;
+    char *boxCertSha256;
 } settings_internal_t;
 
 typedef struct
