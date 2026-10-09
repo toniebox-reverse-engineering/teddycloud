@@ -97,6 +97,14 @@ def test_time_is_forwarded_to_the_cloud(box, cloud):
     assert [r[1] for r in cloud.requests] == ["/v1/time"]
 
 
+@pytest.mark.xfail(strict=True, reason="the server passes the cloud's /v1/time body on as it is; a 3.4.0 CC3200 "
+                   "that got \"teddycloud\" blinked red and switched off")
+def test_cloud_time_that_is_no_number_is_not_passed_on(box, cloud):
+    cloud.script = lambda h: cloud.reply(h, 200, b"<html>maintenance</html>", {"Content-Type": "text/html"})
+    status, _, body = box.request("GET", "/v1/time")
+    assert status == 200 and is_local_time(body.decode()), body
+
+
 def test_cloud_disabled_stays_local(box, cloud):
     setting("cloud.enabled", "false")
     status, _, body = box.request("GET", "/v1/time")
@@ -160,3 +168,57 @@ def test_settings_reload_while_cloud_requests_run(box, cloud):
         stop.set()
         t.join(15)
     assert len(results) > 20 and results.count(b"CLOUDTIME") > 10, results
+
+
+# what Boxine answered to /v1/ota/3 of a CC3200 on 3.3.0 (capture): the firmware image with its SHA-256 as 64
+# hex characters appended (the ESP32 gets "<ts>-esp32-toniebox-eu-v5.237.0-app.ota" in the same format)
+OTA_HEADERS = {
+    "Content-Type": "binary/octet-stream",
+    "Content-Disposition": "attachment;filename=1779199517_toniebox-eu_v3.4.0.hashed.bin",
+    "ETag": '"0123456789abcdef0123456789abcdef"',
+    "Last-Modified": "Wed, 20 May 2026 12:33:19 GMT",
+    "Accept-Ranges": "bytes",
+}
+
+
+def test_ota_is_passed_through_as_the_cloud_sends_it(box, cloud):
+    import hashlib
+
+    image = os.urandom(163328 - 64)
+    ota = image + hashlib.sha256(image).hexdigest().encode()
+    setting("cloud.enableV1Ota", "true")
+    setting("cloud.cacheOta", "false")
+    try:
+        cloud.script = lambda h: cloud.reply(h, 200, ota, OTA_HEADERS) if "/v1/ota/3" in h.path else cloud.reply(h, 304)
+        assert box.request("GET", "/v1/ota/5?cv=1669853893")[0] == 304
+        status, headers, body = box.request("GET", "/v1/ota/3?cv=1777468756")
+        assert status == 200 and body == ota
+        assert [r[1] for r in cloud.requests] == ["/v1/ota/5?cv=1669853893", "/v1/ota/3?cv=1777468756"]
+        assert cloud.requests[1][2]["User-Agent"] == box.user_agent
+        assert {k: headers.get(k) for k in OTA_HEADERS} == OTA_HEADERS
+    finally:
+        setting("cloud.cacheOta", "true")
+        setting("cloud.enableV1Ota", "false")
+
+
+def test_ota_is_cached_and_held_back_by_default(box, cloud):
+    """Defaults (cacheOta on, localOta off): the server asks the cloud for anything newer than what it has
+    cached (cv=1 with an empty cache), keeps the file and tells the box there is no update. With localOta it
+    delivers the cached file."""
+    import hashlib
+
+    image = os.urandom(5000)
+    ota = image + hashlib.sha256(image).hexdigest().encode()
+    setting("cloud.enableV1Ota", "true")
+    cloud.script = lambda h: cloud.reply(h, 200, ota, OTA_HEADERS)
+    try:
+        assert box.request("GET", "/v1/ota/3?cv=1777468756")[0] == 304
+        assert [r[1] for r in cloud.requests] == ["/v1/ota/3?cv=1"]
+        setting("cloud.enableV1Ota", "false")
+        setting("cloud.localOta", "true")
+        with box.keep_alive() as c:
+            status, headers, body = c.request("GET", "/v1/ota/3?cv=1777468756")
+        assert status == 200 and body == ota
+    finally:
+        setting("cloud.localOta", "false")
+        setting("cloud.enableV1Ota", "false")
