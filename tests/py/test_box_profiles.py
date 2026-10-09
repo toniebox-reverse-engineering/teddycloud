@@ -152,7 +152,7 @@ def test_boot_requests_on_one_connection(captured):
             assert status == 200
             assert set(freshness.response_fields(answer)) >= {2, 3, 4, 5, 6, 7, 8}
         status, _, _ = c.request("GET", "/v1/claim/0a0bccddee0304e0", headers={"Authorization": profiles.AUTHORIZATION})
-        assert status == 200
+        assert status == 204
 
 
 # record sizes of the RTNL stream of a CC3200 (3.4.0) after its first frame: frames are cut anywhere, also
@@ -218,9 +218,9 @@ def test_content_download_like_the_box(captured):
     with captured.keep_alive() as c:
         status, headers, body = c.request("GET", f"/v2/content/{ruid}", headers=auth)
         assert (status, headers.get("Content-Type"), body == content) == (200, "application/octet-stream", True)
-        assert c.request("GET", f"/v1/claim/{ruid}", headers=auth)[0] == 200
+        assert c.request("GET", f"/v1/claim/{ruid}", headers=auth)[0] == 204
     with captured.keep_alive() as c:
-        assert c.request("GET", f"/v1/claim/{ruid}", headers=auth)[0] == 200
+        assert c.request("GET", f"/v1/claim/{ruid}", headers=auth)[0] == 204
 
 
 @pytest.mark.parametrize("ending", ["close_notify", "fin"])
@@ -231,7 +231,7 @@ def test_connection_ends_like_the_box(captured, ending):
         pytest.skip(f"a {captured.profile.name} does not end a connection with {ending}")
     for _ in range(2):
         c = captured.keep_alive()
-        assert c.request("GET", "/v1/claim/0a0bccddee0304e0", headers={"Authorization": profiles.AUTHORIZATION})[0] == 200
+        assert c.request("GET", "/v1/claim/0a0bccddee0304e0", headers={"Authorization": profiles.AUTHORIZATION})[0] == 204
         c.finish(ending)
 
 
@@ -256,9 +256,9 @@ def needs(box, limit):
         pytest.skip(f"{limit} not known for a {box.profile.name}")
 
 
-@pytest.mark.xfail(strict=True, reason="the server answers a claim with 200; the boxes close the connection after it "
-                   "(CC3200 3.4.0, ESP32 v5.233.0), after a 204 they keep it open")
 def test_claim_status_the_box_expects(captured):
+    """The boxes close the connection after a claim answered with 200 (CC3200 3.4.0, ESP32 v5.233.0), after a 204
+    they keep it open."""
     needs(captured, "claim_status")
     with captured.keep_alive() as c:
         status, _, _ = c.request("GET", "/v1/claim/0a0bccddee0304e0", headers={"Authorization": profiles.AUTHORIZATION})
@@ -316,7 +316,6 @@ def test_missing_content_is_404(captured):
         assert c.request("GET", "/v2/content/0a0b0c0d0e0304e0", headers={"Authorization": profiles.AUTHORIZATION})[0] == 404
 
 
-@pytest.mark.xfail(strict=True, reason="the server sends no answer to /v1/log; the box closes after a few seconds")
 def test_log_is_answered(captured):
     """With RTNL down the box posts to /v1/log and closes if there is no answer (after 2.9 s and 7.7 s)."""
     needs(captured, "log_wait")

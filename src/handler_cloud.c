@@ -353,9 +353,14 @@ error_t handleCloudLog(HttpConnection *connection, const char_t *uri, const char
     {
         cbr_ctx_t ctx;
         req_cbr_t cbr = getCloudCbr(connection, uri, queryString, V1_LOG, &ctx, client_ctx);
-        cloud_request_post(NULL, 0, uri, queryString, data, size, NULL, &cbr);
+        if (!cloud_request_post(NULL, 0, uri, queryString, data, size, NULL, &cbr))
+        {
+            return NO_ERROR;
+        }
     }
-    return NO_ERROR;
+    /* without an answer the box closes the connection after a few seconds */
+    httpPrepareHeader(connection, NULL, 0);
+    return httpWriteResponse(connection, NULL, 0, false);
 }
 
 error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
@@ -388,7 +393,7 @@ error_t handleCloudClaim(HttpConnection *connection, const char_t *uri, const ch
     /* allow to override HTTP status code if needed */
     bool served = false;
     httpPrepareHeader(connection, NULL, 0);
-    connection->response.statusCode = 200;
+    connection->response.statusCode = 204; /* after a 200 the boxes close the connection */
 
     if (client_ctx->settings->cloud.dumpRuidAuthContentJson && connection->request.auth.found)
     {

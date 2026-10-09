@@ -56,8 +56,10 @@ class FakeCloud:
         h.end_headers()
         h.wfile.write(body)
 
+    TIME = b"1700000000"  # a valid time, but far from the local one
+
     def _default(self, h):
-        self.reply(h, 200, b"CLOUDTIME", {"Content-Type": "text/plain"})
+        self.reply(h, 200, self.TIME, {"Content-Type": "text/plain"})
 
     def close(self):
         self._srv.shutdown()

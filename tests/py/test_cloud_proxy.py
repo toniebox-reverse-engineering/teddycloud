@@ -88,19 +88,19 @@ def fresh(cloud):
 
 
 def is_local_time(text):
-    return re.fullmatch(r"\d{9,}", text.strip()) is not None
+    return re.fullmatch(r"\d{9,}", text.strip()) is not None and abs(int(text) - time.time()) < 3600
 
 
 def test_time_is_forwarded_to_the_cloud(box, cloud):
     status, _, body = box.request("GET", "/v1/time")
-    assert (status, body) == (200, b"CLOUDTIME")
+    assert (status, body) == (200, FakeCloud.TIME)
     assert [r[1] for r in cloud.requests] == ["/v1/time"]
 
 
-@pytest.mark.xfail(strict=True, reason="the server passes the cloud's /v1/time body on as it is; a 3.4.0 CC3200 "
-                   "that got \"teddycloud\" blinked red and switched off")
-def test_cloud_time_that_is_no_number_is_not_passed_on(box, cloud):
-    cloud.script = lambda h: cloud.reply(h, 200, b"<html>maintenance</html>", {"Content-Type": "text/html"})
+@pytest.mark.parametrize("answer", [b"<html>maintenance</html>", b"-1", b" 1700000000", b"0"])
+def test_cloud_time_that_is_no_number_is_not_passed_on(box, cloud, answer):
+    """A 3.4.0 CC3200 that got "teddycloud" blinked red and switched off."""
+    cloud.script = lambda h: cloud.reply(h, 200, answer, {"Content-Type": "text/plain"})
     status, _, body = box.request("GET", "/v1/time")
     assert status == 200 and is_local_time(body.decode()), body
 
@@ -167,7 +167,7 @@ def test_settings_reload_while_cloud_requests_run(box, cloud):
     finally:
         stop.set()
         t.join(15)
-    assert len(results) > 20 and results.count(b"CLOUDTIME") > 10, results
+    assert len(results) > 20 and results.count(FakeCloud.TIME) > 10, results
 
 
 # what Boxine answered to /v1/ota/3 of a CC3200 on 3.3.0 (capture): the firmware image with its SHA-256 as 64
