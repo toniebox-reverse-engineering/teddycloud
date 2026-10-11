@@ -60,6 +60,14 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     time_t last = 0;
     while (true)
     {
+        /* A keep-alive must not land inside an event, so it holds MUTEX_SSE_EVENT.
+         * Event writers take MUTEX_SSE_EVENT before MUTEX_SSE_CTX; taking them in
+         * the other order here deadlocks both and every later /api/sse request. */
+        bool_t keepAlive = time(NULL) - last > SSE_KEEPALIVE_S;
+        if (keepAlive)
+        {
+            mutex_lock(MUTEX_SSE_EVENT);
+        }
         mutex_lock(MUTEX_SSE_CTX);
         if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
@@ -73,13 +81,16 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
                 TRACE_ERROR("SSE Client with error %s\r\n", error2text(error));
             }
             mutex_unlock(MUTEX_SSE_CTX);
+            if (keepAlive)
+            {
+                mutex_unlock(MUTEX_SSE_EVENT);
+            }
             break;
         }
 
-        time_t now = time(NULL);
-        if (now - last > SSE_KEEPALIVE_S)
+        if (keepAlive)
         {
-            mutex_lock(MUTEX_SSE_EVENT);
+            time_t now = time(NULL);
             sseCtx->error = httpWriteString(connection, "event: keep-alive\ndata: { \"type\":\"keep-alive\", \"data\":\"\" }\n\n");
             mutex_unlock(MUTEX_SSE_EVENT);
             last = now;
