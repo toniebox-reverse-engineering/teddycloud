@@ -24,6 +24,8 @@ static const test_case_t tests[] = {
     {"split_url", test_split_url},
     {"ipv4_is_public", test_ipv4_is_public},
     {"esp32_port_patch", test_esp32_port_patch},
+    {"socket_receive_line_from_full_buffer", test_socket_receive_line_from_full_buffer},
+    {"socket_receive_line_capped_at_size", test_socket_receive_line_capped_at_size},
 };
 
 int main(void)
