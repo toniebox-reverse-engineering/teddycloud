@@ -500,6 +500,8 @@
             "deleteSuccessfulDetails": "Archivo \"{{file}}\" eliminado con éxito!",
             "deleting": "Eliminando...",
             "deletingDetails": "Eliminando archivo \"{{file}}\"...",
+            "downloadFailed": "Error en la descarga",
+            "downloadFailedDetails": "Error al descargar el archivo \"{{file}}\"",
             "errorFetchingDirContent": "Error al cargar el contenido del directorio",
             "errorFetchingDirContentDetails": "Error al cargar el contenido del directorio \"{{path}}\": ",
             "migrationFailed": "Migración fallida",
@@ -1959,6 +1961,8 @@
             },
             "audio": {
                 "libraryLabel": "Audio personalizado ({{library}})",
+                "locateInLibrary": "Buscar en la biblioteca",
+                "notFoundInLibrary": "No encontrado en la biblioteca",
                 "notInIndex": "No en el índice de audio personalizado: {{audioId}}/{{hash}}",
                 "placeholder": "Seleccionar audio personalizado de {{library}}",
                 "selectFromLibrary": "Seleccionar audio de {{library}}"
@@ -2081,6 +2085,7 @@
             "placeholderSearchForARadioStream": "Buscar una transmisión de radio",
             "save": "Guardar",
             "setAudioFromModel": "Establecer audio del modelo",
+            "setAudioFromModelNoMapping": "El modelo seleccionado no tiene audio asignado.",
             "setAudioFromModelUnavailableInLibrary": "El audio del modelo aún no está disponible en la biblioteca.",
             "setModelFromAudio": "Establecer modelo desde el audio",
             "source": "Fuente",
@@ -2136,9 +2141,14 @@
                 },
                 "editIcon": {
                     "createNewModel": {
-                        "description": "Abre una ventana para introducir los detalles del nuevo modelo. Esta función aún está en desarrollo.",
+                        "description": "Abre el editor de modelos personalizados para introducir los detalles de un nuevo modelo para tu Tonie/Tag.",
                         "text": "Crea un modelo personalizado para tu Tonie/Tag.",
-                        "title": "Crear nuevo modelo (en desarrollo)"
+                        "title": "Crear nuevo modelo"
+                    },
+                    "editModel": {
+                        "description": "Edita el modelo personalizado seleccionado en el editor de modelos personalizados. Las entradas de audio muestran enseguida su ID de audio y hash; con el icono de localizar de una entrada se busca su archivo en tu biblioteca.",
+                        "text": "Edita el modelo personalizado asignado al Tonie/Tag.",
+                        "title": "Editar modelo personalizado"
                     },
                     "model": {
                         "description": "Busca y asigna un modelo. La imagen se mostrará en la vista general.",
@@ -2149,6 +2159,16 @@
                         "description": "Utiliza el campo de búsqueda para encontrar una emisora y asignarla como fuente.",
                         "text": "Busca emisoras de radio online (disponible si la API de radio-browser.info está activa).",
                         "title": "Búsqueda de emisoras"
+                    },
+                    "setAudioFromModel": {
+                        "description": "Aparece cuando se selecciona un modelo que no coincide con el audio actual. La biblioteca solo se busca al hacer clic en el botón, lo que puede tardar un momento. Si no se encuentra ningún archivo, se muestra una indicación bajo el campo de origen.",
+                        "text": "Asigna el archivo de audio que corresponde al modelo seleccionado.",
+                        "title": "Establecer audio desde el modelo"
+                    },
+                    "setModelFromAudio": {
+                        "description": "Aparece cuando el audio asignado pertenece a un modelo conocido. No hace falta buscar en la biblioteca; el modelo se toma de la información del audio.",
+                        "text": "Asigna el modelo que corresponde al audio actual.",
+                        "title": "Establecer modelo desde el audio"
                     },
                     "source": {
                         "description": "Puedes asignar contenido desde tu biblioteca (por ejemplo, archivos TAF o TAP) o introducir una URL de streaming.",

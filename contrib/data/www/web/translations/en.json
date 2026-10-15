@@ -500,6 +500,8 @@
             "deleteSuccessfulDetails": "Deleted file \"{{file}}\" successful!",
             "deleting": "Deleting...",
             "deletingDetails": "Deleting file \"{{file}}\"...",
+            "downloadFailed": "Download failed",
+            "downloadFailedDetails": "Download of file \"{{file}}\" failed",
             "errorFetchingDirContent": "Loading dir content failed",
             "errorFetchingDirContentDetails": "Failed to load dir content of \"{{path}}\": ",
             "migrationFailed": "Migration failed",
@@ -1959,6 +1961,8 @@
             },
             "audio": {
                 "libraryLabel": "Custom audio ({{library}})",
+                "locateInLibrary": "Locate in library",
+                "notFoundInLibrary": "Not found in library",
                 "notInIndex": "Not in custom audio index: {{audioId}}/{{hash}}",
                 "placeholder": "Select custom audio from {{library}}",
                 "selectFromLibrary": "Select audio from {{library}}"
@@ -2081,6 +2085,7 @@
             "placeholderSearchForARadioStream": "Search for a radio stream",
             "save": "Save",
             "setAudioFromModel": "Set audio from model",
+            "setAudioFromModelNoMapping": "The selected model has no audio assigned.",
             "setAudioFromModelUnavailableInLibrary": "Model audio is not yet available in the library.",
             "setModelFromAudio": "Set model from audio",
             "source": "Source",
@@ -2136,9 +2141,14 @@
                 },
                 "editIcon": {
                     "createNewModel": {
-                        "description": "Opens a modal to enter the required details for a new model. This feature is still under development and may not be functional yet.",
+                        "description": "Opens the Custom Model Editor to enter the details of a new model for your Tonie/Tag.",
                         "text": "Create a new custom model for your Tonie/Tag.",
-                        "title": "Create New Model (WIP)"
+                        "title": "Create New Model"
+                    },
+                    "editModel": {
+                        "description": "Edit the selected custom model in the Custom Model Editor. The audio entries show their audio ID and hash right away; use the locate icon of an entry to find its file in your library.",
+                        "text": "Edit the custom model assigned to the Tonie/Tag.",
+                        "title": "Edit Custom Model"
                     },
                     "model": {
                         "description": "Search for a model and assign it to the Tonie/Tag. The image will be shown in the overview.",
@@ -2149,6 +2159,16 @@
                         "description": "Use the search field to find and assign a stream from the radio-browser database.",
                         "text": "Search online radio streams (available if the radio-browser.info API is accessible).",
                         "title": "Radio Stream Search"
+                    },
+                    "setAudioFromModel": {
+                        "description": "Appears when a model is selected that does not match the current audio. Your library is searched only when you click the button, which can take a moment. If no matching file is found, a hint is shown below the source field.",
+                        "text": "Assign the audio file that belongs to the selected model.",
+                        "title": "Set Audio from Model"
+                    },
+                    "setModelFromAudio": {
+                        "description": "Appears when the assigned audio belongs to a known model. No library search is needed, the model is taken from the audio information.",
+                        "text": "Assign the model that belongs to the current audio.",
+                        "title": "Set Model from Audio"
                     },
                     "source": {
                         "description": "You can assign content from your library (e.g., TAF or TAP files) or enter a stream URL.",
