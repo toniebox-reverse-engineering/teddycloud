@@ -371,6 +371,7 @@
         "deleteMultiple": "{{selectedRowCount}} filas seleccionadas para eliminar",
         "downloadFile": "Descargar archivo",
         "downloadFileAsOgg": "Descargar TAF como *.ogg",
+        "downloadTracks": "Descargar pistas TAF como *.ogg",
         "encodeFiles": {
             "addFiles": "Agregar archivos",
             "cancel": "Cancelar",
@@ -399,7 +400,7 @@
                     "title": "Duplicar archivo TAP"
                 },
                 "editTAFMetadata": {
-                    "text": "Abre el editor de metadatos para modificar los detalles del archivo TAF. Los cambios se guardan en tonies.custom.json. (WIP)",
+                    "text": "Abre el editor de modelos personalizados para el archivo TAF. Si ya hay un modelo personalizado vinculado (mismo ID de audio y hash), se edita; de lo contrario, se crea uno nuevo para el archivo. Los cambios se guardan en tonies.custom.json.",
                     "title": "Editar metadatos de TAF"
                 },
                 "editTAPPlaylist": {
@@ -428,7 +429,7 @@
                 },
                 "downloadFile": {
                     "title": "Descargar archivo",
-                    "text": "Descarga el archivo seleccionado o, en el caso de archivos TAF, lo descarga como archivo OGG."
+                    "text": "Descarga el archivo seleccionado. En archivos TAF con varias pistas se abre una selección de pistas para descargarlas como archivos *.ogg separados (ZIP) o como un solo archivo *.ogg; los archivos TAF de una sola pista se descargan como un único archivo *.ogg."
                 },
                 "markAsListened": {
                     "unlistened": {
@@ -556,7 +557,7 @@
         "series": "Serie",
         "size": "Tamaño",
         "tafMeta": {
-            "edit": "(WIP - aún no implementado) Editar metadatos"
+            "edit": "Editar metadatos (modelo personalizado)"
         },
         "tap": {
             "edit": "Editar lista de reproducción de Tonie",
@@ -1425,7 +1426,8 @@
                     "waitForPressDesc": "Espera una presión en la oreja al inicio con una secuencia de parpadeo (azul, verde, cian, negro)",
                     "waitTimeoutInSDesc": "Tiempo de espera en segundos para waitForPress si no hay presión en la oreja (hibernación)",
                     "watchdogDesc": "Mantener el watchdog habilitado al iniciar firmware (si el inicio falla, la caja se reiniciará)"
-                }
+                },
+                "altPortHint": "Si has creado un parche de puerto, colócalo también en /revvox/boot/patch/ y añade \"altPort.custom\" a la lista de parches."
             },
             "applyingPatchesWithNgCfgJson": "Aplicar parches utilizando ngCfg.json",
             "applyingPatchesWithNgCfgJsonLink": "Encuentra las instrucciones aquí",
@@ -1449,6 +1451,12 @@
             "connectToTonieboxText": "El LED verde en la placa principal de la Toniebox debe permanecer encendido de forma continua (sin parpadear). Si no lo hace, es posible que las conexiones estén flojas o incorrectas. Desconecta el programador, verifica todas las conexiones y vuelve a intentarlo. Si estás trabajando con cables finos, considera usar pegamento caliente para asegurarlos y evitar que se muevan. Además, asegúrate de que la Toniebox esté alimentada mediante su cargador.",
             "connectToTonieboxTextUart": "Asegúrate de que el UART esté configurado a 3.3V antes de conectar el programador UART a tu computadora mediante USB.",
             "createPatch": "Crear altUrl.custom.305.patch",
+            "customPortPatch": "Opcional: crear un parche de puerto (altPort.custom.json)",
+            "customPortPatchHint": "Solo es necesario si la Toniebox debe conectarse a TeddyCloud a través de un puerto distinto de 443, por ejemplo mediante un proxy que enruta por puerto. El parche funciona con las versiones de firmware 3.1.0 BF2, 3.3.0 y 3.4.0. hackiebox-ng ya incluye altPort.json para el puerto 10443; crea tu propio parche solo para otro puerto. Las Toniebox CC3235 y la Toniebox 2 no se pueden parchear: siempre se conectan al puerto 443.",
+            "hintPatchPort": "Introduce el puerto al que debe conectarse la Toniebox y haz clic en 'Crear altPort.custom.patch'. El parche se descargará automáticamente.",
+            "port": "Puerto de TeddyCloud:",
+            "portInvalid": "El puerto debe estar entre 1 y 65535.",
+            "createPortPatch": "Crear altPort.custom.patch",
             "customUrlPatch": "Crear un parche de URL personalizado (altUrl.custom.305.json)",
             "customUrlPatchHint": "Por favor, crea este parche solo si los parches predefinidos altUrl.tc.fritz.box.json y altUrl.305.json no funcionan con tu configuración actual de TeddyCloud. Si satisfacen tus necesidades, puedes continuar haciendo clic en 'Siguiente'.",
             "dedicatedUart": "UART dedicado",
@@ -1612,6 +1620,7 @@
             "locateFlashMemoryText": "Identifica el chip de memoria flash IS25LP032D en la placa; se encuentra a la derecha del dock de carga.",
             "navigationTitle": "CC3235",
             "next": "Siguiente",
+            "portHint": "Las cajas CC3235 siempre se conectan al puerto 443: no hay parche de puerto para ellas, así que TeddyCloud debe estar accesible en el puerto 443 (un proxy solo puede enrutarlas por IP).",
             "pico": {
                 "preparation": "Solo necesario si planeas realizar el flasheo con un Raspberry Pi Pico",
                 "readingFlash": "Leer memoria flash con Raspberry Pi Pico",
@@ -1743,6 +1752,9 @@
                 "hostname": "Nombre de host de TeddyCloud:",
                 "hostnameSettings": "Configuración del nombre de host",
                 "hostnameTooLong": "Si más adelante quieres conectar una Toniebox CC3200, el nombre de host no puede superar los 12 caracteres (limitación del firmware).",
+                "hintPatchPort": "Puerto al que se conecta la Toniebox. Deja 443 salvo que la Toniebox deba conectarse a TeddyCloud a través de otro puerto, por ejemplo mediante un proxy que enruta por puerto. Las Toniebox CC3235 y la Toniebox 2 no se pueden parchear: siempre se conectan al puerto 443.",
+                "port": "Puerto de TeddyCloud:",
+                "portInvalid": "El puerto debe estar entre 1 y 32767.",
                 "importanceBackup": "Antes de hacer cualquier cambio en tu Toniebox, descarga y guarda de forma segura una copia del firmware original. Esto te permitirá restaurar tu Toniebox a su estado de fábrica si algo sale mal. Guárdala en varios lugares, como tu ordenador principal o portátil, un disco duro externo o memoria USB, y/o un servicio de almacenamiento en la nube de confianza (por ejemplo, Google Drive, Dropbox, OneDrive). Nunca guardes tu única copia solo en el servidor TeddyCloud.",
                 "infoTable": "Información del ESP32",
                 "invalidFlashData": "La lectura / carga del flash contiene únicamente 0x00 o 0xFF. ¡Revisa la conexión o el archivo cargado e inténtalo de nuevo!",
@@ -1872,7 +1884,20 @@
             "uploadTonieboxCertificates": "Subir certificados para Toniebox{{name}}"
         },
         "warningUseAtYourOwnRisk": "Advertencia: úsalo bajo tu propia responsabilidad",
-        "warningUseAtYourOwnRiskText": "Flashear tu Toniebox con un firmware modificado anulará la garantía y puede dejar la caja inutilizable. Sigue las instrucciones cuidadosamente y asegúrate de comprender los riesgos asociados."
+        "warningUseAtYourOwnRiskText": "Flashear tu Toniebox con un firmware modificado anulará la garantía y puede dejar la caja inutilizable. Sigue las instrucciones cuidadosamente y asegúrate de comprender los riesgos asociados.",
+        "boxCertificate": {
+            "title": "Comprobación del certificado",
+            "status": "Estado",
+            "presented": "Certificado presentado (SHA-256)",
+            "pin": "Certificado fijado (SHA-256)",
+            "nextConnection": "El estado se actualiza con la próxima conexión de la Toniebox.",
+            "statusText": {
+                "none": "Aún no comprobado",
+                "trusted": "Certificado emitido por TeddyCloud",
+                "pinned": "Certificado fijado",
+                "mismatch": "¡Otro certificado distinto del fijado!"
+            }
+        }
     },
     "tonies": {
         "addNewCustomTonie": "Crear nuevo modelo",
@@ -1967,6 +1992,12 @@
                 "placeholder": "Seleccionar audio personalizado de {{library}}",
                 "selectFromLibrary": "Seleccionar audio de {{library}}"
             },
+            "audioSource": {
+                "linkedDescription": "Los cambios se aplican a todos los archivos y tags que usan este modelo.",
+                "linkedTitle": "{{file}} está vinculado a este modelo personalizado",
+                "newDescription": "Al guardar se crea un nuevo modelo personalizado y se vincula al archivo mediante el ID de audio y el hash.",
+                "newTitle": "Aún no hay un modelo personalizado para {{file}}"
+            },
             "batch": {
                 "description": "Los cambios se aplican a todos los modelos seleccionados.",
                 "title": "Edición por lotes activa"
@@ -2008,6 +2039,11 @@
             "noChangesBody": "No hay nada que guardar en este momento.",
             "noChangesTitle": "No se detectaron cambios",
             "optionalColumns": "Columnas opcionales",
+            "overridesOriginal": {
+                "description": "Los cambios guardados reemplazan la información original en todos los lugares donde se usa este audio o modelo. Elimina el modelo personalizado para volver a mostrar el original.",
+                "tag": "Reemplaza el original {{model}}",
+                "title": "Reemplaza el Tonie original {{model}} ({{name}})"
+            },
             "pagination": {
                 "modelsPerPage": "modelos/página"
             },
@@ -2046,6 +2082,13 @@
             },
             "tableMenu": "Menú de tabla",
             "title": "Editor de modelos",
+            "tracks": {
+                "fewerNamesDescription": "El archivo tiene {{tracks}} pistas. Los nombres conservan su posición, pero el diálogo de información solo permite saltar a una pista si están listadas todas las pistas hasta la última.",
+                "fewerNamesTitle": "Las últimas pistas del archivo no tienen nombre",
+                "moreNamesDescription": "Los nombres adicionales se guardan y se muestran, pero no tienen posición en el archivo. El diálogo de información no puede entonces saltar a pistas individuales.",
+                "moreNamesTitle": "Más nombres que pistas en el archivo ({{tracks}})",
+                "notInFile": "Nombres adicionales sin pista en el archivo:"
+            },
             "unsaved": "{{count}} cambio(s) sin guardar",
             "validation": {
                 "title": "Por favor corrige estos problemas primero"
@@ -2180,9 +2223,9 @@
                 },
                 "infoIcon": {
                     "download": {
-                        "description": "Si está disponible, puedes descargar el archivo TAF vinculado como un único archivo .ogg.",
-                        "text": "Permite descargar el archivo TAF como un archivo de audio .ogg.",
-                        "title": "Descargar TAF como .ogg"
+                        "description": "Si está disponible, las pistas se pueden descargar como archivos *.ogg separados (o como un solo archivo *.ogg).",
+                        "text": "Abre la selección de pistas para descargar el TAF como *.ogg.",
+                        "title": "Descargar TAF como *.ogg"
                     },
                     "exists": {
                         "description": "El estado 'existe' se muestra como 'sí' si el archivo fuente asignado está presente.",
@@ -2252,6 +2295,17 @@
             "tracklist": "Lista de pistas:",
             "valid": "Válido:",
             "yes": "Sí"
+        },
+        "tafDownload": {
+            "asOneFile": "Descargar como un solo archivo *.ogg",
+            "downloadCount": "Descargar {{count}} pistas como *.ogg",
+            "downloadOne": "Descargar 1 pista como *.ogg",
+            "duration": "Tiempo",
+            "modalTitle": "Descargar pistas como *.ogg",
+            "selectAll": "Seleccionar todas las pistas",
+            "selectedCount": "{{selected}} de {{total}} seleccionadas",
+            "track": "Pista",
+            "unnamedTrack": "Pista {{number}}"
         },
         "informationModal": {
             "hideTag": "Ocultar Tonie/Tag",

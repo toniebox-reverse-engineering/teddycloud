@@ -371,6 +371,7 @@
         "deleteMultiple": "Delete {{selectedRowCount}} selected rows",
         "downloadFile": "Download File",
         "downloadFileAsOgg": "Download TAF as *.ogg",
+        "downloadTracks": "Download TAF tracks as *.ogg",
         "encodeFiles": {
             "addFiles": "Add files",
             "cancel": "Cancel",
@@ -399,7 +400,7 @@
                     "title": "Delete File/Folder"
                 },
                 "downloadFile": {
-                    "text": "Downloads the selected file or, for TAF files, downloads it as an OGG file.",
+                    "text": "Downloads the selected file. For TAF files with several tracks, a track selection opens to download the tracks as separate *.ogg files (ZIP) or as one *.ogg file; single-track TAF files are downloaded as one *.ogg file.",
                     "title": "Download File"
                 },
                 "duplicateTAPFile": {
@@ -407,7 +408,7 @@
                     "title": "Duplicate TAP File"
                 },
                 "editTAFMetadata": {
-                    "text": "Opens the metadata editor to modify TAF file details. Changes are stored in tonies.custom.json. (WIP)",
+                    "text": "Opens the custom model editor for the TAF file. An already linked custom model (same audio ID and hash) is edited, otherwise a new one is created for the file. Changes are stored in tonies.custom.json.",
                     "title": "Edit TAF Metadata"
                 },
                 "editTAPPlaylist": {
@@ -556,7 +557,7 @@
         "series": "Series",
         "size": "Size",
         "tafMeta": {
-            "edit": "(WIP - not implemented yet) Edit metadata"
+            "edit": "Edit metadata (custom model)"
         },
         "tap": {
             "edit": "Edit TeddyAudio Playlist",
@@ -1425,7 +1426,8 @@
                     "waitForPressDesc": "Waits for an earpress on startup with a blink sequence (blue, green, cyan, black)",
                     "waitTimeoutInSDesc": "Timeout in seconds for waitForPress if no earpress (hibernation)",
                     "watchdogDesc": "Keep watchdog enabled when booting firmware (if booting fails, box will restart)"
-                }
+                },
+                "altPortHint": "If you created a port patch, put it into /revvox/boot/patch/ as well and add \"altPort.custom\" to the patches list."
             },
             "applyingPatchesWithNgCfgJson": "Apply patches using ngCfg.json",
             "applyingPatchesWithNgCfgJsonLink": "Find instructions here",
@@ -1449,6 +1451,12 @@
             "connectToTonieboxText": "The green LED on the Toniebox mainboard should stay steadily lit (no flashing or blinking). If it does not, your connections might be loose or incorrect. Disconnect the programmer, double-check all connections, and try again. If you are working with thin wires, consider applying hot glue to secure them in place and prevent any movement. Additionally, ensure that the Toniebox is powered using its charger.",
             "connectToTonieboxTextUart": "Ensure that the UART is configured to 3.3V before connecting the UART programmer to your computer via USB.",
             "createPatch": "Create altUrl.custom.305.patch",
+            "customPortPatch": "Optional: create a port patch (altPort.custom.json)",
+            "customPortPatchHint": "Only needed if the box should reach TeddyCloud on another port than 443, e.g. through a proxy that routes by port. The patch works with the firmware versions 3.1.0 BF2, 3.3.0 and 3.4.0. hackiebox-ng already ships altPort.json for port 10443; create your own patch only for another port. CC3235 boxes and the Toniebox 2 cannot be patched: they always connect to port 443.",
+            "hintPatchPort": "Enter the port the box should connect to and click 'Create altPort.custom.patch'. The patch will automatically download afterwards.",
+            "port": "TeddyCloud port:",
+            "portInvalid": "The port must be between 1 and 65535.",
+            "createPortPatch": "Create altPort.custom.patch",
             "customUrlPatch": "Create a custom URL Patch (altUrl.custom.305.json)",
             "customUrlPatchHint": "Please create this patch only if the predefined altUrl.tc.fritz.box.json and altUrl.305.json patches are not functioning with your current TeddyCloud setup. If they do meet your needs you can proceed by clicking 'Next'.",
             "dedicatedUart": "Dedicated UART",
@@ -1612,6 +1620,7 @@
             "locateFlashMemoryText": "Identify the IS25LP032D flash memory chip on the board; it is located to the right of the charging dock.",
             "navigationTitle": "CC3235",
             "next": "Next",
+            "portHint": "CC3235 boxes always connect to port 443: there is no port patch for them, so TeddyCloud has to be reachable on port 443 (a proxy can only route them by IP).",
             "pico": {
                 "preparation": "Only required if you plan to perform the flashing with a Raspberry Pi Pico",
                 "readingFlash": "Reading Flash with Raspberry Pi Pico",
@@ -1743,6 +1752,9 @@
                 "hostname": "TeddyCloud Hostname:",
                 "hostnameSettings": "Hostname TeddyCloud",
                 "hostnameTooLong": "If you want to connect a CC3200 Toniebox later, the hostname must not exceed 12 characters (firmware limitation).",
+                "hintPatchPort": "Port the box connects to. Keep 443 unless the box should reach TeddyCloud on another port, e.g. through a proxy that routes by port. CC3235 boxes and the Toniebox 2 cannot be patched: they always connect to port 443.",
+                "port": "TeddyCloud port:",
+                "portInvalid": "The port must be between 1 and 32767.",
                 "importanceBackup": "Before making any changes of your Toniebox, download and securely store a copy of the original firmware. This ensures you can always restore your Toniebox to its factory state if something goes wrong. Save it in multiple locations, such as your main computer or laptop, an external hard drive or USB stick and/or a trusted cloud storage service (e.g. Google Drive, Dropbox, OneDrive). Never store your only copy on the TeddyCloud-Server.",
                 "infoTable": "ESP32 info",
                 "invalidFlashData": "Read / loaded flash consists only of 0x00 or 0xFF! Please check connection or the loaded file and try again!",
@@ -1872,7 +1884,20 @@
             "uploadTonieboxCertificates": "Upload certificates for Toniebox{{name}}"
         },
         "warningUseAtYourOwnRisk": "Warning: Use at your own risk!",
-        "warningUseAtYourOwnRiskText": "Flashing your Toniebox with a patched firmware will void your warranty and may lead to a broken box. Please follow the instructions carefully and ensure you understand the risks involved."
+        "warningUseAtYourOwnRiskText": "Flashing your Toniebox with a patched firmware will void your warranty and may lead to a broken box. Please follow the instructions carefully and ensure you understand the risks involved.",
+        "boxCertificate": {
+            "title": "Certificate check",
+            "status": "Status",
+            "presented": "Presented certificate (SHA-256)",
+            "pin": "Pinned certificate (SHA-256)",
+            "nextConnection": "The status is updated with the next connection of the box.",
+            "statusText": {
+                "none": "Not checked yet",
+                "trusted": "Certificate issued by TeddyCloud",
+                "pinned": "Pinned certificate",
+                "mismatch": "Other certificate than the pinned one!"
+            }
+        }
     },
     "tonies": {
         "addNewCustomTonie": "Create new model",
@@ -1967,6 +1992,12 @@
                 "placeholder": "Select custom audio from {{library}}",
                 "selectFromLibrary": "Select audio from {{library}}"
             },
+            "audioSource": {
+                "linkedDescription": "Changes apply to all files and tags that use this model.",
+                "linkedTitle": "{{file}} is linked to this custom model",
+                "newDescription": "Saving creates a new custom model and links it to the file by audio ID and hash.",
+                "newTitle": "No custom model for {{file}} yet"
+            },
             "batch": {
                 "description": "Changes apply to all selected models.",
                 "title": "Batch editing active"
@@ -2008,6 +2039,11 @@
             "noChangesBody": "There is nothing to save at the moment.",
             "noChangesTitle": "No changes detected",
             "optionalColumns": "Optional columns",
+            "overridesOriginal": {
+                "description": "Saved changes replace the original information wherever this audio or model is used. Delete the custom model to show the original again.",
+                "tag": "Overrides original {{model}}",
+                "title": "Overrides original Tonie {{model}} ({{name}})"
+            },
             "pagination": {
                 "modelsPerPage": "models/page"
             },
@@ -2046,6 +2082,13 @@
             },
             "tableMenu": "Table menu",
             "title": "Model editor",
+            "tracks": {
+                "fewerNamesDescription": "The file has {{tracks}} tracks. Names keep their position, but the info dialog only offers jumping to a track when every track up to the last one is listed.",
+                "fewerNamesTitle": "The last tracks of the file have no name",
+                "moreNamesDescription": "The additional names are saved and listed, but have no position in the file. The info dialog then cannot jump to single tracks.",
+                "moreNamesTitle": "More names than tracks in the file ({{tracks}})",
+                "notInFile": "Additional names without a track in the file:"
+            },
             "unsaved": "{{count}} unsaved change(s)",
             "validation": {
                 "title": "Please fix these issues first"
@@ -2180,9 +2223,9 @@
                 },
                 "infoIcon": {
                     "download": {
-                        "description": "If available, the linked TAF file can be downloaded as a single .ogg file.",
-                        "text": "Enables downloading the TAF file as an .ogg audio file.",
-                        "title": "Download TAF as .ogg"
+                        "description": "If available, tracks can be downloaded as separate *.ogg files (or as one *.ogg file).",
+                        "text": "Opens track selection to download the TAF as *.ogg.",
+                        "title": "Download TAF as *.ogg"
                     },
                     "exists": {
                         "description": "The 'exists' status is set to 'yes' if the assigned source file is present.",
@@ -2252,6 +2295,17 @@
             "tracklist": "Tracklist:",
             "valid": "Valid:",
             "yes": "Yes"
+        },
+        "tafDownload": {
+            "asOneFile": "Download as one *.ogg file",
+            "downloadCount": "Download {{count}} tracks as *.ogg",
+            "downloadOne": "Download 1 track as *.ogg",
+            "duration": "Time",
+            "modalTitle": "Download tracks as *.ogg",
+            "selectAll": "Select all tracks",
+            "selectedCount": "{{selected}} of {{total}} selected",
+            "track": "Track",
+            "unnamedTrack": "Track {{number}}"
         },
         "informationModal": {
             "hideTag": "Hide Tonie/Tag",
