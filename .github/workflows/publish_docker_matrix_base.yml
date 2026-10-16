@@ -49,7 +49,10 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(inputs.platforms) }}
-    runs-on: ubuntu-latest
+    # aarch64 is built/tested natively so AddressSanitizer works (QEMU-user
+    # emulation cannot satisfy libasan's fixed 64-bit allocator mapping).
+    # All other platforms stay on the amd64 runner and cross-build via QEMU.
+    runs-on: ${{ matrix.platform == 'linux/arm64/v8' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -141,10 +144,27 @@ jobs:
           platform=$(echo "${{ matrix.platform }}" | tr '/' '_')
           echo "platform=$platform"
           echo "platform=$platform" >> $GITHUB_OUTPUT
+      - name: Lower ASLR entropy for AddressSanitizer (aarch64)
+        if: ${{ matrix.platform == 'linux/arm64/v8' }}
+        run: |
+          # Native arm64 runners use a recent kernel with vm.mmap_rnd_bits=32, which can
+          # collide with libasan's fixed 64-bit allocator base and abort at startup with
+          # "CHECK failed: sanitizer_allocator_primary64.h". 28 still gives strong ASLR.
+          # Load-bearing when the base image's libasan predates LLVM 17 (GCC <=13); a
+          # no-op for GCC 14+, which moved the allocator base to tolerate 32-bit ASLR.
+          # vm.* sysctls are not namespaced, so this host-level change reaches the
+          # container started below. CI-only; does not touch shipped images. Non-fatal.
+          sudo sysctl -w vm.mmap_rnd_bits=28 || echo "warning: could not set vm.mmap_rnd_bits"
       - name: Run docker image test
         id: docker-test
         run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          # QEMU binfmt is only needed to run foreign-arch containers on the amd64
+          # runner. The native arm64 runner runs arm64 containers directly, and the
+          # multiarch/qemu-user-static helper is not arm64-compatible there
+          # (it fails with "Exec format error"), so skip it for arm64.
+          if [ "${{ matrix.platform }}" != "linux/arm64/v8" ]; then
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          fi
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test teddycloud-test:local
           else

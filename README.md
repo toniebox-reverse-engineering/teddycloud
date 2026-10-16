@@ -22,11 +22,25 @@ Currently implemented are:
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (MQTT)
+* Optional web UI login (disabled by default; enable in the web interface)
 * [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
 
 ## Planned
 * teddyBench integration
 * Toniebox 2 support
+
+## Web UI login
+
+Login protection is **off by default**. When enabled, the web interface requires a username and password; Toniebox cloud APIs on the box port are unchanged.
+
+- Create users and turn login on in the web UI (Settings).
+- Users are stored as salted SHA-256 hashes in `web_users.json` under the config directory.
+- After five failed logins from the same IP, further attempts are blocked for 10 minutes.
+- Set `TEDDYCLOUD_WEB_AUTH_DISABLE=1` to bypass login (for recovery).
+- Removing `web_users.json` (no users left) turns login protection off again.
+- **Still not recommended for public exposure:** the login only protects the web UI. The direct APIs are still unprotected, so do not host TeddyCloud publicly unless you know how to secure a self-hosted service (for example behind a VPN or an authenticating reverse proxy). TeddyCloud does not treat LAN and reverse-proxy traffic differently (a proxy often looks like a local client).
+
+A Traefik example that separates the web UI (HTTP) from the Toniebox port (TLS passthrough) is in [`docker/docker-compose.traefik.example.yaml`](docker/docker-compose.traefik.example.yaml).
 
 ## Where to start?
 If you want to get started, please follow our [guide on our website](https://toniebox-reverse-engineering.github.io/docs/tools/teddycloud/).

@@ -158,6 +158,16 @@ cache_entry_t *cache_add(const char *url)
         return NULL;
     }
 
+    /* Return the existing entry if this URL is already cached. cache_entry_add()
+       drops a duplicate without linking it, so without this the freshly built
+       entry (and its three strdup'd strings) would be orphaned and leaked - which
+       happens a lot because tonies.json repeats the same picture URL. */
+    cache_entry_t *existing = cache_fetch_by_url(url);
+    if (existing != NULL)
+    {
+        return existing;
+    }
+
     uint8_t sha256_calc[SHA256_DIGEST_SIZE];
     char sha256_calc_str[2 * SHA256_DIGEST_SIZE + 1];
 
@@ -297,7 +307,7 @@ cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)
 
     while (pos != NULL)
     {
-        if (pos->hash == hash_from_url)
+        if (pos->cached_url && pos->hash == hash_from_url)
         {
             TRACE_INFO("Hash match found for hash: %08X. Checking full cached URL...\r\n", hash_from_url);
 
@@ -354,7 +364,7 @@ cache_entry_t *cache_fetch_by_path(const char *path)
 
     while (pos != NULL)
     {
-        if (pos->hash == hash_from_uri)
+        if (pos->cached_url && pos->hash == hash_from_uri)
         {
             TRACE_DEBUG("Hash match found for hash: %08X. Checking full URI...\r\n", hash_from_uri);
 

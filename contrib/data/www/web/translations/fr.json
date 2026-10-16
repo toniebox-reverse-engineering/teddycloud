@@ -10,6 +10,23 @@
         "errorNoOggOpusSupportByApple": "Votre navigateur ne prend pas en charge les fichiers OGG/Opus (taf) pour le moment. Si vous utilisez un appareil Apple, aidez-nous en soumettant un ticket à Apple pour demander une solution !",
         "unknownSource": "Inconnu"
     },
+    "auth": {
+        "loginFailed": "Nom d'utilisateur ou mot de passe invalide",
+        "loginHint": "Connectez-vous à TeddyCloud",
+        "loginRateLimited": "Trop de tentatives de connexion. Réessaie dans quelques minutes.",
+        "loginSubmit": "Se connecter",
+        "loginTitle": "Connexion web",
+        "logout": "Se déconnecter",
+        "newPassword": "Nouveau mot de passe",
+        "password": "Mot de passe",
+        "passwordMin": "Au moins 4 caractères",
+        "passwordRequired": "Le mot de passe est requis",
+        "username": "Nom d'utilisateur",
+        "usernameRequired": "Le nom d'utilisateur est requis",
+        "statusLoadFailed": "Impossible de charger l’état d’authentification",
+        "statusLoadFailedDetails": "L’état d’authentification n’a pas pu être chargé. Vérifiez la connexion à TeddyCloud et réessayez.",
+        "retry": "Réessayer"
+    },
     "common": {
         "cancel": "Annuler"
     },
@@ -255,7 +272,7 @@
         "translations": {
             "allTranslationStrings": "Toutes les chaînes de traduction",
             "extraKeys": "Clés supplémentaires",
-            "hint": "Si tu vois une mauvaise traduction, reviens vers nous sur Telegram. Le français et l'espagnol sont actuellement complètement traduits par ChatGPT.",
+            "hint": "Si vous remarquez une mauvaise traduction, veuillez nous contacter sur Telegram. Seuls l'anglais, l'allemand, le français et l'espagnol sont activement maintenus, le français et l'espagnol étant actuellement entièrement traduits par IA. Toutes les autres langues supplémentaires ne sont pas activement maintenues ; n'hésitez donc pas à contribuer aux traductions manquantes. Vous pouvez également ajouter d'autres langues en traduisant un fichier de langue existant, en l'enregistrant sous languagecode.json dans le dossier public/translations, puis en redémarrant le serveur.",
             "key": "Clé",
             "language": "Langue",
             "missing": "MANQUANT",
@@ -315,6 +332,15 @@
     ],
     "fileBrowser": {
         "actions": "Actions",
+        "assignToTonie": {
+            "action": "Assigner à une Tonie",
+            "failedDetails": "Impossible d'assigner à \"{{series}}\" : ",
+            "failedMessage": "Échec de l'assignation !",
+            "searchPlaceholder": "Rechercher des Tonies...",
+            "successDetails": "Fichier assigné à \"{{series}}\" avec succès !",
+            "successMessage": "Tonie assignée !",
+            "title": "Assigner à une Tonie"
+        },
         "attention": "Veuillez noter !",
         "cancel": "Annuler",
         "confirmDeleteDialog": "Êtes-vous sûr de vouloir supprimer {{fileToDelete}}?",
@@ -334,10 +360,10 @@
             "placeholder": "Entrez le nom du dossier"
         },
         "customJsonSnippetModal": {
-            "allFiles": "Affiche l’extrait de tous les fichiers TAF avec des données d’en-tête valides.",
+            "allFiles": "Affiche l'extrait de tous les fichiers TAF avec des données d'en-tête valides.",
             "noValidHeaders": "Aucun en-tête TAF valide trouvé.",
             "ok": "OK",
-            "selectedFiles": "Affiche uniquement l’extrait des fichiers TAF sélectionnés.",
+            "selectedFiles": "Affiche uniquement l'extrait des fichiers TAF sélectionnés.",
             "title": "Extrait tonies.custom.json"
         },
         "date": "Date",
@@ -345,6 +371,7 @@
         "deleteMultiple": "{{selectedRowCount}} lignes sélectionnées à supprimer",
         "downloadFile": "Télécharger le fichier",
         "downloadFileAsOgg": "Télécharger TAF en *.ogg",
+        "downloadTracks": "Télécharger les pistes TAF en *.ogg",
         "encodeFiles": {
             "addFiles": "Ajouter des fichiers",
             "cancel": "Annuler",
@@ -373,7 +400,7 @@
                     "title": "Dupliquer le fichier TAP"
                 },
                 "editTAFMetadata": {
-                    "text": "Ouvre l'éditeur de métadonnées pour modifier les détails du fichier TAF. Les modifications sont enregistrées dans tonies.custom.json. (WIP)",
+                    "text": "Ouvre l'éditeur de modèles personnalisés pour le fichier TAF. Un modèle personnalisé déjà lié (même ID audio et même hash) est modifié, sinon un nouveau modèle est créé pour le fichier. Les modifications sont enregistrées dans tonies.custom.json.",
                     "title": "Modifier les métadonnées TAF"
                 },
                 "editTAPPlaylist": {
@@ -399,6 +426,24 @@
                 "renameFile": {
                     "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
                     "title": "Renommer le fichier"
+                },
+                "downloadFile": {
+                    "title": "Télécharger le fichier",
+                    "text": "Télécharge le fichier sélectionné. Pour les fichiers TAF contenant plusieurs pistes, une sélection des pistes s'ouvre pour les télécharger en fichiers *.ogg séparés (ZIP) ou en un seul fichier *.ogg ; les fichiers TAF d'une seule piste sont téléchargés en un seul fichier *.ogg."
+                },
+                "markAsListened": {
+                    "unlistened": {
+                        "title": "Marquer comme écouté",
+                        "text": "Le fichier est actuellement marqué comme non écouté. Cliquez pour le marquer comme écouté."
+                    },
+                    "listened": {
+                        "title": "Marquer comme non écouté",
+                        "text": "Le fichier est actuellement marqué comme écouté. Cliquez pour le marquer comme non écouté."
+                    }
+                },
+                "assignToTonie": {
+                    "title": "Assigner à un Tonie",
+                    "text": "Assigne le fichier sélectionné comme contenu à un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -446,6 +491,7 @@
         },
         "hidden": "Caché",
         "image": "Image",
+        "markAsListened": "Marquer comme écouté",
         "maxSelectedRows": "Vous ne pouvez sélectionner que jusqu'à {{maxSelectedRows}} fichiers",
         "maxSelectedRowsWarning": "Trop de fichiers sélectionnés !",
         "messages": {
@@ -455,6 +501,8 @@
             "deleteSuccessfulDetails": "Fichier \"{{file}}\" supprimé avec succès!",
             "deleting": "Suppression...",
             "deletingDetails": "Suppression du fichier \"{{file}}\"...",
+            "downloadFailed": "Échec du téléchargement",
+            "downloadFailedDetails": "Échec du téléchargement du fichier \"{{file}}\"",
             "errorFetchingDirContent": "Échec du chargement du contenu du répertoire",
             "errorFetchingDirContentDetails": "Échec du chargement du contenu du répertoire \"{{path}}\" : ",
             "migrationFailed": "Échec de la migration",
@@ -477,7 +525,9 @@
             "renamingFailed": "Échec du renommage",
             "renamingFailedDetails": "Échec du renommage du fichier \"{{fileSource}}\" en \"{{fileTarget}}\" : ",
             "renamingSuccessful": "Fichier renommé avec succès!",
-            "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!"
+            "renamingSuccessfulDetails": "Fichier \"{{fileSource}}\" renommé en \"{{fileTarget}}\" avec succès!",
+            "toggleListenedFailed": "Impossible de modifier le statut écouté",
+            "toggleListenedFailedDetails": "Impossible de modifier le statut écouté du fichier \"{{file}}\" : "
         },
         "migrateContentToLib": "Migrer TAF vers la bibliothèque (par/audioId/)",
         "migrateContentToLibRoot": "Migrer TAF vers la bibliothèque (racine)",
@@ -507,7 +557,7 @@
         "series": "Série",
         "size": "Taille",
         "tafMeta": {
-            "edit": "(WIP - non implémenté) Éditer les métadonnées"
+            "edit": "Éditer les métadonnées (modèle personnalisé)"
         },
         "tap": {
             "edit": "Modifier la playlist audio Tonie",
@@ -519,6 +569,7 @@
             }
         },
         "title": "Navigateur de fichiers",
+        "unmarkAsListened": "Marquer comme non écouté",
         "unusedTafsModal": {
             "actions": "Actions",
             "fullPath": "Chemin complet",
@@ -642,6 +693,14 @@
                         "01pluginFeature": "Étendez les fonctionnalités de TeddyCloud avec des plugins personnalisés"
                     },
                     "title": "Plugins TeddyCloud"
+                },
+                "15webLogin": {
+                    "items": {
+                        "01optionalLogin": "connexion optionnelle à l'interface web avec plusieurs utilisateurs (désactivée par défaut)",
+                        "02rateLimit": "session par cookie avec blocage après plusieurs échecs de connexion",
+                        "03userLimit": "jusqu'à 32 utilisateurs"
+                    },
+                    "title": "Connexion à l'interface web"
                 }
             },
             "futureFeatures": {
@@ -699,11 +758,7 @@
         "invalidCharactersDetected": "Ta saisie contient des caractères invalides, tels que {{invalidChar}}"
     },
     "language": {
-        "change": "Changer de langue",
-        "english": "EN",
-        "french": "FR",
-        "german": "DE",
-        "spanish": "ES"
+        "change": "Changer de langue"
     },
     "languageUtil": {
         "af-af": "Afrikaans (Afrique du Sud)",
@@ -1022,7 +1077,6 @@
         "hint": "Ce sont les paramètres par défaut. Certains paramètres peuvent être remplacés par chacun de vos Tonieboxes. Pour modifier ces paramètres, allez à ",
         "information": "Informations",
         "keepScrolling": "Continuez à faire défiler pour voir plus d'options.",
-        "legacyGui": "Ancienne GUI Admin",
         "levelLabel": "Niveau des paramètres",
         "navigationTitle": "Paramètres",
         "notifications": {
@@ -1075,7 +1129,29 @@
         "toniesJsonUpdateSuccessful": "Tonies(.custom).json rechargé avec succès!",
         "tryToRestartTC": "Tentative de redémarrer TeddyCloud",
         "warning": "Attention ! Niveau des paramètres",
-        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'."
+        "warningHint": "Si des paramètres vous manquent, augmentez le 'Niveau des paramètres'.",
+        "webAuth": {
+            "addUser": "Ajouter un utilisateur",
+            "changePassword": "Changer le mot de passe",
+            "changePasswordFor": "Changer le mot de passe de {{username}}",
+            "createFirstUser": "Créez un utilisateur avant d'activer la connexion.",
+            "deleteContent": "Supprimer l'utilisateur {{username}} ?",
+            "deleteLastContent": "Supprimer le dernier utilisateur {{username}} ? La protection par connexion sera désactivée.",
+            "deleteLastHint": "Vous pourrez réactiver la protection après avoir créé un utilisateur.",
+            "deleteLastTitle": "Supprimer le dernier utilisateur",
+            "deleteTitle": "Supprimer l'utilisateur",
+            "deleteUser": "Supprimer",
+            "enabled": "Exiger une connexion pour l'interface web",
+            "envOverride": "La protection par connexion est actuellement désactivée par TEDDYCLOUD_WEB_AUTH_DISABLE.",
+            "intro": "Tous les utilisateurs ont un accès complet à l'interface web. Les API des boîtes ne sont pas concernées.",
+            "loadFailed": "Impossible de charger les utilisateurs",
+            "navigationTitle": "Connexion web",
+            "passwordChanged": "Mot de passe mis à jour",
+            "passwordChangedDetails": "Le mot de passe de {{username}} a été mis à jour.",
+            "saveFailed": "Impossible d'enregistrer les modifications",
+            "title": "Connexion web",
+            "users": "Utilisateurs"
+        }
     },
     "teddycloud": {
         "newVersionAvailable": "Une nouvelle version est disponible !",
@@ -1273,6 +1349,7 @@
             "setupTeddyCloudText": "Félicitations ! En atteignant cette page, vous avez réussi à configurer TeddyCloud !",
             "title": "Ajoutez votre Toniebox à TeddyCloud",
             "UARTHint": {
+                "ackUARTHint": "J'ai réglé la tension correcte (3,3 V) et installé le dernier pilote requis.",
                 "description": "Avant de continuer, vérifie bien les points suivants :",
                 "imageAlt1": "Exemple de cavalier 1",
                 "imageAlt2": "Exemple de cavalier 2",
@@ -1349,7 +1426,8 @@
                     "waitForPressDesc": "Attends une pression sur l'oreille au démarrage avec une séquence de clignotement (bleu, vert, cyan, noir)",
                     "waitTimeoutInSDesc": "Délai en secondes pour waitForPress si aucune pression sur l'oreille (hibernation)",
                     "watchdogDesc": "Garder le watchdog activé lors du démarrage du firmware (si le démarrage échoue, la box redémarrera)"
-                }
+                },
+                "altPortHint": "Si tu as créé un patch de port, place-le aussi dans /revvox/boot/patch/ et ajoute \"altPort.custom\" à la liste des patches."
             },
             "applyingPatchesWithNgCfgJson": "Appliquer les patches en utilisant ngCfg.json",
             "applyingPatchesWithNgCfgJsonLink": "Trouve les instructions ici",
@@ -1373,6 +1451,12 @@
             "connectToTonieboxText": "La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu'ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
             "connectToTonieboxTextUart": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB.",
             "createPatch": "Créer altUrl.custom.305.patch",
+            "customPortPatch": "Optionnel : créer un patch de port (altPort.custom.json)",
+            "customPortPatchHint": "Nécessaire uniquement si la Toniebox doit joindre TeddyCloud sur un autre port que 443, par exemple via un proxy qui route selon le port. Le patch fonctionne avec les versions de firmware 3.1.0 BF2, 3.3.0 et 3.4.0. hackiebox-ng fournit déjà altPort.json pour le port 10443 ; crée ton propre patch uniquement pour un autre port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
+            "hintPatchPort": "Saisis le port auquel la Toniebox doit se connecter, puis clique sur 'Créer altPort.custom.patch'. Le patch sera ensuite téléchargé automatiquement.",
+            "port": "Port TeddyCloud :",
+            "portInvalid": "Le port doit être compris entre 1 et 65535.",
+            "createPortPatch": "Créer altPort.custom.patch",
             "customUrlPatch": "Créer un patch URL personnalisé (altUrl.custom.305.json)",
             "customUrlPatchHint": "Veuillez créer ce patch uniquement si les patches prédéfinis altUrl.tc.fritz.box.json et altUrl.305.json ne fonctionnent pas avec votre configuration actuelle de TeddyCloud. S'ils répondent à vos besoins, vous pouvez continuer en cliquant sur 'Suivant'.",
             "dedicatedUart": "UART dédié",
@@ -1474,6 +1558,7 @@
             "certificatesDumpedCAreplacementFlashed": "Certificats extraits et remplacement de CA flashé",
             "CH341AProgrammer": {
                 "CH341AProgrammer": "Configurer la connexion du programmeur CH341A",
+                "CH341AProgrammerClampConnection": "Programmateur CH341A avec pince SOP8 connecté à la mémoire flash IS25LP032D",
                 "CH341Sop8remove": "Raccourcis ici jusqu'à ce qu'elle s'ajuste correctement.",
                 "flashMemoryDumpText1": "Connecte la pince à la mémoire flash IS25LP032D. Assure-toi que le câble rouge de la pince est aligné avec le point sur la puce marquant la broche 1.",
                 "flashMemoryDumpText2": "Si la pince ne tient pas, elle peut entrer en collision avec un bloc noir à proximité. Raccourcis plus de plastique si nécessaire. Ne connecte pas encore le CH341A. Vérifie à nouveau les positions des câbles.",
@@ -1535,6 +1620,7 @@
             "locateFlashMemoryText": "Identifie la puce de mémoire flash IS25LP032D sur la carte ; elle est située à droite du dock de chargement.",
             "navigationTitle": "CC3235",
             "next": "Suivant",
+            "portHint": "Les box CC3235 se connectent toujours au port 443 : il n'existe pas de patch de port pour elles, TeddyCloud doit donc être accessible sur le port 443 (un proxy ne peut les router que par IP).",
             "pico": {
                 "preparation": "Uniquement nécessaire si tu prévois de flasher avec un Raspberry Pi Pico",
                 "readingFlash": "Lire la mémoire flash avec Raspberry Pi Pico",
@@ -1551,8 +1637,8 @@
         "confirmDeleteModal": "Confirmer la suppression",
         "connectESP32Modal": {
             "beware": "Attention !",
-            "connectESP32Text1.1": "Veuillez connecter le jumper J100 (Boot) et réinitialiser la boîte pour la mettre en mode UART requis.",
-            "connectESP32Text1.2": "Connectez votre UART de 3,3V à J103:",
+            "connectESP32Text1_1": "Veuillez connecter le jumper J100 (Boot) et réinitialiser la boîte pour la mettre en mode UART requis.",
+            "connectESP32Text1_2": "Connectez votre UART de 3,3V à J103:",
             "connectESP32Text2": "Si vous n'êtes pas sûr du mode dans lequel démarre l'ESP32, vérifiez ce qui suit.",
             "downloadMode": "Mode de téléchargement",
             "downloadModeText": "LED éteinte, pas de son, Sortie série :",
@@ -1596,7 +1682,7 @@
             "attention": "Attention",
             "baudRate": "Taux de baud : ",
             "baudRateInfo": "Si tu rencontres des problèmes pour lire ou écrire dans la mémoire flash, essaie de changer le taux de baud. La valeur par défaut est 921600.",
-            "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge.",
+            "browserNotSupported": "La fonctionnalité de flashage intégré de la boîte ESP32 ne peut être utilisée qu'avec des navigateurs prenant en charge l'API Web Serial. Malheureusement, votre navigateur actuel ne prend pas en charge cette fonctionnalité. Veuillez utiliser un navigateur qui prend en charge l'API Web Serial, comme Chrome ou Edge ou Firefox (> v151).",
             "esp32flasher": {
                 "ackBackUpWithOtherTool": "He creado una copia de seguridad con otra herramienta o soy consciente de que continúo sin una copia de seguridad adicional bajo mi propia responsabilidad.",
                 "ackLatestFirmware": "Confirmo que la caja se conectó a la nube original, recibió el firmware más reciente y pudo reproducir un Tonie correctamente.",
@@ -1666,6 +1752,9 @@
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
                 "hostnameTooLong": "Si vous souhaitez connecter ultérieurement une Toniebox CC3200, le nom d'hôte ne doit pas dépasser 12 caractères (limitation du firmware).",
+                "hintPatchPort": "Port auquel la Toniebox se connecte. Garde 443, sauf si la Toniebox doit joindre TeddyCloud sur un autre port, par exemple via un proxy qui route selon le port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
+                "port": "Port TeddyCloud :",
+                "portInvalid": "Le port doit être compris entre 1 et 32767.",
                 "importanceBackup": "Avant de faire des modifications sur ta Toniebox, télécharge une copie du firmware original et stocke-la de manière sécurisée. Cela te permettra de restaurer ta Toniebox à son état d'usine en cas de problème. Sauvegarde-la à plusieurs endroits, comme sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne conserve jamais ta seule copie uniquement sur le serveur TeddyCloud.",
                 "infoTable": "Infos ESP32",
                 "invalidFlashData": "La lecture / le chargement du flash ne contient que des 0x00 ou 0xFF. Vérifie la connexion ou le fichier chargé et réessaie !",
@@ -1712,7 +1801,7 @@
                 "writingFinished": "Écriture terminée",
                 "writingFlash": "Écriture de {{size}} MiB de mémoire flash..."
             },
-            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge. Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l'avertissement.",
+            "hint": "Cette section est uniquement disponible si vous utilisez HTTPS et un navigateur compatible avec l'API Web Serial, comme Chrome ou Edge ou Firefox (> v151). Si vous souhaitez flasher votre ESP32 Toniebox, cliquez sur \"Continuer vers HTTPS\", vous serez alors automatiquement redirigé vers la version HTTPS. Il est possible que votre navigateur indique que la connexion n'est pas sécurisée. C'est normal, confirmez-le et ouvrez la page quand même. Vous devrez peut-être afficher plus de détails dans l'avertissement.",
             "hintLegacyApproach": "Si vous préférez ne pas utiliser un navigateur prenant en charge WebSerial, vous pouvez toujours utiliser l'approche héritée via votre ligne de commande.",
             "httpsSettings": "Paramètres HTTPS",
             "legacy": {
@@ -1725,6 +1814,7 @@
                 "flashCAreplacementText1": "Remplacez le CA d'origine dans votre dump flash avec esptool.",
                 "flashCAreplacementText2": "Remontez votre Toniebox. Si vous avez déjà défini le nom d'hôte de TeddyCloud, vous pouvez ignorer l'étape DNS pour l'ESP32, sinon continuez avec l'étape DNS pour l'ESP32.",
                 "flashCAreplacementText3": "Votre Toniebox devrait maintenant pouvoir se connecter à votre TeddyCloud. Effectuez un contrôle de fraîcheur et cliquez sur \"Vérifier les boîtes disponibles\".",
+                "flashESPtoolScreen": "Écran ESPtool",
                 "followLegacyApproach": "Ou utilisez la méthode ancienne (pas de GUI, uniquement en ligne de commande).",
                 "hint": "Il existe un support direct pour flasher votre Toniebox ESP32 avec TeddyCloud !",
                 "installESPTool": "Installer l'outil ESP récent",
@@ -1740,6 +1830,7 @@
             "linkWikiGeneral": "Patch de votre Toniebox pour l'utiliser avec TeddyCloud",
             "linkWikiSpecific": "Configuration spécifique ESP32",
             "navigationTitle": "ESP32",
+            "processing": "Traitement en cours...",
             "redirect": "Continuer vers HTTPS",
             "title": "ESP32 Flashage de la boîte"
         },
@@ -1793,7 +1884,20 @@
             "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox{{name}}"
         },
         "warningUseAtYourOwnRisk": "Avertissement : utilisation à tes propres risques",
-        "warningUseAtYourOwnRiskText": "Flasher ta Toniebox avec un firmware modifié annulera la garantie et peut rendre la box inutilisable. Suis attentivement les instructions et assure-toi de bien comprendre les risques encourus."
+        "warningUseAtYourOwnRiskText": "Flasher ta Toniebox avec un firmware modifié annulera la garantie et peut rendre la box inutilisable. Suis attentivement les instructions et assure-toi de bien comprendre les risques encourus.",
+        "boxCertificate": {
+            "title": "Vérification du certificat",
+            "status": "Statut",
+            "presented": "Certificat présenté (SHA-256)",
+            "pin": "Certificat épinglé (SHA-256)",
+            "nextConnection": "Le statut est mis à jour à la prochaine connexion de la Toniebox.",
+            "statusText": {
+                "none": "Pas encore vérifié",
+                "trusted": "Certificat émis par TeddyCloud",
+                "pinned": "Certificat épinglé",
+                "mismatch": "Autre certificat que celui épinglé !"
+            }
+        }
     },
     "tonies": {
         "addNewCustomTonie": "Créer un nouveau modèle",
@@ -1828,6 +1932,22 @@
         },
         "alternativeSource": "Cette Tonie {{originalTonie}} est assignée à un contenu {{assignedContent}} !",
         "alternativeSourceUnknown": "Cette Tonie {{originalTonie}} est assignée à un contenu alternatif  !",
+        "assignNextEpisode": {
+            "action": "Assigner l'épisode suivante \"{{file}}\"",
+            "failedDetails": "Impossible assigner \"{{episode}}\" : ",
+            "failedMessage": "Échec de assignation de l'épisode suivant !",
+            "noneLeft": "Aucun épisode non écouté restant dans ce dossier.",
+            "successDetails": "\"{{episode}}\" a été assigné comme épisode suivant !",
+            "successMessage": "Épisode suivant assigné !"
+        },
+        "assignPrevEpisode": {
+            "action": "Assigner l'épisode précédent \"{{file}}\"",
+            "failedDetails": "Impossible assigner \"{{episode}}\" : ",
+            "failedMessage": "Échec de l'attribution de l'épisode précédent !",
+            "noneLeft": "Aucun épisode précédent restant dans ce dossier.",
+            "successDetails": "\"{{episode}}\" a été assigné comme épisode précédent !",
+            "successMessage": "Épisode précédent assigné !"
+        },
         "cancel": "Annuler",
         "closeAudioPlayer": "Fermer le lecteur audio",
         "closeAudioPlayerPopover": "Fermer arrête la lecture!",
@@ -1866,9 +1986,17 @@
             },
             "audio": {
                 "libraryLabel": "Audio personnalisé ({{library}})",
+                "locateInLibrary": "Rechercher dans la bibliothèque",
+                "notFoundInLibrary": "Introuvable dans la bibliothèque",
                 "notInIndex": "Pas dans l'index audio personnalisé : {{audioId}}/{{hash}}",
                 "placeholder": "Sélectionner l'audio personnalisé dans {{library}}",
                 "selectFromLibrary": "Sélectionner l'audio dans {{library}}"
+            },
+            "audioSource": {
+                "linkedDescription": "Les modifications s'appliquent à tous les fichiers et tags qui utilisent ce modèle.",
+                "linkedTitle": "{{file}} est lié à ce modèle personnalisé",
+                "newDescription": "L'enregistrement crée un nouveau modèle personnalisé et le lie au fichier via l'ID audio et le hash.",
+                "newTitle": "Pas encore de modèle personnalisé pour {{file}}"
             },
             "batch": {
                 "description": "Les modifications s'appliquent à tous les modèles sélectionnés.",
@@ -1911,6 +2039,11 @@
             "noChangesBody": "Il n'y a rien à enregistrer pour le moment.",
             "noChangesTitle": "Aucune modification détectée",
             "optionalColumns": "Colonnes optionnelles",
+            "overridesOriginal": {
+                "description": "Les modifications enregistrées remplacent les informations d'origine partout où cet audio ou ce modèle est utilisé. Supprimez le modèle personnalisé pour réafficher l'original.",
+                "tag": "Remplace l'original {{model}}",
+                "title": "Remplace le Tonie d'origine {{model}} ({{name}})"
+            },
             "pagination": {
                 "modelsPerPage": "modèles/page"
             },
@@ -1949,6 +2082,13 @@
             },
             "tableMenu": "Menu du tableau",
             "title": "Éditeur de modèles",
+            "tracks": {
+                "fewerNamesDescription": "Le fichier contient {{tracks}} pistes. Les noms conservent leur position, mais la fenêtre d'information ne propose le saut vers une piste que si toutes les pistes jusqu'à la dernière sont listées.",
+                "fewerNamesTitle": "Les dernières pistes du fichier n'ont pas de nom",
+                "moreNamesDescription": "Les noms supplémentaires sont enregistrés et listés, mais n'ont pas de position dans le fichier. La fenêtre d'information ne peut alors pas sauter vers une piste précise.",
+                "moreNamesTitle": "Plus de noms que de pistes dans le fichier ({{tracks}})",
+                "notInFile": "Noms supplémentaires sans piste dans le fichier :"
+            },
             "unsaved": "{{count}} modification(s) non enregistrée(s)",
             "validation": {
                 "title": "Veuillez d'abord corriger ces problèmes"
@@ -1979,6 +2119,8 @@
             "modelInfoHeading": "Infos du modèle",
             "modelInfoLanguage": "Langue",
             "modelInfoModel": "Modèle",
+            "modelInfoNo": "Non",
+            "modelInfoRelease": "Sortie",
             "modelInfoSeries": "Série",
             "modelInfoTitle": "Titre",
             "modelReadOnlyHint": "Tonie original : le modèle ne peut pas être modifié. Vous pouvez uniquement assigner un audio personnalisé.",
@@ -1986,6 +2128,7 @@
             "placeholderSearchForARadioStream": "Rechercher un flux radio",
             "save": "Enregistrer",
             "setAudioFromModel": "Définir l'audio du modèle",
+            "setAudioFromModelNoMapping": "Aucun audio n'est associé au modèle sélectionné.",
             "setAudioFromModelUnavailableInLibrary": "L'audio du modèle n'est pas encore disponible dans la bibliothèque.",
             "setModelFromAudio": "Définir le modèle depuis l'audio",
             "source": "Source",
@@ -1999,6 +2142,7 @@
             "encoding": "Encodage",
             "errorFileProcessing": "Échec du traitement du fichier audio : ",
             "filename": "Nom du fichier",
+            "loading": "Chargement...",
             "loadingWasmEncoder": "Chargement de l'encodeur WASM...",
             "maxFiles": "Vous ne pouvez ajouter que jusqu'à {{maxFiles}} fichiers.",
             "navigationTitle": "Encodeur audio",
@@ -2040,9 +2184,14 @@
                 },
                 "editIcon": {
                     "createNewModel": {
-                        "description": "Ouvre une fenêtre pour saisir les détails du nouveau modèle. Cette fonction est encore en développement.",
+                        "description": "Ouvre l'éditeur de modèles personnalisés pour saisir les détails d'un nouveau modèle pour votre Tonie/Tag.",
                         "text": "Crée un modèle personnalisé pour ton Tonie/Tag.",
-                        "title": "Créer un nouveau modèle (en cours)"
+                        "title": "Créer un nouveau modèle"
+                    },
+                    "editModel": {
+                        "description": "Modifie le modèle personnalisé sélectionné dans l'éditeur de modèles personnalisés. Les entrées audio affichent immédiatement leur ID audio et leur hash ; l'icône de localisation d'une entrée permet de retrouver son fichier dans votre bibliothèque.",
+                        "text": "Modifie le modèle personnalisé attribué au Tonie/Tag.",
+                        "title": "Modifier le modèle personnalisé"
                     },
                     "model": {
                         "description": "Recherche et assigne un modèle. L'image sera affichée dans l'aperçu.",
@@ -2054,6 +2203,16 @@
                         "text": "Recherche des stations radio en ligne (si l'API de radio-browser.info est disponible).",
                         "title": "Recherche de radio"
                     },
+                    "setAudioFromModel": {
+                        "description": "Apparaît lorsqu'un modèle est sélectionné et ne correspond pas à l'audio actuel. La bibliothèque n'est parcourue qu'au clic sur le bouton, ce qui peut prendre un moment. Si aucun fichier correspondant n'est trouvé, une indication s'affiche sous le champ source.",
+                        "text": "Attribue le fichier audio correspondant au modèle sélectionné.",
+                        "title": "Définir l'audio depuis le modèle"
+                    },
+                    "setModelFromAudio": {
+                        "description": "Apparaît lorsque l'audio attribué appartient à un modèle connu. Aucune recherche dans la bibliothèque n'est nécessaire, le modèle est repris des informations de l'audio.",
+                        "text": "Attribue le modèle correspondant à l'audio actuel.",
+                        "title": "Définir le modèle depuis l'audio"
+                    },
                     "source": {
                         "description": "Tu peux assigner du contenu depuis ta bibliothèque (ex. fichiers TAF ou TAP) ou saisir une URL de stream.",
                         "text": "Affiche la source de contenu actuellement assignée.",
@@ -2064,9 +2223,9 @@
                 },
                 "infoIcon": {
                     "download": {
-                        "description": "Si disponible, tu peux télécharger le fichier TAF lié sous forme d'un fichier .ogg unique.",
-                        "text": "Permet de télécharger le fichier TAF au format audio .ogg.",
-                        "title": "Télécharger le TAF en .ogg"
+                        "description": "Si disponible, les pistes peuvent être téléchargées en fichiers *.ogg séparés (ou en un seul fichier *.ogg).",
+                        "text": "Ouvre la sélection des pistes pour télécharger le TAF en *.ogg.",
+                        "title": "Télécharger le TAF en *.ogg"
                     },
                     "exists": {
                         "description": "Le statut 'existe' est défini sur 'oui' si le fichier source assigné est présent.",
@@ -2136,6 +2295,17 @@
             "tracklist": "Liste des pistes:",
             "valid": "Valide:",
             "yes": "Oui"
+        },
+        "tafDownload": {
+            "asOneFile": "Télécharger en un seul fichier *.ogg",
+            "downloadCount": "Télécharger {{count}} pistes en *.ogg",
+            "downloadOne": "Télécharger 1 piste en *.ogg",
+            "duration": "Durée",
+            "modalTitle": "Télécharger les pistes en *.ogg",
+            "selectAll": "Sélectionner toutes les pistes",
+            "selectedCount": "{{selected}} sur {{total}} sélectionnées",
+            "track": "Piste",
+            "unnamedTrack": "Piste {{number}}"
         },
         "informationModal": {
             "hideTag": "Masquer le Tonie/Tag",
@@ -2219,6 +2389,7 @@
             "exportToJson": "Exporter en JSON",
             "hideSelectedTags": "Masquer les tags",
             "select": "Sélectionner",
+            "selectAll": "Tout sélectionner",
             "selectButtonTooltip": "Activer le mode de sélection",
             "selected": "Tags/Tonies sélectionnés",
             "setLive": "Activer live",
@@ -2313,7 +2484,10 @@
             "episodes": "Épisodes",
             "fontFamily": "Police de l'étiquette",
             "fontFamilyPlaceholder": "Choisir une police",
+            "height": "Hauteur",
+            "imageBottom": "Marge de l'image en bas",
             "imageBottomLeft": "Marge de l'image en bas / à gauche",
+            "imageLeft": "Marge de l'image à gauche",
             "imagePosition": "Position de l'image",
             "imageScale": "Échelle de l'image",
             "intro": "Recherche tous les Tonies et Tags, officiels et tes propres, pour créer ta feuille imprimable de Traveltonies (pièce).",
@@ -2339,6 +2513,7 @@
             "paperSize": "Format du papier",
             "placeholder": "Saisis un terme de recherche !",
             "preview": "Aperçu étiquette",
+            "printMarginNotification": "Les marges d'impression CSS ne sont prises en charge de manière fiable que dans Chrome. Utilise Chrome pour garantir une impression correcte des étiquettes.",
             "printMode": "Mode",
             "printModeImageAndText": "Image + Texte",
             "printModeImageAndTextTooltip": "Imprime les deux côtés de ta pièce Traveltonie : image d'un côté, titre et infos de l'épisode de l'autre",
@@ -2368,7 +2543,8 @@
             "square": "Carrée",
             "textFontSize": "Taille du texte",
             "title": "TeddyStudio",
-            "trackTitles": "Titres (un par ligne)"
+            "trackTitles": "Titres (un par ligne)",
+            "width": "Largeur"
         },
         "title": "Tonies",
         "tonies": {

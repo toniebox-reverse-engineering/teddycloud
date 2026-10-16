@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
 EXPOSE 80 443 8443
 
 # Install necessary runtime dependencies
-RUN apk --no-cache add strace ffmpeg curl ca-certificates bash su-exec shadow libcap
+RUN apk --no-cache add strace ffmpeg zip curl ca-certificates bash su-exec shadow libcap
 
 # Update CA certificates
 RUN update-ca-certificates

@@ -25,6 +25,7 @@
 #include "cert.h"
 #include "esp32.h"
 #include "cache.h"
+#include "libraryMeta.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -65,6 +66,32 @@ void sanitizePath(char *path, bool isDir)
     bool slash = false;
 
     pathCanonicalize(path);
+
+    /* Strip any leading "../" (and a bare "..") that survived canonicalization,
+       so a user-supplied relative path cannot climb above the base directory it
+       is later joined to. Without this the "merge to prevent directory traversal"
+       contract does not actually hold: "../../etc" stays "../../etc" and escapes
+       once prepended to the root. */
+    {
+        size_t strip = 0;
+        while (osStrncmp(path + strip, "../", 3) == 0)
+        {
+            strip += 3;
+        }
+        if (osStrcmp(path + strip, "..") == 0)
+        {
+            strip += 2;
+        }
+        if (strip > 0)
+        {
+            size_t w = 0;
+            for (size_t r = strip; path[r] != '\0'; r++)
+            {
+                path[w++] = path[r];
+            }
+            path[w] = '\0';
+        }
+    }
 
     /* Merge all double (or more) slashes // */
     for (i = 0, j = 0; path[i]; ++i)
@@ -302,6 +329,13 @@ error_t handleApiGetIndex(HttpConnection *connection, const char_t *uri, const c
         }
 
         if (opt->internal && !showInternal)
+        {
+            continue;
+        }
+
+        /* Never expose secret options (e.g. private keys) through the index,
+           regardless of the level/nolevel filter below. */
+        if (opt->level == LEVEL_SECRET)
         {
             continue;
         }
@@ -671,6 +705,27 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         char *filePathAbsolute = custom_asprintf("%s%c%s", pathAbsolute, PATH_SEPARATOR, entry.name);
         pathSafeCanonicalize(filePathAbsolute);
 
+        /* skip content.json sidecar files (<file>.json next to <file>), they are not browsable content.
+         * Only hide them when the sibling still exists - an orphaned .json (sibling deleted, e.g. by
+         * cache eviction that didn't clean up after itself) is intentionally left visible, so it can be
+         * spotted and cleaned up manually. */
+        if (!isDir)
+        {
+            size_t nameLen = osStrlen(entry.name);
+            if (nameLen > 5 && !osStrcasecmp(&entry.name[nameLen - 5], ".json"))
+            {
+                char *siblingPath = strdup(filePathAbsolute);
+                siblingPath[osStrlen(siblingPath) - 5] = '\0';
+                bool_t isSidecar = fsFileExists(siblingPath);
+                osFreeMem(siblingPath);
+                if (isSidecar)
+                {
+                    osFreeMem(filePathAbsolute);
+                    continue;
+                }
+            }
+        }
+
         cJSON *jsonEntry = cJSON_CreateObject();
         cJSON_AddStringToObject(jsonEntry, "name", entry.name);
         cJSON_AddNumberToObject(jsonEntry, "date", convertDateToUnixTime(&entry.modified));
@@ -707,6 +762,12 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
+            if (tafInfo->additional.track_positions.length > 0)
+            {
+                cJSON_AddNumberToObject(tafHeaderEntry, "lengthSeconds", tafInfo->additional.track_positions.length);
+            }
+
+            cJSON_AddBoolToObject(jsonEntry, "listened", library_meta_get_listened(filePathAbsolute));
 
             item = tonies_byAudioIdHashModel(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data, tafInfo->json.tonie_model);
         }
@@ -718,6 +779,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 char *filePathAbsoluteSub = NULL;
                 FsDir *subdir = fsOpenDir(filePathAbsolute);
                 FsDirEntry subentry;
+                bool_t subHide = false;
                 if (subdir != NULL)
                 {
                     while (true)
@@ -739,9 +801,10 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                         load_content_json(filePathAbsoluteSub, &contentJson, false, client_ctx->settings);
                         item = tonies_byModel(contentJson.tonie_model);
                         osFreeMem(filePathAbsoluteSub);
-                        cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
+                        subHide = contentJson.hide;
                         free_content_json(&contentJson);
                     }
+                    cJSON_AddBoolToObject(jsonEntry, "hide", subHide);
                 }
             }
             else
@@ -756,6 +819,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
                 item = tonies_byModel(contentJson.tonie_model);
 
                 cJSON_AddBoolToObject(jsonEntry, "hide", contentJson.hide);
+                cJSON_AddBoolToObject(jsonEntry, "listened", library_meta_get_listened(filePathAbsolute));
                 if (contentJson._has_cloud_auth)
                 {
                     cJSON_AddBoolToObject(jsonEntry, "has_cloud_auth", true);
@@ -782,6 +846,65 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
     connection->response.contentLength = osStrlen(jsonString);
 
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
+}
+error_t handleApiFileSetListened(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
+{
+    char overlay[16];
+    const char *rootPath = NULL;
+
+    if (queryPrepare(queryString, &rootPath, overlay, sizeof(overlay), &client_ctx->settings) != NO_ERROR)
+    {
+        return ERROR_FAILURE;
+    }
+
+    char path[128];
+
+    if (!queryGet(queryString, "path", path, sizeof(path)))
+    {
+        TRACE_ERROR("path missing!\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+
+    /* first canonicalize path, then merge to prevent directory traversal bugs */
+    pathSafeCanonicalize(path);
+    char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
+    pathSafeCanonicalize(pathAbsolute);
+
+    if (!fsFileExists(pathAbsolute))
+    {
+        TRACE_ERROR("File not found: '%s'\r\n", pathAbsolute);
+        osFreeMem(pathAbsolute);
+        return ERROR_NOT_FOUND;
+    }
+
+    char_t post_data[POST_BUFFER_SIZE];
+    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
+    if (error != NO_ERROR)
+    {
+        osFreeMem(pathAbsolute);
+        return error;
+    }
+
+    char item_data[16];
+    bool_t target_value = false;
+    if (queryGet(post_data, "listened", item_data, sizeof(item_data)))
+    {
+        target_value = !osStrcmp(item_data, "true");
+    }
+
+    if (library_meta_get_listened(pathAbsolute) != target_value)
+    {
+        error = library_meta_set_listened(pathAbsolute, target_value);
+    }
+
+    osFreeMem(pathAbsolute);
+
+    if (error != NO_ERROR)
+    {
+        return error;
+    }
+
+    return httpOkResponse(connection);
 }
 error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
@@ -1047,6 +1170,18 @@ error_t file_save_end(void *in_ctx)
     return NO_ERROR;
 }
 
+/* uploaded box certificates include private.der, keep them readable by teddyCloud only */
+static error_t file_save_start_cert(void *in_ctx, const char *name, const char *filename)
+{
+    error_t error = file_save_start(in_ctx, name, filename);
+    const char *path = ((file_save_ctx *)in_ctx)->filename;
+    if (error == NO_ERROR && !osChmodOwnerOnly(path))
+    {
+        TRACE_WARNING("Could not restrict permissions of '%s'\r\n", path);
+    }
+    return error;
+}
+
 error_t file_save_end_cert(void *in_ctx)
 {
     file_save_ctx *ctx = (file_save_ctx *)in_ctx;
@@ -1058,26 +1193,39 @@ error_t file_save_end_cert(void *in_ctx)
     fsCloseFile(ctx->file);
     ctx->file = NULL;
 
-    /* file was uploaded, this is the cert-specific handler */
-    if (!osStrcasecmp(ctx->filename, "ca.der"))
+    /* file was uploaded, this is the cert-specific handler. ctx->filename is the
+       full path, so compare its file name. Store the path as <certdir>/<name>,
+       the relative form box overlays get on creation, not the absolute path. */
+    const char *name = pathGetFilename(ctx->filename);
+    const char *setting = NULL;
+    if (!osStrcasecmp(name, "ca.der"))
     {
-        TRACE_INFO("Set ca.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.ca", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.ca";
     }
-    else if (!osStrcasecmp(ctx->filename, "client.der"))
+    else if (!osStrcasecmp(name, "client.der"))
     {
-        TRACE_INFO("Set client.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.crt", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.crt";
     }
-    else if (!osStrcasecmp(ctx->filename, "private.der"))
+    else if (!osStrcasecmp(name, "private.der"))
     {
-        TRACE_INFO("Set private.der to %s\r\n", ctx->filename);
-        settings_set_string_ovl("core.client_cert.file.key", ctx->filename, ctx->overlay);
+        setting = "core.client_cert.file.key";
+    }
+
+    if (setting)
+    {
+        char *path = custom_asprintf("%s%c%s", settings_get_string_ovl("core.certdir", ctx->overlay), PATH_SEPARATOR, name);
+        TRACE_INFO("Set %s to %s\r\n", setting, path);
+        settings_set_string_ovl(setting, path, ctx->overlay);
+        settings_load_client_certs_id(get_overlay_id(ctx->overlay));
+        osFreeMem(path);
     }
     else
     {
         TRACE_INFO("Unknown file type %s\r\n", ctx->filename);
     }
+
+    osFreeMem(ctx->filename);
+    ctx->filename = NULL;
 
     return NO_ERROR;
 }
@@ -1093,6 +1241,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         TRACE_DEBUG("got overlay '%s'\r\n", overlay);
     }
     const char *rootPath = settings_get_string_ovl("internal.certdirfull", overlay);
+    error_t dirError = rootPath != NULL && !fsDirExists(rootPath) ? fsCreateDirEx(rootPath, true) : NO_ERROR;
 
     if (rootPath == NULL)
     {
@@ -1100,14 +1249,10 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         osSnprintf(message, sizeof(message), "internal.certdirfull not set to a valid path");
         TRACE_ERROR("internal.certdirfull not set to a valid path\r\n");
     }
-    else if (!fsDirExists(rootPath))
+    else if (dirError != NO_ERROR || !fsDirExists(rootPath))
     {
-        error_t error = fsCreateDirEx(rootPath, true);
-        if (error != NO_ERROR || !fsDirExists(rootPath))
-        {
-            osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(error));
-            TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(error));
-        }
+        osSnprintf(message, sizeof(message), "internal.certdirfull '%s' does not exist and could not be created. Error: %s", rootPath, error2text(dirError));
+        TRACE_ERROR("internal.certdirfull '%s' does not exist and could not be created. Error: %s\r\n", rootPath, error2text(dirError));
     }
     else
     {
@@ -1117,7 +1262,7 @@ error_t handleApiUploadCert(HttpConnection *connection, const char_t *uri, const
         osMemset(&cbr, 0x00, sizeof(cbr));
         osMemset(&ctx, 0x00, sizeof(ctx));
 
-        cbr.multipart_start = &file_save_start;
+        cbr.multipart_start = &file_save_start_cert;
         cbr.multipart_add = &file_save_add;
         cbr.multipart_end = &file_save_end_cert;
 
@@ -1153,34 +1298,44 @@ error_t file_save_start_suffix(void *in_ctx, const char *name, const char *filen
     }
 
     /* first canonicalize path, then merge to prevent directory traversal bugs */
+    ctx->filename = NULL;
     for (int suffix = 0; suffix < 100; suffix++)
     {
+        char *candidate;
         if (suffix)
         {
-            ctx->filename = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
+            candidate = custom_asprintf("%s/%s_%d.bin", ctx->root_path, filename, suffix);
         }
         else
         {
-            ctx->filename = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
+            candidate = custom_asprintf("%s/%s.bin", ctx->root_path, filename);
         }
-        sanitizePath(ctx->filename, false);
+        sanitizePath(candidate, false);
 
-        if (fsFileExists(ctx->filename))
+        if (fsFileExists(candidate))
         {
-            osFreeMem(ctx->filename);
+            osFreeMem(candidate);
             continue;
         }
-        else
-        {
-            TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
-            break;
-        }
+
+        /* only keep the first free name; never leave ctx->filename dangling */
+        ctx->filename = candidate;
+        TRACE_INFO("Writing to '%s'\r\n", ctx->filename);
+        break;
+    }
+
+    if (ctx->filename == NULL)
+    {
+        TRACE_ERROR("No free filename suffix available for '%s'\r\n", filename);
+        return ERROR_FILE_OPENING_FAILED;
     }
 
     ctx->file = fsOpenFile(ctx->filename, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
 
     if (ctx->file == NULL)
     {
+        osFreeMem(ctx->filename);
+        ctx->filename = NULL;
         return ERROR_FILE_OPENING_FAILED;
     }
 
@@ -1217,6 +1372,8 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
     char message[128];
     char overlay[16];
 
+    message[0] = '\0';
+
     const char *rootPath = get_settings()->internal.firmwaredirfull;
 
     if (rootPath == NULL || !fsDirExists(rootPath))
@@ -1244,6 +1401,13 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
         switch (multipart_handle(connection, &cbr, &ctx))
         {
         case NO_ERROR:
+            if (ctx.filename == NULL)
+            {
+                /* multipart parsed, but no file part was received */
+                statusCode = 400;
+                osSnprintf(message, sizeof(message), "No file received");
+                break;
+            }
             statusCode = 200;
             TRACE_INFO("Received new file:\r\n");
             TRACE_INFO("  '%s'\r\n", ctx.filename);
@@ -1251,6 +1415,7 @@ error_t handleApiESP32UploadFirmware(HttpConnection *connection, const char_t *u
             break;
         default:
             statusCode = 500;
+            osSnprintf(message, sizeof(message), "Firmware upload failed");
             break;
         }
 
@@ -1306,6 +1471,14 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
         return ERROR_FAILURE;
     }
 
+    /* filename is joined to the firmware dir and opened; reject any path
+       separators or ".." so it cannot point outside that directory. */
+    if (osStrchr(filename, '/') || osStrchr(filename, '\\') || osStrstr(filename, ".."))
+    {
+        TRACE_ERROR("Invalid firmware filename '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+
     bool overwrite = false;
     bool overwriteBase = false;
     if (queryGet(queryString, "overwrite", overwrite_s, sizeof(overwrite_s)))
@@ -1325,6 +1498,17 @@ error_t handleApiESP32ExtractCerts(HttpConnection *connection, const char_t *uri
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
     osStringToLower(mac);
+
+    /* mac becomes a directory name under the cert dir; require 12 hex chars so
+       it cannot contain separators or ".." and escape the cert directory. */
+    for (size_t i = 0; i < 12; i++)
+    {
+        if (!((mac[i] >= '0' && mac[i] <= '9') || (mac[i] >= 'a' && mac[i] <= 'f')))
+        {
+            TRACE_ERROR("Invalid MAC '%s'\r\n", mac);
+            return ERROR_NOT_FOUND;
+        }
+    }
 
     char *file_path = custom_asprintf("%s%c%s", firmwareRootPath, PATH_SEPARATOR, filename);
     char *target_dir = custom_asprintf("%s%c%s", certRootPath, PATH_SEPARATOR, mac);
@@ -1428,6 +1612,8 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     char patch_host[32] = {0};
     char wifi_ssid[64] = {0};
     char wifi_pass[64] = {0};
+    char port_text[8] = {0};
+    uint32_t port = 0;
     char filename[255] = {0};
     char mac[13] = {0};
     osStrcpy(old_patch_host, "");
@@ -1450,6 +1636,12 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         TRACE_INFO("Patch hostnames with old hostname '%s'\r\n", old_patch_host);
     }
 
+    if (queryGet(queryString, "port", port_text, sizeof(port_text)))
+    {
+        port = (uint32_t)strtoul(port_text, NULL, 10);
+        TRACE_INFO("Patch port %" PRIu32 "\r\n", port);
+    }
+
     if (queryGet(queryString, "wifi_ssid", wifi_ssid, sizeof(wifi_ssid)))
     {
         TRACE_INFO("wifi ssid '%s'\r\n", wifi_ssid);
@@ -1460,6 +1652,13 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         TRACE_INFO("wifi pass '%s'\r\n", wifi_pass);
     }
 
+    /* filename is joined to the firmware dir; reject separators and ".." */
+    if (osStrchr(filename, '/') || osStrchr(filename, '\\') || osStrstr(filename, ".."))
+    {
+        TRACE_ERROR("Invalid firmware filename '%s'\r\n", filename);
+        return ERROR_NOT_FOUND;
+    }
+
     const char *sep = osStrchr(filename, '_');
     if (!sep || strlen(&sep[1]) < 12)
     {
@@ -1468,6 +1667,16 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
     }
     osStrncpy(mac, &sep[1], 12);
     mac[12] = 0;
+
+    /* mac ends up in file/dir names; require 12 hex chars so it cannot contain separators or ".." */
+    for (size_t i = 0; i < 12; i++)
+    {
+        if (!((mac[i] >= '0' && mac[i] <= '9') || (mac[i] >= 'a' && mac[i] <= 'f') || (mac[i] >= 'A' && mac[i] <= 'F')))
+        {
+            TRACE_ERROR("Invalid MAC '%s'\r\n", mac);
+            return ERROR_NOT_FOUND;
+        }
+    }
 
     char *file_path = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, filename);
     char *patched_path = custom_asprintf("%s%cpatched_%s.bin", rootPath, PATH_SEPARATOR, mac);
@@ -1519,6 +1728,15 @@ error_t handleApiESP32PatchFirmware(HttpConnection *connection, const char_t *ur
         if (esp32_patch_host(patched_path, patch_host, oldrtnl, oldapi) != NO_ERROR)
         {
             TRACE_ERROR("Failed to patch hostnames\r\n");
+            return ERROR_NOT_FOUND;
+        }
+    }
+
+    if (port != 0)
+    {
+        if (esp32_patch_port(patched_path, port) != NO_ERROR)
+        {
+            TRACE_ERROR("Failed to patch port\r\n");
             return ERROR_NOT_FOUND;
         }
     }
@@ -1669,6 +1887,329 @@ error_t handleApiFileUpload(HttpConnection *connection, const char_t *uri, const
     return httpWriteResponseString(connection, message, false);
 }
 
+#define TAF_TRACK_EXPORT_MAX 99
+#define TAF_TEMP_PATH_LEN 512
+#define TAF_TEMP_FILE_LEN (TAF_TEMP_PATH_LEN + 264)
+
+static void sanitize_track_title(const char *in, char *out, size_t out_len)
+{
+    size_t j = 0;
+
+    if (in == NULL)
+    {
+        in = "";
+    }
+    for (size_t i = 0; in[i] != '\0' && j + 1 < out_len; i++)
+    {
+        unsigned char c = (unsigned char)in[i];
+        if (c < 0x20 || c == '/' || c == '\\' || c == '"' || c == '`' || c == '$')
+        {
+            out[j++] = '_';
+        }
+        else
+        {
+            out[j++] = (char)c;
+        }
+    }
+    out[j] = '\0';
+}
+
+static void remove_taf_temp_dir(const char *dir)
+{
+    FsDir *handle;
+    FsDirEntry entry;
+
+    if (dir == NULL || osStrstr(dir, "tc-taf-") == NULL)
+    {
+        return;
+    }
+
+    handle = fsOpenDir(dir);
+    if (handle != NULL)
+    {
+        while (fsReadDir(handle, &entry) == NO_ERROR)
+        {
+            char file_path[TAF_TEMP_FILE_LEN];
+
+            if (osStrcmp(entry.name, ".") == 0 || osStrcmp(entry.name, "..") == 0)
+            {
+                continue;
+            }
+            osSnprintf(file_path, sizeof(file_path), "%s/%s", dir, entry.name);
+            fsDeleteFile(file_path);
+        }
+        fsCloseDir(handle);
+    }
+
+    if (fsRemoveDir(dir) != NO_ERROR)
+    {
+        TRACE_WARNING("Could not remove temp dir %s\r\n", dir);
+    }
+}
+
+static error_t create_taf_temp_dir(const settings_t *settings, char *out_path, size_t out_size)
+{
+    const char *base = ".";
+    int attempt;
+
+    if (settings != NULL && settings->internal.cachedirfull != NULL && settings->internal.cachedirfull[0] != '\0')
+    {
+        base = settings->internal.cachedirfull;
+    }
+    fsCreateDirEx(base, true);
+
+    srand((unsigned int)time(NULL) ^ (unsigned int)(uintptr_t)out_path);
+
+    for (attempt = 0; attempt < 16; attempt++)
+    {
+        unsigned int token = ((unsigned int)rand() << 16) ^ (unsigned int)rand() ^ (unsigned int)attempt;
+
+        osSnprintf(out_path, out_size, "%s/tc-taf-%08x", base, token);
+        if (fsDirExists(out_path))
+        {
+            continue;
+        }
+        if (fsCreateDirEx(out_path, false) == NO_ERROR)
+        {
+            return NO_ERROR;
+        }
+    }
+    return ERROR_FAILURE;
+}
+
+static error_t handleApiContentTrackExport(HttpConnection *connection, const char *file_path, const char *tracks_param, settings_t *settings)
+{
+    FILE *src = NULL;
+    tonie_info_t *tafInfo = NULL;
+    toniesJson_item_t *tonieItem = NULL;
+    char tmpdir[TAF_TEMP_PATH_LEN];
+    bool have_dir = false;
+    uint32_t pages[TAF_TRACK_EXPORT_MAX];
+    int track_numbers[TAF_TRACK_EXPORT_MAX];
+    char titles[TAF_TRACK_EXPORT_MAX][96];
+    char *out_paths[TAF_TRACK_EXPORT_MAX];
+    size_t page_count = 0;
+    size_t track_count = 0;
+    uint64_t num_bytes = 0;
+    long file_size = 0;
+    error_t error = NO_ERROR;
+
+    osMemset(out_paths, 0, sizeof(out_paths));
+    osMemset(titles, 0, sizeof(titles));
+
+    src = fopen(file_path, "rb");
+    if (src == NULL)
+    {
+        return ERROR_NOT_FOUND;
+    }
+    if (fseek(src, 0, SEEK_END) != 0)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+    file_size = ftell(src);
+    if (file_size < 4096)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+
+    tafInfo = getTonieInfo(file_path, false, settings);
+    if (tafInfo == NULL || !tafInfo->valid || tafInfo->tafHeader == NULL || tafInfo->tafHeader->n_track_page_nums == 0)
+    {
+        if (tafInfo != NULL)
+        {
+            freeTonieInfo(tafInfo);
+        }
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+
+    page_count = tafInfo->tafHeader->n_track_page_nums;
+    if (page_count > TAF_TRACK_EXPORT_MAX)
+    {
+        page_count = TAF_TRACK_EXPORT_MAX;
+    }
+    osMemcpy(pages, tafInfo->tafHeader->track_page_nums, page_count * sizeof(uint32_t));
+    num_bytes = tafInfo->tafHeader->num_bytes;
+    tonieItem = tonies_byAudioId(tafInfo->tafHeader->audio_id);
+    if (tonieItem != NULL)
+    {
+        size_t name_count = tonieItem->tracks_count;
+        if (name_count > page_count)
+        {
+            name_count = page_count;
+        }
+        for (size_t i = 0; i < name_count; i++)
+        {
+            sanitize_track_title(tonieItem->tracks[i], titles[i], sizeof(titles[i]));
+        }
+    }
+    freeTonieInfo(tafInfo);
+    tafInfo = NULL;
+
+    {
+        const char *p = tracks_param;
+        while (*p != '\0' && track_count < TAF_TRACK_EXPORT_MAX)
+        {
+            char *end = NULL;
+            long value;
+
+            while (*p == ',' || *p == ' ')
+            {
+                p++;
+            }
+            if (*p == '\0')
+            {
+                break;
+            }
+            value = strtol(p, &end, 10);
+            if (end == p || value < 1 || (size_t)value > page_count)
+            {
+                fclose(src);
+                return ERROR_INVALID_PARAMETER;
+            }
+            track_numbers[track_count++] = (int)value;
+            p = end;
+        }
+    }
+    if (track_count == 0)
+    {
+        fclose(src);
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    if (create_taf_temp_dir(settings, tmpdir, sizeof(tmpdir)) != NO_ERROR)
+    {
+        fclose(src);
+        return ERROR_FAILURE;
+    }
+    have_dir = true;
+
+    for (size_t i = 0; i < track_count; i++)
+    {
+        int chapter = track_numbers[i] - 1;
+        uint32_t start_block = pages[chapter];
+        uint32_t end_block;
+        uint32_t start_off;
+        uint32_t end_off;
+        char name[160];
+        char path[TAF_TEMP_FILE_LEN];
+        FILE *dst;
+
+        if ((size_t)chapter + 1 < page_count)
+        {
+            end_block = pages[chapter + 1];
+        }
+        else
+        {
+            end_block = (uint32_t)(num_bytes / 4096);
+        }
+        start_off = 4096u + start_block * 4096u;
+        end_off = 4096u + end_block * 4096u;
+        if (end_off > (uint32_t)file_size)
+        {
+            end_off = (uint32_t)file_size;
+        }
+        if (end_block <= start_block || start_off >= end_off)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+
+        if (titles[chapter][0] != '\0')
+        {
+            osSnprintf(name, sizeof(name), "%02d %s.ogg", track_numbers[i], titles[chapter]);
+        }
+        else
+        {
+            osSnprintf(name, sizeof(name), "%02d.ogg", track_numbers[i]);
+        }
+        osSnprintf(path, sizeof(path), "%s/%s", tmpdir, name);
+        dst = fopen(path, "wb");
+        if (dst == NULL)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+        if (chapter > 0)
+        {
+            error = fsCopyFileRange(src, 4096, 4096 + 512, dst);
+        }
+        if (error == NO_ERROR)
+        {
+            error = fsCopyFileRange(src, start_off, end_off, dst);
+        }
+        fclose(dst);
+        if (error != NO_ERROR)
+        {
+            break;
+        }
+        out_paths[i] = strdup(path);
+        if (out_paths[i] == NULL)
+        {
+            error = ERROR_FAILURE;
+            break;
+        }
+    }
+    fclose(src);
+    src = NULL;
+    if (error != NO_ERROR)
+    {
+        goto cleanup;
+    }
+
+    if (track_count == 1)
+    {
+        /* the uri only selects the content type by extension */
+        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
+    }
+    else
+    {
+        char zip_path[TAF_TEMP_FILE_LEN];
+        char *argv[5 + TAF_TRACK_EXPORT_MAX + 1];
+        size_t n = 0;
+
+        osSnprintf(zip_path, sizeof(zip_path), "%s/tracks.zip", tmpdir);
+        argv[n++] = "zip";
+        argv[n++] = "-j";
+        argv[n++] = "-q";
+        argv[n++] = "-X";
+        argv[n++] = zip_path;
+        for (size_t i = 0; i < track_count; i++)
+        {
+            argv[n++] = out_paths[i];
+        }
+        argv[n] = NULL;
+
+        if (osSpawnvp("zip", argv) != 0)
+        {
+            TRACE_ERROR("Failed to zip selected TAF tracks from %s\r\n", file_path);
+            error = ERROR_FAILURE;
+            goto cleanup;
+        }
+        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
+    }
+
+cleanup:
+    if (src != NULL)
+    {
+        fclose(src);
+    }
+    for (size_t i = 0; i < track_count; i++)
+    {
+        if (out_paths[i] != NULL)
+        {
+            free(out_paths[i]);
+        }
+    }
+    if (have_dir)
+    {
+        remove_taf_temp_dir(tmpdir);
+    }
+    return error;
+}
+
 error_t handleApiContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     TRACE_DEBUG("Query: '%s'\r\n", queryString);
@@ -1696,6 +2237,14 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[8]);
 
     TRACE_DEBUG("Request for '%s', ogg: %s\r\n", file_path, ogg);
+
+    char tracks_param[TAF_TRACK_EXPORT_MAX * 4];
+    if (queryGet(queryString, "tracks", tracks_param, sizeof(tracks_param)))
+    {
+        error_t export_error = handleApiContentTrackExport(connection, file_path, tracks_param, client_ctx->settings);
+        free(file_path);
+        return export_error;
+    }
 
     error_t error;
     size_t n;
@@ -2000,8 +2549,7 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         return error;
     }
 
-    char multisource[99][PATH_LEN];
-    uint8_t multisource_size = 0;
+    size_t multisource_size = 0;
     char source[PATH_LEN];
     char target[PATH_LEN];
 
@@ -2025,16 +2573,34 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
     }
     else
     {
-        while (queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
+        /* ~405 KB; keep it off the request-thread stack (ffmpeg_convert takes
+           char[99][PATH_LEN], which a char (*)[PATH_LEN] decays to). */
+        char(*multisource)[PATH_LEN] = osAllocMem(sizeof(char[99][PATH_LEN]));
+        if (multisource == NULL)
+        {
+            osFreeMem(targetAbsolute);
+            return ERROR_OUT_OF_MEMORY;
+        }
+
+        while (multisource_size < 99 &&
+               queryGetMulti(post_data, "source", source, sizeof(source), multisource_size))
         {
             sanitizePath(source, false);
-            osSprintf(multisource[multisource_size], "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            int_t written = osSnprintf(multisource[multisource_size], PATH_LEN, "%s%c%s", rootPath, PATH_SEPARATOR, source);
+            if (written < 0 || written >= PATH_LEN)
+            {
+                TRACE_ERROR("Source path too long!\r\n");
+                osFreeMem(targetAbsolute);
+                osFreeMem(multisource);
+                return ERROR_INVALID_REQUEST;
+            }
             sanitizePath(multisource[multisource_size], false);
             // TRACE_INFO("Source %s\r\n", multisource[multisource_size]);
             if (!fsFileExists(multisource[multisource_size]))
             {
                 TRACE_ERROR("Source %s does not exist!\r\n", multisource[multisource_size]);
                 osFreeMem(targetAbsolute);
+                osFreeMem(multisource);
                 return ERROR_INVALID_REQUEST;
             }
             multisource_size++;
@@ -2043,13 +2609,15 @@ error_t handleApiEncodeFile(HttpConnection *connection, const char_t *uri, const
         {
             TRACE_ERROR("Source missing!\r\n");
             osFreeMem(targetAbsolute);
+            osFreeMem(multisource);
             return ERROR_INVALID_REQUEST;
         }
 
-        TRACE_INFO("Encode %" PRIu8 " files to %s\r\n", multisource_size, targetAbsolute);
+        TRACE_INFO("Encode %" PRIuSIZE " files to %s\r\n", multisource_size, targetAbsolute);
         size_t current_source = 0;
         error = ffmpeg_convert(multisource, multisource_size, &current_source, targetAbsolute, 0);
         osFreeMem(targetAbsolute);
+        osFreeMem(multisource);
         if (error != NO_ERROR)
         {
             TRACE_ERROR("ffmpeg_convert failed with error %s\r\n", error2text(error));
@@ -4400,6 +4968,10 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             {
                 cJSON_AddItemToArray(tracksArray, cJSON_CreateNumber(tafInfo->additional.track_positions.pos[i]));
             }
+            if (tafInfo->additional.track_positions.length > 0)
+            {
+                cJSON_AddNumberToObject(jsonEntry, "lengthSeconds", tafInfo->additional.track_positions.length);
+            }
 
             char *downloadUrl = custom_asprintf("/content/download/%s?overlay=%s", tagPath, client_ctx->settings->internal.overlayUniqueId);
             char *audioUrl = custom_asprintf("%s&skip_header=true", downloadUrl);
@@ -4583,72 +5155,6 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
     connection->response.contentLength = osStrlen(jsonString);
 
     return httpWriteResponse(connection, jsonString, connection->response.contentLength, true);
-}
-
-#define TEST_TOKEN "THIS_IS_A_TEST_TOKEN"
-
-error_t handleApiAuthLogin(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
-{
-    char_t post_data[POST_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
-    if (error != NO_ERROR)
-    {
-        return error;
-    }
-
-    char username[256];
-    if (queryGet(post_data, "username", username, sizeof(username)))
-    {
-        char passwordHash[256];
-        if (queryGet(post_data, "passwordHash", passwordHash, sizeof(passwordHash)))
-        {
-            if (osStrcmp("admin", username) == 0) // && osStrcmp("admin", passwordHash) == 0)
-            {
-                char *token = TEST_TOKEN;
-                httpInitResponseHeader(connection);
-                connection->response.contentType = "text/plain";
-                connection->response.contentLength = osStrlen(token);
-
-                return httpWriteResponse(connection, token, connection->response.contentLength, false);
-            }
-        }
-    }
-    httpInitResponseHeader(connection);
-    connection->response.contentLength = 0;
-    connection->response.statusCode = 401; // Unauthorized
-    return httpWriteResponse(connection, "", connection->response.contentLength, false);
-}
-error_t handleApiAuthLogout(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
-{
-    httpInitResponseHeader(connection);
-    connection->response.contentLength = 0;
-    connection->response.statusCode = 200; // Unauthorized
-    connection->response.contentType = "text/plain";
-    return httpWriteResponse(connection, "", connection->response.contentLength, false);
-}
-error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
-{
-    char_t post_data[POST_BUFFER_SIZE];
-    error_t error = parsePostData(connection, post_data, POST_BUFFER_SIZE);
-    if (error != NO_ERROR)
-    {
-        return error;
-    }
-
-    httpInitResponseHeader(connection);
-    connection->response.statusCode = 401; // Unauthorized
-    connection->response.contentType = "text/plain";
-    char refreshToken[256];
-    refreshToken[0] = '\0';
-    if (queryGet(post_data, "refreshToken", refreshToken, sizeof(refreshToken)))
-    {
-        if (osStrcmp(TEST_TOKEN, refreshToken) == 0)
-        {
-            connection->response.statusCode = 200;
-        }
-    }
-    connection->response.contentLength = osStrlen(refreshToken);
-    return httpWriteResponse(connection, refreshToken, connection->response.contentLength, false);
 }
 
 error_t handleApiMigrateContent2Lib(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)

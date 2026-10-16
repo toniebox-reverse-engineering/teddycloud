@@ -99,6 +99,7 @@ typedef struct
     bool prioCustomContent;
     bool updateOnLowerAudioId;
     bool dumpRuidAuthContentJson;
+    bool autoMarkListenedOnSync;
 } settings_cloud_t;
 
 typedef struct
@@ -119,6 +120,7 @@ typedef struct
     bool ignore_web_version_mismatch;
     bool confirm_audioplayer_close;
     bool check_cc3200_cfw;
+    bool web_auth_enabled;
 } settings_frontend_t;
 
 typedef struct
@@ -156,6 +158,7 @@ typedef struct
 typedef struct
 {
     bool api_access;
+    char *certPin;
     bool overrideCloud;
     settings_box_generation boxGeneration;
 
@@ -302,6 +305,8 @@ typedef struct
     time_t *last_ruid_time;
     char *ip;
     bool online;
+    char *boxCertStatus;
+    char *boxCertSha256;
 } settings_internal_t;
 
 typedef struct
@@ -333,6 +338,7 @@ typedef struct
     char *allowOrigin;
     bool boxCertAuth;
     bool allowNewBox;
+    bool allowPrivateFetch;
 
     bool flex_enabled;
     char *flex_uid;
@@ -340,8 +346,6 @@ typedef struct
 
     uint32_t http_client_timeout;
     uint32_t file_upload_timeout_ms;
-
-    bool new_webgui_as_default;
 
     settings_level settings_level;
 
@@ -730,6 +734,7 @@ bool settings_set_by_string_id(const char *item, const char *value, uint8_t sett
 void settings_load_all_certs();
 error_t settings_try_load_certs_id(uint8_t settingsId);
 error_t settings_load_certs_id(uint8_t settingsId);
+void settings_load_client_certs_id(uint8_t settingsId);
 bool test_boxine_ca(uint8_t settingsId);
 
 #endif
