@@ -818,9 +818,10 @@ test_c:
 test: test_c test_py test_auth_pool_reuse_with_server
 
 PYTHON ?= python3
-HARDENING_TESTS := Cache499 Multipart502 Firmware503 Encode501 Tap495 Crawler508 KeyPermissions512 Secrets505 Traversal513 Range515 Extract522 PrivateFetch Settings528
-# every entry gets a fresh sandboxed server (see tests/py/with_server.sh), a crash must only fail its own test
-PY_TESTS := tests/py/test_tonies_custom_json_api.py tests/py/test_cors_preflight.py tests/py/test_web_legacy_gone.py tests/py/test_box_sim.py tests/py/test_box_profiles.py tests/py/test_box_cert_check.py tests/py/test_box_cert_upload.py tests/py/test_cloud_proxy.py tests/py/test_taf_length.py tests/py/test_sse_keepalive.py tests/py/test_sse_join.py \
+# every test_*.py is picked up automatically; test_hardening.py is split per class, so a crash only fails its own test
+# every entry gets a fresh sandboxed server (see tests/py/with_server.sh)
+HARDENING_TESTS := $(shell sed -n 's/^class \([A-Za-z0-9]*\)(\(Base\|Ota\)):.*/\1/p' tests/py/test_hardening.py | grep -vx Ota)
+PY_TESTS := $(filter-out tests/py/test_hardening.py tests/py/test_auth_pool_reuse.py,$(sort $(wildcard tests/py/test_*.py))) \
 	$(addprefix tests/py/test_hardening.py::,$(HARDENING_TESTS))
 
 # make test_py TESTS=cors            only entries containing "cors"
