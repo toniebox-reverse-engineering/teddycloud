@@ -11,6 +11,7 @@ import http.client
 import json
 import os
 import subprocess
+import time
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -120,9 +121,19 @@ def test_box_with_teddycloud_certificate_is_pinned_too(tmp_path):
         impostor.close()
 
 
-def test_other_certificate_is_only_logged_without_box_cert_auth(original_box, impostor, without_box_cert_auth):
+def test_other_certificate_is_only_logged_without_box_cert_auth(original_box, impostor):
     original_box.request("GET", "/v1/time")
-    assert impostor.request("GET", "/v1/time")[0] == 200
+    box_overlay = overlay(original_box)
+    assert api("POST", f"/api/settings/set/core.boxCertAuth?overlay={box_overlay}", "false")[0] == 200
+    try:
+        # the settings are reloaded asynchronously from the changed file
+        for _ in range(50):
+            if api("GET", f"/api/settings/get/core.boxCertAuth?overlay={box_overlay}")[1].strip() == "false":
+                break
+            time.sleep(0.1)
+        assert impostor.request("GET", "/v1/time")[0] == 200
+    finally:
+        api("POST", f"/api/settings/set/core.boxCertAuth?overlay={box_overlay}", "true")
 
 
 def test_reset_pin_takes_the_next_certificate(original_box, impostor):
