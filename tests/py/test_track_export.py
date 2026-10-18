@@ -96,12 +96,15 @@ class TrackExport(Base):
         self.assert_zip_of_tracks(url + "&tracks=2%2C3", 2)
         self.assert_single_ogg(url + "&tracks=2")
 
+    def test_content_invalid_track(self):
+        for query in ("tracks=9", "tracks=0", "tracks=abc", "tracks=,"):
+            status, _, _ = get(f"/content/{TAF}?special=library&ogg=true&{query}")
+            self.assertEqual(status, 400, query)
+
     def test_content_download_tag_invalid_track(self):
-        try:
-            status, _, _ = get(f"/content/download/{TAG_DIR}/{TAG_FILE}?skip_header=true&ogg=true&tracks=9")
-        except OSError:
-            return  # no error response yet, the connection is dropped (same as on /content/)
-        self.assertNotEqual(status, 200)
+        for query in ("tracks=9", "tracks=0", "tracks=abc", "tracks=,"):
+            status, _, _ = get(f"/content/download/{TAG_DIR}/{TAG_FILE}?skip_header=true&ogg=true&{query}")
+            self.assertEqual(status, 400, query)
 
 
 if __name__ == "__main__":
