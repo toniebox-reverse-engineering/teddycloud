@@ -28,6 +28,7 @@ static const test_case_t tests[] = {
     {"socket_receive_line_capped_at_size", test_socket_receive_line_capped_at_size},
     {"box_cert_id", test_box_cert_id},
     {"box_cert_issuer_known", test_box_cert_issuer_known},
+    {"zip_write_stored", test_zip_write_stored},
 };
 
 int main(void)

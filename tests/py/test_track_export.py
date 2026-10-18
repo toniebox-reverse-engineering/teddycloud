@@ -7,7 +7,7 @@ or as a single Ogg (one track), on both download routes the web UI uses:
   /content/download/<ruid>?...&tracks=...       tonie card, tag with a lib:// source (#350)
 
 The TAF is encoded by the server from generated white noise (needs ffmpeg),
-the zip is built with the external zip binary.
+the zip is written by the server itself (zip_writer.c).
 
 Run via: make test_py TESTS=track_export
 """
