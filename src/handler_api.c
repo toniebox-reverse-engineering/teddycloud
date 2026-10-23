@@ -2067,7 +2067,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             if (end == p || value < 1 || (size_t)value > page_count)
             {
                 fclose(src);
-                return ERROR_INVALID_PARAMETER;
+                return httpSendErrorResponse(connection, 400, "Invalid track selection");
             }
             track_numbers[track_count++] = (int)value;
             p = end;
@@ -2076,7 +2076,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     if (track_count == 0)
     {
         fclose(src);
-        return ERROR_INVALID_PARAMETER;
+        return httpSendErrorResponse(connection, 400, "Invalid track selection");
     }
 
     if (create_taf_temp_dir(settings, tmpdir, sizeof(tmpdir)) != NO_ERROR)
