@@ -7,7 +7,7 @@ or as a single Ogg (one track), on both download routes the web UI uses:
   /content/download/<ruid>?...&tracks=...       tonie card, tag with a lib:// source (#350)
 
 The TAF is encoded by the server from generated white noise (needs ffmpeg),
-the zip is built with the external zip binary.
+the zip is written by the server itself (zip_writer.c).
 
 Run via: make test_py TESTS=track_export
 """
@@ -20,12 +20,13 @@ import unittest
 import wave
 import zipfile
 
-from test_hardening import BASE, BASE_DIR, Base
+from test_hardening import BASE, BASE_DIR, Base, request
 
 TRACK_SECONDS = [2, 2, 2]
 RATE = 4000  # low rate: the test upload helper only handles small bodies, the server resamples
 TAF = "__trackexport.taf"
 TAG_DIR, TAG_FILE = "A64E581D", "500304E0"
+CUSTOM_MODEL = "TC_TEST_TRACK_EXPORT"
 
 
 def white_noise_wav(seconds):
@@ -66,7 +67,25 @@ class TrackExport(Base):
 
     def tearDown(self):
         self.tag_json.unlink(missing_ok=True)
+        body = json.dumps({"models": [CUSTOM_MODEL]})
+        request("POST", "/api/toniesCustomJsonDelete", body, {"Content-Type": "application/json"})
         super().tearDown()
+
+    def name_tracks(self, titles):
+        """Give the TAF track titles, like a tonies.custom.json entry does for a real tonie."""
+        status, text = request("GET", "/api/fileIndexV2?path=/&special=library")
+        self.assertEqual(status, 200, text)
+        header = next(f["tafHeader"] for f in json.loads(text)["files"] if f["name"] == TAF)
+        entry = {
+            "model": CUSTOM_MODEL,
+            "series": "Track export test",
+            "title": "Track export test",
+            "audio_id": [header["audioId"]],
+            "hash": [header["sha1Hash"].upper()],
+            "tracks": titles,
+        }
+        status, text = request("POST", "/api/toniesCustomJsonUpsert", json.dumps([entry]), {"Content-Type": "application/json"})
+        self.assertEqual(status, 200, text)
 
     def assert_zip_of_tracks(self, path, count):
         status, content_type, body = get(path)
@@ -100,6 +119,23 @@ class TrackExport(Base):
         for query in ("tracks=9", "tracks=0", "tracks=abc", "tracks=,"):
             status, _, _ = get(f"/content/{TAF}?special=library&ogg=true&{query}")
             self.assertEqual(status, 400, query)
+
+    def test_zip_entry_names_are_utf8(self):
+        # typographic quotes as in #552, a path separator, and a title longer than the name buffer
+        self.name_tracks(["Käse/Mäuse – Überraschung", "3. Satz: „Allegro”", "ä" * 60 + " Ende"])
+        status, content_type, body = get(f"/content/{TAF}?special=library&ogg=true&tracks=1%2C2%2C3")
+        self.assertEqual(status, 200, body[:200])
+        self.assertEqual(content_type, "application/zip")
+        with zipfile.ZipFile(io.BytesIO(body)) as z:
+            self.assertIsNone(z.testzip())
+            infos = z.infolist()
+            # general purpose bit 11: the names are UTF-8 whatever the locale of the server
+            self.assertTrue(all(i.flag_bits & 0x800 for i in infos))
+            names = [i.filename for i in infos]
+        self.assertEqual(names[0], "01 Käse_Mäuse – Überraschung.ogg")
+        self.assertEqual(names[1], "02 3. Satz: „Allegro”.ogg")
+        # cut at a character boundary, never in the middle of a UTF-8 sequence
+        self.assertEqual(names[2], "03 " + "ä" * 47 + ".ogg")
 
     def test_content_download_tag_invalid_track(self):
         for query in ("tracks=9", "tracks=0", "tracks=abc", "tracks=,"):

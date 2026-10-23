@@ -26,6 +26,7 @@
 #include "esp32.h"
 #include "cache.h"
 #include "libraryMeta.h"
+#include "zip_writer.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
 {
@@ -1899,16 +1900,25 @@ static void sanitize_track_title(const char *in, char *out, size_t out_len)
     {
         in = "";
     }
-    for (size_t i = 0; in[i] != '\0' && j + 1 < out_len; i++)
+    for (size_t i = 0; in[i] != '\0';)
     {
         unsigned char c = (unsigned char)in[i];
+        /* length of the UTF-8 sequence, so a truncated title never ends in half a character */
+        size_t len = (c >= 0xF0) ? 4 : (c >= 0xE0) ? 3 : (c >= 0xC0) ? 2 : 1;
+
+        if (j + len + 1 > out_len)
+        {
+            break;
+        }
         if (c < 0x20 || c == '/' || c == '\\' || c == '"' || c == '`' || c == '$')
         {
             out[j++] = '_';
+            i++;
+            continue;
         }
-        else
+        for (size_t k = 0; k < len && in[i] != '\0'; k++)
         {
-            out[j++] = (char)c;
+            out[j++] = in[i++];
         }
     }
     out[j] = '\0';
@@ -1988,6 +1998,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     int track_numbers[TAF_TRACK_EXPORT_MAX];
     char titles[TAF_TRACK_EXPORT_MAX][96];
     char *out_paths[TAF_TRACK_EXPORT_MAX];
+    char *entry_names[TAF_TRACK_EXPORT_MAX];
     size_t page_count = 0;
     size_t track_count = 0;
     uint64_t num_bytes = 0;
@@ -1995,6 +2006,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     error_t error = NO_ERROR;
 
     osMemset(out_paths, 0, sizeof(out_paths));
+    osMemset(entry_names, 0, sizeof(entry_names));
     osMemset(titles, 0, sizeof(titles));
 
     src = fopen(file_path, "rb");
@@ -2117,6 +2129,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             break;
         }
 
+        /* the title only goes into the zip entry name, the temp file name stays ASCII */
         if (titles[chapter][0] != '\0')
         {
             osSnprintf(name, sizeof(name), "%02d %s.ogg", track_numbers[i], titles[chapter]);
@@ -2125,7 +2138,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
         {
             osSnprintf(name, sizeof(name), "%02d.ogg", track_numbers[i]);
         }
-        osSnprintf(path, sizeof(path), "%s/%s", tmpdir, name);
+        osSnprintf(path, sizeof(path), "%s/%02d.ogg", tmpdir, track_numbers[i]);
         dst = fopen(path, "wb");
         if (dst == NULL)
         {
@@ -2146,7 +2159,8 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             break;
         }
         out_paths[i] = strdup(path);
-        if (out_paths[i] == NULL)
+        entry_names[i] = strdup(name);
+        if (out_paths[i] == NULL || entry_names[i] == NULL)
         {
             error = ERROR_FAILURE;
             break;
@@ -2167,22 +2181,9 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     else
     {
         char zip_path[TAF_TEMP_FILE_LEN];
-        char *argv[5 + TAF_TRACK_EXPORT_MAX + 1];
-        size_t n = 0;
 
         osSnprintf(zip_path, sizeof(zip_path), "%s/tracks.zip", tmpdir);
-        argv[n++] = "zip";
-        argv[n++] = "-j";
-        argv[n++] = "-q";
-        argv[n++] = "-X";
-        argv[n++] = zip_path;
-        for (size_t i = 0; i < track_count; i++)
-        {
-            argv[n++] = out_paths[i];
-        }
-        argv[n] = NULL;
-
-        if (osSpawnvp("zip", argv) != 0)
+        if (zipWriteStored(zip_path, track_count, (const char *const *)out_paths, (const char *const *)entry_names) != NO_ERROR)
         {
             TRACE_ERROR("Failed to zip selected TAF tracks from %s\r\n", file_path);
             error = ERROR_FAILURE;
@@ -2198,10 +2199,8 @@ cleanup:
     }
     for (size_t i = 0; i < track_count; i++)
     {
-        if (out_paths[i] != NULL)
-        {
-            free(out_paths[i]);
-        }
+        free(out_paths[i]);
+        free(entry_names[i]);
     }
     if (have_dir)
     {
