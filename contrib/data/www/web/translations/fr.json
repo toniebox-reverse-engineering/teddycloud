@@ -21,11 +21,11 @@
         "password": "Mot de passe",
         "passwordMin": "Au moins 4 caractères",
         "passwordRequired": "Le mot de passe est requis",
-        "username": "Nom d'utilisateur",
-        "usernameRequired": "Le nom d'utilisateur est requis",
+        "retry": "Réessayer",
         "statusLoadFailed": "Impossible de charger l’état d’authentification",
         "statusLoadFailedDetails": "L’état d’authentification n’a pas pu être chargé. Vérifiez la connexion à TeddyCloud et réessayez.",
-        "retry": "Réessayer"
+        "username": "Nom d'utilisateur",
+        "usernameRequired": "Le nom d'utilisateur est requis"
     },
     "common": {
         "cancel": "Annuler"
@@ -142,6 +142,7 @@
                 "fields": {
                     "author": "Auteur du plugin",
                     "description": "Résumé court du plugin",
+                    "hideInNav": "Indicateur précisant si le plugin doit être masqué dans la navigation (true/false)",
                     "icon": "L'icône utilisée pour le plugin. Doit être un composant d'icône Ant Design valide depuis https://ant.design/components/icon, par ex. TrophyOutlined, TagsOutlined",
                     "pluginHomepage": "Page d'accueil du plugin",
                     "pluginName": "Le titre affiché dans les menus (obligatoire)",
@@ -157,11 +158,16 @@
             },
             "helpButton": "Aide",
             "helpTextCreatePlugin": "Un texte sur la création d'un plugin",
+            "hidden": "Masqué",
             "installedPlugins": "Plugins installés",
             "intro": "Vous trouverez ici vos plugins TeddyCloud ajoutés et pouvez ajouter de nouveaux plugins fournis par vous-même ou la communauté TeddyCloud !",
             "navigationTitle": "Plugins TC",
             "ok": "OK",
             "open": "Ouvrir le plugin",
+            "pagination": {
+                "pageSelector": "Plugins par page",
+                "showAll": "Afficher tout"
+            },
             "plugin": "Plugin",
             "title": "Plugins TeddyCloud",
             "upload": {
@@ -391,9 +397,17 @@
         "filter": "Filtrer dans le dossier actuel",
         "help": {
             "actionItems": {
+                "assignToTonie": {
+                    "text": "Assigne le fichier sélectionné comme contenu à un Tonie/Tag.",
+                    "title": "Assigner à un Tonie"
+                },
                 "deleteFileFolder": {
                     "text": "Supprime le fichier ou le dossier (seulement si le dossier est vide). Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour.",
                     "title": "Supprimer le fichier/dossier"
+                },
+                "downloadFile": {
+                    "text": "Télécharge le fichier sélectionné. Pour les fichiers TAF contenant plusieurs pistes, une sélection des pistes s'ouvre pour les télécharger en fichiers *.ogg séparés (ZIP) ou en un seul fichier *.ogg ; les fichiers TAF d'une seule piste sont téléchargés en un seul fichier *.ogg.",
+                    "title": "Télécharger le fichier"
                 },
                 "duplicateTAPFile": {
                     "text": "Crée une copie du fichier TAP sélectionné.",
@@ -406,6 +420,16 @@
                 "editTAPPlaylist": {
                     "text": "Ouvre l'éditeur de TeddyAudio Playlist pour gérer les fichiers TAP.",
                     "title": "Modifier la liste de lecture TAP"
+                },
+                "markAsListened": {
+                    "listened": {
+                        "text": "Le fichier est actuellement marqué comme écouté. Cliquez pour le marquer comme non écouté.",
+                        "title": "Marquer comme non écouté"
+                    },
+                    "unlistened": {
+                        "text": "Le fichier est actuellement marqué comme non écouté. Cliquez pour le marquer comme écouté.",
+                        "title": "Marquer comme écouté"
+                    }
                 },
                 "migrateToAudioIdFolder": {
                     "text": "Déplace le fichier TAF dans le dossier 'by/audioId' de la bibliothèque et met à jour la source dans le fichier JSON.",
@@ -426,24 +450,6 @@
                 "renameFile": {
                     "text": "Renomme le fichier. Remarque : si ce fichier est attribué à un Tonie/Tag, la référence ne sera pas mise à jour automatiquement.",
                     "title": "Renommer le fichier"
-                },
-                "downloadFile": {
-                    "title": "Télécharger le fichier",
-                    "text": "Télécharge le fichier sélectionné. Pour les fichiers TAF contenant plusieurs pistes, une sélection des pistes s'ouvre pour les télécharger en fichiers *.ogg séparés (ZIP) ou en un seul fichier *.ogg ; les fichiers TAF d'une seule piste sont téléchargés en un seul fichier *.ogg."
-                },
-                "markAsListened": {
-                    "unlistened": {
-                        "title": "Marquer comme écouté",
-                        "text": "Le fichier est actuellement marqué comme non écouté. Cliquez pour le marquer comme écouté."
-                    },
-                    "listened": {
-                        "title": "Marquer comme non écouté",
-                        "text": "Le fichier est actuellement marqué comme écouté. Cliquez pour le marquer comme non écouté."
-                    }
-                },
-                "assignToTonie": {
-                    "title": "Assigner à un Tonie",
-                    "text": "Assigne le fichier sélectionné comme contenu à un Tonie/Tag."
                 }
             },
             "actionItemsMulti": {
@@ -1175,6 +1181,19 @@
             "status": "Statut",
             "troubleShooting": "Dépannage"
         },
+        "boxCertificate": {
+            "nextConnection": "Le statut est mis à jour à la prochaine connexion de la Toniebox.",
+            "pin": "Certificat épinglé (SHA-256)",
+            "presented": "Certificat présenté (SHA-256)",
+            "status": "Statut",
+            "statusText": {
+                "mismatch": "Autre certificat que celui épinglé !",
+                "none": "Pas encore vérifié",
+                "pinned": "Certificat épinglé",
+                "trusted": "Certificat émis par TeddyCloud"
+            },
+            "title": "Vérification du certificat"
+        },
         "boxFlashingCommon": {
             "adguard": {
                 "adGuardRequirement": "AdGuard : Assure-toi qu'AdGuard Home est installé et configuré sur un appareil de ton réseau.",
@@ -1385,6 +1404,7 @@
             },
             "applyingPatches": "Application des patches",
             "applyingPatchesSection": {
+                "altPortHint": "Si tu as créé un patch de port, place-le aussi dans /revvox/boot/patch/ et ajoute \"altPort.custom\" à la liste des patches.",
                 "examplengCFGJsonCollapse": {
                     "collapseTitle": "Exemple de \"ngCfg.json\" avec le patch \"altUrl.custom.305\" en utilisant \"ofw2\""
                 },
@@ -1426,8 +1446,7 @@
                     "waitForPressDesc": "Attends une pression sur l'oreille au démarrage avec une séquence de clignotement (bleu, vert, cyan, noir)",
                     "waitTimeoutInSDesc": "Délai en secondes pour waitForPress si aucune pression sur l'oreille (hibernation)",
                     "watchdogDesc": "Garder le watchdog activé lors du démarrage du firmware (si le démarrage échoue, la box redémarrera)"
-                },
-                "altPortHint": "Si tu as créé un patch de port, place-le aussi dans /revvox/boot/patch/ et ajoute \"altPort.custom\" à la liste des patches."
+                }
             },
             "applyingPatchesWithNgCfgJson": "Appliquer les patches en utilisant ngCfg.json",
             "applyingPatchesWithNgCfgJsonLink": "Trouve les instructions ici",
@@ -1450,13 +1469,10 @@
             "connectToTonieboxProceed": "Tu es maintenant prêt à continuer !",
             "connectToTonieboxText": "La LED verte de la carte principale de la Toniebox doit rester allumée en continu (sans clignoter). Si ce n'est pas le cas, tes connexions pourraient être mal fixées ou incorrectes. Déconnecte le programmeur, vérifie toutes les connexions et essaie à nouveau. Si tu travailles avec des fils fins, pense à utiliser de la colle chaude pour les fixer et éviter qu'ils ne bougent. De plus, assure-toi que la Toniebox est alimentée via son chargeur.",
             "connectToTonieboxTextUart": "Assure-toi que l'UART est configuré à 3,3V avant de connecter le programmeur UART à ton ordinateur via USB.",
-            "createPatch": "Créer altUrl.custom.305.patch",
-            "customPortPatch": "Optionnel : créer un patch de port (altPort.custom.json)",
-            "customPortPatchHint": "Nécessaire uniquement si la Toniebox doit joindre TeddyCloud sur un autre port que 443, par exemple via un proxy qui route selon le port. Le patch fonctionne avec les versions de firmware 3.1.0 BF2, 3.3.0 et 3.4.0. hackiebox-ng fournit déjà altPort.json pour le port 10443 ; crée ton propre patch uniquement pour un autre port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
-            "hintPatchPort": "Saisis le port auquel la Toniebox doit se connecter, puis clique sur 'Créer altPort.custom.patch'. Le patch sera ensuite téléchargé automatiquement.",
-            "port": "Port TeddyCloud :",
-            "portInvalid": "Le port doit être compris entre 1 et 65535.",
+            "createHostNamePatch": "Créer altUrl.custom.305.patch",
             "createPortPatch": "Créer altPort.custom.patch",
+            "customPortPatch": "Optionnel : Créer un patch de port (altPort.custom.json)",
+            "customPortPatchHint": "Nécessaire uniquement si la Toniebox doit joindre TeddyCloud sur un autre port que 443, par exemple via un proxy qui route selon le port. Le patch fonctionne avec les versions de firmware 3.1.0 BF2, 3.3.0 et 3.4.0. hackiebox-ng fournit déjà altPort.json pour le port 10443 ; crée ton propre patch uniquement pour un autre port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
             "customUrlPatch": "Créer un patch URL personnalisé (altUrl.custom.305.json)",
             "customUrlPatchHint": "Veuillez créer ce patch uniquement si les patches prédéfinis altUrl.tc.fritz.box.json et altUrl.305.json ne fonctionnent pas avec votre configuration actuelle de TeddyCloud. S'ils répondent à vos besoins, vous pouvez continuer en cliquant sur 'Suivant'.",
             "dedicatedUart": "UART dédié",
@@ -1479,6 +1495,7 @@
             "hint": "Il n'y a actuellement pas de support direct pour flasher votre CC3200 Toniebox avec TeddyCloud, mais vous trouverez ici un guide étape par étape :",
             "hint2": "Veuillez suivre ensuite le chemin CC3200 :",
             "hintPatchHost": "Entrez le nom d'hôte de votre instance TeddyCloud, puis cliquez sur 'Créer altUrl.custom.305.patch'. Le patch sera téléchargé automatiquement par la suite.",
+            "hintPatchPort": "Saisis le port auquel la Toniebox doit se connecter, puis clique sur 'Créer altPort.custom.patch'. Le patch sera ensuite téléchargé automatiquement.",
             "hostname": "Nom d'hôte TeddyCloud :",
             "hostnameTooLong": "Le nom d'hôte ne doit pas dépasser 12 caractères.",
             "installBootloader": "Installer le Custom Bootloader HackieboxNG",
@@ -1545,6 +1562,8 @@
             "next": "Suivant",
             "patches": "Patches",
             "patchesMoreInformationLink": "Plus d'informations sur les patches personnalisés",
+            "port": "Port TeddyCloud :",
+            "portInvalid": "Le port doit être compris entre 1 et 65535.",
             "predefinedUrlPatches": "Correctifs d'URL prédéfinis",
             "predefinedUrlPatchesIntro": "Pour les boîtiers CC3200, il est recommandé d'utiliser un correctif altUrl. HackieboxNG inclut déjà deux correctifs altUrl prêts à l'emploi :",
             "previous": "Retour",
@@ -1620,7 +1639,6 @@
             "locateFlashMemoryText": "Identifie la puce de mémoire flash IS25LP032D sur la carte ; elle est située à droite du dock de chargement.",
             "navigationTitle": "CC3235",
             "next": "Suivant",
-            "portHint": "Les box CC3235 se connectent toujours au port 443 : il n'existe pas de patch de port pour elles, TeddyCloud doit donc être accessible sur le port 443 (un proxy ne peut les router que par IP).",
             "pico": {
                 "preparation": "Uniquement nécessaire si tu prévois de flasher avec un Raspberry Pi Pico",
                 "readingFlash": "Lire la mémoire flash avec Raspberry Pi Pico",
@@ -1628,6 +1646,7 @@
                 "readingFlashText2": "Il est recommandé d'effectuer plusieurs lectures et de comparer les résultats.",
                 "writingFlash": "Écrire la mémoire flash avec le Raspberry Pi Pico"
             },
+            "portHint": "Les box CC3235 se connectent toujours au port 443 : il n'existe pas de patch de port pour elles, TeddyCloud doit donc être accessible sur le port 443 (un proxy ne peut les router que par IP).",
             "previous": "Retour",
             "serprogFirmwareLink": "Trouver les instructions d'installation ici",
             "title": "CC3235 Flashage de la boîte",
@@ -1743,8 +1762,9 @@
                 "hintESP32FirmwareFlashed": "Le patchage est terminé. Déconnecte la Toniebox de l'UART, retire le court-circuit du J100 et redémarre la box. Elle devrait maintenant pouvoir se connecter à TeddyCloud !",
                 "hintESP32FirmwareReseted": "La réinitialisation devrait être terminée. Veuillez déconnecter la Toniebox du UART, retirer le court-circuit de J100 et redémarrer la box. Elle ne devrait plus être connectée à ton Teddycloud. Fais une vérification de fraîcheur pour tester si tout fonctionne correctement.",
                 "hintFlashESP32RevvoxFlasher": "Clique sur « Flasher l'ESP32 », choisis le port COM si nécessaire et attends que l'étape soit terminée.",
-                "hintPatchFlash": "Pour appliquer le flash sélectionné/lu avec le certificat CA de votre TeddyCloud et éventuellement effectuer d'autres ajustements tels que le nom d'hôte de TeddyCloud et/ou les identifiants WiFi, cliquez sur 'Patch' après avoir entré les informations ou passez à l'étape suivante sans patch.",
+                "hintPatchFlash": "Pour appliquer le flash sélectionné/lu avec le certificat CA de votre TeddyCloud et éventuellement effectuer d'autres ajustements tels que le nom d'hôte et le port de TeddyCloud et/ou les identifiants WiFi, cliquez sur 'Patch' après avoir entré les informations ou passez à l'étape suivante sans patch.",
                 "hintPatchHost": "Entrez le nom d'hôte souhaité pour votre instance TeddyCloud.",
+                "hintPatchPort": "Port auquel la Toniebox se connecte. Garde 443, sauf si la Toniebox doit joindre TeddyCloud sur un autre port, par exemple via un proxy qui route selon le port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
                 "hintPatchWifi": "Entrez optionnellement les identifiants WiFi pour votre Toniebox. Merci de ne le faire que si c'est vraiment nécessaire - normalement, si votre Toniebox était connectée à votre WiFi juste avant la mise à jour, ce n'est pas nécessaire.",
                 "hintReadESP32ImportFlash": "Débranche maintenant l'alimentation de ta Toniebox. Assure-toi que ton UART fonctionne en mode 3,3 V. Connecte ton UART au PC et à la Toniebox. Court-circuite les pastilles J100. Rebranche ensuite ta Toniebox à l'alimentation. Clique sur « Lire le flash » ou « Charger le fichier », puis choisis le port COM. Enfin, attends que l'étape soit terminée.",
                 "hintSaveLog": "Veuillez enregistrer la sortie du journal dans un fichier pour une analyse ultérieure en cas de problème.",
@@ -1752,9 +1772,6 @@
                 "hostname": "Nom d'hôte TeddyCloud:",
                 "hostnameSettings": "Nom d'hôte TeddyCloud",
                 "hostnameTooLong": "Si vous souhaitez connecter ultérieurement une Toniebox CC3200, le nom d'hôte ne doit pas dépasser 12 caractères (limitation du firmware).",
-                "hintPatchPort": "Port auquel la Toniebox se connecte. Garde 443, sauf si la Toniebox doit joindre TeddyCloud sur un autre port, par exemple via un proxy qui route selon le port. Les Toniebox CC3235 et la Toniebox 2 ne peuvent pas être patchées : elles se connectent toujours au port 443.",
-                "port": "Port TeddyCloud :",
-                "portInvalid": "Le port doit être compris entre 1 et 32767.",
                 "importanceBackup": "Avant de faire des modifications sur ta Toniebox, télécharge une copie du firmware original et stocke-la de manière sécurisée. Cela te permettra de restaurer ta Toniebox à son état d'usine en cas de problème. Sauvegarde-la à plusieurs endroits, comme sur ton ordinateur principal ou portable, un disque dur externe ou une clé USB, et/ou un service de stockage en ligne fiable (comme Google Drive, Dropbox, OneDrive). Ne conserve jamais ta seule copie uniquement sur le serveur TeddyCloud.",
                 "infoTable": "Infos ESP32",
                 "invalidFlashData": "La lecture / le chargement du flash ne contient que des 0x00 ou 0xFF. Vérifie la connexion ou le fichier chargé et réessaie !",
@@ -1770,6 +1787,8 @@
                 "patchingFlashImage": "Patch de l'image du flash...",
                 "patchingSuccessful": "Patch réussi, prêt à flasher {{size}} MiB",
                 "payloadReceived": "Charge utile reçue",
+                "port": "Port TeddyCloud :",
+                "portInvalid": "Le port doit être compris entre 1 et 32767.",
                 "portOpenFailedInUse": "Échec de l'ouverture de ce port. Déjà en cours d'utilisation ?",
                 "preparingFlash": "Préparation du flash de {{size}} MiB",
                 "previous": "Précédent",
@@ -1884,20 +1903,7 @@
             "uploadTonieboxCertificates": "Télécharger les certificats pour la Toniebox{{name}}"
         },
         "warningUseAtYourOwnRisk": "Avertissement : utilisation à tes propres risques",
-        "warningUseAtYourOwnRiskText": "Flasher ta Toniebox avec un firmware modifié annulera la garantie et peut rendre la box inutilisable. Suis attentivement les instructions et assure-toi de bien comprendre les risques encourus.",
-        "boxCertificate": {
-            "title": "Vérification du certificat",
-            "status": "Statut",
-            "presented": "Certificat présenté (SHA-256)",
-            "pin": "Certificat épinglé (SHA-256)",
-            "nextConnection": "Le statut est mis à jour à la prochaine connexion de la Toniebox.",
-            "statusText": {
-                "none": "Pas encore vérifié",
-                "trusted": "Certificat émis par TeddyCloud",
-                "pinned": "Certificat épinglé",
-                "mismatch": "Autre certificat que celui épinglé !"
-            }
-        }
+        "warningUseAtYourOwnRiskText": "Flasher ta Toniebox avec un firmware modifié annulera la garantie et peut rendre la box inutilisable. Suis attentivement les instructions et assure-toi de bien comprendre les risques encourus."
     },
     "tonies": {
         "addNewCustomTonie": "Créer un nouveau modèle",
@@ -2296,17 +2302,6 @@
             "valid": "Valide:",
             "yes": "Oui"
         },
-        "tafDownload": {
-            "asOneFile": "Télécharger en un seul fichier *.ogg",
-            "downloadCount": "Télécharger {{count}} pistes en *.ogg",
-            "downloadOne": "Télécharger 1 piste en *.ogg",
-            "duration": "Durée",
-            "modalTitle": "Télécharger les pistes en *.ogg",
-            "selectAll": "Sélectionner toutes les pistes",
-            "selectedCount": "{{selected}} sur {{total}} sélectionnées",
-            "track": "Piste",
-            "unnamedTrack": "Piste {{number}}"
-        },
         "informationModal": {
             "hideTag": "Masquer le Tonie/Tag",
             "ok": "OK",
@@ -2402,6 +2397,17 @@
             "navigationTitle": "Sons du système",
             "title": "Sons du système"
         },
+        "tafDownload": {
+            "asOneFile": "Télécharger en un seul fichier *.ogg",
+            "downloadCount": "Télécharger {{count}} pistes en *.ogg",
+            "downloadOne": "Télécharger 1 piste en *.ogg",
+            "duration": "Durée",
+            "modalTitle": "Télécharger les pistes en *.ogg",
+            "selectAll": "Sélectionner toutes les pistes",
+            "selectedCount": "{{selected}} sur {{total}} sélectionnées",
+            "track": "Piste",
+            "unnamedTrack": "Piste {{number}}"
+        },
         "tafHeaderInvalid": "TAF invalide",
         "tafHeaderOf": "En-tête TAF de ",
         "tafHeaderToniesJsonHint": "Tu ne dois pas modifier les données ici lorsque tu les envoies au tonies-json. Cela inclut le nombre de pistes, même s'il est différent du nombre de pistes dans le champ track-desc !",
@@ -2480,6 +2486,7 @@
             "customImageTitle": "Saisis un titre à imprimer",
             "customImageUpload": "Ajouter image temporaire (sans Bibliothèque)",
             "diameter": "Diamètre intérieur",
+            "downloadPdf": "Télécharger le PDF",
             "empty": "Vide - Sélectionne d'abord des Tonies ou Tags ou ajoute une image personnalisée !",
             "episodes": "Épisodes",
             "fontFamily": "Police de l'étiquette",
