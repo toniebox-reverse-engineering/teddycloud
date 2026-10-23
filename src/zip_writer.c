@@ -51,15 +51,14 @@ static void dos_time(uint16_t *dos_date, uint16_t *dos_time_out)
 {
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
-    int year = (t != NULL) ? t->tm_year + 1900 : 1980;
 
-    if (year < 1980)
+    if (t == NULL || t->tm_year + 1900 < 1980)
     {
         *dos_date = (1 << 5) | 1;
         *dos_time_out = 0;
         return;
     }
-    *dos_date = (uint16_t)(((year - 1980) << 9) | ((t->tm_mon + 1) << 5) | t->tm_mday);
+    *dos_date = (uint16_t)(((t->tm_year + 1900 - 1980) << 9) | ((t->tm_mon + 1) << 5) | t->tm_mday);
     *dos_time_out = (uint16_t)((t->tm_hour << 11) | (t->tm_min << 5) | (t->tm_sec / 2));
 }
 
