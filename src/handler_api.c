@@ -2409,6 +2409,27 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     char *path = (char *)uri + 1 + 7 + 1 + 8 + 1;
     char *pathAbsolute = custom_asprintf("%s%c%s", rootPath, PATH_SEPARATOR, path);
 
+    char tracks_param[TAF_TRACK_EXPORT_MAX * 4];
+    if (queryGet(queryString, "tracks", tracks_param, sizeof(tracks_param)))
+    {
+        /* export from the TAF the tag points to (e.g. a lib:// source), same as /content/ does */
+        tonie_info_t *tonieInfo = getTonieInfo(pathAbsolute, false, client_ctx->settings);
+        osFreeMem(pathAbsolute);
+
+        error_t export_error = ERROR_NOT_FOUND;
+        if (tonieInfo->exists && tonieInfo->valid &&
+            (tonieInfo->json._source_type == CT_SOURCE_NONE || tonieInfo->json._source_type == CT_SOURCE_TAF || tonieInfo->json._source_type == CT_SOURCE_TAP_CACHED))
+        {
+            export_error = handleApiContentTrackExport(connection, tonieInfo->contentPath, tracks_param, client_ctx->settings);
+        }
+        else
+        {
+            TRACE_ERROR("No local TAF for track export of '%s'\r\n", path);
+        }
+        freeTonieInfo(tonieInfo);
+        return export_error;
+    }
+
     char ruid[17];
 
     contentJson_t contentJson;
