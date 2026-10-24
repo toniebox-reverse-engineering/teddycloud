@@ -15,3 +15,4 @@ void test_socket_receive_line_capped_at_size(void);
 void test_box_cert_id(void);
 void test_box_cert_issuer_known(void);
 void test_zip_write_stored(void);
+void test_error_text(void);

@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include "tls_adapter.h"              // for load_cert, tls_adapter_deinit
 
 #include <errno.h>                    // for error_t

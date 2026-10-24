@@ -1,11 +1,15 @@
-#include "error.h"
+#include "error_text.h"
 
-#define ERROR_COUNT 598 + 1
+#define ERROR_COUNT (598 + 1)
 
 static char *error_text[ERROR_COUNT];
 
 char *error2text(error_t error)
 {
+    if (error < 0 || error >= ERROR_COUNT || !error_text[error])
+    {
+        return "";
+    }
     return error_text[error];
 }
 

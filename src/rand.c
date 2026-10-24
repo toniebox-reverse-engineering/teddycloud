@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include <errno.h>
 
 #ifndef WIN32

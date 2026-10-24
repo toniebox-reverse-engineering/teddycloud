@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include "debug.h"
 #include "error.h"
 #include "fs_port.h"

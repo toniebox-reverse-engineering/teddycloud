@@ -1,5 +1,6 @@
 
 
+#include "error_text.h"
 #include <errno.h>  // for error_t
 #include <stdint.h> // for uint8_t
 #include <stdio.h>  // for snprintf

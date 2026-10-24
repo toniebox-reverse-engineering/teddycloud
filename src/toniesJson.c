@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include "toniesJson.h"
 #include "fs_port.h"
 #include "os_port.h"

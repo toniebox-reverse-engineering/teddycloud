@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
