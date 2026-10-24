@@ -84,9 +84,7 @@ class TafServing(Base):
         self.assertEqual(resp.getheader("Content-Range"), f"bytes 100-199/{len(AUDIO)}")
         self.assertEqual(body, AUDIO[100:200])
 
-    @unittest.expectedFailure
     def test_skip_header_with_range_from_zero(self):
-        # start == 0 is treated as "no range" (see test_http_range)
         self.put_content(CONTENT)
         status, _, body = get(f"/v2/content/{RUID}?skip_header=true", "bytes=0-9")
         self.assertEqual((status, body), (206, AUDIO[:10]))
