@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include <string.h>
 #include <stdarg.h>
 
