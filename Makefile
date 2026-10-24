@@ -69,23 +69,12 @@ build_os:="$(OS)"
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=\"${build_os_id}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
 
-ifeq ($(build_os_id),"alpine")
-ifeq ($(build_arch_bits),32)
+# time_t is 64 bit on some 32-bit targets (musl, Debian/Ubuntu armhf since 2024) while long is 32 bit,
+# then the printf format PRIuTIME has to be "llu" (same-size long/long long are fine for gcc). Ask the compiler instead of guessing from the distro and the machine name:
+# uname -m says aarch64 inside a 32-bit container on a 64-bit ARM kernel, which broke the native armv7 build.
+ifneq ($(PLATFORM),windows)
+ifeq ($(shell printf '\043include <time.h>\n_Static_assert(sizeof(time_t) == sizeof(long), "");\n' | $(CC) -x c -c -o /dev/null - 2>/dev/null && echo long),)
 CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
-endif
-
-ifeq ($(build_os_id),"ubuntu")
-ifeq ($(build_arch_bits),32)
-CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
-endif
-
-ifeq ($(build_os_id),"debian")
-ifeq ($(build_arch_bits),32)
-ifeq ($(build_arch),"armv7l")
-CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
 endif
 endif
 
