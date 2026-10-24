@@ -112,6 +112,7 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
+            latest=false
             prefix=arch_,onlatest=true
             suffix=_${{ matrix.platform }}_${{ inputs.system }},onlatest=${{ inputs.primary_image }}
 
@@ -328,6 +329,7 @@ jobs:
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
+            latest=false
             suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
 
       - name: Release candidates must not move latest or the plain version tags
