@@ -14,13 +14,16 @@ on:
     tags:
       - tc_nightly*
       - tc_v*.*.*
+      # release candidates: images only (rc, rc0.7.1, ...), no release, never latest; cut from develop
+      - rc_v*.*.*
   pull_request:
     branches:
       - master
       - develop
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # release candidates share one group: rc / rc0.x.y are moving tags, runs must not overlap
+  group: ${{ github.workflow }}-${{ startsWith(github.ref_name, 'rc_v') && 'release-candidates' || github.ref }}
   cancel-in-progress: ${{ github.ref_type == 'branch' || github.event_name == 'pull_request' }}
 
 jobs:
@@ -31,6 +34,17 @@ jobs:
         with:
           submodules: recursive
           ref: ${{ inputs.tcw_commit_hash }}
+
+      # a release candidate is cut from develop: refuse an rc_ tag whose commit is not reachable from it
+      - name: Check that the release candidate tag is on develop
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'rc_v') }}
+        run: |
+          git fetch --no-tags --unshallow origin develop || git fetch --no-tags origin develop
+          commit="$(git rev-parse HEAD)"
+          if ! git merge-base --is-ancestor "$commit" FETCH_HEAD; then
+            echo "::error::$GITHUB_REF_NAME points at $commit, which is not on develop. Release candidates are cut from develop."
+            exit 1
+          fi
 
       - name: Verify commit hash
         if: ${{ inputs.tcw_commit_hash != '' }}
