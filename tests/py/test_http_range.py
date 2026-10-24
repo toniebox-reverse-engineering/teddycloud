@@ -68,6 +68,11 @@ class RangeContent(Base):
     def test_end_beyond_file_is_clamped(self):
         self.partial("bytes=90-200", 90, 99)
 
+    def test_out_of_range_numbers_are_ignored(self):
+        # does not fit 32 bits
+        status, _, body = get(self.PATH, "bytes=4294967296-")
+        self.assertEqual((status, body), (200, DATA))
+
     def test_unparsable_range_is_ignored(self):
         status, _, body = get(self.PATH, "bytes=abc")
         self.assertEqual((status, body), (200, DATA))
@@ -78,6 +83,7 @@ class RangeContent(Base):
     def test_start_past_end(self):
         status, resp, body = get(self.PATH, "bytes=100-")
         self.assertEqual((status, body), (416, b""))
+        self.assertEqual(resp.reason, "Range Not Satisfiable")
         self.assertEqual(resp.getheader("Content-Range"), f"bytes */{len(DATA)}")
 
     def test_reversed_range_is_ignored(self):
