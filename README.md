@@ -45,6 +45,22 @@ A Traefik example that separates the web UI (HTTP) from the Toniebox port (TLS p
 ## Where to start?
 If you want to get started, please follow our [guide on our website](https://toniebox-reverse-engineering.github.io/docs/tools/teddycloud/).
 
+## Docker images and release candidates
+Docker images are published to `ghcr.io/toniebox-reverse-engineering/teddycloud`:
+
+| Tag | What it is |
+|-----|------------|
+| `latest`, `0.7.0`, `0.7`, `0` | the newest release (git tag `tc_vX.Y.Z`) |
+| `nightly-develop` | the current `develop` branch |
+| `rc`, `rc0.7.1`, `rc_v0.7.1` | release candidates, see below |
+
+Before a release there can be **release candidates** (`rc`) for testing. They are cut from `develop` with a git tag
+`rc_vX.Y.Z` (more candidates of the same version: `rc_vX.Y.Z-1`, `rc_vX.Y.Z-2`, ...). `rc` always points to the newest
+candidate and `rc0.7.1` to the newest candidate of version 0.7.1; the exact tag (e.g. `rc0.7.1-1`) stays available.
+A candidate is published as Docker image only (no GitHub release), never moves `latest` or the version tags, and the
+version shown by TeddyCloud is `v0.7.1-rc`, `v0.7.1-rc1`, ... Please test them and report problems before the release.
+How to cut one is described in [CONTRIBUTING.md](CONTRIBUTING.md#releases-and-release-candidates).
+
 ## Development and bulding
 Please use the [develop](tree/develop) for your development and pull requests. Stable builds are available from the master branch. Don't forget to clone the submodules with --recurse-submodules.
 To catch sanitizer in you IDE set a breakpoint on `__asan::ReportGenericError`.
@@ -76,7 +92,7 @@ TeddyCloud consists of two repositories: the backend (teddycloud) and the web fr
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | [Make web and commit](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/build_commit_web.yml) | Manual (`workflow_dispatch`) | Builds the web from the teddycloud_web submodule, commits files to `contrib/data/www/`, pushes, and triggers the Docker build. |
-| [Docker Image Publish Matrix](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/publish_docker_matrix_all.yml) | Push to `master`/`develop` or tags | Builds Docker images automatically. |
+| [Docker Image Publish Matrix](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/publish_docker_matrix_all.yml) | Push to `master`/`develop` or tags (`tc_v...` releases, `rc_v...` release candidates) | Builds Docker images automatically. |
 
 **After merging:** Once both PRs are merged, a maintainer runs the "Make web and commit" workflow. It builds the frontend from the current teddycloud_web state (same branch), commits the built files, and updates the submodule pointer if needed. The subsequent push triggers the Docker build automatically.
 
