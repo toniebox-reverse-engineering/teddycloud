@@ -33,6 +33,12 @@ on:
         required: false
         default: false
 
+      dry_run:
+        description: "Build and test like for a pull request, but publish nothing to GHCR"
+        type: boolean
+        required: false
+        default: false
+
       tcw_commit_hash:
         type: string
 
@@ -125,13 +131,13 @@ jobs:
           context: .
           file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
-          # PRs (fork or non-fork): load locally to avoid pushing intermediate digests to GHCR.
+          # PRs (fork or non-fork) and dry runs: load locally to avoid pushing intermediate digests to GHCR.
           # Non-PR events (push to branch, tag): push by digest to GHCR for the merge job.
-          load: ${{ github.event_name == 'pull_request' }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ github.event_name == 'pull_request' && 'teddycloud-test:local' || '' }}
+          load: ${{ (github.event_name == 'pull_request' || inputs.dry_run) }}
+          push: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) }}
+          tags: ${{ (github.event_name == 'pull_request' || inputs.dry_run) && 'teddycloud-test:local' || '' }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
-          outputs: ${{ github.event_name != 'pull_request' && format('type=image,name={0},push-by-digest=true,name-canonical=true', env.REGISTRY_IMAGE) || '' }}
+          outputs: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) && format('type=image,name={0},push-by-digest=true,name-canonical=true', env.REGISTRY_IMAGE) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -165,7 +171,7 @@ jobs:
           if [ "${{ matrix.platform }}" != "linux/arm64/v8" ]; then
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "${{ github.event_name == 'pull_request' || inputs.dry_run }}" = "true" ]; then
             docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test teddycloud-test:local
           else
             docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test ${{ env.REGISTRY_IMAGE }}@${{ steps.build.outputs.digest }}
@@ -178,7 +184,7 @@ jobs:
         continue-on-error: ${{ contains(fromJson(inputs.error_platforms), matrix.platform) }}
 
       - name: Export digest
-        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
+        if: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) && steps.docker-test.outcome == 'success' }}
         run: |
           mkdir -p /tmp/digests/${{ github.sha }}
           digest="${{ steps.build.outputs.digest }}"
@@ -186,7 +192,7 @@ jobs:
           touch "/tmp/digests/${commit_sha}/${digest#sha256:}"
 
       - name: Push docker tags ${{ matrix.platform }}
-        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
+        if: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) && steps.docker-test.outcome == 'success' }}
         id: push_tags
         uses: docker/build-push-action@v7
         with:
@@ -202,7 +208,7 @@ jobs:
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Upload digest
-        if: ${{ github.event_name != 'pull_request' && steps.docker-test.outcome == 'success' }}
+        if: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) && steps.docker-test.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
           name: digests-${{ inputs.system }}-${{ steps.platform_strip.outputs.platform }}
@@ -217,7 +223,7 @@ jobs:
           if-no-files-found: error
 
   merge-images:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) }}
     runs-on: ubuntu-latest
     needs:
       - build
