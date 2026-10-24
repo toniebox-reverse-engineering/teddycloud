@@ -21,3 +21,15 @@ jobs:
       - name: arm/v6 container without QEMU
         continue-on-error: true
         run: docker run --rm --platform linux/arm/v6 alpine:latest sh -c 'uname -m; echo ok-armv6'
+      - name: Is QEMU registered on this runner?
+        continue-on-error: true
+        run: |
+          ls /proc/sys/fs/binfmt_misc/ 2>&1 | head -20
+          for f in /proc/sys/fs/binfmt_misc/qemu-arm*; do [ -e "$f" ] && { echo "== $f"; head -3 "$f"; }; done || true
+      - name: CPU-bound loop, arm64 vs arm/v7 vs arm/v6 (emulation would be several times slower)
+        continue-on-error: true
+        run: |
+          for p in linux/arm64 linux/arm/v7 linux/arm/v6; do
+            echo "== $p"
+            docker run --rm --platform $p alpine:latest sh -c 'start=$(date +%s%N); i=0; while [ $i -lt 400000 ]; do i=$((i+1)); done; end=$(date +%s%N); echo "loop ms: $(( (end-start)/1000000 ))"; cat /proc/self/auxv >/dev/null 2>&1; grep -m1 -i "^Features\|^model name" /proc/cpuinfo || true'
+          done
