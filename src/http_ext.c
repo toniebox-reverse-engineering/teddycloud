@@ -1,3 +1,12 @@
+/*
+ * Parts of this file (httpExtSendResponse* and the pcap helpers) are derived from CycloneTCP
+ * (http/http_server.c, http/http_server_misc.c), Copyright (C) 2010-2024 Oryx Embedded SARL
+ * (www.oryx-embedded.com), licensed under the GNU General Public License, version 2 or (at your
+ * option) any later version, see cyclone/LICENSE and the header of cyclone/cyclone_tcp/http/http_server.c.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #include <ctype.h>
 #include <inttypes.h>
 #include <stdio.h>

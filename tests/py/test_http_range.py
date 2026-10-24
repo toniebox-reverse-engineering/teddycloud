@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Range handling of the HTTP server: /content (handler_api.c) and static files (http_ext.c).
-Known-wrong cases are marked expectedFailure with what they should do; when one is fixed the
-test starts to "unexpectedly succeed" and the marker has to go.
+bytes=0-N is a partial response, a start behind the end gives 416 on /content (static files fall back to the
+whole file), reversed, suffix (bytes=-N) and 32-bit-overflowing ranges are ignored.
 
 Run via: make test_py TESTS=http_range
 """

@@ -1,4 +1,11 @@
 /*
+ * The TRACE_* macros are based on those of CycloneTCP's common/debug.h, Copyright (C) 2010-2024
+ * Oryx Embedded SARL (www.oryx-embedded.com), licensed under the GNU General Public License,
+ * version 2 or (at your option) any later version, see cyclone/LICENSE.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+/*
  * teddycloud wrapper around Cyclone's debug.h: runtime log level, colored
  * prefixes with file:line and the *_RESUME variants. Found before Cyclone's
  * copy via -Iinclude, the original is pulled in unchanged.

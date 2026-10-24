@@ -70,9 +70,12 @@ CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${
 CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=\"${build_os_id}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
 
 # time_t is 64 bit on some 32-bit targets (musl, Debian/Ubuntu armhf since 2024) while long is 32 bit,
-# then the printf format PRIuTIME has to be "llu" (same-size long/long long are fine for gcc). Ask the compiler instead of guessing from the distro and the machine name:
+# then the printf format PRIuTIME has to be "llu". Ask the compiler instead of guessing from the distro and the machine name:
 # uname -m says aarch64 inside a 32-bit container on a 64-bit ARM kernel, which broke the native armv7 build.
 ifneq ($(PLATFORM),windows)
+ifeq ($(shell printf 'int main(void) { return 0; }\n' | $(CC) -x c -c -o /dev/null - 2>/dev/null && echo ok),)
+$(warning cannot run "$(CC)" to check the size of time_t, assuming a 64 bit time_t on a 32 bit target)
+endif
 ifeq ($(shell printf '\043include <time.h>\n_Static_assert(sizeof(time_t) == sizeof(long), "");\n' | $(CC) -x c -c -o /dev/null - 2>/dev/null && echo long),)
 CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
 endif
