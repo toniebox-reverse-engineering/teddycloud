@@ -101,6 +101,11 @@ ifeq ($(build_gitTagPrefix),tc)
 	build_version:=$(subst ${build_gitTagPrefix}_,,${build_gitTag})
 	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\"
 endif
+# release candidates: rc_v0.7.1 -> v0.7.1-rc, rc_v0.7.1-1 -> v0.7.1-rc1, rc_v0.7.1-rc0 stays as it is
+ifeq ($(build_gitTagPrefix),rc)
+	build_version:=$(shell echo '$(build_gitTag)' | sed -E 's/^rc_//; s/^(v[0-9.]+)$$/\1-rc/; s/^(v[0-9.]+)-([0-9]+)$$/\1-rc\2/')
+	CFLAGS_VERSION+=-DBUILD_VERSION=\"${build_version}\"
+endif
 
 WEB_GIT_DIRTY ?= 1
 WEB_GIT_BUILD_TIME ?= unknown

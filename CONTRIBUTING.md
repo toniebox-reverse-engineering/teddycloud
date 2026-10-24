@@ -88,6 +88,26 @@ the `Makefile`, port the TeddyCloud code to the changed APIs, re-port the remain
 files and run `make test` plus the complete Docker matrix (`publish_docker_matrix_all.yml` with
 `dry_run=true` and `full_matrix=true`; dry runs and pull requests are otherwise fast and skip the emulated Alpine builds).
 
+## Releases and release candidates
+
+A release is a tag `tc_vX.Y.Z`: it builds the zips, a draft GitHub release and the Docker images
+`X.Y.Z`, `X.Y`, `X` and `latest`.
+
+A **release candidate** has its own tag prefix `rc_` and so never touches the release machinery. Tag a
+commit that is on `develop`:
+
+    git fetch origin
+    git tag rc_v0.7.1 origin/develop          # the first candidate of 0.7.1
+    git push origin rc_v0.7.1
+    # further candidates of the same version: rc_v0.7.1-1, rc_v0.7.1-2 (or rc_v0.7.1-rc1, ...)
+
+It publishes **Docker images only** (no GitHub release): `rc` (the newest candidate of anything),
+`rc0.7.1` (the newest candidate of 0.7.1) and, for a suffixed tag, the exact `rc0.7.1-1` (or
+`rc0.7.1-rc1`) plus the git tag name. `latest`, `0`, `0.7` and `0.7.1` never move, a check in the
+workflow fails the run before pushing if they would. The binary reports `v0.7.1-rc` / `v0.7.1-rc1`.
+An `rc_` tag whose commit is not reachable from `develop` is refused. Candidate runs are queued one
+at a time (the `rc` tags move), so don't re-run an old candidate. Nothing is merged to `master`.
+
 ## Code style
 
 - **Blend in** with the surrounding code. The repo ships a `.vscode/` configuration with
