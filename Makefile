@@ -220,7 +220,7 @@ INCLUDES_windows = \
 SOURCES_windows = \
 	src/platform/platform_$(PLATFORM).c\
 	src/cyclone/common/os_port_windows.c \
-	src/cyclone/common/fs_port_windows.c \
+	src/platform/fs_port_windows.c \
 	src/platform/getopt.c
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
