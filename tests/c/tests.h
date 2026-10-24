@@ -16,3 +16,4 @@ void test_box_cert_id(void);
 void test_box_cert_issuer_known(void);
 void test_zip_write_stored(void);
 void test_error_text(void);
+void test_log_lock(void);

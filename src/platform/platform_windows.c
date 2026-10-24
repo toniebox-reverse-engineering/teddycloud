@@ -532,3 +532,23 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 
     return 0;
 }
+
+static CRITICAL_SECTION log_section;
+static INIT_ONCE log_section_once = INIT_ONCE_STATIC_INIT;
+
+static BOOL CALLBACK log_section_init(PINIT_ONCE once, PVOID param, PVOID *context)
+{
+    InitializeCriticalSection(&log_section);
+    return TRUE;
+}
+
+void tc_log_lock(void)
+{
+    InitOnceExecuteOnce(&log_section_once, log_section_init, NULL, NULL);
+    EnterCriticalSection(&log_section);
+}
+
+void tc_log_unlock(void)
+{
+    LeaveCriticalSection(&log_section);
+}
