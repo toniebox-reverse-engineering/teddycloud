@@ -683,7 +683,11 @@ submodules:
 	$(QUIET)git submodule init
 	$(QUIET)git submodule update
 
-preinstall: clean build web_copy $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+# clean must be finished before the build starts, which a plain prerequisite list does not
+# guarantee with make -j (clean would delete objects and generated files while they are used)
+preinstall: $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+	$(QUIET)$(MAKE) --no-print-directory clean
+	$(QUIET)$(MAKE) --no-print-directory build web_copy
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
