@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "core/net.h"
 #include "http/http_server.h"
@@ -15,16 +16,19 @@ void httpExtParseRequestHeaderField(HttpConnection *connection, const char *name
     if (osStrcasecmp(name, "Range") == 0)
     {
         /* "bytes=N-" and "bytes=N-M"; a suffix range ("bytes=-N") is ignored, scanf would read it as a huge start */
-        uint32_t start = 0, end = 0;
         if (osStrncasecmp(value, "bytes=", 6) == 0 && isdigit((unsigned char)value[6]))
         {
-            int fields = sscanf(value + 6, "%" PRIu32 "-%" PRIu32, &start, &end);
-            if (fields >= 1)
+            char *rest = NULL;
+            unsigned long long start = strtoull(value + 6, &rest, 10);
+            bool has_end = (*rest == '-' && isdigit((unsigned char)rest[1]));
+            unsigned long long end = has_end ? strtoull(rest + 1, NULL, 10) : 0;
+            /* values that do not fit 32 bits are not a usable range */
+            if (*rest == '-' && start <= UINT32_MAX && end <= UINT32_MAX)
             {
-                connection->request.Range.start = start;
-                connection->request.Range.end = (fields == 2) ? end : 0;
+                connection->request.Range.start = (uint32_t)start;
+                connection->request.Range.end = (uint32_t)end;
                 connection->request.Range.valid = true;
-                connection->request.Range.has_end = (fields == 2);
+                connection->request.Range.has_end = has_end;
             }
         }
     }
@@ -237,7 +241,10 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
    uint32_t first = 0, last = 0;
    connection->request.Range.size = file_length;
    // An unsatisfiable range (start behind the data, empty resource) falls back to the full content
-   HttpRangeResult range = httpExtResolveRange(&connection->request.Range, file_length, &first, &last);
+   // A stream that is still growing only honours a range that starts behind its beginning, as before:
+   // "bytes=0-" would otherwise cut it off at the size it has right now
+   HttpRangeResult range = (isStream && connection->request.Range.start == 0) ? HTTP_RANGE_FULL
+                                                                              : httpExtResolveRange(&connection->request.Range, file_length, &first, &last);
    if (range == HTTP_RANGE_PARTIAL && connection->response.contentRange == NULL)
    {
       connection->response.contentRange = osAllocMem(255);

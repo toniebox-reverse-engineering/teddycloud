@@ -28,7 +28,7 @@ on:
       - develop
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}${{ inputs.dry_run == true && '-dry' || '' }}
   cancel-in-progress: ${{ github.ref_type == 'branch' || github.event_name == 'pull_request' }}
 
 jobs:
@@ -116,4 +116,5 @@ jobs:
       error_platforms: '["linux/arm/v7", "linux/ppc64le"]'
       noasan_fallback_platforms: "[]"
       skip_empty_merge: true
+      dry_run: ${{ inputs.dry_run == true }}
       tcw_commit_hash: ${{ inputs.tcw_commit_hash }}

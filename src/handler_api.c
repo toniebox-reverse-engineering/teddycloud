@@ -2320,6 +2320,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     if (range_hdr)
     {
         osFreeMem(range_hdr);
+        connection->response.contentRange = NULL;
     }
 
     if (error)

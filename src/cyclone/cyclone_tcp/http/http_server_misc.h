@@ -64,6 +64,7 @@ static const HttpStatusCodeDesc statusCodeList[] =
    {403, "Forbidden"},
    {404, "Not Found"},
    {410, "Gone"},
+   {416, "Range Not Satisfiable"},
    //Server error
    {500, "Internal Server Error"},
    {501, "Not Implemented"},
