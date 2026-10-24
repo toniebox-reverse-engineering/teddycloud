@@ -552,3 +552,26 @@ void tc_log_unlock(void)
 {
     LeaveCriticalSection(&log_section);
 }
+
+bool platform_supports_ansi_colors(void)
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false; // Cannot get standard output handle.
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false; // Cannot get console mode.
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false; // Cannot set console mode.
+    }
+
+    return true; // ANSI escape sequences are supported.
+}
