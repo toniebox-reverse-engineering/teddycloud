@@ -17,6 +17,61 @@
 #include "server_helpers.h"
 #include "cert.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+static bool supportsAnsiColors(void)
+{
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false; // Cannot get standard output handle.
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false; // Cannot get console mode.
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false; // Cannot set console mode.
+    }
+
+    return true; // ANSI escape sequences are supported.
+#else
+    char *term = getenv("TERM");
+    if (term)
+    {
+        if (strncmp(term, "xterm", 5) == 0 ||
+            strncmp(term, "rxvt", 4) == 0 ||
+            // ... other terminals known to support ANSI colors ...
+            0)
+        {
+            return true; // This terminal probably supports ANSI color codes.
+        }
+    }
+
+    return false; // Default to not supported.
+#endif
+}
+
+int tc_log_level(void)
+{
+    return get_settings()->log.level;
+}
+
+bool tc_log_color(void)
+{
+    settings_t *settings = get_settings();
+    return settings->log.color && settings->internal.logColorSupport;
+}
+
+
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
 static void settings_deinit_ovl(uint8_t overlayNumber, bool reload);
