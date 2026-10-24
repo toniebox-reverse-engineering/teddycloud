@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
       full_matrix:
-        description: "Dry runs and pull requests are fast by default (no emulated alpine builds, no ppc64le ASAN-test images); true runs the complete matrix"
+        description: "Dry runs and pull requests are fast by default (no emulated alpine builds); true runs the complete matrix"
         type: boolean
         default: false
   workflow_call:
@@ -106,10 +106,11 @@ jobs:
     with:
       system: "ubuntuAsanTest"
       dockerfile: "DockerfileUbuntu"
-      # arm64 is promoted to the main build; these remain ASAN-broken under QEMU.
-      platforms: ${{ needs.test_commit_hash.outputs.fast == 'true' && '["linux/arm/v7"]' || '["linux/arm/v7", "linux/ppc64le"]' }}
+      # ASAN test of the native 32-bit ARM binary. arm64 is promoted to the main build; ppc64le is gone here:
+      # ASAN cannot run under QEMU (it aborts at start), so that job could never succeed.
+      platforms: '["linux/arm/v7"]'
       primary_image: false
-      error_platforms: '["linux/arm/v7", "linux/ppc64le"]'
+      error_platforms: '["linux/arm/v7"]'
       noasan_fallback_platforms: "[]"
       skip_empty_merge: true
       dry_run: ${{ inputs.dry_run == true }}
@@ -120,10 +121,11 @@ jobs:
     with:
       system: "debianAsanTest"
       dockerfile: "DockerfileDebian"
-      # arm64 is promoted to the main build; these remain ASAN-broken under QEMU.
-      platforms: ${{ needs.test_commit_hash.outputs.fast == 'true' && '["linux/arm/v7"]' || '["linux/arm/v7", "linux/ppc64le"]' }}
+      # ASAN test of the native 32-bit ARM binary. arm64 is promoted to the main build; ppc64le is gone here:
+      # ASAN cannot run under QEMU (it aborts at start), so that job could never succeed.
+      platforms: '["linux/arm/v7"]'
       primary_image: false
-      error_platforms: '["linux/arm/v7", "linux/ppc64le"]'
+      error_platforms: '["linux/arm/v7"]'
       noasan_fallback_platforms: "[]"
       skip_empty_merge: true
       dry_run: ${{ inputs.dry_run == true }}
