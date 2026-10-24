@@ -109,6 +109,8 @@ error_t httpReadRequestHeader(HttpConnection *connection)
       return error;
 
    //Properly terminate the string with a NULL character
+   if (length > HTTP_SERVER_BUFFER_SIZE - 1)
+      length = HTTP_SERVER_BUFFER_SIZE - 1;
    connection->buffer[length] = '\0';
    //Debug message
    // TRACE_INFO("%s", connection->buffer);
