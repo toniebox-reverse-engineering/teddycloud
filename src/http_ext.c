@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "core/net.h"
 #include "http/http_client.h"
@@ -50,7 +51,7 @@ size_t httpExtFormatResponseHeader(HttpConnection *connection, char *p)
 
     p += osSprintf(p, "Accept-Ranges: bytes\r\n");
 
-    char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+    const char_t *allowOrigin = httpExtAllowOrigin();
     if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
     {
         p += osSprintf(p, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
@@ -437,4 +438,58 @@ void httpExtPcapClientWrite(HttpClientContext *context, bool is_tx, const void *
     pcaplog_ctx_t ctx;
     pcap_client_ctx(context, &ctx);
     pcaplog_write(&ctx, is_tx, (const uint8_t *)data, length);
+}
+
+
+static const HttpStatusCodeDesc statusCodeList[] =
+{
+    {0, "This is fine"}, // unknown
+    {200, "OK"},
+    {201, "Created"},
+    {202, "Accepted"},
+    {204, "No Content"},
+    {206, "Partial Content"},
+    {301, "Moved Permanently"},
+    {302, "Found"},
+    {304, "Not Modified"},
+    {400, "Bad Request"},
+    {401, "Unauthorized"},
+    {403, "Forbidden"},
+    {404, "Not Found"},
+    {410, "Gone"},
+    {416, "Range Not Satisfiable"},
+    {500, "Internal Server Error"},
+    {501, "Not Implemented"},
+    {502, "Bad Gateway"},
+    {503, "Service Unavailable"}
+};
+
+const char *httpStatusCodeText(unsigned int statusCode)
+{
+    for (size_t i = 0; i < sizeof(statusCodeList) / sizeof(statusCodeList[0]); i++)
+    {
+        if (statusCodeList[i].value == statusCode)
+        {
+            return statusCodeList[i].message;
+        }
+    }
+    return statusCodeList[0].message;
+}
+
+static char *allow_origin = NULL;
+
+void httpExtSetAllowOrigin(const char *allowOrigin)
+{
+    free(allow_origin);
+    allow_origin = allowOrigin ? strdup(allowOrigin) : NULL;
+}
+
+const char *httpExtAllowOrigin(void)
+{
+    return allow_origin;
+}
+
+bool httpExtIsHttps(HttpConnection *connection)
+{
+    return connection->tlsContext != NULL;
 }
