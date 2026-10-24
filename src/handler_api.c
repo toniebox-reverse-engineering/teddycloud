@@ -2307,7 +2307,9 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         connection->response.statusCode = 200;
         connection->response.contentLength = length;
     }
-    connection->response.contentType = "audio/ogg";
+    /* content files are mostly extensionless TAFs, but tag configs are JSON (iOS names the download after the type) */
+    const char *ext = strrchr(uri, '.');
+    connection->response.contentType = (ext != NULL && !osStrcasecmp(ext, ".json")) ? "application/json" : "audio/ogg";
     connection->response.chunkedEncoding = FALSE;
 
     error = httpWriteHeader(connection);
