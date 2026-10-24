@@ -556,7 +556,7 @@ endif
 	$(shell $(MKDIR) $(subst /,$(SEP),$@) $(TO_TRASH))
 
 .SECONDEXPANSION:
-$(LINK_LO_FILE): $$(dir $$@)
+$(LINK_LO_FILE): $(OBJECTS) $(THIS_MAKEFILE) | $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
 workdirs: certs/server/ certs/server_tb2/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/ data/firmware/ data/cache/
