@@ -1024,27 +1024,11 @@ void server_init(bool test)
         size_t openConnections = 0;
         for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
         {
-            HttpConnection *conn = &httpsWebConnections[i];
-            if (!conn->running)
+            /* a browser, also when it asks for a box: it says nothing about the boxes */
+            if (httpsWebConnections[i].running)
             {
-                continue;
+                openConnections++;
             }
-            openConnections++;
-            mutex_lock(MUTEX_CLIENT_CTX);
-            client_ctx_t *client_ctx = &conn->private.client_ctx;
-            if (client_ctx->settings == NULL)
-            {
-                mutex_unlock(MUTEX_CLIENT_CTX);
-                continue;
-            }
-            settings_internal_t *internal = &client_ctx->settings->internal;
-            if (internal->config_used)
-            {
-                time_t curr_time = time(NULL);
-                internal->online = true;
-                internal->last_connection = curr_time;
-            }
-            mutex_unlock(MUTEX_CLIENT_CTX);
         }
         if (openConnections != openWebConnectionsLast)
         {
@@ -1068,7 +1052,8 @@ void server_init(bool test)
                 continue;
             }
             settings_internal_t *internal = &client_ctx->settings->internal;
-            if (internal->config_used)
+            /* only a box's own settings: the server's are copied into every box when they are loaded */
+            if (internal->config_used && internal->overlayNumber > 0)
             {
                 time_t curr_time = time(NULL);
                 internal->online = true;
