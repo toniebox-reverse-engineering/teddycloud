@@ -29,6 +29,7 @@ static const test_case_t tests[] = {
     {"box_cert_id", test_box_cert_id},
     {"box_cert_issuer_known", test_box_cert_issuer_known},
     {"zip_write_stored", test_zip_write_stored},
+    {"error_text", test_error_text},
 };
 
 int main(void)

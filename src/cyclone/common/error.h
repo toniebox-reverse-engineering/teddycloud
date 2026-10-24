@@ -29,7 +29,7 @@
 #ifndef _ERROR_H
 #define _ERROR_H
 
-// C++ guard
+//C++ guard
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -309,11 +309,7 @@ typedef enum
    ERROR_PARTIAL_MATCH
 } error_t;
 
-char *error2text(error_t error);
-void error_text_init();
-const char *httpstatus2text(error_t error);
-
-// C++ guard
+//C++ guard
 #ifdef __cplusplus
 }
 #endif

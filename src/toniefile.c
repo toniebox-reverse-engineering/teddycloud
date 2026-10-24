@@ -1,5 +1,6 @@
 
 
+#include "error_text.h"
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>

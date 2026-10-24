@@ -42,6 +42,7 @@
 #define TRACE_LEVEL HTTP_TRACE_LEVEL
 
 // Dependencies
+#include "error_text.h"
 #include "core/net.h"
 #include "http/http_server.h"
 #include "http/http_server_auth.h"

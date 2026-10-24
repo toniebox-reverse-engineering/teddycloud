@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include "handler.h"
 #include "toniesJson.h"
 #include "server_helpers.h"
