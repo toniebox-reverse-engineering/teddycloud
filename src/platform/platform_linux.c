@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -507,4 +509,21 @@ void tc_log_lock(void)
 void tc_log_unlock(void)
 {
     pthread_mutex_unlock(&log_mutex);
+}
+
+bool platform_supports_ansi_colors(void)
+{
+    char *term = getenv("TERM");
+    if (term)
+    {
+        if (strncmp(term, "xterm", 5) == 0 ||
+            strncmp(term, "rxvt", 4) == 0 ||
+            // ... other terminals known to support ANSI colors ...
+            0)
+        {
+            return true; // This terminal probably supports ANSI color codes.
+        }
+    }
+
+    return false; // Default to not supported.
 }
