@@ -482,6 +482,7 @@ typedef struct
 #endif
 } HttpAuthenticateHeader;
 
+
 /**
  * @brief HTTP request
  **/
@@ -577,8 +578,6 @@ typedef struct
    HttpCgiCallback cgiCallback;                                  ///<CGI callback function
    HttpRequestCallback requestCallback;                          ///<HTTP request callback function
    HttpUriNotFoundCallback uriNotFoundCallback;                  ///<URI not found callback function
-   char_t *allowOrigin;
-   bool_t isHttps;
 } HttpServerSettings;
 
 
@@ -604,10 +603,6 @@ struct _HttpServerContext
    OsSemaphore semaphore;                                        ///<Semaphore limiting the number of connections
    OsTaskParameters taskParams;                                  ///<Task parameters
    OsTaskId taskId;                                              ///<Task identifier
-#if (OS_STATIC_TASK_SUPPORT == ENABLED)
-   OsTaskTcb taskTcb;                                            ///<Task control block
-   OsStackType taskStack[HTTP_SERVER_STACK_SIZE];                ///<Task stack
-#endif
    Socket *socket;                                               ///<Listening socket
    HttpConnection *connections;                                  ///<Client connections
 #if (HTTP_SERVER_TLS_SUPPORT == ENABLED && TLS_TICKET_SUPPORT == ENABLED)

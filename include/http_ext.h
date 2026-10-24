@@ -61,5 +61,15 @@ void httpExtPcapServerWrite(struct _HttpConnection *connection, bool is_tx, cons
 void httpExtPcapClientReset(struct _HttpClientContext *context);
 void httpExtPcapClientWrite(struct _HttpClientContext *context, bool is_tx, const void *data, size_t length);
 
+/* status line text for the cloud proxy; the vendored server has its own (shorter) table for its status line */
+const char *httpStatusCodeText(unsigned int statusCode);
+
+/* snapshot of core.allowOrigin taken at server start, for the Access-Control-Allow-Origin header */
+void httpExtSetAllowOrigin(const char *allowOrigin);
+const char *httpExtAllowOrigin(void);
+
+/* the connection was accepted by one of the TLS servers */
+bool httpExtIsHttps(struct _HttpConnection *connection);
+
 #define HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value) httpExtParseRequestHeaderField(connection, name, value)
 #define HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p) (p) += httpExtFormatResponseHeader(connection, p)

@@ -288,7 +288,7 @@ static error_t handleCorsOptions(
     client_ctx_t *client_ctx)
 {
     char line[256];
-    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+    const char_t *allowOrigin = httpExtAllowOrigin();
 
     osSnprintf(line, sizeof(line), "HTTP/%d.%d 204 No Content\r\n", MSB(connection->request.version), LSB(connection->request.version));
 
@@ -548,7 +548,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
-        if (connection->settings->isHttps && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
+        if (httpExtIsHttps(connection) && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
         {
             error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
@@ -941,16 +941,13 @@ void server_init(bool test)
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
-    http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    http_settings.isHttps = false;
+    httpExtSetAllowOrigin(settings_get_string("core.allowOrigin"));
 
     /* use them for HTTPS */
     https_web_settings = http_settings;
     https_web_settings.connections = httpsWebConnections;
     https_web_settings.port = settings_get_unsigned("core.server.https_web_port");
     https_web_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    https_web_settings.isHttps = true;
 
     /* use them for Box HTTPS */
     https_api_settings = https_web_settings;
