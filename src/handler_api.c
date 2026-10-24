@@ -2286,22 +2286,24 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     }
 
     char *range_hdr = NULL;
+    uint32_t first = 0, last = 0;
 
     // Format HTTP response header
-    // TODO add status 416 on invalid ranges
-    if (!isStream && connection->request.Range.start > 0)
+    HttpRangeResult range = isStream ? HTTP_RANGE_FULL : httpExtResolveRange(&connection->request.Range, length, &first, &last);
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        connection->request.Range.size = length;
-        if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-        {
-            connection->request.Range.end = connection->request.Range.size - 1;
-        }
-
-        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, length);
         connection->response.contentRange = range_hdr;
         connection->response.statusCode = 206;
-        connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+        connection->response.contentLength = last - first + 1;
         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+    }
+    else if (range == HTTP_RANGE_UNSATISFIABLE)
+    {
+        range_hdr = custom_asprintf("bytes */%" PRIu32, length);
+        connection->response.contentRange = range_hdr;
+        connection->response.statusCode = 416;
+        connection->response.contentLength = 0;
     }
     else
     {
@@ -2326,15 +2328,20 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         return error;
     }
 
-    if (!isStream && connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
+        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", first);
+        fsSeekFile(file, startOffset + first, FS_SEEK_SET);
+        length = last - first + 1;
     }
     else
     {
         TRACE_DEBUG("No seeking, sending from beginning\r\n");
         fsSeekFile(file, startOffset, FS_SEEK_SET);
+        if (range == HTTP_RANGE_UNSATISFIABLE)
+        {
+            length = 0; /* header only */
+        }
     }
 
     // Send response body

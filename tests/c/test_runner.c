@@ -31,6 +31,7 @@ static const test_case_t tests[] = {
     {"zip_write_stored", test_zip_write_stored},
     {"error_text", test_error_text},
     {"log_lock", test_log_lock},
+    {"range_ext", test_range_ext},
 };
 
 int main(void)

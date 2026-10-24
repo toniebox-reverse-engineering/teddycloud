@@ -813,7 +813,7 @@ TEST_C_SRC := $(wildcard tests/c/*.c)
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c
+	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
