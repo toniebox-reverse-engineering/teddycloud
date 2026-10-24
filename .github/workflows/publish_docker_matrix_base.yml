@@ -38,11 +38,6 @@ on:
         type: boolean
         required: false
         default: false
-      cross_build:
-        description: "Cross-compile ppc64le and s390x (ubuntu and debian images) on the build platform instead of compiling them under QEMU: much faster, but without ASAN"
-        type: boolean
-        required: false
-        default: false
 
       tcw_commit_hash:
         type: string
@@ -153,7 +148,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ inputs.system }}-${{ matrix.platform }}
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
-            BUILD_MODE=${{ (inputs.cross_build && (inputs.system == 'ubuntu' || inputs.system == 'debian') && (matrix.platform == 'linux/ppc64le' || matrix.platform == 'linux/s390x')) && 'cross' || 'native' }}
+            # ppc64le and s390x of the ubuntu/debian images are cross-compiled (no ASAN, which cannot run under QEMU
+            # anyway); the push step below must use the same value or it rebuilds everything
+            BUILD_MODE=${{ ((inputs.system == 'ubuntu' || inputs.system == 'debian') && (matrix.platform == 'linux/ppc64le' || matrix.platform == 'linux/s390x')) && 'cross' || 'native' }}
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Platform name strip for filename
@@ -218,6 +215,7 @@ jobs:
           labels: ${{ steps.matrix_meta.outputs.labels }}
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            BUILD_MODE=${{ ((inputs.system == 'ubuntu' || inputs.system == 'debian') && (matrix.platform == 'linux/ppc64le' || matrix.platform == 'linux/s390x')) && 'cross' || 'native' }}
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Upload digest
