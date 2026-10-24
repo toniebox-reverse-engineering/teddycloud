@@ -149,7 +149,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
     else
     {
         ctx->file = fsOpenFile(fullPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_CREATE | FS_FILE_MODE_TRUNC);
-        TRACE_INFO("Create TAF: %s\n", fullPath)
+        TRACE_INFO("Create TAF: %s\n", fullPath);
     }
 
     if (ctx->file == NULL)
@@ -536,7 +536,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
             {
                 if (page_remain)
                 {
-                    TRACE_INFO("unexpected small padding at %" PRIu64 " (%" PRIu64 " s)\r\n", ctx->ogg_granule_position, ctx->ogg_granule_position / OPUS_FRAME_SIZE * 60 / 1000)
+                    TRACE_INFO("unexpected small padding at %" PRIu64 " (%" PRIu64 " s)\r\n", ctx->ogg_granule_position, ctx->ogg_granule_position / OPUS_FRAME_SIZE * 60 / 1000);
                     return ERROR_FAILURE;
                 }
 
@@ -564,7 +564,7 @@ error_t toniefile_encode(toniefile_t *ctx, int16_t *sample_buffer, size_t sample
                         ctx->taf_block_num++;
                         if (ctx->file_pos % TONIEFILE_FRAME_SIZE)
                         {
-                            TRACE_ERROR("Block alignment mismatch 0x%08" PRIX32 "\r\n", (uint32_t)ctx->file_pos)
+                            TRACE_ERROR("Block alignment mismatch 0x%08" PRIX32 "\r\n", (uint32_t)ctx->file_pos);
                             return ERROR_FAILURE;
                         }
                     }

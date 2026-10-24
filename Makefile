@@ -415,7 +415,6 @@ CYCLONE_SOURCES = \
 
 # remove cyclone sources for which modifications exist
 CYCLONE_SOURCES := $(filter-out \
-	cyclone/common/debug.c \
 	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
@@ -427,7 +426,6 @@ CYCLONE_SOURCES := $(filter-out \
 
 # and add modified ones
 CYCLONE_SOURCES += \
-	src/cyclone/common/debug.c \
 	src/cyclone/cyclone_crypto/mpi.c \
 	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
