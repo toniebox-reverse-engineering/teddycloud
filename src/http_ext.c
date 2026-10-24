@@ -4,12 +4,14 @@
 #include <stdlib.h>
 
 #include "core/net.h"
+#include "http/http_client.h"
 #include "http/http_server.h"
 #include "str.h"
 #include "debug.h"
 #include "http/http_server_misc.h"
 #include "http/mime.h"
 #include "http_ext.h"
+#include "pcaplog.h"
 
 void httpExtParseRequestHeaderField(HttpConnection *connection, const char *name, char *value)
 {
@@ -400,4 +402,39 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
 
    // Return status code
    return error;
+}
+
+
+void httpExtPcapServerWrite(HttpConnection *connection, bool is_tx, const void *data, size_t length)
+{
+    pcaplog_ctx_t ctx;
+    ctx.local_endpoint.ipv4 = connection->settings->ipAddr.ipv4Addr;
+    ctx.local_endpoint.port = connection->settings->port;
+    ctx.remote_endpoint.ipv4 = connection->socket->remoteIpAddr.ipv4Addr;
+    ctx.remote_endpoint.port = connection->socket->remotePort;
+    ctx.pcap_data = &connection->private.pcap_data;
+    pcaplog_write(&ctx, is_tx, (const uint8_t *)data, length);
+}
+
+static void pcap_client_ctx(HttpClientContext *context, pcaplog_ctx_t *ctx)
+{
+    ctx->local_endpoint.ipv4 = 0;
+    ctx->local_endpoint.port = context->socket->localPort;
+    ctx->remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
+    ctx->remote_endpoint.port = context->socket->remotePort;
+    ctx->pcap_data = &context->private.pcap_data;
+}
+
+void httpExtPcapClientReset(HttpClientContext *context)
+{
+    pcaplog_ctx_t ctx;
+    pcap_client_ctx(context, &ctx);
+    pcaplog_reset(&ctx);
+}
+
+void httpExtPcapClientWrite(HttpClientContext *context, bool is_tx, const void *data, size_t length)
+{
+    pcaplog_ctx_t ctx;
+    pcap_client_ctx(context, &ctx);
+    pcaplog_write(&ctx, is_tx, (const uint8_t *)data, length);
 }
