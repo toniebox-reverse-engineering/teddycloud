@@ -337,6 +337,14 @@ error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void 
     eMultipartState state = PARSE_HEADER;
     char *boundary = connection->request.boundary;
 
+    /* An empty boundary makes find_string() match at offset 0 everywhere,
+       which turns the data-end arithmetic below into an underflow. */
+    if (boundary == NULL || osStrlen(boundary) == 0)
+    {
+        TRACE_ERROR("multipart request without a boundary\r\n");
+        return ERROR_INVALID_REQUEST;
+    }
+
     size_t leftover = 0;
     bool fetch = true;
     int save_start = 0;
@@ -473,8 +481,9 @@ error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void 
 
             if (data_end >= 0)
             {
-                /* We've found a boundary, let's finish up the current file, but skip the "--\r\n" */
-                if (cbr->multipart_add(multipart_ctx, (uint8_t *)buffer, data_end - 4) != NO_ERROR)
+                /* We've found a boundary, let's finish up the current file, but skip the preceding "\r\n--" */
+                size_t add_len = (data_end >= 4) ? (size_t)(data_end - 4) : 0;
+                if (cbr->multipart_add(multipart_ctx, (uint8_t *)buffer, add_len) != NO_ERROR)
                 {
                     TRACE_ERROR("multipart_add failed\r\n");
                     return ERROR_FAILURE;
@@ -669,6 +678,12 @@ error_t ipv6StringToAddr(const char_t *str, Ipv6Addr *ipAddr)
             // The "::" symbol is preceded by a number?
             if (value >= 0)
             {
+                // Too many 16-bit words? (bounds the w[] write)
+                if (i >= 8)
+                {
+                    error = ERROR_INVALID_SYNTAX;
+                    break;
+                }
                 // Save the current 16-bit word
                 ipAddr->w[i++] = htons(value);
                 // Prepare to decode the next 16-bit word
