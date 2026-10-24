@@ -34,6 +34,7 @@
 #include "settings.h"
 #include "toniebox_state_type.h"
 #include "pcaplog_types.h"
+#include "http_ext.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
 
