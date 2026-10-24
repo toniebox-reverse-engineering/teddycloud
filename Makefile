@@ -236,6 +236,10 @@ INCLUDES = \
 	-Isrc/cyclone/cyclone_tcp \
 	-Icyclone/common \
 	-Icyclone/cyclone_ssl \
+	-Icyclone/cyclone_ssl/tls \
+	-Icyclone/cyclone_ssl/tls13 \
+	-Icyclone/cyclone_ssl/dtls \
+	-Icyclone/cyclone_ssl/dtls13 \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
@@ -340,32 +344,32 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_tcp/mqtt/mqtt_client.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_packet.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_misc.c \
-	cyclone/cyclone_ssl/tls.c \
-	cyclone/cyclone_ssl/tls_cipher_suites.c \
-	cyclone/cyclone_ssl/tls_handshake.c \
-	cyclone/cyclone_ssl/tls_client.c \
-	cyclone/cyclone_ssl/tls_client_fsm.c \
-	cyclone/cyclone_ssl/tls_client_extensions.c \
-	cyclone/cyclone_ssl/tls_client_misc.c \
-	cyclone/cyclone_ssl/tls_server.c \
-	cyclone/cyclone_ssl/tls_server_fsm.c \
-	cyclone/cyclone_ssl/tls_server_extensions.c \
-	cyclone/cyclone_ssl/tls_server_misc.c \
-	cyclone/cyclone_ssl/tls_common.c \
-	cyclone/cyclone_ssl/tls_extensions.c \
-	cyclone/cyclone_ssl/tls_certificate.c \
-	cyclone/cyclone_ssl/tls_sign_generate.c \
-	cyclone/cyclone_ssl/tls_sign_misc.c \
-	cyclone/cyclone_ssl/tls_sign_verify.c \
-	cyclone/cyclone_ssl/tls_key_material.c \
-	cyclone/cyclone_ssl/tls_transcript_hash.c \
-	cyclone/cyclone_ssl/tls_cache.c \
-	cyclone/cyclone_ssl/tls_ticket.c \
-	cyclone/cyclone_ssl/tls_ffdhe.c \
-	cyclone/cyclone_ssl/tls_record.c \
-	cyclone/cyclone_ssl/tls_record_encryption.c \
-	cyclone/cyclone_ssl/tls_record_decryption.c \
-	cyclone/cyclone_ssl/tls_misc.c \
+	cyclone/cyclone_ssl/tls/tls.c \
+	cyclone/cyclone_ssl/tls/tls_cipher_suites.c \
+	cyclone/cyclone_ssl/tls/tls_handshake.c \
+	cyclone/cyclone_ssl/tls/tls_client.c \
+	cyclone/cyclone_ssl/tls/tls_client_fsm.c \
+	cyclone/cyclone_ssl/tls/tls_client_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_client_misc.c \
+	cyclone/cyclone_ssl/tls/tls_server.c \
+	cyclone/cyclone_ssl/tls/tls_server_fsm.c \
+	cyclone/cyclone_ssl/tls/tls_server_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_server_misc.c \
+	cyclone/cyclone_ssl/tls/tls_common.c \
+	cyclone/cyclone_ssl/tls/tls_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_certificate.c \
+	cyclone/cyclone_ssl/tls/tls_sign_generate.c \
+	cyclone/cyclone_ssl/tls/tls_sign_misc.c \
+	cyclone/cyclone_ssl/tls/tls_sign_verify.c \
+	cyclone/cyclone_ssl/tls/tls_key_material.c \
+	cyclone/cyclone_ssl/tls/tls_transcript_hash.c \
+	cyclone/cyclone_ssl/tls/tls_cache.c \
+	cyclone/cyclone_ssl/tls/tls_ticket.c \
+	cyclone/cyclone_ssl/tls/tls_ffdhe.c \
+	cyclone/cyclone_ssl/tls/tls_record.c \
+	cyclone/cyclone_ssl/tls/tls_record_encrypt.c \
+	cyclone/cyclone_ssl/tls/tls_record_decrypt.c \
+	cyclone/cyclone_ssl/tls/tls_misc.c \
 	cyclone/cyclone_crypto/hash/sha1.c \
 	cyclone/cyclone_crypto/hash/sha256.c \
 	cyclone/cyclone_crypto/hash/sha384.c \
@@ -411,25 +415,28 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/pkix/x509_sign_generate.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_format.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
-	cyclone/cyclone_crypto/rng/yarrow.c
+	cyclone/cyclone_crypto/rng/hmac_drbg.c \
+	cyclone/cyclone_crypto/mpi/mpi.c \
+	cyclone/cyclone_crypto/mpi/mpi_misc.c \
+	cyclone/cyclone_crypto/ecc/ec_misc.c \
+	cyclone/cyclone_crypto/kdf/tls_kdf.c \
+	cyclone/cyclone_crypto/pkc/rsa_misc.c \
+	cyclone/cyclone_crypto/pkix/pem_key_import.c \
+	cyclone/cyclone_crypto/pkix/pem_key_export.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c
 
 # remove cyclone sources for which modifications exist
 CYCLONE_SOURCES := $(filter-out \
-	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
-	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
-	src/cyclone/cyclone_crypto/mpi/mpi.c \
-	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
-	src/cyclone/cyclone_tcp/http/http_server_misc.c \
-	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c
+	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
@@ -576,11 +583,11 @@ endif
 
 # Our src/mpi_prime.c and src/tls_adapter.c replace functions Cyclone defines as weak.
 # MSVC has no weak symbols, so rename the Cyclone variants in their own object only.
-$(OBJ_DIR)/cyclone/cyclone_ssl/tls_certificate$(OBJ_EXT): CFLAGS += -DtlsParseCertificateList=tlsParseCertificateList_override
-$(OBJ_DIR)/src/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -DmpiCheckProbablePrime=mpiCheckProbablePrime_upstream
+$(OBJ_DIR)/cyclone/cyclone_ssl/tls/tls_certificate$(OBJ_EXT): CFLAGS += -DtlsParseCertificateList=tlsParseCertificateList_override
+$(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -DmpiCheckProbablePrime=mpiCheckProbablePrime_upstream
 ifneq ($(PLATFORM),windows)
 # was #pragma GCC optimize("O3") in the patched mpi.c
-$(OBJ_DIR)/src/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -O3
+$(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -O3
 $(OBJ_DIR)/src/mpi_prime$(OBJ_EXT): CFLAGS += -O3
 endif
 
@@ -813,7 +820,7 @@ TEST_C_SRC := $(wildcard tests/c/*.c)
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(SRC_DIR)/cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
+	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_ssl/tls -I cyclone/cyclone_ssl/tls13 -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(SRC_DIR)/cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test

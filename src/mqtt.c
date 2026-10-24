@@ -23,7 +23,7 @@ typedef struct
 
 } mqtt_ctx_t;
 
-#define MQTT_CLIENT_PRIVATE_CONTEXT mqtt_ctx_t *mqtt_ctx;
+#define MQTT_CLIENT_CONTEXT_PRIVATE mqtt_ctx_t *mqtt_ctx;
 
 #include "mqtt/mqtt_client.h"
 #include "tls.h"

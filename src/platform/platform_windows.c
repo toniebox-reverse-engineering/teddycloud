@@ -575,3 +575,25 @@ bool platform_supports_ansi_colors(void)
 
     return true; // ANSI escape sequences are supported.
 }
+
+/*
+ * Cyclone 2.6 asks the stack for a NetContext. teddycloud uses OS sockets and has no Cyclone stack
+ * instance, so there is nothing to look up or lock.
+ */
+NetContext *netGetDefaultContext(void)
+{
+    return NULL;
+}
+
+void netLock(NetContext *context)
+{
+}
+
+void netUnlock(NetContext *context)
+{
+}
+
+Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
+{
+    return socketOpen(type, protocol);
+}

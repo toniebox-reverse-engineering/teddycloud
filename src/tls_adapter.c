@@ -534,317 +534,44 @@ bool tls_cert_fingerprint(const char_t *pem, char_t sha256[65], char_t *subject,
  * @return Error code
  **/
 
-error_t tlsParseCertificateList(TlsContext *context,
-                                const uint8_t *p, size_t length)
+/*
+ * Cyclone's own tlsParseCertificateList() is compiled under the name tlsParseCertificateList_override (see
+ * the Makefile). It validates the certificate list; afterwards, when we are the server, the client's
+ * certificate is copied into the TLS context for the box certificate check (box_cert_check.c).
+ */
+error_t tlsParseCertificateList_override(TlsContext *context, const uint8_t *p, size_t length);
+
+error_t tlsParseCertificateList(TlsContext *context, const uint8_t *p, size_t length)
 {
-    error_t error;
-    error_t certValidResult;
-    uint_t i;
-    size_t n;
-    const char_t *subjectName;
-    X509CertInfo *certInfo;
-    X509CertInfo *issuerCertInfo;
-
-    // Initialize X.509 certificates
-    certInfo = NULL;
-    issuerCertInfo = NULL;
-
-    // Start of exception handling block
-    do
+    error_t error = tlsParseCertificateList_override(context, p, length);
+    if (error || context->entity != TLS_CONNECTION_END_SERVER)
     {
-        // Allocate a memory buffer to store X.509 certificate info
-        certInfo = tlsAllocMem(sizeof(X509CertInfo));
-        // Failed to allocate memory?
-        if (certInfo == NULL)
-        {
-            // Report an error
-            error = ERROR_OUT_OF_MEMORY;
-            break;
-        }
+        return error;
+    }
 
-        // Allocate a memory buffer to store the parent certificate
-        issuerCertInfo = tlsAllocMem(sizeof(X509CertInfo));
-        // Failed to allocate memory?
-        if (issuerCertInfo == NULL)
-        {
-            // Report an error
-            error = ERROR_OUT_OF_MEMORY;
-            break;
-        }
+    /* the list was parsed and is well-formed: the first entry is the client's certificate (3 byte length + DER) */
+    size_t n = LOAD24BE(p);
+    const uint8_t *der = p + 3;
 
-        // The end-user certificate is preceded by a 3-byte length field
-        if (length < 3)
-        {
-            // Report an error
-            error = ERROR_DECODING_FAILED;
-            break;
-        }
+    X509CertInfo *certInfo = tlsAllocMem(sizeof(X509CertInfo));
+    if (certInfo == NULL)
+    {
+        return ERROR_OUT_OF_MEMORY;
+    }
 
-        // Get the size occupied by the certificate
-        n = LOAD24BE(p);
-        // Jump to the beginning of the DER-encoded certificate
-        p += 3;
-        length -= 3;
+    error = x509ParseCertificate(der, n, certInfo);
+    if (!error)
+    {
+        copyAsString(context->client_cert_issuer, sizeof(context->client_cert_issuer), certInfo->tbsCert.issuer.commonName.length, certInfo->tbsCert.issuer.commonName.value);
+        copyAsString(context->client_cert_subject, sizeof(context->client_cert_subject), certInfo->tbsCert.subject.commonName.length, certInfo->tbsCert.subject.commonName.value);
+        copyAsHex(context->client_cert_serial, sizeof(context->client_cert_serial), certInfo->tbsCert.serialNumber.length, certInfo->tbsCert.serialNumber.value);
+        uint8_t sha256[SHA256_DIGEST_SIZE];
+        sha256Compute(der, n, sha256);
+        copyAsHex(context->client_cert_sha256, sizeof(context->client_cert_sha256), sizeof(sha256), sha256);
+        context->client_cert_trusted = issued_by(certInfo, settings_get_string("internal.server.ca")) ||
+                                       issued_by(certInfo, settings_get_string("internal.server_tb2.ca"));
+    }
 
-        // Malformed Certificate message?
-        if (n == 0 || n > length)
-        {
-            // Report an error
-            error = ERROR_DECODING_FAILED;
-            break;
-        }
-
-        // Display ASN.1 structure
-        error = asn1DumpObject(p, n, 0);
-        // Any error to report?
-        if (error)
-            break;
-
-        // Parse end-user certificate
-        error = x509ParseCertificate(p, n, certInfo);
-        // Failed to parse the X.509 certificate?
-        if (error)
-        {
-            // Report an error
-            error = ERROR_BAD_CERTIFICATE;
-            break;
-        }
-
-        // Check certificate key usage
-        error = tlsCheckKeyUsage(certInfo, context->entity,
-                                 context->keyExchMethod);
-        // Any error to report?
-        if (error)
-            break;
-
-        // Extract the public key from the end-user certificate
-        error = tlsReadSubjectPublicKey(context,
-                                        &certInfo->tbsCert.subjectPublicKeyInfo);
-        // Any error to report?
-        if (error)
-            break;
-
-#if (TLS_CLIENT_SUPPORT == ENABLED)
-        // Client mode?
-        if (context->entity == TLS_CONNECTION_END_CLIENT)
-        {
-            TlsCertificateType certType;
-            TlsNamedGroup namedCurve;
-
-            // Retrieve the type of the X.509 certificate
-            error = tlsGetCertificateType(certInfo, &certType, &namedCurve);
-            // Unsupported certificate?
-            if (error)
-                break;
-
-            // Version of TLS prior to TLS 1.3?
-            if (context->version <= TLS_VERSION_1_2)
-            {
-                // ECDSA certificate?
-                if (certType == TLS_CERT_ECDSA_SIGN)
-                {
-                    // Make sure the elliptic curve is supported
-                    if (tlsGetCurveInfo(context, namedCurve) == NULL)
-                    {
-                        error = ERROR_BAD_CERTIFICATE;
-                        break;
-                    }
-                }
-            }
-
-            // Point to the subject name
-            subjectName = context->serverName;
-
-            // Check the subject name in the server certificate against the actual
-            // FQDN name that is being requested
-            error = x509CheckSubjectName(certInfo, subjectName);
-            // Any error to report?
-            if (error)
-            {
-                // Debug message
-                TRACE_WARNING("Server name mismatch!\r\n");
-
-                // Report an error
-                error = ERROR_BAD_CERTIFICATE;
-                break;
-            }
-        }
-        else
-#endif
-        // Server mode?
-        {
-            // Do not check name constraints
-            subjectName = NULL;
-
-            /* TeddyCloud customizations - copy certificate into TLS context */
-            copyAsString(context->client_cert_issuer, sizeof(context->client_cert_issuer), certInfo->tbsCert.issuer.commonName.length, certInfo->tbsCert.issuer.commonName.value);
-            copyAsString(context->client_cert_subject, sizeof(context->client_cert_subject), certInfo->tbsCert.subject.commonName.length, certInfo->tbsCert.subject.commonName.value);
-            copyAsHex(context->client_cert_serial, sizeof(context->client_cert_serial), certInfo->tbsCert.serialNumber.length, certInfo->tbsCert.serialNumber.value);
-            uint8_t sha256[SHA256_DIGEST_SIZE];
-            sha256Compute(p, n, sha256);
-            copyAsHex(context->client_cert_sha256, sizeof(context->client_cert_sha256), sizeof(sha256), sha256);
-            context->client_cert_trusted = issued_by(certInfo, settings_get_string("internal.server.ca")) ||
-                                           issued_by(certInfo, settings_get_string("internal.server_tb2.ca"));
-        }
-
-        // Check if the end-user certificate can be matched with a trusted CA
-        certValidResult = tlsValidateCertificate(context, certInfo, 0,
-                                                 subjectName);
-
-        // Check validation result
-        if (certValidResult != NO_ERROR && certValidResult != ERROR_UNKNOWN_CA)
-        {
-            // The certificate is not valid
-            error = certValidResult;
-            break;
-        }
-
-        // Next certificate
-        p += n;
-        length -= n;
-
-#if (TLS_MAX_VERSION >= TLS_VERSION_1_3 && TLS_MIN_VERSION <= TLS_VERSION_1_3)
-        // TLS 1.3 currently selected?
-        if (context->version == TLS_VERSION_1_3)
-        {
-            // Parse the list of extensions for the current CertificateEntry
-            error = tls13ParseCertExtensions(p, length, &n);
-            // Any error to report?
-            if (error)
-                break;
-
-            // Point to the next field
-            p += n;
-            // Remaining bytes to process
-            length -= n;
-        }
-#endif
-
-        // PKIX path validation
-        for (i = 0; length > 0; i++)
-        {
-            // Each intermediate certificate is preceded by a 3-byte length field
-            if (length < 3)
-            {
-                // Report an error
-                error = ERROR_DECODING_FAILED;
-                break;
-            }
-
-            // Get the size occupied by the certificate
-            n = LOAD24BE(p);
-            // Jump to the beginning of the DER-encoded certificate
-            p += 3;
-            // Remaining bytes to process
-            length -= 3;
-
-            // Malformed Certificate message?
-            if (n == 0 || n > length)
-            {
-                // Report an error
-                error = ERROR_DECODING_FAILED;
-                break;
-            }
-
-            // Display ASN.1 structure
-            error = asn1DumpObject(p, n, 0);
-            // Any error to report?
-            if (error)
-                break;
-
-            // Parse intermediate certificate
-            error = x509ParseCertificate(p, n, issuerCertInfo);
-            // Failed to parse the X.509 certificate?
-            if (error)
-            {
-                // Report an error
-                error = ERROR_BAD_CERTIFICATE;
-                break;
-            }
-
-            // Certificate chain validation in progress?
-            if (certValidResult == ERROR_UNKNOWN_CA)
-            {
-                // Validate current certificate
-                error = x509ValidateCertificate(certInfo, issuerCertInfo, i);
-                // Certificate validation failed?
-                if (error)
-                    break;
-
-                // Check name constraints
-                error = x509CheckNameConstraints(subjectName, issuerCertInfo);
-                // Should the application reject the certificate?
-                if (error)
-                {
-                    error = ERROR_BAD_CERTIFICATE;
-                    break;
-                }
-
-                // Check the version of the certificate
-                if (issuerCertInfo->tbsCert.version < X509_VERSION_3)
-                {
-                    // Conforming implementations may choose to reject all version 1
-                    // and version 2 intermediate certificates (refer to RFC 5280,
-                    // section 6.1.4)
-                    error = ERROR_BAD_CERTIFICATE;
-                    break;
-                }
-
-                // Check if the intermediate certificate can be matched with a
-                // trusted CA
-                certValidResult = tlsValidateCertificate(context, issuerCertInfo,
-                                                         i, subjectName);
-
-                // Check validation result
-                if (certValidResult != NO_ERROR && certValidResult != ERROR_UNKNOWN_CA)
-                {
-                    // The certificate is not valid
-                    error = certValidResult;
-                    break;
-                }
-            }
-
-            // Keep track of the issuer certificate
-            *certInfo = *issuerCertInfo;
-
-            // Next certificate
-            p += n;
-            length -= n;
-
-#if (TLS_MAX_VERSION >= TLS_VERSION_1_3 && TLS_MIN_VERSION <= TLS_VERSION_1_3)
-            // TLS 1.3 currently selected?
-            if (context->version == TLS_VERSION_1_3)
-            {
-                // Parse the list of extensions for the current CertificateEntry
-                error = tls13ParseCertExtensions(p, length, &n);
-                // Any error to report?
-                if (error)
-                    break;
-
-                // Point to the next field
-                p += n;
-                // Remaining bytes to process
-                length -= n;
-            }
-#endif
-        }
-
-        // Certificate chain validation failed?
-        if (error == NO_ERROR && certValidResult != NO_ERROR)
-        {
-            // A valid certificate chain or partial chain was received, but the
-            // certificate was not accepted because the CA certificate could not
-            // be matched with a known, trusted CA
-            error = ERROR_UNKNOWN_CA;
-        }
-
-        // End of exception handling block
-    } while (0);
-
-    // Free previously allocated memory
     tlsFreeMem(certInfo);
-    tlsFreeMem(issuerCertInfo);
-
-    // Return status code
     return error;
 }

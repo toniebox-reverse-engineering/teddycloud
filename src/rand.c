@@ -7,12 +7,13 @@
 #include <unistd.h>
 #endif
 
-#include "rng/yarrow.h"
+#include "rng/hmac_drbg.h"
+#include "hash/sha256.h"
 #include "error.h"
 #include "debug.h"
 #include "rand.h"
 
-YarrowContext yarrowContext;
+HmacDrbgContext hmacDrbgContext;
 bool rand_initialized = false;
 
 void *rand_get_context()
@@ -22,12 +23,12 @@ void *rand_get_context()
         rand_init();
         rand_initialized = true;
     }
-    return &yarrowContext;
+    return &hmacDrbgContext;
 }
 
 const PrngAlgo *rand_get_algo()
 {
-    return YARROW_PRNG_ALGO;
+    return HMAC_DRBG_PRNG_ALGO;
 }
 
 int rand_get_bytes(void *buf, size_t buflen)
@@ -57,7 +58,8 @@ int rand_get_bytes(void *buf, size_t buflen)
 
 error_t rand_init()
 {
-    uint8_t seed[32];
+    // HMAC_DRBG (SHA-256) needs at least 1.5 times its security strength (32 bytes) as seed
+    uint8_t seed[64];
 
     int ret = getrandom(seed, sizeof(seed), 0);
     if (ret < 0)
@@ -80,14 +82,14 @@ error_t rand_init()
         }
     }
 
-    error_t error = yarrowInit(&yarrowContext);
+    error_t error = hmacDrbgInit(&hmacDrbgContext, SHA256_HASH_ALGO);
     if (error)
     {
         TRACE_ERROR("Error: PRNG initialization failed (%s)\r\n", error2text(error));
         return ERROR_FAILURE;
     }
 
-    error = yarrowSeed(&yarrowContext, seed, sizeof(seed));
+    error = hmacDrbgSeed(&hmacDrbgContext, seed, sizeof(seed));
     if (error)
     {
         TRACE_ERROR("Error: Failed to seed PRNG (%s)\r\n", error2text(error));
@@ -99,7 +101,7 @@ error_t rand_init()
 error_t rand_deinit()
 {
     // Release PRNG context
-    yarrowRelease(&yarrowContext);
+    hmacDrbgDeinit(&hmacDrbgContext);
 
     return NO_ERROR;
 }
