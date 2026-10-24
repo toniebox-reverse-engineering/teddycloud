@@ -238,4 +238,11 @@
 // Ed448 elliptic curve support
 #define TLS_ED448_SUPPORT DISABLED
 
+// Cyclone 2.6 raised the minimum RSA/DH/DSA key sizes of peer certificates to 2048 bits and
+// turned on Encrypt-then-MAC. Keep what 2.4 did, old boxes and brokers must keep working.
+#define TLS_MIN_RSA_MODULUS_SIZE 1024
+#define TLS_MIN_DH_MODULUS_SIZE 1024
+#define TLS_MIN_DSA_MODULUS_SIZE 1024
+#define TLS_ENCRYPT_THEN_MAC_SUPPORT DISABLED
+
 #endif

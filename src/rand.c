@@ -18,10 +18,11 @@ bool rand_initialized = false;
 
 void *rand_get_context()
 {
+    /* tls_adapter_init() initialises the PRNG at start-up; this only covers callers that run before it
+       (single threaded at that point), connection threads must never be the first to get here */
     if (!rand_initialized)
     {
         rand_init();
-        rand_initialized = true;
     }
     return &hmacDrbgContext;
 }
@@ -95,6 +96,7 @@ error_t rand_init()
         TRACE_ERROR("Error: Failed to seed PRNG (%s)\r\n", error2text(error));
         return error;
     }
+    rand_initialized = true;
     return NO_ERROR;
 }
 

@@ -684,7 +684,7 @@ error_t cert_generate_signed_ec(
     char_t temp_pem_buf[2048];
     size_t temp_pem_size = sizeof(temp_pem_buf);
 
-    if (pemExportEcPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size, PEM_PRIVATE_KEY_FORMAT_RFC5915) == NO_ERROR)
+    if (pemExportEcPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size, PEM_PRIVATE_KEY_FORMAT_PKCS8) == NO_ERROR)
     {
         priv_pem_data = osAllocMem(temp_pem_size + 1);
         osMemcpy(priv_pem_data, temp_pem_buf, temp_pem_size);
