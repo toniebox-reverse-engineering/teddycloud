@@ -50,6 +50,7 @@ class RangeContent(Base):
     def partial(self, byte_range, first, last):
         status, resp, body = get(self.PATH, byte_range)
         self.assertEqual(status, 206, byte_range)
+        self.assertEqual(resp.reason, "Partial Content")  # the status text table moves with the server code
         self.assertEqual(resp.getheader("Content-Range"), f"bytes {first}-{last}/{len(DATA)}")
         self.assertEqual(resp.getheader("Content-Length"), str(last - first + 1))
         self.assertEqual(body, DATA[first : last + 1])
