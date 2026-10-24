@@ -1,6 +1,7 @@
 #pragma once
 
 #include "debug.h"
+#include "error.h"
 
 #define TAP_TYPE_TAP "tap"
 
