@@ -1,0 +1,21 @@
+name: Probe arm32 on arm64 runner (temporary)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: CPU
+        run: |
+          uname -m
+          lscpu | grep -iE "model name|architecture|byte order|flags" | head -5 || true
+          grep -m3 -iE "CPU architecture|CPU implementer|CPU part" /proc/cpuinfo || true
+          grep -ic aarch32 /proc/cpuinfo || true
+      - name: arm/v7 container without QEMU
+        continue-on-error: true
+        run: docker run --rm --platform linux/arm/v7 alpine:latest sh -c 'uname -m; echo ok-armv7'
+      - name: arm/v6 container without QEMU
+        continue-on-error: true
+        run: docker run --rm --platform linux/arm/v6 alpine:latest sh -c 'uname -m; echo ok-armv6'
