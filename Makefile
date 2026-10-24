@@ -419,21 +419,17 @@ CYCLONE_SOURCES := $(filter-out \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
-	cyclone/cyclone_tcp/http/mime.c \
-	cyclone/cyclone_ssl/tls_certificate.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
-	src/cyclone/cyclone_crypto/mpi.c \
+	src/cyclone/cyclone_crypto/mpi/mpi.c \
 	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
 	src/cyclone/cyclone_tcp/http/http_server_misc.c \
-	src/cyclone/cyclone_tcp/http/mime.c \
-	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
-	src/cyclone/cyclone_ssl/tls_certificate.c
+	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
@@ -576,6 +572,16 @@ $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs |
 ifneq ($(PLATFORM),windows)
 $(OBJ_DIR)/cyclone/%$(OBJ_EXT): CFLAGS += -Wno-error=discarded-qualifiers -Wno-discarded-qualifiers
 $(OBJ_DIR)/src/cyclone/%$(OBJ_EXT): CFLAGS += -Wno-error=discarded-qualifiers -Wno-discarded-qualifiers
+endif
+
+# Our src/mpi_prime.c and src/tls_adapter.c replace functions Cyclone defines as weak.
+# MSVC has no weak symbols, so rename the Cyclone variants in their own object only.
+$(OBJ_DIR)/cyclone/cyclone_ssl/tls_certificate$(OBJ_EXT): CFLAGS += -DtlsParseCertificateList=tlsParseCertificateList_override
+$(OBJ_DIR)/src/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -DmpiCheckProbablePrime=mpiCheckProbablePrime_upstream
+ifneq ($(PLATFORM),windows)
+# was #pragma GCC optimize("O3") in the patched mpi.c
+$(OBJ_DIR)/src/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -O3
+$(OBJ_DIR)/src/mpi_prime$(OBJ_EXT): CFLAGS += -O3
 endif
 
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
