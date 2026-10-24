@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -484,4 +485,26 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 time_t getCurrentUnixTime(void)
 {
     return time(NULL);
+}
+static pthread_mutex_t log_mutex;
+static pthread_once_t log_mutex_once = PTHREAD_ONCE_INIT;
+
+static void log_mutex_init(void)
+{
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&log_mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+}
+
+void tc_log_lock(void)
+{
+    pthread_once(&log_mutex_once, log_mutex_init);
+    pthread_mutex_lock(&log_mutex);
+}
+
+void tc_log_unlock(void)
+{
+    pthread_mutex_unlock(&log_mutex);
 }
