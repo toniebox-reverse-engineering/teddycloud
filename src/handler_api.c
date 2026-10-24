@@ -1363,7 +1363,7 @@ error_t handleApiGetCaDer(HttpConnection *connection, const char_t *uri, const c
     settings_t *settings = get_settings();
     char *ca_path = custom_asprintf("%s%c%s", settings->internal.basedirfull, PATH_SEPARATOR, settings->core.server_cert.file.ca_der);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, ca_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, ca_path);
     osFreeMem(ca_path);
     return err;
 }
@@ -2177,7 +2177,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     if (track_count == 1)
     {
         /* the uri only selects the content type by extension */
-        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
+        error = httpExtSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
     }
     else
     {
@@ -2190,7 +2190,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             error = ERROR_FAILURE;
             goto cleanup;
         }
-        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
+        error = httpExtSendResponseUnsafe(connection, "tracks.zip", zip_path);
     }
 
 cleanup:
@@ -3097,7 +3097,7 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 {
     char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, tonies_path);
     osFreeMem(tonies_path);
     return err;
 }
@@ -4718,7 +4718,7 @@ error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *ur
         fsCloseFile(file);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, path);
     osFreeMem(path);
     return err;
 }
@@ -4764,7 +4764,7 @@ error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, cons
         return ERROR_FAILURE;
     }
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
-    return httpSendResponseUnsafe(connection, uri, file_path);
+    return httpExtSendResponseUnsafe(connection, uri, file_path);
 }
 
 error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, char **contentPath)
@@ -4798,7 +4798,7 @@ error_t handleApiContentJsonGet(HttpConnection *connection, const char_t *uri, c
     }
 
     contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
-    error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
+    error = httpExtSendResponseUnsafe(connection, uri, contentJsonPath);
     osFreeMem(contentPath);
     osFreeMem(contentJsonPath);
     return error;

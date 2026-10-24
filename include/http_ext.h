@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "error.h"
+
 #define HTTP_SERVER_IFRANGE_MAX_LEN 31
 
 typedef struct
@@ -32,6 +34,12 @@ struct _HttpConnection;
 void httpExtParseRequestHeaderField(struct _HttpConnection *connection, const char *name, char *value);
 /* Accept-Ranges, Access-Control-Allow-Origin and Content-Range, returns the length written to p */
 size_t httpExtFormatResponseHeader(struct _HttpConnection *connection, char *p);
+
+/* like httpSendResponse(), see http_ext.c; Unsafe takes the absolute path instead of resolving uri */
+error_t httpExtSendResponse(struct _HttpConnection *connection, const char *uri);
+error_t httpExtSendResponseUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath);
+error_t httpExtSendResponseStream(struct _HttpConnection *connection, const char *uri, bool_t isStream);
+error_t httpExtSendResponseStreamUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath, bool_t isStream);
 
 #define HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value) httpExtParseRequestHeaderField(connection, name, value)
 #define HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p) (p) += httpExtFormatResponseHeader(connection, p)

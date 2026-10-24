@@ -277,7 +277,7 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
         return httpSendRedirectResponse(connection, 301, entry->original_url);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, entry->file_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, entry->file_path);
     return err;
 }
 
@@ -609,7 +609,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
 
             char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-            error = httpSendResponse(connection, newUri);
+            error = httpExtSendResponse(connection, newUri);
             free(newUri);
         }
         else

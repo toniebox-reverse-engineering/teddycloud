@@ -173,7 +173,7 @@ error_t handleSecMitRobotsTxt(HttpConnection *connection, const char_t *uri, con
 
     char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-    error_t error = httpSendResponse(connection, newUri);
+    error_t error = httpExtSendResponse(connection, newUri);
     free(newUri);
 
     return error;
