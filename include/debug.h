@@ -28,9 +28,9 @@ bool tc_log_color(void);
 #endif
 
 #define TRACE_PRINTF_NOSYNC(...) fprintf(stderr, __VA_ARGS__);
-#define TRACE_PRINTF_RESUME(...) fprintf(stderr, __VA_ARGS__), osResumeAllTasks();
+#define TRACE_PRINTF_RESUME(...) fprintf(stderr, __VA_ARGS__), tc_log_unlock();
 #define TRACE_PRINTF_PREFIX(colorPrefix, level)                                                                       \
-    osSuspendAllTasks();                                                                                              \
+    tc_log_lock();                                                                                              \
     if (tc_log_color())                                                                                               \
     {                                                                                                                 \
         TRACE_PRINTF_NOSYNC("%s%-5s\x1b[0m|\x1b[90m%s:%04d:%s()\x1b[0m| ", colorPrefix, level, __FILENAME__, __LINE__, __func__) \
