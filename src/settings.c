@@ -10,12 +10,25 @@
 #include "settings.h"
 #include "mutex_manager.h"
 #include "tls_adapter.h"
+#include "platform.h"
 
 #include "fs_port.h"
 #include "fs_ext.h"
 #include "os_ext.h"
 #include "server_helpers.h"
 #include "cert.h"
+
+int tc_log_level(void)
+{
+    return get_settings()->log.level;
+}
+
+bool tc_log_color(void)
+{
+    settings_t *settings = get_settings();
+    return settings->log.color && settings->internal.logColorSupport;
+}
+
 
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
@@ -923,7 +936,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
     settings_set_string("internal.version_web.v_long", WEB_FULL_NAME_LONG);
     settings_set_string("internal.version_web.v_full", WEB_FULL_NAME_FULL);
 
-    settings_set_bool("internal.logColorSupport", supportsAnsiColors());
+    settings_set_bool("internal.logColorSupport", platform_supports_ansi_colors());
     settings_set_bool("internal.autogen_certs", autogen_certs);
 
     Settings_Overlay[0].internal.config_init = true;

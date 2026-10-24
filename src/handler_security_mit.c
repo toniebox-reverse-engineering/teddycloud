@@ -8,7 +8,7 @@ bool isSecMitIncident(HttpConnection *connection)
 
     bool isSecurityIncident = false;
 
-    if (!settings->security_mit.hardLock && settings->security_mit.httpsOnly && !connection->settings->isHttps)
+    if (!settings->security_mit.hardLock && settings->security_mit.httpsOnly && !httpExtIsHttps(connection))
     {
         return false;
     }
@@ -58,7 +58,7 @@ bool isSecMitIncident(HttpConnection *connection)
 error_t checkSecMitHandlers(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     settings_t *settings = get_settings();
-    if (settings->security_mit.httpsOnly && !connection->settings->isHttps)
+    if (settings->security_mit.httpsOnly && !httpExtIsHttps(connection))
     {
         return NO_ERROR;
     }
@@ -173,7 +173,7 @@ error_t handleSecMitRobotsTxt(HttpConnection *connection, const char_t *uri, con
 
     char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-    error_t error = httpSendResponse(connection, newUri);
+    error_t error = httpExtSendResponse(connection, newUri);
     free(newUri);
 
     return error;
