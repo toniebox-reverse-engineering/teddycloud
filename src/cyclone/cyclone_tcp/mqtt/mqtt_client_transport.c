@@ -28,10 +28,10 @@
  * @version 2.4.4
  **/
 
-// Switch to the appropriate trace level
+//Switch to the appropriate trace level
 #define TRACE_LEVEL MQTT_TRACE_LEVEL
 
-// Dependencies
+//Dependencies
 #include "core/net.h"
 #include "core/tcp_misc.h"
 #include "mqtt/mqtt_client.h"
@@ -40,7 +40,7 @@
 #include "mqtt/mqtt_client_misc.h"
 #include "debug.h"
 
-// Check TCP/IP stack configuration
+//Check TCP/IP stack configuration
 #if (MQTT_CLIENT_SUPPORT == ENABLED)
 
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED && MQTT_CLIENT_TLS_SUPPORT == ENABLED)
@@ -53,14 +53,14 @@
  **/
 
 error_t mqttClientWebSocketTlsInitCallback(WebSocket *webSocket,
-                                           TlsContext *tlsContext)
+   TlsContext *tlsContext)
 {
    MqttClientContext *context;
 
-   // Point to the MQTT client context
+   //Point to the MQTT client context
    context = webSocket->tlsInitParam;
 
-   // Invoke user-defined callback
+   //Invoke user-defined callback
    return context->callbacks.tlsInitCallback(context, tlsContext);
 }
 
@@ -77,153 +77,153 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
 {
    error_t error;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Open a TCP socket
+      //Open a TCP socket
       context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
 
-      // Valid socket handle?
-      if (context->socket != NULL)
+      //Valid socket handle?
+      if(context->socket != NULL)
       {
-         // Associate the socket with the relevant interface
+         //Associate the socket with the relevant interface
          error = socketBindToInterface(context->socket, context->interface);
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_OPEN_FAILED;
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Open a TCP socket
+      //Open a TCP socket
       context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
 
-      // Valid socket handle?
-      if (context->socket != NULL)
+      //Valid socket handle?
+      if(context->socket != NULL)
       {
-         // Associate the socket with the relevant interface
+         //Associate the socket with the relevant interface
          error = socketBindToInterface(context->socket, context->interface);
 
-         // Check status code
-         if (!error)
+         //Check status code
+         if(!error)
          {
-            // Allocate TLS context
+            //Allocate TLS context
             context->tlsContext = tlsInit();
 
-            // Valid TLS handle?
-            if (context->tlsContext != NULL)
+            //Valid TLS handle?
+            if(context->tlsContext != NULL)
             {
-               // Select client operation mode
+               //Select client operation mode
                error = tlsSetConnectionEnd(context->tlsContext,
-                                           TLS_CONNECTION_END_CLIENT);
+                  TLS_CONNECTION_END_CLIENT);
 
-               // Check status code
-               if (!error)
+               //Check status code
+               if(!error)
                {
-                  // Bind TLS to the relevant socket
+                  //Bind TLS to the relevant socket
                   error = tlsSetSocket(context->tlsContext, context->socket);
                }
 
-               // Check status code
-               if (!error)
+               //Check status code
+               if(!error)
                {
-                  // Restore TLS session, if any
+                  //Restore TLS session, if any
                   error = tlsRestoreSessionState(context->tlsContext,
-                                                 &context->tlsSession);
+                     &context->tlsSession);
                }
 
-               // Check status code
-               if (!error)
+               //Check status code
+               if(!error)
                {
-                  // Invoke user-defined callback, if any
-                  if (context->callbacks.tlsInitCallback != NULL)
+                  //Invoke user-defined callback, if any
+                  if(context->callbacks.tlsInitCallback != NULL)
                   {
-                     // Perform TLS related initialization
+                     //Perform TLS related initialization
                      error = context->callbacks.tlsInitCallback(context,
-                                                                context->tlsContext);
+                        context->tlsContext);
                   }
                }
             }
             else
             {
-               // Report an error
+               //Report an error
                error = ERROR_OPEN_FAILED;
             }
          }
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_OPEN_FAILED;
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS)
    {
-      // Open a WebSocket
+      //Open a WebSocket
       context->webSocket = webSocketOpen();
 
-      // Valid WebSocket handle?
-      if (context->webSocket != NULL)
+      //Valid WebSocket handle?
+      if(context->webSocket != NULL)
       {
-         // Associate the WebSocket with the relevant interface
+         //Associate the WebSocket with the relevant interface
          error = webSocketBindToInterface(context->webSocket,
-                                          context->interface);
+            context->interface);
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_OPEN_FAILED;
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED && MQTT_CLIENT_TLS_SUPPORT == ENABLED && \
-     WEB_SOCKET_TLS_SUPPORT == ENABLED)
-   // Secure WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   WEB_SOCKET_TLS_SUPPORT == ENABLED)
+   //Secure WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Open a WebSocket
+      //Open a WebSocket
       context->webSocket = webSocketOpen();
 
-      // Valid WebSocket handle?
-      if (context->webSocket != NULL)
+      //Valid WebSocket handle?
+      if(context->webSocket != NULL)
       {
-         // Associate the WebSocket with the relevant interface
+         //Associate the WebSocket with the relevant interface
          error = webSocketBindToInterface(context->webSocket,
-                                          context->interface);
+            context->interface);
 
-         // Check status code
-         if (!error)
+         //Check status code
+         if(!error)
          {
-            // Attach MQTT client context
+            //Attach MQTT client context
             context->webSocket->tlsInitParam = context;
 
-            // Register TLS initialization callback
+            //Register TLS initialization callback
             error = webSocketRegisterTlsInitCallback(context->webSocket,
-                                                     mqttClientWebSocketTlsInitCallback);
+               mqttClientWebSocketTlsInitCallback);
          }
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_OPEN_FAILED;
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PROTOCOL;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -238,92 +238,92 @@ error_t mqttClientOpenConnection(MqttClientContext *context)
  **/
 
 error_t mqttClientEstablishConnection(MqttClientContext *context,
-                                      const IpAddr *serverIpAddr, uint16_t serverPort)
+   const IpAddr *serverIpAddr, uint16_t serverPort)
 {
    error_t error;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Connect to the MQTT server using TCP
+         //Connect to the MQTT server using TCP
          error = socketConnect(context->socket, serverIpAddr, serverPort);
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Connect to the MQTT server using TCP
+         //Connect to the MQTT server using TCP
          error = socketConnect(context->socket, serverIpAddr, serverPort);
       }
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Perform TLS handshake
+         //Perform TLS handshake
          error = tlsConnect(context->tlsContext);
       }
 
-      // Successful connection?
-      if (!error)
+      //Successful connection?
+      if(!error)
       {
-         // Save TLS session
+         //Save TLS session
          error = tlsSaveSessionState(context->tlsContext, &context->tlsSession);
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
-            context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
+      context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Set timeout
+      //Set timeout
       error = webSocketSetTimeout(context->webSocket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Set the hostname of the remote server
+         //Set the hostname of the remote server
          error = webSocketSetHost(context->webSocket, context->settings.host);
       }
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // The client MUST include "mqtt" in the list of WebSocket
-         // sub-protocols it offers
+         //The client MUST include "mqtt" in the list of WebSocket
+         //sub-protocols it offers
          error = webSocketSetSubProtocol(context->webSocket, "mqtt");
       }
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Connect to the MQTT server using WebSocket
+         //Connect to the MQTT server using WebSocket
          error = webSocketConnect(context->webSocket, serverIpAddr,
-                                  serverPort, context->settings.uri);
+            serverPort, context->settings.uri);
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PROTOCOL;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -338,65 +338,65 @@ error_t mqttClientShutdownConnection(MqttClientContext *context)
 {
    error_t error;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Shutdown TCP connection
+         //Shutdown TCP connection
          error = socketShutdown(context->socket, SOCKET_SD_BOTH);
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Shutdown TLS session
+         //Shutdown TLS session
          error = tlsShutdown(context->tlsContext);
       }
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Shutdown TCP connection
+         //Shutdown TCP connection
          error = socketShutdown(context->socket, SOCKET_SD_BOTH);
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
-            context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
+      context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Set timeout
+      //Set timeout
       error = webSocketSetTimeout(context->webSocket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Shutdown WebSocket connection
+         //Shutdown WebSocket connection
          error = webSocketShutdown(context->webSocket);
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PROTOCOL;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -408,29 +408,29 @@ error_t mqttClientShutdownConnection(MqttClientContext *context)
 
 void mqttClientCloseConnection(MqttClientContext *context)
 {
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Close TCP connection
-      if (context->socket != NULL)
+      //Close TCP connection
+      if(context->socket != NULL)
       {
          socketClose(context->socket);
          context->socket = NULL;
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Release TLS context
-      if (context->tlsContext != NULL)
+      //Release TLS context
+      if(context->tlsContext != NULL)
       {
          tlsFree(context->tlsContext);
          context->tlsContext = NULL;
       }
 
-      // Close TCP connection
-      if (context->socket != NULL)
+      //Close TCP connection
+      if(context->socket != NULL)
       {
          socketClose(context->socket);
          context->socket = NULL;
@@ -438,12 +438,12 @@ void mqttClientCloseConnection(MqttClientContext *context)
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
-            context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
+      context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Close WebSocket connection
-      if (context->webSocket != NULL)
+      //Close WebSocket connection
+      if(context->webSocket != NULL)
       {
          webSocketClose(context->webSocket);
          context->webSocket = NULL;
@@ -464,63 +464,63 @@ void mqttClientCloseConnection(MqttClientContext *context)
  **/
 
 error_t mqttClientSendData(MqttClientContext *context,
-                           const void *data, size_t length, size_t *written, uint_t flags)
+   const void *data, size_t length, size_t *written, uint_t flags)
 {
    error_t error;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Transmit data
+         //Transmit data
          error = socketSend(context->socket, data, length, written, flags);
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Transmit data
+         //Transmit data
          error = tlsWrite(context->tlsContext, data, length, written, flags);
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
-            context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
+      context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Set timeout
+      //Set timeout
       error = webSocketSetTimeout(context->webSocket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // MQTT control packets must be sent in WebSocket binary data frames
+         //MQTT control packets must be sent in WebSocket binary data frames
          error = webSocketSend(context->webSocket, data, length,
-                               WS_FRAME_TYPE_BINARY, written);
+            WS_FRAME_TYPE_BINARY, written);
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PROTOCOL;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -536,77 +536,77 @@ error_t mqttClientSendData(MqttClientContext *context,
  **/
 
 error_t mqttClientReceiveData(MqttClientContext *context,
-                              void *data, size_t size, size_t *received, uint_t flags)
+   void *data, size_t size, size_t *received, uint_t flags)
 {
    error_t error;
 
-   // No data has been read yet
+   //No data has been read yet
    *received = 0;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Receive data
+         //Receive data
          error = socketReceive(context->socket, data, size, received, flags);
       }
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Set timeout
+      //Set timeout
       error = socketSetTimeout(context->socket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Receive data
+         //Receive data
          error = tlsRead(context->tlsContext, data, size, received, flags);
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
-            context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS ||
+      context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
       WebSocketFrameType type;
 
-      // Set timeout
+      //Set timeout
       error = webSocketSetTimeout(context->webSocket, context->settings.timeout);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Receive data
+         //Receive data
          error = webSocketReceive(context->webSocket, data, size, &type, received);
       }
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // MQTT control packets must be sent in WebSocket binary data frames. If
-         // any other type of data frame is received the recipient must close the
-         // network connection
-         if (type != WS_FRAME_TYPE_BINARY && type != WS_FRAME_TYPE_CONTINUATION)
+         //MQTT control packets must be sent in WebSocket binary data frames. If
+         //any other type of data frame is received the recipient must close the
+         //network connection
+         if(type != WS_FRAME_TYPE_BINARY && type != WS_FRAME_TYPE_CONTINUATION)
             error = ERROR_INVALID_TYPE;
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PROTOCOL;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -622,83 +622,83 @@ error_t mqttClientWaitForData(MqttClientContext *context, systime_t timeout)
 {
    uint_t event;
 
-   // TCP transport protocol?
-   if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
+   //TCP transport protocol?
+   if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TCP)
    {
-      // Wait for some data to be available for reading
+      //Wait for some data to be available for reading (no netMutex, teddycloud's tcpWaitForEvents does not release it)
       event = tcpWaitForEvents(context->socket, SOCKET_EVENT_RX_READY, timeout);
    }
 #if (MQTT_CLIENT_TLS_SUPPORT == ENABLED)
-   // TLS transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
+   //TLS transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_TLS)
    {
-      // Sanity check
-      if (context->tlsContext == NULL)
+      //Sanity check
+      if(context->tlsContext == NULL)
          return ERROR_FAILURE;
 
-      // Check whether some data is pending in the receive buffer
-      if (context->tlsContext->rxBufferLen > 0)
+      //Check whether some data is pending in the receive buffer
+      if(context->tlsContext->rxBufferLen > 0)
       {
-         // No need to poll the underlying socket for incoming traffic...
+         //No need to poll the underlying socket for incoming traffic...
          event = SOCKET_EVENT_RX_READY;
       }
       else
       {
-         // Wait for some data to be available for reading
+         //Wait for some data to be available for reading
          event = tcpWaitForEvents(context->socket, SOCKET_EVENT_RX_READY, timeout);
       }
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED)
-   // WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS)
+   //WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WS)
    {
-      // Sanity check
-      if (context->webSocket == NULL)
+      //Sanity check
+      if(context->webSocket == NULL)
          return ERROR_FAILURE;
 
-      // Get exclusive access
+      //Get exclusive access
       osAcquireMutex(&netMutex);
-      // Wait for some data to be available for reading
+      //Wait for some data to be available for reading
       event = tcpWaitForEvents(context->webSocket->socket, SOCKET_EVENT_RX_READY, timeout);
-      // Release exclusive access
+      //Release exclusive access
       osReleaseMutex(&netMutex);
    }
 #endif
 #if (MQTT_CLIENT_WS_SUPPORT == ENABLED && WEB_SOCKET_TLS_SUPPORT)
-   // Secure WebSocket transport protocol?
-   else if (context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
+   //Secure WebSocket transport protocol?
+   else if(context->settings.transportProtocol == MQTT_TRANSPORT_PROTOCOL_WSS)
    {
-      // Sanity check
-      if (context->webSocket == NULL || context->webSocket->tlsContext == NULL)
+      //Sanity check
+      if(context->webSocket == NULL || context->webSocket->tlsContext == NULL)
          return ERROR_FAILURE;
 
-      // Check whether some data is pending in the receive buffer
-      if (context->webSocket->tlsContext->rxBufferLen > 0)
+      //Check whether some data is pending in the receive buffer
+      if(context->webSocket->tlsContext->rxBufferLen > 0)
       {
-         // No need to poll the underlying socket for incoming traffic...
+         //No need to poll the underlying socket for incoming traffic...
          event = SOCKET_EVENT_RX_READY;
       }
       else
       {
-         // Get exclusive access
+         //Get exclusive access
          osAcquireMutex(&netMutex);
-         // Wait for some data to be available for reading
+         //Wait for some data to be available for reading
          event = tcpWaitForEvents(context->webSocket->socket, SOCKET_EVENT_RX_READY, timeout);
-         // Release exclusive access
+         //Release exclusive access
          osReleaseMutex(&netMutex);
       }
    }
 #endif
-   // Unknown transport protocol?
+   //Unknown transport protocol?
    else
    {
-      // Report an error
+      //Report an error
       return ERROR_INVALID_PROTOCOL;
    }
 
-   // Check whether some data is available for reading
-   if (event == SOCKET_EVENT_RX_READY)
+   //Check whether some data is available for reading
+   if(event == SOCKET_EVENT_RX_READY)
    {
       return NO_ERROR;
    }
