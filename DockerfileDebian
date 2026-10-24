@@ -1,4 +1,10 @@
-FROM debian:latest AS buildenv
+# BUILD_MODE=native: compile inside the target platform (QEMU when it is a foreign one), the default
+# BUILD_MODE=cross : cross-compile on the build platform (only set up for ppc64le and s390x, without ASAN: NO_SANITIZERS=2 also keeps -lm),
+#                    much faster than compiling under QEMU; the CI builds ppc64le and s390x like this
+#                    (also the published images, ASAN cannot run under QEMU anyway)
+ARG BUILD_MODE=native
+
+FROM debian:latest AS buildenv-native
 
 # Default to using ASAN
 ARG NO_SANITIZERS=0
@@ -11,8 +17,33 @@ WORKDIR /buildenv
 
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /tmp/tonies.json || true
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /tmp/tonieboxes.json || true
-RUN make test_git_version && make zip NO_SANITIZERS=${NO_SANITIZERS}
+RUN make test_git_version && make -j$(nproc) zip NO_SANITIZERS=${NO_SANITIZERS}
 RUN cp /tmp/tonies.json /tmp/tonieboxes.json /buildenv/contrib/config/ || true
+
+FROM --platform=$BUILDPLATFORM debian:latest AS buildenv-cross
+ARG TARGETARCH
+
+# triplet, Debian architecture, bits, uname -m of the target (the Makefile asks uname, which is the build machine here)
+RUN case "$TARGETARCH" in \
+      ppc64le) echo "powerpc64le-linux-gnu ppc64el 64 ppc64le" ;; \
+      s390x)   echo "s390x-linux-gnu s390x 64 s390x" ;; \
+      *) echo "BUILD_MODE=cross is only set up for ppc64le and s390x, not $TARGETARCH" >&2; exit 1 ;; \
+    esac > /tmp/cross \
+    && set -- $(cat /tmp/cross) \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends crossbuild-essential-$2 make protobuf-c-compiler git zip curl ca-certificates
+
+COPY . /buildenv
+WORKDIR /buildenv
+
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /tmp/tonies.json || true
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /tmp/tonieboxes.json || true
+RUN set -- $(cat /tmp/cross) \
+    && make test_git_version \
+    && make -j$(nproc) zip CC=$1-gcc NO_SANITIZERS=2 build_arch="\"$4\"" build_arch_bits=$3
+RUN cp /tmp/tonies.json /tmp/tonieboxes.json /buildenv/contrib/config/ || true
+
+FROM buildenv-${BUILD_MODE} AS buildenv
 
 FROM debian:latest
 ARG TEDDYCLOUD_VERSION=unknown

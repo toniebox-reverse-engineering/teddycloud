@@ -1,1 +1,68 @@
-DockerfileUbuntu
+FROM ubuntu:latest AS buildenv
+
+# Default to using ASAN
+ARG NO_SANITIZERS=0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc protobuf-c-compiler build-essential git zip curl ca-certificates
+
+COPY . /buildenv
+WORKDIR /buildenv
+
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /tmp/tonies.json || true
+RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /tmp/tonieboxes.json || true
+RUN make test_git_version && make -j$(nproc) zip NO_SANITIZERS=${NO_SANITIZERS}
+RUN cp /tmp/tonies.json /tmp/tonieboxes.json /buildenv/contrib/config/ || true
+
+FROM ubuntu:latest
+ARG TEDDYCLOUD_VERSION=unknown
+LABEL org.opencontainers.image.version=$TEDDYCLOUD_VERSION
+EXPOSE 80 443 8443
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libubsan1 strace ffmpeg curl ca-certificates gosu libcap2-bin \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN update-ca-certificates
+
+RUN mkdir -p /teddycloud/certs \
+    && mkdir /teddycloud/config \
+    && mkdir -p /teddycloud/data/content/default \
+    && mkdir -p /teddycloud/data/library \
+    && mkdir -p /teddycloud/data/firmware  \
+    && mkdir -p /teddycloud/data/www \
+    && mkdir -p /teddycloud/data/www/custom_img \
+    && mkdir -p /teddycloud/data/www/plugins \
+    && mkdir -p /teddycloud/data/cache \
+    && mkdir -p /tmp
+
+RUN ln -s /teddycloud /etc/teddycloud
+
+COPY --from=buildenv \
+    /buildenv/install/pre/certs/ /teddycloud/certs/
+COPY --from=buildenv \
+    /buildenv/install/pre/data/www/ /teddycloud/data/www/
+
+COPY --from=buildenv \
+    /buildenv/install/pre/*.sh /usr/local/bin/
+COPY --from=buildenv \
+    /buildenv/install/pre/teddycloud /usr/local/bin/teddycloud
+
+# Allow non-root user to bind privileged ports (80, 443) when PUID/PGID are set
+RUN setcap 'cap_net_bind_service=+ep' /usr/local/bin/teddycloud
+
+COPY --from=buildenv /buildenv/install/zip/release.zip /tmp/teddycloud.zip
+
+VOLUME \
+    "/teddycloud/data/content" \
+    "/teddycloud/data/library" \
+    "/teddycloud/data/firmware" \
+    "/teddycloud/data/cache" \
+    "/teddycloud/data/www/custom_img" \
+    "/teddycloud/data/www/plugins" \
+    "/teddycloud/certs" \
+    "/teddycloud/config"
+
+COPY docker/docker-entrypoint.sh /
+RUN chmod +rx /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
