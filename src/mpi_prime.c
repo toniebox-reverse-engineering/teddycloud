@@ -1,4 +1,12 @@
 /*
+ * mpiCheckProbablePrime() below follows the function of the same name in CycloneCrypto (mpi/mpi.c),
+ * Copyright (C) 2010-2024 Oryx Embedded SARL (www.oryx-embedded.com), licensed under the GNU General
+ * Public License, version 2 or (at your option) any later version, see cyclone/LICENSE.
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+/*
  * Miller-Rabin primality test used by RSA key generation. Replaces Cyclone's
  * weak mpiCheckProbablePrime(), which is "implemented by hardware" there.
  */

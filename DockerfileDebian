@@ -1,3 +1,4 @@
+# Needs BuildKit (the default of docker build/buildx): the legacy builder would also run the cross stage.
 # BUILD_MODE=native: compile inside the target platform (QEMU when it is a foreign one), the default
 # BUILD_MODE=cross : cross-compile on the build platform (only set up for ppc64le and s390x, without ASAN: NO_SANITIZERS=2 also keeps -lm),
 #                    much faster than compiling under QEMU; the CI builds ppc64le and s390x like this
