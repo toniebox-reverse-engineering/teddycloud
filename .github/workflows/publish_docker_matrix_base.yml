@@ -69,9 +69,23 @@ jobs:
           ref: ${{ inputs.tcw_commit_hash }}
       - name: Test git version
         run: make test_git_version
+      - name: Check native 32-bit ARM support
+        id: arm32
+        if: ${{ startsWith(matrix.platform, 'linux/arm/') }}
+        run: |
+          # the arm64 runners we use today run AArch32 natively; if GitHub ever moves the label to
+          # hardware that cannot, fall back to QEMU instead of failing with "exec format error"
+          if docker run --rm --platform ${{ matrix.platform }} busybox true; then
+            echo "native=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::${{ matrix.platform }} does not run natively on this runner, using QEMU"
+          fi
+
       - name: Set up QEMU
         # not on the native arm runners: it would register emulation for the 32-bit ARM platforms
-        if: ${{ !startsWith(matrix.platform, 'linux/arm') }}
+        # (only when the probe above found that 32-bit ARM does not run natively)
+        if: ${{ !startsWith(matrix.platform, 'linux/arm') || steps.arm32.outputs.native == 'false' }}
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
         id: buildx
@@ -146,10 +160,10 @@ jobs:
           # one cache scope per image and platform, a shared scope is overwritten by the parallel jobs
           cache-from: type=gha,scope=${{ inputs.system }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ inputs.system }}-${{ matrix.platform }}
+          # BUILD_MODE: ppc64le and s390x of the ubuntu/debian images are cross-compiled (no ASAN, which cannot run
+          # under QEMU anyway); the push step below must use the same value or it rebuilds everything
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
-            # ppc64le and s390x of the ubuntu/debian images are cross-compiled (no ASAN, which cannot run under QEMU
-            # anyway); the push step below must use the same value or it rebuilds everything
             BUILD_MODE=${{ ((inputs.system == 'ubuntu' || inputs.system == 'debian') && (matrix.platform == 'linux/ppc64le' || matrix.platform == 'linux/s390x')) && 'cross' || 'native' }}
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 

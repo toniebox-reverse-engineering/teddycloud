@@ -67,7 +67,7 @@ jobs:
     with:
       system: "ubuntu"
       dockerfile: "DockerfileUbuntu"
-      platforms: ${{ needs.test_commit_hash.outputs.fast == 'true' && '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]' || '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]' }}
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/ppc64le", "linux/s390x"]'
       primary_image: true
       error_platforms: '["linux/s390x"]'
       # arm64 builds with AddressSanitizer (native runner, see base workflow).
@@ -80,7 +80,7 @@ jobs:
     with:
       system: "debian"
       dockerfile: "DockerfileDebian"
-      platforms: ${{ needs.test_commit_hash.outputs.fast == 'true' && '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]' || '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]' }}
+      platforms: '["linux/amd64", "linux/arm/v7", "linux/arm64/v8", "linux/i386", "linux/ppc64le", "linux/s390x"]'
       primary_image: false
       error_platforms: '["linux/s390x"]'
       # arm64 builds with AddressSanitizer (native runner, see base workflow).

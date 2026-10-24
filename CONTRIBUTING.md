@@ -85,7 +85,8 @@ patched line has to be re-ported on each Cyclone update. In order of preference:
 
 Updating Cyclone: move the four submodules to the new tag, adapt the source lists and include paths in
 the `Makefile`, port the TeddyCloud code to the changed APIs, re-port the remaining patches onto the new
-files and run `make test` plus the Docker matrix (`publish_docker_matrix_all.yml`, `dry_run=true`).
+files and run `make test` plus the complete Docker matrix (`publish_docker_matrix_all.yml` with
+`dry_run=true` and `full_matrix=true`; dry runs and pull requests are otherwise fast and skip the emulated Alpine builds).
 
 ## Code style
 
