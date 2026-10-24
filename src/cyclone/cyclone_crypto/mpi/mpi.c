@@ -28,19 +28,15 @@
  * @version 2.4.4
  **/
 
-// Switch to the appropriate trace level
+//Switch to the appropriate trace level
 #define TRACE_LEVEL CRYPTO_TRACE_LEVEL
 
-#pragma GCC optimize("O3")
-
-// Dependencies
+//Dependencies
 #include "core/crypto.h"
 #include "mpi/mpi.h"
 #include "debug.h"
-#include "rand.h"
-#include "tls_adapter.h"
 
-// Check crypto library configuration
+//Check crypto library configuration
 #if (MPI_SUPPORT == ENABLED)
 
 
@@ -51,7 +47,7 @@
 
 void mpiInit(Mpi *r)
 {
-   // Initialize structure
+   //Initialize structure
    r->sign = 1;
    r->size = 0;
 #if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
@@ -68,10 +64,10 @@ void mpiInit(Mpi *r)
 void mpiFree(Mpi *r)
 {
 #if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
-   // Any memory previously allocated?
-   if (r->data != NULL)
+   //Any memory previously allocated?
+   if(r->data != NULL)
    {
-      // Erase contents
+      //Erase contents
       osMemset(r->data, 0, r->size * MPI_INT_SIZE);
 
       //Release memory buffer
@@ -83,7 +79,7 @@ void mpiFree(Mpi *r)
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
 #endif
 
-   // Set size to zero
+   //Reset size to zero
    r->size = 0;
 }
 
@@ -102,52 +98,52 @@ error_t mpiGrow(Mpi *r, uint_t size)
    uint_t *data;
 #endif
 
-   // Initialize status code
+   //Initialize status code
    error = NO_ERROR;
 
-   // Ensure the parameter is valid
+   //Ensure the parameter is valid
    size = MAX(size, 1);
 
-   // Check whether the size of the multiple precision integer must be increased
+   //Check whether the size of the multiple precision integer must be increased
    if(size > r->size)
    {
 #if (CRYPTO_STATIC_MEM_SUPPORT == DISABLED)
-      // Allocate a new memory buffer
+      //Allocate a new memory buffer
       data = cryptoAllocMem(size * MPI_INT_SIZE);
 
-      // Successful memory allocation?
+      //Successful memory allocation?
       if(data != NULL)
       {
-         // Any data to copy?
+         //Any data to copy?
          if(r->size > 0)
          {
-            // Copy original data
+            //Copy original data
             osMemcpy(data, r->data, r->size * MPI_INT_SIZE);
 
-            // Release old memory buffer
+            //Release old memory buffer
             osMemset(r->data, 0, r->size * MPI_INT_SIZE);
             cryptoFreeMem(r->data);
          }
 
-         // Clear upper words
+         //Clear upper words
          osMemset(data + r->size, 0, (size - r->size) * MPI_INT_SIZE);
          //Attach new memory buffer
          r->data = data;
-         // Update the size of the multiple precision integer
+         //Update the size of the multiple precision integer
          r->size = size;
       }
       else
       {
-         // Failed to allocate memory
+         //Failed to allocate memory
          error = ERROR_OUT_OF_MEMORY;
       }
 #else
-      // Check parameter
+      //Check parameter
       if(size <= MPI_MAX_INT_SIZE)
       {
-         // Clear upper words
+         //Clear upper words
          osMemset(r->data + r->size, 0, (size - r->size) * MPI_INT_SIZE);
-         // Update the size of the multiple precision integer
+         //Update the size of the multiple precision integer
          r->size = size;
       }
       else
@@ -158,7 +154,7 @@ error_t mpiGrow(Mpi *r, uint_t size)
 #endif
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -173,19 +169,19 @@ uint_t mpiGetLength(const Mpi *a)
 {
    int_t i;
 
-   // Check whether the specified multiple precision integer is empty
-   if (a->size == 0)
+   //Check whether the specified multiple precision integer is empty
+   if(a->size == 0)
       return 0;
 
-   // Start from the most significant word
-   for (i = a->size - 1; i >= 0; i--)
+   //Start from the most significant word
+   for(i = a->size - 1; i >= 0; i--)
    {
-      // Loop as long as the current word is zero
-      if (a->data[i] != 0)
+      //Loop as long as the current word is zero
+      if(a->data[i] != 0)
          break;
    }
 
-   // Return the actual length
+   //Return the actual length
    return i + 1;
 }
 
@@ -201,30 +197,30 @@ uint_t mpiGetByteLength(const Mpi *a)
    uint_t n;
    uint32_t m;
 
-   // Check whether the specified multiple precision integer is empty
-   if (a->size == 0)
+   //Check whether the specified multiple precision integer is empty
+   if(a->size == 0)
       return 0;
 
-   // Start from the most significant word
-   for (n = a->size - 1; n > 0; n--)
+   //Start from the most significant word
+   for(n = a->size - 1; n > 0; n--)
    {
-      // Loop as long as the current word is zero
-      if (a->data[n] != 0)
+      //Loop as long as the current word is zero
+      if(a->data[n] != 0)
          break;
    }
 
-   // Get the current word
+   //Get the current word
    m = a->data[n];
-   // Convert the length to a byte count
+   //Convert the length to a byte count
    n *= MPI_INT_SIZE;
 
-   // Adjust the byte count
-   for (; m != 0; m >>= 8)
+   //Adjust the byte count
+   for(; m != 0; m >>= 8)
    {
       n++;
    }
 
-   // Return the actual length in bytes
+   //Return the actual length in bytes
    return n;
 }
 
@@ -240,30 +236,30 @@ uint_t mpiGetBitLength(const Mpi *a)
    uint_t n;
    uint32_t m;
 
-   // Check whether the specified multiple precision integer is empty
-   if (a->size == 0)
+   //Check whether the specified multiple precision integer is empty
+   if(a->size == 0)
       return 0;
 
-   // Start from the most significant word
-   for (n = a->size - 1; n > 0; n--)
+   //Start from the most significant word
+   for(n = a->size - 1; n > 0; n--)
    {
-      // Loop as long as the current word is zero
-      if (a->data[n] != 0)
+      //Loop as long as the current word is zero
+      if(a->data[n] != 0)
          break;
    }
 
-   // Get the current word
+   //Get the current word
    m = a->data[n];
-   // Convert the length to a bit count
+   //Convert the length to a bit count
    n *= MPI_INT_SIZE * 8;
 
-   // Adjust the bit count
-   for (; m != 0; m >>= 1)
+   //Adjust the bit count
+   for(; m != 0; m >>= 1)
    {
       n++;
    }
 
-   // Return the actual length in bits
+   //Return the actual length in bits
    return n;
 }
 
@@ -282,17 +278,17 @@ error_t mpiSetBitValue(Mpi *r, uint_t index, uint_t value)
    uint_t n1;
    uint_t n2;
 
-   // Retrieve the position of the bit to be written
+   //Retrieve the position of the bit to be written
    n1 = index / (MPI_INT_SIZE * 8);
    n2 = index % (MPI_INT_SIZE * 8);
 
-   // Ajust the size of the multiple precision integer if necessary
+   //Ajust the size of the multiple precision integer if necessary
    error = mpiGrow(r, n1 + 1);
-   // Failed to adjust the size?
-   if (error)
+   //Failed to adjust the size?
+   if(error)
       return error;
 
-   // Set bit value
+   //Set bit value
    if(value)
    {
       r->data[n1] |= (1U << n2);
@@ -302,7 +298,7 @@ error_t mpiSetBitValue(Mpi *r, uint_t index, uint_t value)
       r->data[n1] &= ~(1U << n2);
    }
 
-   // No error to report
+   //No error to report
    return NO_ERROR;
 }
 
@@ -319,15 +315,15 @@ uint_t mpiGetBitValue(const Mpi *a, uint_t index)
    uint_t n1;
    uint_t n2;
 
-   // Retrieve the position of the bit to be read
+   //Retrieve the position of the bit to be read
    n1 = index / (MPI_INT_SIZE * 8);
    n2 = index % (MPI_INT_SIZE * 8);
 
-   // Index out of range?
-   if (n1 >= a->size)
+   //Index out of range?
+   if(n1 >= a->size)
       return 0;
 
-   // Return the actual bit value
+   //Return the actual bit value
    return (a->data[n1] >> n2) & 0x01;
 }
 
@@ -344,34 +340,34 @@ int_t mpiComp(const Mpi *a, const Mpi *b)
    uint_t m;
    uint_t n;
 
-   // Determine the actual length of A and B
+   //Determine the actual length of A and B
    m = mpiGetLength(a);
    n = mpiGetLength(b);
 
-   // Compare lengths
-   if (!m && !n)
+   //Compare lengths
+   if(!m && !n)
       return 0;
-   else if (m > n)
+   else if(m > n)
       return a->sign;
-   else if (m < n)
+   else if(m < n)
       return -b->sign;
 
-   // Compare signs
-   if (a->sign > 0 && b->sign < 0)
+   //Compare signs
+   if(a->sign > 0 && b->sign < 0)
       return 1;
-   else if (a->sign < 0 && b->sign > 0)
+   else if(a->sign < 0 && b->sign > 0)
       return -1;
 
-   // Then compare values
-   while (n--)
+   //Then compare values
+   while(n--)
    {
-      if (a->data[n] > b->data[n])
+      if(a->data[n] > b->data[n])
          return a->sign;
-      else if (a->data[n] < b->data[n])
+      else if(a->data[n] < b->data[n])
          return -a->sign;
    }
 
-   // Multiple precision integers are equals
+   //Multiple precision integers are equals
    return 0;
 }
 
@@ -388,7 +384,7 @@ int_t mpiCompInt(const Mpi *a, int_t b)
    uint_t value;
    Mpi t;
 
-   // Initialize a temporary multiple precision integer
+   //Initialize a temporary multiple precision integer
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
@@ -398,7 +394,7 @@ int_t mpiCompInt(const Mpi *a, int_t b)
    t.data[0] = value;
 #endif
 
-   // Return comparison result
+   //Return comparison result
    return mpiComp(a, &t);
 }
 
@@ -415,28 +411,28 @@ int_t mpiCompAbs(const Mpi *a, const Mpi *b)
    uint_t m;
    uint_t n;
 
-   // Determine the actual length of A and B
+   //Determine the actual length of A and B
    m = mpiGetLength(a);
    n = mpiGetLength(b);
 
-   // Compare lengths
-   if (!m && !n)
+   //Compare lengths
+   if(!m && !n)
       return 0;
-   else if (m > n)
+   else if(m > n)
       return 1;
-   else if (m < n)
+   else if(m < n)
       return -1;
 
-   // Then compare values
-   while (n--)
+   //Then compare values
+   while(n--)
    {
-      if (a->data[n] > b->data[n])
+      if(a->data[n] > b->data[n])
          return 1;
-      else if (a->data[n] < b->data[n])
+      else if(a->data[n] < b->data[n])
          return -1;
    }
 
-   // Operands are equals
+   //Operands are equals
    return 0;
 }
 
@@ -453,30 +449,30 @@ error_t mpiCopy(Mpi *r, const Mpi *a)
    error_t error;
    uint_t n;
 
-   // R and A are the same instance?
-   if (r == a)
+   //R and A are the same instance?
+   if(r == a)
       return NO_ERROR;
 
-   // Determine the actual length of A
+   //Determine the actual length of A
    n = mpiGetLength(a);
 
-   // Ajust the size of the destination operand
+   //Ajust the size of the destination operand
    error = mpiGrow(r, n);
-   // Any error to report?
-   if (error)
+   //Any error to report?
+   if(error)
       return error;
 
-   // Clear the contents of the multiple precision integer
+   //Clear the contents of the multiple precision integer
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
-   // Let R = A
-   if (n > 0)
+   //Let R = A
+   if(n > 0)
    {
       osMemcpy(r->data, a->data, n * MPI_INT_SIZE);
    }
-   // Set the sign of R
+   //Set the sign of R
    r->sign = a->sign;
 
-   // Successful operation
+   //Successful operation
    return NO_ERROR;
 }
 
@@ -492,20 +488,20 @@ error_t mpiSetValue(Mpi *r, int_t a)
 {
    error_t error;
 
-   // Ajust the size of the destination operand
+   //Ajust the size of the destination operand
    error = mpiGrow(r, 1);
-   // Failed to adjust the size?
-   if (error)
+   //Failed to adjust the size?
+   if(error)
       return error;
 
-   // Clear the contents of the multiple precision integer
+   //Clear the contents of the multiple precision integer
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
-   // Set the value or R
+   //Set the value or R
    r->data[0] = (a >= 0) ? a : -a;
-   // Set the sign of R
+   //Set the sign of R
    r->sign = (a >= 0) ? 1 : -1;
 
-   // Successful operation
+   //Successful operation
    return NO_ERROR;
 }
 
@@ -520,41 +516,41 @@ error_t mpiSetValue(Mpi *r, int_t a)
  **/
 
 error_t mpiRand(Mpi *r, uint_t length, const PrngAlgo *prngAlgo,
-                void *prngContext)
+   void *prngContext)
 {
    error_t error;
    uint_t m;
    uint_t n;
 
-   // Compute the required length, in words
+   //Compute the required length, in words
    n = (length + (MPI_INT_SIZE * 8) - 1) / (MPI_INT_SIZE * 8);
-   // Number of bits in the most significant word
+   //Number of bits in the most significant word
    m = length % (MPI_INT_SIZE * 8);
 
-   // Ajust the size of the multiple precision integer if necessary
+   //Ajust the size of the multiple precision integer if necessary
    error = mpiGrow(r, n);
-   // Failed to adjust the size?
-   if (error)
+   //Failed to adjust the size?
+   if(error)
       return error;
 
-   // Clear the contents of the multiple precision integer
+   //Clear the contents of the multiple precision integer
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
-   // Set the sign of R
+   //Set the sign of R
    r->sign = 1;
 
-   // Generate a random pattern
-   error = prngAlgo->read(prngContext, (uint8_t *)r->data, n * MPI_INT_SIZE);
-   // Any error to report?
-   if (error)
+   //Generate a random pattern
+   error = prngAlgo->read(prngContext, (uint8_t *) r->data, n * MPI_INT_SIZE);
+   //Any error to report?
+   if(error)
       return error;
 
-   // Remove the meaningless bits in the most significant word
-   if (n > 0 && m > 0)
+   //Remove the meaningless bits in the most significant word
+   if(n > 0 && m > 0)
    {
       r->data[n - 1] &= (1U << m) - 1;
    }
 
-   // Successful operation
+   //Successful operation
    return NO_ERROR;
 }
 
@@ -569,142 +565,39 @@ error_t mpiRand(Mpi *r, uint_t length, const PrngAlgo *prngAlgo,
  **/
 
 error_t mpiRandRange(Mpi *r, const Mpi *p, const PrngAlgo *prngAlgo,
-                     void *prngContext)
+   void *prngContext)
 {
    error_t error;
    uint_t n;
    Mpi a;
 
-   // Make sure p is greater than 1
-   if (mpiCompInt(p, 1) <= 0)
+   //Make sure p is greater than 1
+   if(mpiCompInt(p, 1) <= 0)
       return ERROR_INVALID_PARAMETER;
 
-   // Initialize multiple precision integer
+   //Initialize multiple precision integer
    mpiInit(&a);
 
-   // Get the actual length of p
+   //Get the actual length of p
    n = mpiGetBitLength(p);
 
-   // Generate extra random bits so that the bias produced by the modular
-   // reduction is negligible
+   //Generate extra random bits so that the bias produced by the modular
+   //reduction is negligible
    MPI_CHECK(mpiRand(r, n + 64, prngAlgo, prngContext));
 
-   // Compute r = (r mod (p - 1)) + 1
+   //Compute r = (r mod (p - 1)) + 1
    MPI_CHECK(mpiSubInt(&a, p, 1));
    MPI_CHECK(mpiMod(r, r, &a));
    MPI_CHECK(mpiAddInt(r, r, 1));
 
 end:
-   // Release previously allocated memory
+   //Release previously allocated memory
    mpiFree(&a);
 
-   // Return status code
+   //Return status code
    return error;
 }
 
-/* https://github.com/cslarsen/miller-rabin */
-bool mpiCheckProbablePrimeWorker(const Mpi *n, int k, const PrngAlgo *prngAlgo, void *prngContext)
-{
-   bool ret = false;
-
-   /* keep Mpi numbers initialized outside loop */
-   Mpi randRange;
-   Mpi num1;
-   Mpi num2;
-   Mpi x2;
-   Mpi a;
-   Mpi rnd;
-   Mpi x;
-   Mpi m;
-   Mpi n1;
-   Mpi sShifted;
-   Mpi d;
-
-   mpiInit(&m);
-   mpiInit(&n1);
-   mpiInit(&sShifted);
-   mpiInit(&d);
-   mpiInit(&randRange);
-   mpiInit(&num1);
-   mpiInit(&num2);
-   mpiInit(&x2);
-   mpiInit(&a);
-   mpiInit(&rnd);
-   mpiInit(&x);
-
-   mpiSubInt(&m, n, 1);
-
-   int s = 0;
-
-   while (!mpiGetBitValue(&m, s))
-   {
-      s++;
-   }
-   mpiShiftRight(&m, s);
-
-   mpiSubInt(&n1, n, 1);
-
-   mpiSetValue(&sShifted, 1);
-   mpiShiftLeft(&sShifted, s);
-
-   mpiDiv(&d, NULL, &n1, &sShifted);
-
-   /* randrange shall go from [2..n-2], so prepare consts for 1 + [1..n-3] */
-   mpiSubInt(&randRange, n, 3);
-   mpiSetValue(&num1, 1);
-   mpiSetValue(&num2, 2);
-
-   for (int i = 0; i < k; i++)
-   {
-      /* creates a rand between 1 and p-1, including boundaries. upper bounds already corrected */
-      mpiRandRange(&rnd, &randRange, prngAlgo, prngContext);
-      /* now just add one */
-      mpiAddAbs(&a, &rnd, &num1);
-
-      mpiExpMod(&x, &a, &d, n);
-
-      if (!mpiCompInt(&x, 1) || !mpiComp(&x, &n1))
-      {
-         continue;
-      }
-
-      for (int r = 1; r <= s - 1; r++)
-      {
-         mpiExpMod(&x2, &x, &num2, n);
-
-         if (!mpiCompInt(&x2, 1))
-         {
-            goto finish;
-         }
-         if (!mpiComp(&x2, &n1))
-         {
-            goto LOOP;
-         }
-      }
-
-      goto finish;
-   LOOP:
-      continue;
-   }
-
-   /* n is *probably* prime */
-   ret = true;
-
-finish:
-   mpiFree(&m);
-   mpiFree(&n1);
-   mpiFree(&sShifted);
-   mpiFree(&d);
-   mpiFree(&randRange);
-   mpiFree(&num1);
-   mpiFree(&num2);
-   mpiFree(&x2);
-   mpiFree(&a);
-   mpiFree(&rnd);
-   mpiFree(&x);
-
-   return ret;
-}
 
 /**
  * @brief Test whether a number is probable prime
@@ -714,75 +607,10 @@ finish:
 
 __weak_func error_t mpiCheckProbablePrime(const Mpi *a)
 {
-   uint_t k;
-   size_t n;
-
-   // Retrieve the length of the input integer, in bits
-   n = mpiGetBitLength(a);
-
-   // Prime numbers of a size lower than 96 bits cannot be tested by this
-   // service
-   if (n < 96)
-      return ERROR_INVALID_LENGTH;
-
-   // The number of repetitions controls the error probability
-   if (n >= 1300)
-   {
-      k = 2;
-   }
-   else if (n >= 850)
-   {
-      k = 3;
-   }
-   else if (n >= 650)
-   {
-      k = 4;
-   }
-   else if (n >= 550)
-   {
-      k = 5;
-   }
-   else if (n >= 450)
-   {
-      k = 6;
-   }
-   else if (n >= 400)
-   {
-      k = 7;
-   }
-   else if (n >= 350)
-   {
-      k = 8;
-   }
-   else if (n >= 300)
-   {
-      k = 9;
-   }
-   else if (n >= 250)
-   {
-      k = 12;
-   }
-   else if (n >= 200)
-   {
-      k = 15;
-   }
-   else if (n >= 150)
-   {
-      k = 18;
-   }
-   else
-   {
-      k = 27;
-   }
-
-   /* hardcoded to tls_adapter's PRNG  (╯°□°）╯︵ ┻━┻ */
-   if (mpiCheckProbablePrimeWorker(a, k, rand_get_algo(), rand_get_context()))
-   {
-      return NO_ERROR;
-   }
-
-   return ERROR_INVALID_VALUE;
+   //The algorithm is implemented by hardware
+   return ERROR_NOT_IMPLEMENTED;
 }
+
 
 /**
  * @brief Octet string to integer conversion
@@ -801,70 +629,70 @@ error_t mpiImport(Mpi *r, const uint8_t *data, uint_t length, MpiFormat format)
    error_t error;
    uint_t i;
 
-   // Check input format
-   if (format == MPI_FORMAT_LITTLE_ENDIAN)
+   //Check input format
+   if(format == MPI_FORMAT_LITTLE_ENDIAN)
    {
-      // Skip trailing zeroes
-      while (length > 0 && data[length - 1] == 0)
+      //Skip trailing zeroes
+      while(length > 0 && data[length - 1] == 0)
       {
          length--;
       }
 
-      // Ajust the size of the multiple precision integer
+      //Ajust the size of the multiple precision integer
       error = mpiGrow(r, (length + MPI_INT_SIZE - 1) / MPI_INT_SIZE);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Clear the contents of the multiple precision integer
+         //Clear the contents of the multiple precision integer
          osMemset(r->data, 0, r->size * MPI_INT_SIZE);
-         // Set sign
+         //Set sign
          r->sign = 1;
 
-         // Import data
-         for (i = 0; i < length; i++, data++)
+         //Import data
+         for(i = 0; i < length; i++, data++)
          {
             r->data[i / MPI_INT_SIZE] |= *data << ((i % MPI_INT_SIZE) * 8);
          }
       }
    }
-   else if (format == MPI_FORMAT_BIG_ENDIAN)
+   else if(format == MPI_FORMAT_BIG_ENDIAN)
    {
-      // Skip leading zeroes
-      while (length > 1 && *data == 0)
+      //Skip leading zeroes
+      while(length > 1 && *data == 0)
       {
          data++;
          length--;
       }
 
-      // Ajust the size of the multiple precision integer
+      //Ajust the size of the multiple precision integer
       error = mpiGrow(r, (length + MPI_INT_SIZE - 1) / MPI_INT_SIZE);
 
-      // Check status code
-      if (!error)
+      //Check status code
+      if(!error)
       {
-         // Clear the contents of the multiple precision integer
+         //Clear the contents of the multiple precision integer
          osMemset(r->data, 0, r->size * MPI_INT_SIZE);
-         // Set sign
+         //Set sign
          r->sign = 1;
 
-         // Start from the least significant byte
+         //Start from the least significant byte
          data += length - 1;
 
-         // Import data
-         for (i = 0; i < length; i++, data--)
+         //Import data
+         for(i = 0; i < length; i++, data--)
          {
-            r->data[i / MPI_INT_SIZE] |= (uint64_t)*data << ((i % MPI_INT_SIZE) * 8);
+            r->data[i / MPI_INT_SIZE] |= (uint64_t) *data << ((i % MPI_INT_SIZE) * 8);
          }
       }
    }
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PARAMETER;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -887,66 +715,66 @@ error_t mpiExport(const Mpi *a, uint8_t *data, uint_t length, MpiFormat format)
    uint_t n;
    error_t error;
 
-   // Initialize status code
+   //Initialize status code
    error = NO_ERROR;
 
-   // Check input format
-   if (format == MPI_FORMAT_LITTLE_ENDIAN)
+   //Check input format
+   if(format == MPI_FORMAT_LITTLE_ENDIAN)
    {
-      // Get the actual length in bytes
+      //Get the actual length in bytes
       n = mpiGetByteLength(a);
 
-      // Make sure the output buffer is large enough
-      if (n <= length)
+      //Make sure the output buffer is large enough
+      if(n <= length)
       {
-         // Clear output buffer
+         //Clear output buffer
          osMemset(data, 0, length);
 
-         // Export data
-         for (i = 0; i < n; i++, data++)
+         //Export data
+         for(i = 0; i < n; i++, data++)
          {
             *data = a->data[i / MPI_INT_SIZE] >> ((i % MPI_INT_SIZE) * 8);
          }
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_INVALID_LENGTH;
       }
    }
-   else if (format == MPI_FORMAT_BIG_ENDIAN)
+   else if(format == MPI_FORMAT_BIG_ENDIAN)
    {
-      // Get the actual length in bytes
+      //Get the actual length in bytes
       n = mpiGetByteLength(a);
 
-      // Make sure the output buffer is large enough
-      if (n <= length)
+      //Make sure the output buffer is large enough
+      if(n <= length)
       {
-         // Clear output buffer
+         //Clear output buffer
          osMemset(data, 0, length);
 
-         // Point to the least significant word
+         //Point to the least significant word
          data += length - 1;
 
-         // Export data
-         for (i = 0; i < n; i++, data--)
+         //Export data
+         for(i = 0; i < n; i++, data--)
          {
             *data = a->data[i / MPI_INT_SIZE] >> ((i % MPI_INT_SIZE) * 8);
          }
       }
       else
       {
-         // Report an error
+         //Report an error
          error = ERROR_INVALID_LENGTH;
       }
    }
    else
    {
-      // Report an error
+      //Report an error
       error = ERROR_INVALID_PARAMETER;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -964,38 +792,38 @@ error_t mpiAdd(Mpi *r, const Mpi *a, const Mpi *b)
    error_t error;
    int_t sign;
 
-   // Retrieve the sign of A
+   //Retrieve the sign of A
    sign = a->sign;
 
-   // Both operands have the same sign?
-   if (a->sign == b->sign)
+   //Both operands have the same sign?
+   if(a->sign == b->sign)
    {
-      // Perform addition
+      //Perform addition
       error = mpiAddAbs(r, a, b);
-      // Set the sign of the resulting number
+      //Set the sign of the resulting number
       r->sign = sign;
    }
-   // Operands have different signs?
+   //Operands have different signs?
    else
    {
-      // Compare the absolute value of A and B
-      if (mpiCompAbs(a, b) >= 0)
+      //Compare the absolute value of A and B
+      if(mpiCompAbs(a, b) >= 0)
       {
-         // Perform subtraction
+         //Perform subtraction
          error = mpiSubAbs(r, a, b);
-         // Set the sign of the resulting number
+         //Set the sign of the resulting number
          r->sign = sign;
       }
       else
       {
-         // Perform subtraction
+         //Perform subtraction
          error = mpiSubAbs(r, b, a);
-         // Set the sign of the resulting number
+         //Set the sign of the resulting number
          r->sign = -sign;
       }
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1013,7 +841,7 @@ error_t mpiAddInt(Mpi *r, const Mpi *a, int_t b)
    uint_t value;
    Mpi t;
 
-   // Convert the second operand to a multiple precision integer
+   //Convert the second operand to a multiple precision integer
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
@@ -1023,7 +851,7 @@ error_t mpiAddInt(Mpi *r, const Mpi *a, int_t b)
    t.data[0] = value;
 #endif
 
-   // Perform addition
+   //Perform addition
    return mpiAdd(r, a, &t);
 }
 
@@ -1041,38 +869,38 @@ error_t mpiSub(Mpi *r, const Mpi *a, const Mpi *b)
    error_t error;
    int_t sign;
 
-   // Retrieve the sign of A
+   //Retrieve the sign of A
    sign = a->sign;
 
-   // Both operands have the same sign?
-   if (a->sign == b->sign)
+   //Both operands have the same sign?
+   if(a->sign == b->sign)
    {
-      // Compare the absolute value of A and B
-      if (mpiCompAbs(a, b) >= 0)
+      //Compare the absolute value of A and B
+      if(mpiCompAbs(a, b) >= 0)
       {
-         // Perform subtraction
+         //Perform subtraction
          error = mpiSubAbs(r, a, b);
-         // Set the sign of the resulting number
+         //Set the sign of the resulting number
          r->sign = sign;
       }
       else
       {
-         // Perform subtraction
+         //Perform subtraction
          error = mpiSubAbs(r, b, a);
-         // Set the sign of the resulting number
+         //Set the sign of the resulting number
          r->sign = -sign;
       }
    }
-   // Operands have different signs?
+   //Operands have different signs?
    else
    {
-      // Perform addition
+      //Perform addition
       error = mpiAddAbs(r, a, b);
-      // Set the sign of the resulting number
+      //Set the sign of the resulting number
       r->sign = sign;
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1090,7 +918,7 @@ error_t mpiSubInt(Mpi *r, const Mpi *a, int_t b)
    uint_t value;
    Mpi t;
 
-   // Convert the second operand to a multiple precision integer
+   //Convert the second operand to a multiple precision integer
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
@@ -1100,7 +928,7 @@ error_t mpiSubInt(Mpi *r, const Mpi *a, int_t b)
    t.data[0] = value;
 #endif
 
-   // Perform subtraction
+   //Perform subtraction
    return mpiSub(r, a, &t);
 }
 
@@ -1121,66 +949,66 @@ error_t mpiAddAbs(Mpi *r, const Mpi *a, const Mpi *b)
    uint_t c;
    uint_t d;
 
-   // R and B are the same instance?
-   if (r == b)
+   //R and B are the same instance?
+   if(r == b)
    {
-      // Swap A and B
+      //Swap A and B
       const Mpi *t = a;
       a = b;
       b = t;
    }
-   // R is neither A nor B?
-   else if (r != a)
+   //R is neither A nor B?
+   else if(r != a)
    {
-      // Copy the first operand to R
+      //Copy the first operand to R
       MPI_CHECK(mpiCopy(r, a));
    }
 
-   // Determine the actual length of B
+   //Determine the actual length of B
    n = mpiGetLength(b);
-   // Extend the size of the destination register as needed
+   //Extend the size of the destination register as needed
    MPI_CHECK(mpiGrow(r, n));
 
-   // The result is always positive
+   //The result is always positive
    r->sign = 1;
-   // Clear carry bit
+   //Clear carry bit
    c = 0;
 
-   // Add operands
-   for (i = 0; i < n; i++)
+   //Add operands
+   for(i = 0; i < n; i++)
    {
-      // Add carry bit
+      //Add carry bit
       d = r->data[i] + c;
-      // Update carry bit
-      if (d != 0) c = 0;
-      // Perform addition
+      //Update carry bit
+      if(d != 0) c = 0;
+      //Perform addition
       d += b->data[i];
-      // Update carry bit
-      if (d < b->data[i]) c = 1;
-      // Save result
+      //Update carry bit
+      if(d < b->data[i]) c = 1;
+      //Save result
       r->data[i] = d;
    }
 
-   // Loop as long as the carry bit is set
-   for (i = n; c && i < r->size; i++)
+   //Loop as long as the carry bit is set
+   for(i = n; c && i < r->size; i++)
    {
-      // Add carry bit
+      //Add carry bit
       r->data[i] += c;
-      // Update carry bit
-      if (r->data[i] != 0) c = 0;
+      //Update carry bit
+      if(r->data[i] != 0) c = 0;
    }
 
-   // Check the final carry bit
-   if (c && n >= r->size)
+   //Check the final carry bit
+   if(c && n >= r->size)
    {
-      // Extend the size of the destination register
+      //Extend the size of the destination register
       MPI_CHECK(mpiGrow(r, n + 1));
-      // Add carry bit
+      //Add carry bit
       r->data[n] = 1;
    }
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1202,76 +1030,76 @@ error_t mpiSubAbs(Mpi *r, const Mpi *a, const Mpi *b)
    uint_t m;
    uint_t n;
 
-   // Check input parameters
-   if (mpiCompAbs(a, b) < 0)
+   //Check input parameters
+   if(mpiCompAbs(a, b) < 0)
    {
-      // Swap A and B if necessary
+      //Swap A and B if necessary
       const Mpi *t = a;
       a = b;
       b = t;
    }
 
-   // Determine the actual length of A
+   //Determine the actual length of A
    m = mpiGetLength(a);
-   // Determine the actual length of B
+   //Determine the actual length of B
    n = mpiGetLength(b);
 
-   // Extend the size of the destination register as needed
+   //Extend the size of the destination register as needed
    MPI_CHECK(mpiGrow(r, m));
 
-   // The result is always positive
+   //The result is always positive
    r->sign = 1;
-   // Clear carry bit
+   //Clear carry bit
    c = 0;
 
-   // Subtract operands
-   for (i = 0; i < n; i++)
+   //Subtract operands
+   for(i = 0; i < n; i++)
    {
-      // Read first operand
+      //Read first operand
       d = a->data[i];
 
-      // Check the carry bit
-      if (c)
+      //Check the carry bit
+      if(c)
       {
-         // Update carry bit
+         //Update carry bit
          if(d != 0) c = 0;
-         // Propagate carry bit
+         //Propagate carry bit
          d -= 1;
       }
 
-      // Update carry bit
+      //Update carry bit
       if(d < b->data[i]) c = 1;
-      // Perform subtraction
+      //Perform subtraction
       r->data[i] = d - b->data[i];
    }
 
-   // Loop as long as the carry bit is set
-   for (i = n; c && i < m; i++)
+   //Loop as long as the carry bit is set
+   for(i = n; c && i < m; i++)
    {
-      // Update carry bit
+      //Update carry bit
       if(a->data[i] != 0) c = 0;
-      // Propagate carry bit
+      //Propagate carry bit
       r->data[i] = a->data[i] - 1;
    }
 
-   // R and A are not the same instance?
-   if (r != a)
+   //R and A are not the same instance?
+   if(r != a)
    {
-      // Copy the remaining words
-      for (; i < m; i++)
+      //Copy the remaining words
+      for(; i < m; i++)
       {
          r->data[i] = a->data[i];
       }
 
-      // Zero the upper part of R
-      for (; i < r->size; i++)
+      //Zero the upper part of R
+      for(; i < r->size; i++)
       {
          r->data[i] = 0;
       }
    }
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1291,8 +1119,8 @@ error_t mpiShiftLeft(Mpi *r, uint_t n)
    uint_t n1;
    uint_t n2;
 
-   // Check parameters
-   if (r->size == 0 || n == 0)
+   //Check parameters
+   if(r->size == 0 || n == 0)
       return NO_ERROR;
 
    //Determine the actual length of r
@@ -1303,42 +1131,42 @@ error_t mpiShiftLeft(Mpi *r, uint_t n)
    //Number of bits to shift
    n2 = n % (MPI_INT_SIZE * 8);
 
-   // Increase the size of the multiple-precision number
+   //Increase the size of the multiple-precision number
    error = mpiGrow(r, (k + n + 31) / 32);
-   // Check return code
-   if (error)
+   //Check return code
+   if(error)
       return error;
 
-   // First, shift words
-   if (n1 > 0)
+   //First, shift words
+   if(n1 > 0)
    {
-      // Process the most significant words
-      for (i = r->size - 1; i >= n1; i--)
+      //Process the most significant words
+      for(i = r->size - 1; i >= n1; i--)
       {
          r->data[i] = r->data[i - n1];
       }
 
-      // Fill the rest with zeroes
-      for (i = 0; i < n1; i++)
+      //Fill the rest with zeroes
+      for(i = 0; i < n1; i++)
       {
          r->data[i] = 0;
       }
    }
 
-   // Then shift bits
-   if (n2 > 0)
+   //Then shift bits
+   if(n2 > 0)
    {
-      // Process the most significant words
-      for (i = r->size - 1; i >= 1; i--)
+      //Process the most significant words
+      for(i = r->size - 1; i >= 1; i--)
       {
          r->data[i] = (r->data[i] << n2) | (r->data[i - 1] >> (32 - n2));
       }
 
-      // The least significant word requires a special handling
+      //The least significant word requires a special handling
       r->data[0] <<= n2;
    }
 
-   // Shift operation is complete
+   //Shift operation is complete
    return NO_ERROR;
 }
 
@@ -1355,48 +1183,48 @@ error_t mpiShiftRight(Mpi *r, uint_t n)
    uint_t i;
    uint_t m;
 
-   // Number of 32-bit words to shift
+   //Number of 32-bit words to shift
    uint_t n1 = n / (MPI_INT_SIZE * 8);
-   // Number of bits to shift
+   //Number of bits to shift
    uint_t n2 = n % (MPI_INT_SIZE * 8);
 
-   // Check parameters
-   if (n1 >= r->size)
+   //Check parameters
+   if(n1 >= r->size)
    {
       osMemset(r->data, 0, r->size * MPI_INT_SIZE);
       return NO_ERROR;
    }
 
-   // First, shift words
-   if (n1 > 0)
+   //First, shift words
+   if(n1 > 0)
    {
-      // Process the least significant words
-      for (m = r->size - n1, i = 0; i < m; i++)
+      //Process the least significant words
+      for(m = r->size - n1, i = 0; i < m; i++)
       {
          r->data[i] = r->data[i + n1];
       }
 
-      // Fill the rest with zeroes
-      for (i = m; i < r->size; i++)
+      //Fill the rest with zeroes
+      for(i = m; i < r->size; i++)
       {
          r->data[i] = 0;
       }
    }
 
-   // Then shift bits
-   if (n2 > 0)
+   //Then shift bits
+   if(n2 > 0)
    {
-      // Process the least significant words
-      for (m = r->size - n1 - 1, i = 0; i < m; i++)
+      //Process the least significant words
+      for(m = r->size - n1 - 1, i = 0; i < m; i++)
       {
          r->data[i] = (r->data[i] >> n2) | (r->data[i + 1] << (32 - n2));
       }
 
-      // The most significant word requires a special handling
+      //The most significant word requires a special handling
       r->data[m] >>= n2;
    }
 
-   // Shift operation is complete
+   //Shift operation is complete
    return NO_ERROR;
 }
 
@@ -1418,62 +1246,62 @@ __weak_func error_t mpiMul(Mpi *r, const Mpi *a, const Mpi *b)
    Mpi ta;
    Mpi tb;
 
-   // Initialize multiple precision integers
+   //Initialize multiple precision integers
    mpiInit(&ta);
    mpiInit(&tb);
 
-   // R and A are the same instance?
-   if (r == a)
+   //R and A are the same instance?
+   if(r == a)
    {
-      // Copy A to TA
+      //Copy A to TA
       MPI_CHECK(mpiCopy(&ta, a));
-      // Use TA instead of A
+      //Use TA instead of A
       a = &ta;
    }
 
-   // R and B are the same instance?
-   if (r == b)
+   //R and B are the same instance?
+   if(r == b)
    {
-      // Copy B to TB
+      //Copy B to TB
       MPI_CHECK(mpiCopy(&tb, b));
-      // Use TB instead of B
+      //Use TB instead of B
       b = &tb;
    }
 
-   // Determine the actual length of A and B
+   //Determine the actual length of A and B
    m = mpiGetLength(a);
    n = mpiGetLength(b);
 
-   // Adjust the size of R
+   //Adjust the size of R
    MPI_CHECK(mpiGrow(r, m + n));
-   // Set the sign of R
+   //Set the sign of R
    r->sign = (a->sign == b->sign) ? 1 : -1;
 
-   // Clear the contents of the destination integer
+   //Clear the contents of the destination integer
    osMemset(r->data, 0, r->size * MPI_INT_SIZE);
 
-   // Perform multiplication
-   if (m < n)
+   //Perform multiplication
+   if(m < n)
    {
-      for (i = 0; i < m; i++)
+      for(i = 0; i < m; i++)
       {
          mpiMulAccCore(&r->data[i], b->data, n, a->data[i]);
       }
    }
    else
    {
-      for (i = 0; i < n; i++)
+      for(i = 0; i < n; i++)
       {
          mpiMulAccCore(&r->data[i], a->data, m, b->data[i]);
       }
    }
 
 end:
-   // Release multiple precision integers
+   //Release multiple precision integers
    mpiFree(&ta);
    mpiFree(&tb);
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1491,7 +1319,7 @@ error_t mpiMulInt(Mpi *r, const Mpi *a, int_t b)
    uint_t value;
    Mpi t;
 
-   // Convert the second operand to a multiple precision integer
+   //Convert the second operand to a multiple precision integer
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
@@ -1501,7 +1329,7 @@ error_t mpiMulInt(Mpi *r, const Mpi *a, int_t b)
    t.data[0] = value;
 #endif
 
-   // Perform multiplication
+   //Perform multiplication
    return mpiMul(r, a, &t);
 }
 
@@ -1524,11 +1352,11 @@ error_t mpiDiv(Mpi *q, Mpi *r, const Mpi *a, const Mpi *b)
    Mpi d;
    Mpi e;
 
-   // Check whether the divisor is equal to zero
-   if (!mpiCompInt(b, 0))
+   //Check whether the divisor is equal to zero
+   if(!mpiCompInt(b, 0))
       return ERROR_INVALID_PARAMETER;
 
-   // Initialize multiple precision integers
+   //Initialize multiple precision integers
    mpiInit(&c);
    mpiInit(&d);
    mpiInit(&e);
@@ -1540,16 +1368,16 @@ error_t mpiDiv(Mpi *q, Mpi *r, const Mpi *a, const Mpi *b)
    m = mpiGetBitLength(&c);
    n = mpiGetBitLength(&d);
 
-   if (m > n)
+   if(m > n)
    {
       MPI_CHECK(mpiShiftLeft(&d, m - n));
    }
 
-   while (n++ <= m)
+   while(n++ <= m)
    {
       MPI_CHECK(mpiShiftLeft(&e, 1));
 
-      if (mpiComp(&c, &d) >= 0)
+      if(mpiComp(&c, &d) >= 0)
       {
          MPI_CHECK(mpiSetBitValue(&e, 0, 1));
          MPI_CHECK(mpiSub(&c, &c, &d));
@@ -1558,23 +1386,23 @@ error_t mpiDiv(Mpi *q, Mpi *r, const Mpi *a, const Mpi *b)
       MPI_CHECK(mpiShiftRight(&d, 1));
    }
 
-   if (q != NULL)
+   if(q != NULL)
    {
       MPI_CHECK(mpiCopy(q, &e));
    }
 
-   if (r != NULL)
+   if(r != NULL)
    {
       MPI_CHECK(mpiCopy(r, &c));
    }
 
 end:
-   // Release previously allocated memory
+   //Release previously allocated memory
    mpiFree(&c);
    mpiFree(&d);
    mpiFree(&e);
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1593,7 +1421,7 @@ error_t mpiDivInt(Mpi *q, Mpi *r, const Mpi *a, int_t b)
    uint_t value;
    Mpi t;
 
-   // Convert the divisor to a multiple precision integer
+   //Convert the divisor to a multiple precision integer
    value = (b >= 0) ? b : -b;
    t.sign = (b >= 0) ? 1 : -1;
    t.size = 1;
@@ -1603,7 +1431,7 @@ error_t mpiDivInt(Mpi *q, Mpi *r, const Mpi *a, int_t b)
    t.data[0] = value;
 #endif
 
-   // Perform division
+   //Perform division
    return mpiDiv(q, r, a, &t);
 }
 
@@ -1624,31 +1452,31 @@ error_t mpiMod(Mpi *r, const Mpi *a, const Mpi *p)
    uint_t n;
    Mpi c;
 
-   // Make sure the modulus is positive
-   if (mpiCompInt(p, 0) <= 0)
+   //Make sure the modulus is positive
+   if(mpiCompInt(p, 0) <= 0)
       return ERROR_INVALID_PARAMETER;
 
-   // Initialize multiple precision integer
+   //Initialize multiple precision integer
    mpiInit(&c);
 
-   // Save the sign of A
+   //Save the sign of A
    sign = a->sign;
-   // Determine the actual length of A
+   //Determine the actual length of A
    m = mpiGetBitLength(a);
-   // Determine the actual length of P
+   //Determine the actual length of P
    n = mpiGetBitLength(p);
 
-   // Let R = A
+   //Let R = A
    MPI_CHECK(mpiCopy(r, a));
 
-   if (m >= n)
+   if(m >= n)
    {
       MPI_CHECK(mpiCopy(&c, p));
       MPI_CHECK(mpiShiftLeft(&c, m - n));
 
-      while (mpiCompAbs(r, p) >= 0)
+      while(mpiCompAbs(r, p) >= 0)
       {
-         if (mpiCompAbs(r, &c) >= 0)
+         if(mpiCompAbs(r, &c) >= 0)
          {
             MPI_CHECK(mpiSubAbs(r, r, &c));
          }
@@ -1657,16 +1485,16 @@ error_t mpiMod(Mpi *r, const Mpi *a, const Mpi *p)
       }
    }
 
-   if (sign < 0)
+   if(sign < 0)
    {
       MPI_CHECK(mpiSubAbs(r, p, r));
    }
 
 end:
-   // Release previously allocated memory
+   //Release previously allocated memory
    mpiFree(&c);
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1685,12 +1513,12 @@ error_t mpiAddMod(Mpi *r, const Mpi *a, const Mpi *b, const Mpi *p)
 {
    error_t error;
 
-   // Perform modular addition
+   //Perform modular addition
    MPI_CHECK(mpiAdd(r, a, b));
    MPI_CHECK(mpiMod(r, r, p));
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1708,12 +1536,12 @@ error_t mpiSubMod(Mpi *r, const Mpi *a, const Mpi *b, const Mpi *p)
 {
    error_t error;
 
-   // Perform modular subtraction
+   //Perform modular subtraction
    MPI_CHECK(mpiSub(r, a, b));
    MPI_CHECK(mpiMod(r, r, p));
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1731,12 +1559,12 @@ __weak_func error_t mpiMulMod(Mpi *r, const Mpi *a, const Mpi *b, const Mpi *p)
 {
    error_t error;
 
-   // Perform modular multiplication
+   //Perform modular multiplication
    MPI_CHECK(mpiMul(r, a, b));
    MPI_CHECK(mpiMod(r, r, p));
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1760,7 +1588,7 @@ __weak_func error_t mpiInvMod(Mpi *r, const Mpi *a, const Mpi *p)
    Mpi u;
    Mpi v;
 
-   // Initialize multiple precision integers
+   //Initialize multiple precision integers
    mpiInit(&b);
    mpiInit(&c);
    mpiInit(&q0);
@@ -1774,7 +1602,7 @@ __weak_func error_t mpiInvMod(Mpi *r, const Mpi *a, const Mpi *p)
    MPI_CHECK(mpiSetValue(&u, 0));
    MPI_CHECK(mpiSetValue(&v, 1));
 
-   while (mpiCompInt(&c, 0) > 0)
+   while(mpiCompInt(&c, 0) > 0)
    {
       MPI_CHECK(mpiDiv(&q0, &r0, &b, &c));
 
@@ -1787,12 +1615,12 @@ __weak_func error_t mpiInvMod(Mpi *r, const Mpi *a, const Mpi *p)
       MPI_CHECK(mpiCopy(&u, &t));
    }
 
-   if (mpiCompInt(&b, 1))
+   if(mpiCompInt(&b, 1))
    {
       MPI_CHECK(ERROR_FAILURE);
    }
 
-   if (mpiCompInt(&u, 0) > 0)
+   if(mpiCompInt(&u, 0) > 0)
    {
       MPI_CHECK(mpiCopy(r, &u));
    }
@@ -1802,7 +1630,7 @@ __weak_func error_t mpiInvMod(Mpi *r, const Mpi *a, const Mpi *p)
    }
 
 end:
-   // Release previously allocated memory
+   //Release previously allocated memory
    mpiFree(&b);
    mpiFree(&c);
    mpiFree(&q0);
@@ -1811,7 +1639,7 @@ end:
    mpiFree(&u);
    mpiFree(&v);
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -1839,89 +1667,89 @@ __weak_func error_t mpiExpMod(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
    Mpi t;
    Mpi s[8];
 
-   // Initialize multiple precision integers
+   //Initialize multiple precision integers
    mpiInit(&b);
    mpiInit(&c2);
    mpiInit(&t);
 
-   // Initialize precomputed values
-   for (i = 0; (uint_t)i < arraysize(s); i++)
+   //Initialize precomputed values
+   for(i = 0; (uint_t) i < arraysize(s); i++)
    {
       mpiInit(&s[i]);
    }
 
-   // Very small exponents are often selected with low Hamming weight.
-   // The sliding window mechanism should be disabled in that case
+   //Very small exponents are often selected with low Hamming weight.
+   //The sliding window mechanism should be disabled in that case
    d = (mpiGetBitLength(e) <= 32) ? 1 : 4;
 
-   // Even modulus?
-   if (mpiIsEven(p))
+   //Even modulus?
+   if(mpiIsEven(p))
    {
-      // Let S[0] = A
+      //Let S[0] = A
       MPI_CHECK(mpiMod(&s[0], a, p));
       //Let B = A^2
       MPI_CHECK(mpiMulMod(&b, &s[0], &s[0], p));
 
-      // Precompute S[i] = A^(2 * i + 1)
-      for (i = 1; i < (1 << (d - 1)); i++)
+      //Precompute S[i] = A^(2 * i + 1)
+      for(i = 1; i < (1 << (d - 1)); i++)
       {
          MPI_CHECK(mpiMulMod(&s[i], &s[i - 1], &b, p));
       }
 
-      // Let R = 1
+      //Let R = 1
       MPI_CHECK(mpiSetValue(r, 1));
 
-      // The exponent is processed in a left-to-right fashion
+      //The exponent is processed in a left-to-right fashion
       i = mpiGetBitLength(e) - 1;
 
-      // Perform sliding window exponentiation
-      while (i >= 0)
+      //Perform sliding window exponentiation
+      while(i >= 0)
       {
-         // The sliding window exponentiation algorithm decomposes E
-         // into zero and nonzero windows
-         if (!mpiGetBitValue(e, i))
+         //The sliding window exponentiation algorithm decomposes E
+         //into zero and nonzero windows
+         if(!mpiGetBitValue(e, i))
          {
-            // Compute R = R^2
+            //Compute R = R^2
             MPI_CHECK(mpiMulMod(r, r, r, p));
-            // Next bit to be processed
+            //Next bit to be processed
             i--;
          }
          else
          {
-            // Find the longest window
+            //Find the longest window
             n = MAX(i - d + 1, 0);
 
-            // The least significant bit of the window must be equal to 1
+            //The least significant bit of the window must be equal to 1
             while(!mpiGetBitValue(e, n)) n++;
 
-            // The algorithm processes more than one bit per iteration
-            for (u = 0, j = i; j >= n; j--)
+            //The algorithm processes more than one bit per iteration
+            for(u = 0, j = i; j >= n; j--)
             {
-               // Compute R = R^2
+               //Compute R = R^2
                MPI_CHECK(mpiMulMod(r, r, r, p));
-               // Compute the relevant index to be used in the precomputed table
+               //Compute the relevant index to be used in the precomputed table
                u = (u << 1) | mpiGetBitValue(e, j);
             }
 
-            // Perform a single multiplication per iteration
+            //Perform a single multiplication per iteration
             MPI_CHECK(mpiMulMod(r, r, &s[u >> 1], p));
-            // Next bit to be processed
+            //Next bit to be processed
             i = n - 1;
          }
       }
    }
    else
    {
-      // Compute the smaller C = (2^32)^k such as C > P
+      //Compute the smaller C = (2^32)^k such as C > P
       k = mpiGetLength(p);
 
-      // Compute C^2 mod P
+      //Compute C^2 mod P
       MPI_CHECK(mpiSetValue(&c2, 1));
       MPI_CHECK(mpiShiftLeft(&c2, 2 * k * (MPI_INT_SIZE * 8)));
       MPI_CHECK(mpiMod(&c2, &c2, p));
 
-      // Let B = A * C mod P
-      if (mpiComp(a, p) >= 0)
+      //Let B = A * C mod P
+      if(mpiComp(a, p) >= 0)
       {
          MPI_CHECK(mpiMod(&b, a, p));
          MPI_CHECK(mpiMontgomeryMul(&b, &b, &c2, k, p, &t));
@@ -1931,77 +1759,77 @@ __weak_func error_t mpiExpMod(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
          MPI_CHECK(mpiMontgomeryMul(&b, a, &c2, k, p, &t));
       }
 
-      // Let R = B^2 * C^-1 mod P
+      //Let R = B^2 * C^-1 mod P
       MPI_CHECK(mpiMontgomeryMul(r, &b, &b, k, p, &t));
-      // Let S[0] = B
+      //Let S[0] = B
       MPI_CHECK(mpiCopy(&s[0], &b));
 
-      // Precompute S[i] = B^(2 * i + 1) * C^-1 mod P
-      for (i = 1; i < (1 << (d - 1)); i++)
+      //Precompute S[i] = B^(2 * i + 1) * C^-1 mod P
+      for(i = 1; i < (1 << (d - 1)); i++)
       {
          MPI_CHECK(mpiMontgomeryMul(&s[i], &s[i - 1], r, k, p, &t));
       }
 
-      // Let R = C mod P
+      //Let R = C mod P
       MPI_CHECK(mpiCopy(r, &c2));
       MPI_CHECK(mpiMontgomeryRed(r, r, k, p, &t));
 
-      // The exponent is processed in a left-to-right fashion
+      //The exponent is processed in a left-to-right fashion
       i = mpiGetBitLength(e) - 1;
 
-      // Perform sliding window exponentiation
-      while (i >= 0)
+      //Perform sliding window exponentiation
+      while(i >= 0)
       {
-         // The sliding window exponentiation algorithm decomposes E
-         // into zero and nonzero windows
-         if (!mpiGetBitValue(e, i))
+         //The sliding window exponentiation algorithm decomposes E
+         //into zero and nonzero windows
+         if(!mpiGetBitValue(e, i))
          {
-            // Compute R = R^2 * C^-1 mod P
+            //Compute R = R^2 * C^-1 mod P
             MPI_CHECK(mpiMontgomeryMul(r, r, r, k, p, &t));
-            // Next bit to be processed
+            //Next bit to be processed
             i--;
          }
          else
          {
-            // Find the longest window
+            //Find the longest window
             n = MAX(i - d + 1, 0);
 
-            // The least significant bit of the window must be equal to 1
+            //The least significant bit of the window must be equal to 1
             while(!mpiGetBitValue(e, n)) n++;
 
-            // The algorithm processes more than one bit per iteration
-            for (u = 0, j = i; j >= n; j--)
+            //The algorithm processes more than one bit per iteration
+            for(u = 0, j = i; j >= n; j--)
             {
-               // Compute R = R^2 * C^-1 mod P
+               //Compute R = R^2 * C^-1 mod P
                MPI_CHECK(mpiMontgomeryMul(r, r, r, k, p, &t));
-               // Compute the relevant index to be used in the precomputed table
+               //Compute the relevant index to be used in the precomputed table
                u = (u << 1) | mpiGetBitValue(e, j);
             }
 
-            // Compute R = R * T[u/2] * C^-1 mod P
+            //Compute R = R * T[u/2] * C^-1 mod P
             MPI_CHECK(mpiMontgomeryMul(r, r, &s[u >> 1], k, p, &t));
-            // Next bit to be processed
+            //Next bit to be processed
             i = n - 1;
          }
       }
 
-      // Compute R = R * C^-1 mod P
+      //Compute R = R * C^-1 mod P
       MPI_CHECK(mpiMontgomeryRed(r, r, k, p, &t));
    }
 
 end:
-   // Release multiple precision integers
+   //Release multiple precision integers
    mpiFree(&b);
    mpiFree(&c2);
    mpiFree(&t);
 
-   // Release precomputed values
-   for (i = 0; (uint_t)i < arraysize(s); i++)
+   //Release precomputed values
+   for(i = 0; (uint_t) i < arraysize(s); i++)
    {
       mpiFree(&s[i]);
    }
 
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -2017,7 +1845,7 @@ end:
 
 __weak_func error_t mpiExpModFast(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
 {
-   // Perform modular exponentiation
+   //Perform modular exponentiation
    return mpiExpMod(r, a, e, p);
 }
 
@@ -2033,7 +1861,7 @@ __weak_func error_t mpiExpModFast(Mpi *r, const Mpi *a, const Mpi *e, const Mpi 
 
 __weak_func error_t mpiExpModRegular(Mpi *r, const Mpi *a, const Mpi *e, const Mpi *p)
 {
-   // Perform modular exponentiation
+   //Perform modular exponentiation
    return mpiExpMod(r, a, e, p);
 }
 
@@ -2050,7 +1878,7 @@ __weak_func error_t mpiExpModRegular(Mpi *r, const Mpi *a, const Mpi *e, const M
  **/
 
 error_t mpiMontgomeryMul(Mpi *r, const Mpi *a, const Mpi *b, uint_t k,
-                         const Mpi *p, Mpi *t)
+   const Mpi *p, Mpi *t)
 {
    error_t error;
    uint_t i;
@@ -2058,56 +1886,56 @@ error_t mpiMontgomeryMul(Mpi *r, const Mpi *a, const Mpi *b, uint_t k,
    uint_t n;
    uint_t q;
 
-   // Use Newton's method to compute the inverse of P[0] mod 2^32
-   for (m = 2 - p->data[0], i = 0; i < 4; i++)
+   //Use Newton's method to compute the inverse of P[0] mod 2^32
+   for(m = 2 - p->data[0], i = 0; i < 4; i++)
    {
       m = m * (2 - m * p->data[0]);
    }
 
-   // Precompute -1/P[0] mod 2^32;
+   //Precompute -1/P[0] mod 2^32;
    m = ~m + 1;
 
-   // We assume that B is always less than 2^k
+   //We assume that B is always less than 2^k
    n = MIN(b->size, k);
 
-   // Make sure T is large enough
+   //Make sure T is large enough
    MPI_CHECK(mpiGrow(t, 2 * k + 1));
-   // Let T = 0
+   //Let T = 0
    MPI_CHECK(mpiSetValue(t, 0));
 
-   // Perform Montgomery multiplication
-   for (i = 0; i < k; i++)
+   //Perform Montgomery multiplication
+   for(i = 0; i < k; i++)
    {
-      // Check current index
-      if (i < a->size)
+      //Check current index
+      if(i < a->size)
       {
-         // Compute q = ((T[i] + A[i] * B[0]) * m) mod 2^32
+         //Compute q = ((T[i] + A[i] * B[0]) * m) mod 2^32
          q = (t->data[i] + a->data[i] * b->data[0]) * m;
-         // Compute T = T + A[i] * B
+         //Compute T = T + A[i] * B
          mpiMulAccCore(t->data + i, b->data, n, a->data[i]);
       }
       else
       {
-         // Compute q = (T[i] * m) mod 2^32
+         //Compute q = (T[i] * m) mod 2^32
          q = t->data[i] * m;
       }
 
-      // Compute T = T + q * P
+      //Compute T = T + q * P
       mpiMulAccCore(t->data + i, p->data, k, q);
    }
 
-   // Compute R = T / 2^(32 * k)
+   //Compute R = T / 2^(32 * k)
    MPI_CHECK(mpiShiftRight(t, k * (MPI_INT_SIZE * 8)));
    MPI_CHECK(mpiCopy(r, t));
 
-   // A final subtraction is required
-   if (mpiComp(r, p) >= 0)
+   //A final subtraction is required
+   if(mpiComp(r, p) >= 0)
    {
       MPI_CHECK(mpiSub(r, r, p));
    }
 
 end:
-   // Return status code
+   //Return status code
    return error;
 }
 
@@ -2127,7 +1955,7 @@ error_t mpiMontgomeryRed(Mpi *r, const Mpi *a, uint_t k, const Mpi *p, Mpi *t)
    uint_t value;
    Mpi b;
 
-   // Let B = 1
+   //Let B = 1
    value = 1;
    b.sign = 1;
    b.size = 1;
@@ -2137,7 +1965,7 @@ error_t mpiMontgomeryRed(Mpi *r, const Mpi *a, uint_t k, const Mpi *p, Mpi *t)
    b.data[0] = value;
 #endif
 
-   // Compute R = A / 2^k mod P
+   //Compute R = A / 2^k mod P
    return mpiMontgomeryMul(r, a, &b, k, p, t);
 }
 
@@ -2160,17 +1988,17 @@ void mpiMulAccCore(uint_t *r, const uint_t *a, int_t m, const uint_t b)
    uint32_t v;
    uint64_t p;
 
-   // Clear variables
+   //Clear variables
    c = 0;
    u = 0;
    v = 0;
 
-   // Perform multiplication
-   for (i = 0; i < m; i++)
+   //Perform multiplication
+   for(i = 0; i < m; i++)
    {
-      p = (uint64_t)a[i] * b;
-      u = (uint32_t)p;
-      v = (uint32_t)(p >> 32);
+      p = (uint64_t) a[i] * b;
+      u = (uint32_t) p;
+      v = (uint32_t) (p >> 32);
 
       u += c;
       if(u < c) v++;
@@ -2182,8 +2010,8 @@ void mpiMulAccCore(uint_t *r, const uint_t *a, int_t m, const uint_t b)
       c = v;
    }
 
-   // Propagate carry
-   for (; c != 0; i++)
+   //Propagate carry
+   for(; c != 0; i++)
    {
       r[i] += c;
       c = (r[i] < c);
@@ -2204,18 +2032,18 @@ void mpiDump(FILE *stream, const char_t *prepend, const Mpi *a)
 {
    uint_t i;
 
-   // Process each word
-   for (i = 0; i < a->size; i++)
+   //Process each word
+   for(i = 0; i < a->size; i++)
    {
-      // Beginning of a new line?
-      if (i == 0 || ((a->size - i - 1) % 8) == 7)
+      //Beginning of a new line?
+      if(i == 0 || ((a->size - i - 1) % 8) == 7)
          fprintf(stream, "%s", prepend);
 
-      // Display current data
+      //Display current data
       fprintf(stream, "%08X ", a->data[a->size - 1 - i]);
 
-      // End of current line?
-      if (((a->size - i - 1) % 8) == 0 || i == (a->size - 1))
+      //End of current line?
+      if(((a->size - i - 1) % 8) == 0 || i == (a->size - 1))
          fprintf(stream, "\r\n");
    }
 }

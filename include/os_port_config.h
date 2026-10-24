@@ -32,4 +32,7 @@
 #define HTTP_SERVER_FS_SUPPORT ENABLED
 #define HTTP_SERVER_ROOT_DIR_MAX_LEN 128
 
+/* extra entries for Cyclone's MIME table (http/mime.c) */
+#define MIME_CUSTOM_TYPES {".wasm", "application/wasm"},
+
 #endif
