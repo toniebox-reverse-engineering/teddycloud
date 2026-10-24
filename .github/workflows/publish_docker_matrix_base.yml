@@ -38,6 +38,11 @@ on:
         type: boolean
         required: false
         default: false
+      cross_build:
+        description: "Cross-compile ppc64le and s390x (ubuntu and debian images) on the build platform instead of compiling them under QEMU: much faster, but without ASAN"
+        type: boolean
+        required: false
+        default: false
 
       tcw_commit_hash:
         type: string
@@ -143,10 +148,12 @@ jobs:
           tags: ${{ (github.event_name == 'pull_request' || inputs.dry_run) && 'teddycloud-test:local' || '' }}
           labels: ${{ steps.matrix_meta.outputs.labels }}
           outputs: ${{ (github.event_name != 'pull_request' && !inputs.dry_run) && format('type=image,name={0},push-by-digest=true,name-canonical=true', env.REGISTRY_IMAGE) || '' }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # one cache scope per image and platform, a shared scope is overwritten by the parallel jobs
+          cache-from: type=gha,scope=${{ inputs.system }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.system }}-${{ matrix.platform }}
           build-args: |
             ${{ steps.set_build_args.outputs.build_args }}
+            BUILD_MODE=${{ (inputs.cross_build && (inputs.system == 'ubuntu' || inputs.system == 'debian') && (matrix.platform == 'linux/ppc64le' || matrix.platform == 'linux/s390x')) && 'cross' || 'native' }}
             TEDDYCLOUD_VERSION=${{ steps.matrix_meta.outputs.version }}
 
       - name: Platform name strip for filename
