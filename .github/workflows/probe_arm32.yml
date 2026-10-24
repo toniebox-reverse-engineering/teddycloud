@@ -1,7 +1,9 @@
 name: Probe arm32 on arm64 runner (temporary)
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [cyclone]
+    paths: ['.github/workflows/probe_arm32.yml']
 
 jobs:
   probe:
