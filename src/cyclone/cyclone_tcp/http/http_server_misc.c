@@ -451,21 +451,6 @@ void httpParseHeaderField(HttpConnection *connection,
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
-   // Range header field?
-   else if (osStrcasecmp(name, "Range") == 0)
-   {
-      sscanf(value, "bytes=%" PRIu32 "-%" PRIu32, &connection->request.Range.start, &connection->request.Range.end);
-      if (connection->request.Range.start < 0)
-         connection->request.Range.start = 0;
-      if (connection->request.Range.end < 0)
-         connection->request.Range.end = 0;
-   }
-   // If-Range header field?
-   else if (osStrcasecmp(name, "If-Range") == 0)
-   {
-      strSafeCopy(connection->request.ifRange, value,
-                  HTTP_SERVER_IFRANGE_MAX_LEN);
-   }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
    else if(osStrcasecmp(name, "Upgrade") == 0)
@@ -490,11 +475,11 @@ void httpParseHeaderField(HttpConnection *connection,
       httpParseCookieField(connection, value);
    }
 #endif
-   else if (osStrcasecmp(name, "User-Agent") == 0)
-   {
-      strSafeCopy(connection->request.userAgent, value,
-                  sizeof(connection->request.userAgent));
-   }
+
+#if defined(HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK)
+   //Parse custom header fields
+   HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value);
+#endif
 }
 
 
@@ -867,9 +852,6 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Connection: close\r\n");
    }
 
-   // Add Range accept field
-   p += osSprintf(p, "Accept-Ranges: bytes\r\n");
-
    //Specify the caching policy
    if(connection->response.noCache)
    {
@@ -912,23 +894,11 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    }
 #endif
 
-   char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
-   if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
-   {
-      p += osSprintf(p, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-   }
-
    //Valid content type?
    if(connection->response.contentType != NULL)
    {
       //Content type
       p += osSprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
-   }
-
-   // Range included?
-   if (connection->response.contentRange != NULL)
-   {
-      p += osSprintf(p, "Content-Range: %s\r\n", connection->response.contentRange);
    }
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
@@ -952,6 +922,11 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       //Set Content-Length field
       p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
    }
+
+#if defined(HTTP_FORMAT_RESPONSE_HEADER_HOOK)
+   //Format custom header fields
+   HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p);
+#endif
 
    //Terminate the header with an empty line
    p += osSprintf(p, "\r\n");

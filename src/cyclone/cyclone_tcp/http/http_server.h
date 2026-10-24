@@ -218,13 +218,6 @@
    #error HTTP_SERVER_HOST_MAX_LEN parameter is not valid
 #endif
 
-// HTTP 206 ifRange
-#ifndef HTTP_SERVER_IFRANGE_MAX_LEN
-#define HTTP_SERVER_IFRANGE_MAX_LEN 31
-#elif (HTTP_SERVER_IFRANGE_MAX_LEN < 7)
-#error HTTP_SERVER_IFRANGE_MAX_LEN parameter is not valid
-#endif
-
 //Maximum user name length
 #ifndef HTTP_SERVER_USERNAME_MAX_LEN
    #define HTTP_SERVER_USERNAME_MAX_LEN 31
@@ -291,6 +284,16 @@
 //Application specific context
 #ifndef HTTP_SERVER_PRIVATE_CONTEXT
    #define HTTP_SERVER_PRIVATE_CONTEXT
+#endif
+
+//Application specific header fields (HTTP request)
+#ifndef HTTP_REQUEST_PRIVATE_HEADER_FIELDS
+   #define HTTP_REQUEST_PRIVATE_HEADER_FIELDS
+#endif
+
+//Application specific header fields (HTTP response)
+#ifndef HTTP_RESPONSE_PRIVATE_HEADER_FIELDS
+   #define HTTP_RESPONSE_PRIVATE_HEADER_FIELDS
 #endif
 
 //File system support?
@@ -480,17 +483,6 @@ typedef struct
 } HttpAuthenticateHeader;
 
 /**
-* @brief Range header
-*
-*/
-typedef struct
-{
-    uint32_t start;
-    uint32_t end;
-    uint32_t size;
-} HttpRangeHeader;
-
-/**
  * @brief HTTP request
  **/
 
@@ -501,9 +493,6 @@ typedef struct
    char_t uri[HTTP_SERVER_URI_MAX_LEN + 1];                  ///<Resource identifier
    char_t queryString[HTTP_SERVER_QUERY_STRING_MAX_LEN + 1]; ///<Query string
    char_t host[HTTP_SERVER_HOST_MAX_LEN + 1];                ///<Host name
-   char_t userAgent[128 + 1];
-   char_t ifRange[HTTP_SERVER_IFRANGE_MAX_LEN + 1];          ///< IfRange tag
-   HttpRangeHeader Range;                                    ///< Range field
    bool_t keepAlive;
    bool_t chunkedEncoding;
    size_t contentLength;
@@ -528,6 +517,7 @@ typedef struct
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    char_t cookie[HTTP_SERVER_COOKIE_MAX_LEN + 1];            ///<Cookie header field
 #endif
+   HTTP_REQUEST_PRIVATE_HEADER_FIELDS                        ///<Application specific header fields
 } HttpRequest;
 
 
@@ -544,7 +534,6 @@ typedef struct
    uint_t maxAge;
    const char_t *location;
    const char_t *contentType;
-   const char_t *contentRange;
    bool_t chunkedEncoding;
    size_t contentLength;
    size_t byteCount;
@@ -557,6 +546,7 @@ typedef struct
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    char_t setCookie[HTTP_SERVER_COOKIE_MAX_LEN + 1]; ///<Set-Cookie header field
 #endif
+   HTTP_RESPONSE_PRIVATE_HEADER_FIELDS               ///<Application specific header fields
 } HttpResponse;
 
 
