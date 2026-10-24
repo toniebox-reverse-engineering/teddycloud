@@ -1,6 +1,7 @@
 
 #include "error_text.h"
-#include "tls_adapter.h"              // for load_cert, tls_adapter_deinit
+#include "tls_adapter.h"
+#include "rand.h"              // for load_cert, tls_adapter_deinit
 
 #include <errno.h>                    // for error_t
 #include <stdint.h>                   // for uint8_t, uint32_t
@@ -419,8 +420,16 @@ error_t load_cert(const char *dest_var, const char *src_file, const char *src_va
 
 error_t tls_adapter_init()
 {
+    /* seed the PRNG before any connection thread can ask for it, see rand_get_context() */
+    error_t error = rand_init();
+    if (error)
+    {
+        TRACE_ERROR("Error: Failed to initialize the PRNG (%s)\r\n", error2text(error));
+        return error;
+    }
+
     TRACE_INFO("Loading certificates...\r\n");
-    error_t error = settings_load_certs_id(0);
+    error = settings_load_certs_id(0);
     if (error)
     {
         TRACE_ERROR("Error: Failed to load certs (%s)\r\n", error2text(error));
