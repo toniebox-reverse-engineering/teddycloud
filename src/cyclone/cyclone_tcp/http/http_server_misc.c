@@ -41,7 +41,6 @@
 #include "str.h"
 #include "path.h"
 #include "debug.h"
-#include "pcaplog.h"
 
 //Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
@@ -964,13 +963,7 @@ error_t httpSend(HttpConnection *connection,
       error = socketSend(connection->socket, data, length, NULL, flags);
    }
    
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = connection->settings->ipAddr.ipv4Addr;
-   ctx.local_endpoint.port = connection->settings->port;
-   ctx.remote_endpoint.ipv4 = connection->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = connection->socket->remotePort;
-   ctx.pcap_data = &connection->private.pcap_data;
-   pcaplog_write(&ctx, true, (const uint8_t *)data, length);
+   httpExtPcapServerWrite(connection, true, data, length);
 
    //Return status code
    return error;
@@ -1020,13 +1013,7 @@ error_t httpReceive(HttpConnection *connection,
       error = socketReceive(connection->socket, data, size, received, flags);
    }
    
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = connection->settings->ipAddr.ipv4Addr;
-   ctx.local_endpoint.port = connection->settings->port;
-   ctx.remote_endpoint.ipv4 = connection->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = connection->socket->remotePort;
-   ctx.pcap_data = &connection->private.pcap_data;
-   pcaplog_write(&ctx, false, (const uint8_t *)data, *received);
+   httpExtPcapServerWrite(connection, false, data, *received);
 
    //Return status code
    return error;

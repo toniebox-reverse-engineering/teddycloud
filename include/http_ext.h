@@ -43,6 +43,7 @@ HttpRangeResult httpExtResolveRange(const HttpRangeHeader *range, uint32_t size,
     const char *contentRange;
 
 struct _HttpConnection;
+struct _HttpClientContext;
 
 /* Range, If-Range and User-Agent */
 void httpExtParseRequestHeaderField(struct _HttpConnection *connection, const char *name, char *value);
@@ -54,6 +55,11 @@ error_t httpExtSendResponse(struct _HttpConnection *connection, const char *uri)
 error_t httpExtSendResponseUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath);
 error_t httpExtSendResponseStream(struct _HttpConnection *connection, const char *uri, bool_t isStream);
 error_t httpExtSendResponseStreamUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath, bool_t isStream);
+
+/* pcap log of the plain HTTP traffic (above TLS), called from the vendored transport functions */
+void httpExtPcapServerWrite(struct _HttpConnection *connection, bool is_tx, const void *data, size_t length);
+void httpExtPcapClientReset(struct _HttpClientContext *context);
+void httpExtPcapClientWrite(struct _HttpClientContext *context, bool is_tx, const void *data, size_t length);
 
 #define HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value) httpExtParseRequestHeaderField(connection, name, value)
 #define HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p) (p) += httpExtFormatResponseHeader(connection, p)
