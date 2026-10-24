@@ -50,11 +50,13 @@ bool tc_log_color(void);
         }                                              \
     } while (0)
 
+/* continues a line started by an earlier TRACE_*, so it takes the lock itself */
 #define TC_TRACE_RESUME(lvl, ...)                      \
     do                                                 \
     {                                                  \
         if (tc_log_level() >= (lvl))                   \
         {                                              \
+            tc_log_lock();                             \
             TRACE_PRINTF_RESUME(__VA_ARGS__)           \
         }                                              \
     } while (0)
