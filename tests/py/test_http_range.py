@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """
-Range handling of the HTTP server (src/cyclone/.../http_server*.c is patched for it).
-Written to pin the current behaviour before the Range code moves out of the vendored tree.
-
-Cases that are known to be wrong are marked expectedFailure with what they should do; when
-one is fixed the test starts to "unexpectedly succeed" and the marker has to go.
+Range handling of the HTTP server: /content (handler_api.c) and static files (http_ext.c).
+Known-wrong cases are marked expectedFailure with what they should do; when one is fixed the
+test starts to "unexpectedly succeed" and the marker has to go.
 
 Run via: make test_py TESTS=http_range
 """
@@ -74,34 +72,25 @@ class RangeContent(Base):
         status, _, body = get(self.PATH, "bytes=abc")
         self.assertEqual((status, body), (200, DATA))
 
-    @unittest.expectedFailure
     def test_range_starting_at_zero(self):
-        # start == 0 is treated as "no range": the whole file comes back as 200
         self.partial("bytes=0-9", 0, 9)
 
-    @unittest.expectedFailure
     def test_start_past_end(self):
-        # answers 206 with "Content-Range: bytes 100-99/100" and an empty body
-        status, _, body = get(self.PATH, "bytes=100-")
-        self.assertIn(status, (200, 416))
+        status, resp, body = get(self.PATH, "bytes=100-")
+        self.assertEqual((status, body), (416, b""))
+        self.assertEqual(resp.getheader("Content-Range"), f"bytes */{len(DATA)}")
 
-    @unittest.expectedFailure
-    def test_reversed_range(self):
-        # Content-Length underflows to ~4 GB, the client waits for the rest
+    def test_reversed_range_is_ignored(self):
         status, _, body = get(self.PATH, "bytes=50-10")
-        self.assertIn(status, (200, 416))
+        self.assertEqual((status, body), (200, DATA))
 
-    @unittest.expectedFailure
-    def test_suffix_range(self):
-        # "bytes=-5" never gets an answer
-        status, _, _ = get(self.PATH, "bytes=-5")
-        self.assertIn(status, (200, 206))
+    def test_suffix_range_is_ignored(self):
+        status, _, body = get(self.PATH, "bytes=-5")
+        self.assertEqual((status, body), (200, DATA))
 
-    @unittest.expectedFailure
     def test_range_on_empty_file(self):
-        # never gets an answer
-        status, _, _ = get(f"/content/{TAG_DIR}/EMPTY", "bytes=10-")
-        self.assertIn(status, (200, 416))
+        status, _, body = get(f"/content/{TAG_DIR}/EMPTY", "bytes=10-")
+        self.assertEqual((status, body), (416, b""))
 
     def test_empty_file_without_range(self):
         status, _, body = get(f"/content/{TAG_DIR}/EMPTY")
@@ -128,9 +117,7 @@ class RangeStatic(Base):
         status, _, body = get(STATIC, "bytes=50-10")
         self.assertEqual((status, body), (200, full))
 
-    @unittest.expectedFailure
     def test_range_starting_at_zero(self):
-        # same start == 0 problem as for /content
         status, resp, body = get(STATIC, "bytes=0-9")
         self.assertEqual(status, 206)
         self.assertEqual(len(body), 10)

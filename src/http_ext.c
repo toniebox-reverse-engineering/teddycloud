@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -13,7 +14,19 @@ void httpExtParseRequestHeaderField(HttpConnection *connection, const char *name
 {
     if (osStrcasecmp(name, "Range") == 0)
     {
-        sscanf(value, "bytes=%" PRIu32 "-%" PRIu32, &connection->request.Range.start, &connection->request.Range.end);
+        /* "bytes=N-" and "bytes=N-M"; a suffix range ("bytes=-N") is ignored, scanf would read it as a huge start */
+        uint32_t start = 0, end = 0;
+        if (osStrncasecmp(value, "bytes=", 6) == 0 && isdigit((unsigned char)value[6]))
+        {
+            int fields = sscanf(value + 6, "%" PRIu32 "-%" PRIu32, &start, &end);
+            if (fields >= 1)
+            {
+                connection->request.Range.start = start;
+                connection->request.Range.end = (fields == 2) ? end : 0;
+                connection->request.Range.valid = true;
+                connection->request.Range.has_end = (fields == 2);
+            }
+        }
     }
     else if (osStrcasecmp(name, "If-Range") == 0)
     {
@@ -221,39 +234,29 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
    }
 
    // Format HTTP response header
-   if (connection->request.Range.start > 0)
+   uint32_t first = 0, last = 0;
+   connection->request.Range.size = file_length;
+   // An unsatisfiable range (start behind the data, empty resource) falls back to the full content
+   HttpRangeResult range = httpExtResolveRange(&connection->request.Range, file_length, &first, &last);
+   if (range == HTTP_RANGE_PARTIAL && connection->response.contentRange == NULL)
    {
-      connection->request.Range.size = file_length;
-
-      uint32_t rangeStart = connection->request.Range.start;
-      uint32_t rangeEnd = connection->request.Range.end;
-      /* open-ended ("bytes=N-") or oversized end -> last byte */
-      if (rangeEnd == 0 || rangeEnd >= file_length)
-         rangeEnd = (file_length > 0) ? file_length - 1 : 0;
-
-      /* Reject an unsatisfiable range (start past the data, start after end,
-         or empty resource) instead of computing end-start+1, which would
-         underflow to a ~4 GB contentLength and desync the connection. Fall
-         back to serving the full content. */
-      if (file_length == 0 || rangeStart >= file_length || rangeStart > rangeEnd ||
-          (connection->response.contentRange == NULL &&
-           (connection->response.contentRange = osAllocMem(255)) == NULL))
+      connection->response.contentRange = osAllocMem(255);
+      if (connection->response.contentRange == NULL)
       {
-         connection->request.Range.start = 0;
-         connection->response.statusCode = 200;
-         connection->response.contentLength = length;
+         range = HTTP_RANGE_FULL;
       }
-      else
-      {
-         connection->request.Range.end = rangeEnd;
-         osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, rangeStart, rangeEnd, connection->request.Range.size);
-         connection->response.statusCode = 206;
-         connection->response.contentLength = rangeEnd - rangeStart + 1;
-         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
-      }
+   }
+
+   if (range == HTTP_RANGE_PARTIAL)
+   {
+      osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, file_length);
+      connection->response.statusCode = 206;
+      connection->response.contentLength = last - first + 1;
+      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
    }
    else
    {
+      first = 0;
       connection->response.statusCode = 200;
       connection->response.contentLength = length;
    }
@@ -292,25 +295,16 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
    }
 
    bool taf_chapter_split = connection->private.client_ctx.taf_chapter_split;
-   uint32_t taf_virtual_pos = connection->request.Range.start;
+   uint32_t taf_virtual_pos = first;
 
    if (!taf_chapter_split)
    {
-      if (connection->private.client_ctx.skip_taf_header)
+      // the range counts in the file without the TAF header, if that is skipped
+      uint32_t position = first + (connection->private.client_ctx.skip_taf_header ? TONIE_HEADER_LENGTH : 0);
+      if (position > 0)
       {
-         if (connection->request.Range.start > 0)
-         {
-            connection->request.Range.start += TONIE_HEADER_LENGTH;
-         }
-         else
-         {
-            fsSeekFile(file, TONIE_HEADER_LENGTH, FS_SEEK_SET);
-         }
-      }
-      if (connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
-      {
-         TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
-         fsSeekFile(file, connection->request.Range.start, FS_SEEK_SET);
+         TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", position);
+         fsSeekFile(file, position, FS_SEEK_SET);
       }
       else
       {

@@ -6,9 +6,11 @@
  * what Cyclone 2.6 offers for this (backported to the vendored server).
  */
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
+#include "compiler_port.h"
 #include "error.h"
 
 #define HTTP_SERVER_IFRANGE_MAX_LEN 31
@@ -16,9 +18,21 @@
 typedef struct
 {
     uint32_t start;
-    uint32_t end;
+    uint32_t end; /* 0 if not given */
     uint32_t size;
+    bool valid;   /* a "bytes=N-" / "bytes=N-M" range was sent (start 0 included) */
+    bool has_end; /* M was given */
 } HttpRangeHeader;
+
+typedef enum
+{
+    HTTP_RANGE_FULL,          /* no (usable) range: send everything with 200 */
+    HTTP_RANGE_PARTIAL,       /* send bytes first..last with 206 */
+    HTTP_RANGE_UNSATISFIABLE  /* start is behind the end: 416 */
+} HttpRangeResult;
+
+/* range_ext.c: what to answer for a Range request on a resource of the given size */
+HttpRangeResult httpExtResolveRange(const HttpRangeHeader *range, uint32_t size, uint32_t *first, uint32_t *last);
 
 #define HTTP_REQUEST_PRIVATE_HEADER_FIELDS      \
     char userAgent[128 + 1];                    \
