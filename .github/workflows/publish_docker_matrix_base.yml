@@ -57,8 +57,11 @@ jobs:
         platform: ${{ fromJson(inputs.platforms) }}
     # aarch64 is built/tested natively so AddressSanitizer works (QEMU-user
     # emulation cannot satisfy libasan's fixed 64-bit allocator mapping).
-    # All other platforms stay on the amd64 runner and cross-build via QEMU.
-    runs-on: ${{ matrix.platform == 'linux/arm64/v8' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    # 32-bit ARM (arm/v7, arm/v6) runs natively on the same runners too: the Neoverse-N2 CPUs
+    # execute AArch32 and the image has no QEMU handlers registered (checked with a probe),
+    # which is far faster than emulating it. All other platforms stay on the amd64 runner and
+    # cross-build via QEMU.
+    runs-on: ${{ startsWith(matrix.platform, 'linux/arm') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -67,6 +70,8 @@ jobs:
       - name: Test git version
         run: make test_git_version
       - name: Set up QEMU
+        # not on the native arm runners: it would register emulation for the 32-bit ARM platforms
+        if: ${{ !startsWith(matrix.platform, 'linux/arm') }}
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
         id: buildx
@@ -165,10 +170,11 @@ jobs:
         id: docker-test
         run: |
           # QEMU binfmt is only needed to run foreign-arch containers on the amd64
-          # runner. The native arm64 runner runs arm64 containers directly, and the
-          # multiarch/qemu-user-static helper is not arm64-compatible there
-          # (it fails with "Exec format error"), so skip it for arm64.
-          if [ "${{ matrix.platform }}" != "linux/arm64/v8" ]; then
+          # runner. The native arm runners run arm64 and 32-bit ARM containers directly, and
+          # the multiarch/qemu-user-static helper is not arm64-compatible there (it fails
+          # with "Exec format error") and would turn the native 32-bit runs into emulated
+          # ones, so skip it for all ARM platforms.
+          if [[ "${{ matrix.platform }}" != linux/arm/* && "${{ matrix.platform }}" != linux/arm64/* ]]; then
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           fi
           if [ "${{ github.event_name == 'pull_request' || inputs.dry_run }}" = "true" ]; then
