@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -35,7 +35,7 @@
  * - RFC 2818: HTTP Over TLS
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -78,6 +78,8 @@ void httpServerGetDefaultSettings(HttpServerSettings *settings)
       settings->connectionTask[i].priority = HTTP_SERVER_PRIORITY;
    }
 
+   //TCP/IP stack context
+   settings->netContext = NULL;
    //The HTTP server is not bound to any interface
    settings->interface = NULL;
 
@@ -152,6 +154,20 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
    context->taskParams = settings->listenerTask;
    context->taskId = (OsTaskId) OS_INVALID_TASK_ID;
 
+   //Attach TCP/IP stack context
+   if(settings->netContext != NULL)
+   {
+      context->netContext = settings->netContext;
+   }
+   else if(settings->interface != NULL)
+   {
+      context->netContext = settings->interface->netContext;
+   }
+   else
+   {
+      context->netContext = netGetDefaultContext();
+   }
+
    //Save user settings
    context->settings = *settings;
    //Client connections
@@ -194,7 +210,8 @@ error_t httpServerInit(HttpServerContext *context, const HttpServerSettings *set
 #endif
 
    //Open a TCP socket
-   context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+   context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+      SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->socket == NULL)
       return ERROR_OPEN_FAILED;

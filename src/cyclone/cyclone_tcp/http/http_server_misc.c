@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -109,8 +109,6 @@ error_t httpReadRequestHeader(HttpConnection *connection)
       return error;
 
    //Properly terminate the string with a NULL character
-   if (length > HTTP_SERVER_BUFFER_SIZE - 1)
-      length = HTTP_SERVER_BUFFER_SIZE - 1;
    connection->buffer[length] = '\0';
    //Debug message
    // TRACE_INFO("%s", connection->buffer);
@@ -219,7 +217,8 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
 
    //The Method token indicates the method to be performed on the
    //resource identified by the Request-URI
-   error = strSafeCopy(connection->request.method, token, HTTP_SERVER_METHOD_MAX_LEN + 1);
+   error = strSafeCopy(connection->request.method, token,
+      HTTP_SERVER_METHOD_MAX_LEN + 1);
    //Any error to report?
    if(error)
       return ERROR_INVALID_REQUEST;
@@ -431,7 +430,7 @@ void httpParseHeaderField(HttpConnection *connection,
    {
       //Save host name
       strSafeCopy(connection->request.host, value,
-         HTTP_SERVER_HOST_MAX_LEN);
+         HTTP_SERVER_HOST_MAX_LEN + 1);
    }
    //Connection header field?
    else if(osStrcasecmp(name, "Connection") == 0)
@@ -561,7 +560,15 @@ void httpParseContentTypeField(HttpConnection *connection,
    size_t n;
    char_t *p;
    char_t *token;
+#endif
 
+#if (HTTP_SERVER_CONTENT_TYPE_MAX_LEN > 0)
+   //Save the contents of the Content-Type header field
+   strSafeCopy(connection->request.contentType, value,
+      HTTP_SERVER_CONTENT_TYPE_MAX_LEN + 1);
+#endif
+
+#if (HTTP_SERVER_MULTIPART_TYPE_SUPPORT == ENABLED)
    //Retrieve type
    token = osStrtok_r(value, "/", &p);
    //Any parsing error?
@@ -663,7 +670,8 @@ void httpParseCookieField(HttpConnection *connection, char_t *value)
 {
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    //Save the value of the header field
-   strSafeCopy(connection->request.cookie, value, HTTP_SERVER_COOKIE_MAX_LEN);
+   strSafeCopy(connection->request.cookie, value,
+      HTTP_SERVER_COOKIE_MAX_LEN + 1);
 #endif
 }
 
@@ -948,7 +956,7 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
 #endif
 
    //Terminate the header with an empty line
-   p += osSprintf(p, "\r\n");
+   osStrcat(p, "\r\n");
 
    //Successful processing
    return NO_ERROR;
@@ -982,7 +990,7 @@ error_t httpSend(HttpConnection *connection,
       //Transmit data to the client
       error = socketSend(connection->socket, data, length, NULL, flags);
    }
-   
+
    httpExtPcapServerWrite(connection, true, data, length);
 
    //Return status code
@@ -1032,7 +1040,7 @@ error_t httpReceive(HttpConnection *connection,
       //Receive data from the client
       error = socketReceive(connection->socket, data, size, received, flags);
    }
-   
+
    httpExtPcapServerWrite(connection, false, data, *received);
 
    //Return status code

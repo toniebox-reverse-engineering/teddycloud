@@ -34,7 +34,7 @@
 #define TLS_TX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
 #define TLS_RX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
 
-#define TLS_PRIVATE_CONTEXT       \
+#define TLS_CONTEXT_PRIVATE       \
     char client_cert_issuer[128]; \
     char client_cert_subject[32]; \
     char client_cert_serial[64];  \
