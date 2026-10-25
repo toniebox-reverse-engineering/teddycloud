@@ -1163,6 +1163,7 @@
         "newVersionAvailable": "There is a new version available!",
         "newVersionDetailsAvailable": "You are not using the latest TeddyCloud version. Please update to get all benefits of the latest release!",
         "newVersionDetailsAvailableDevelop": "You are not using the latest TeddyCloud develop version. Please update to get all benefits of the latest develop version!",
+        "newVersionDetailsAvailableReleaseCandidate": "You are not using the latest TeddyCloud release candidate version. Please update to take full advantage of the latest release candidate!",
         "newVersionShort": "Update available",
         "openNewVersionInGithub": "Open the latest version on GitHub"
     },
