@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include "handler.h"
 #include "toniesJson.h"
 #include "server_helpers.h"
@@ -286,7 +287,7 @@ void cbrCloudHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, cons
     {
         if (ctx->client_ctx->settings->internal.overlayNumber == 0)
         {
-            char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+            const char_t *allowOrigin = httpExtAllowOrigin();
             if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
             {
                 httpSendHeaderLine(ctx->connection, "Access-Control-Allow-Origin", allowOrigin);
@@ -1312,7 +1313,7 @@ void cbrGenericHeaderPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, co
     {
         if (ctx->client_ctx->settings->internal.overlayNumber == 0)
         {
-            char_t *allowOrigin = ctx->connection->serverContext->settings.allowOrigin;
+            const char_t *allowOrigin = httpExtAllowOrigin();
             if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
             {
                 httpSendHeaderLine(ctx->connection, "Access-Control-Allow-Origin", allowOrigin);

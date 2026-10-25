@@ -10,9 +10,9 @@ from .rtnl import _bytes, _tag, varint
 HEADER_SIZE = 4096
 
 
-def build(audio_id, audio):
+def build(audio_id, audio, track_pages=(0,)):
     fields = _bytes(1, hashlib.sha1(audio).digest()) + _tag(2, 0) + varint(len(audio)) + _tag(3, 0) + varint(audio_id)
-    fields += _bytes(4, varint(0))
+    fields += _bytes(4, b"".join(varint(page) for page in track_pages))
     fill = HEADER_SIZE - 4 - len(fields) - 3  # field 5 tag + 2-byte length
     header = fields + _bytes(5, bytes(fill))
     assert len(header) == HEADER_SIZE - 4

@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include <string.h>
 #include <stdarg.h>
 
@@ -822,7 +823,7 @@ error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *
 
     /*
     char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
-    error = httpSendResponse(connection, newUri);
+    error = httpExtSendResponse(connection, newUri);
     free(newUri);
     */
 

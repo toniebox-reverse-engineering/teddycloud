@@ -1,5 +1,6 @@
 
 
+#include "error_text.h"
 #include <errno.h>  // for error_t
 #include <stdint.h> // for uint8_t
 #include <stdio.h>  // for snprintf
@@ -58,7 +59,7 @@ error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
     if (client_crt != NULL && client_key != NULL)
     {
         // Import the client's certificate
-        error = tlsAddCertificate(tlsContext, client_crt, strlen(client_crt), client_key, strlen(client_key));
+        error = tlsLoadCertificate(tlsContext, 0, client_crt, strlen(client_crt), client_key, strlen(client_key), NULL);
         // Any error to report?
         if (error)
             return error;
@@ -74,12 +75,12 @@ error_t httpClientTlsInitCallbackBase(HttpClientContext *context,
     return NO_ERROR;
 }
 error_t httpClientTlsInitCallbackNoCA(HttpClientContext *context,
-                                      TlsContext *tlsContext)
+                                      TlsContext *tlsContext, void *param)
 {
     return httpClientTlsInitCallbackBase(context, tlsContext, NULL, NULL, NULL);
 }
 error_t httpClientTlsInitCallbackClientAuthTonies(HttpClientContext *context,
-                                                  TlsContext *tlsContext)
+                                                  TlsContext *tlsContext, void *param)
 {
     req_cbr_t *cbr_ctx = context->sourceCtx;
     client_ctx_t *client_ctx = ((cbr_ctx_t *)cbr_ctx->ctx)->client_ctx;
@@ -210,7 +211,7 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
         HttpClientTlsInitCallback callback = httpClientTlsInitCallbackNoCA;
         if (isCloud)
             callback = httpClientTlsInitCallbackClientAuthTonies;
-        error = httpClientRegisterTlsInitCallback(&httpClientContext, callback);
+        error = httpClientRegisterTlsInitCallback(&httpClientContext, callback, NULL);
         if (error)
         {
             return error;
