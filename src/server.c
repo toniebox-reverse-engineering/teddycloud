@@ -1006,6 +1006,7 @@ void server_init(bool test)
         tonies_update();
         tonieboxes_update();
     }
+    tonies_startUpdateTask();
 
     systime_t last = osGetSystemTime();
     size_t openWebConnectionsLast = 0;
@@ -1101,6 +1102,7 @@ void server_init(bool test)
         }
     }
     mqtt_server_deinit();
+    tonies_waitForUpdate();
     tonies_deinit();
     cache_deinit();
     mutex_manager_deinit();

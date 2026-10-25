@@ -31,6 +31,24 @@ static char *toniesV2_custom_json_path = NULL;
 static char *toniesV2_json_tmp_path = NULL;
 #endif
 
+/* Set while tonies_update runs, under MUTEX_TONIES_JSON_CACHE. The startup
+   update, the periodic task and /api/toniesJsonUpdate may ask at the same
+   time, and two downloads into the same temp file would mix their bytes. */
+static bool toniesJsonUpdateRunning = false;
+
+#define HTTP_STATUS_NOT_MODIFIED 304
+#define TONIES_JSON_ETAG_MAX 128
+#define TONIES_JSON_UPDATE_POLL_MS 5000
+#define TONIES_JSON_UPDATE_SHUTDOWN_WAIT_MS 30000
+
+typedef struct
+{
+    const char *tmp_path;
+    char etag[TONIES_JSON_ETAG_MAX];
+} tonies_download_t;
+
+static char toniesJsonEtag[TONIES_JSON_ETAG_MAX] = "";
+
 void tonies_init()
 {
     /* lock tonies cache and update caches */
@@ -61,19 +79,34 @@ void tonies_init()
     mutex_unlock(MUTEX_TONIES_JSON_CACHE);
 }
 
+void tonies_downloadHeader(void *src_ctx, HttpClientContext *cloud_ctx, const char *header, const char *value)
+{
+    cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
+    tonies_download_t *download = (tonies_download_t *)ctx->customData;
+
+    if (cloud_ctx->statusCode == 200 && header != NULL && value != NULL && osStrcasecmp(header, "ETag") == 0)
+    {
+        if (osStrlen(value) < sizeof(download->etag))
+        {
+            osStrcpy(download->etag, value);
+        }
+    }
+}
+
 void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char *payload, size_t length, error_t error)
 {
     cbr_ctx_t *ctx = (cbr_ctx_t *)src_ctx;
     HttpClientContext *httpClientContext = (HttpClientContext *)cloud_ctx;
+    tonies_download_t *download = (tonies_download_t *)ctx->customData;
 
     if (httpClientContext->statusCode == 200)
     {
         if (ctx->file == NULL)
         {
-            ctx->file = fsOpenFile(tonies_json_tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            ctx->file = fsOpenFile(download->tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
             if (ctx->file == NULL)
             {
-                TRACE_ERROR("Failed to open %s\r\n", tonies_json_tmp_path);
+                TRACE_ERROR("Failed to open %s\r\n", download->tmp_path);
                 return;
             }
         }
@@ -96,7 +129,7 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         if (errorWrite != NO_ERROR)
         {
             finished = true;
-            TRACE_ERROR("tonies.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
+            TRACE_ERROR("tonies.json (%s) write error=%s\r\n", download->tmp_path, error2text(error));
         }
 
         if (finished)
@@ -107,7 +140,7 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
     }
 }
 
-error_t tonies_update()
+static error_t tonies_download()
 {
     TRACE_INFO("Updating tonies.json from api.revvox.de...\r\n");
     cbr_ctx_t ctx;
@@ -115,33 +148,140 @@ error_t tonies_update()
         .settings = get_settings(),
     };
 
+    /* Own copies of the paths: tonies_deinit frees the shared ones, which
+       saving tonies.custom.json or /api/toniesJsonReload may do while the
+       download runs. */
+    const char *config_dir = settings_get_string("internal.configdirfull");
+    char *json_path = custom_asprintf("%s%c%s", config_dir, PATH_SEPARATOR, TONIES_JSON_FILE);
+    char *tmp_path = custom_asprintf("%s%c%s", config_dir, PATH_SEPARATOR, TONIES_JSON_TMP_FILE);
+
+    tonies_download_t download = {.tmp_path = tmp_path};
+
     const char *uri_base = "api.revvox.de";
     const char *uri_path = "/tonies.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
     const char *queryString = NULL;
     fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    ctx.customData = &download;
+    if (osStrlen(toniesJsonEtag) > 0 && fsFileExists(json_path))
+    {
+        ctx.if_none_match = toniesJsonEtag;
+    }
     req_cbr_t cbr = {
         .ctx = &ctx,
+        .header = &tonies_downloadHeader,
         .body = &tonies_downloadBody,
     };
 
     ctx.file = NULL;
-    fsDeleteFile(tonies_json_tmp_path);
+    fsDeleteFile(tmp_path);
+    uint32_t status = 0;
     // TODO: Be sure HTTPS CA is checked!
-    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, NULL);
+    error_t error = web_request(uri_base, 443, true, uri_path, queryString, "GET", NULL, 0, NULL, &cbr, false, false, &status);
 
-    if (error == NO_ERROR && fsFileExists(tonies_json_tmp_path))
+    if (error == NO_ERROR && status == HTTP_STATUS_NOT_MODIFIED)
     {
-        fsDeleteFile(tonies_json_path);
-        fsRenameFile(tonies_json_tmp_path, tonies_json_path);
+        TRACE_INFO("... tonies.json is unchanged, keeping it\r\n");
+    }
+    else if (error == NO_ERROR && status == 200 && fsFileExists(tmp_path))
+    {
+        fsDeleteFile(json_path);
+        fsRenameFile(tmp_path, json_path);
+        osStrcpy(toniesJsonEtag, download.etag);
         TRACE_INFO("... success updating tonies.json from api.revvox.de, reloading\r\n");
         tonies_deinit();
         tonies_init();
     }
     else
     {
-        TRACE_ERROR("... failed updating tonies.json error=%s\r\n", error2text(error));
+        TRACE_ERROR("... failed updating tonies.json error=%s status=%" PRIu32 "\r\n", error2text(error), status);
+        fsDeleteFile(tmp_path);
     }
+
+    osFreeMem(json_path);
+    osFreeMem(tmp_path);
     return error;
+}
+
+error_t tonies_update()
+{
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
+    bool running = toniesJsonUpdateRunning;
+    bool exiting = settings_get_bool("internal.exit");
+    if (!running && !exiting)
+    {
+        toniesJsonUpdateRunning = true;
+    }
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+    if (exiting)
+    {
+        TRACE_INFO("Not updating tonies.json while teddyCloud shuts down\r\n");
+        return ERROR_ABORTED;
+    }
+    if (running)
+    {
+        TRACE_INFO("tonies.json is being updated already\r\n");
+        return ERROR_ALREADY_RUNNING;
+    }
+
+    error_t error = tonies_download();
+
+    mutex_lock(MUTEX_TONIES_JSON_CACHE);
+    toniesJsonUpdateRunning = false;
+    mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+    return error;
+}
+
+static void tonies_updateTask(void *arg)
+{
+    (void)arg;
+    systime_t last = osGetSystemTime();
+    while (true)
+    {
+        osDelayTask(TONIES_JSON_UPDATE_POLL_MS);
+        if (settings_get_bool("internal.exit"))
+        {
+            break;
+        }
+
+        uint32_t hours = settings_get_unsigned("core.tonies_json_update_interval");
+        if (hours == 0 || !settings_get_bool("core.tonies_json_auto_update"))
+        {
+            continue;
+        }
+        /* systime_t is milliseconds in 32 bits; the unsigned difference is
+           right across its wrap-around every 49 days, and 168 hours fit. */
+        if (osGetSystemTime() - last < (systime_t)hours * 60 * 60 * 1000)
+        {
+            continue;
+        }
+        last = osGetSystemTime();
+        tonies_update();
+    }
+}
+
+void tonies_waitForUpdate()
+{
+    for (systime_t waited = 0; waited < TONIES_JSON_UPDATE_SHUTDOWN_WAIT_MS; waited += 100)
+    {
+        mutex_lock(MUTEX_TONIES_JSON_CACHE);
+        bool running = toniesJsonUpdateRunning;
+        mutex_unlock(MUTEX_TONIES_JSON_CACHE);
+        if (!running)
+        {
+            return;
+        }
+        osDelayTask(100);
+    }
+    TRACE_WARNING("tonies.json update still running at shutdown\r\n");
+}
+
+void tonies_startUpdateTask()
+{
+    OsTaskParameters taskParams = OS_TASK_DEFAULT_PARAMS;
+    if (osCreateTask("tonies.json update", &tonies_updateTask, NULL, &taskParams) == (OsTaskId)OS_INVALID_TASK_ID)
+    {
+        TRACE_ERROR("Failed to start the periodic tonies.json update\r\n");
+    }
 }
 
 error_t toniesV2_update()
@@ -156,6 +296,8 @@ error_t toniesV2_update()
     const char *uri_path = "/toniesV2.json?source=teddyCloud&version=" BUILD_GIT_SHORT_SHA;
     const char *queryString = NULL;
     fillBaseCtx(NULL, uri_path, queryString, V1_LOG, &ctx, &client_ctx);
+    tonies_download_t download = {.tmp_path = tonies_json_tmp_path};
+    ctx.customData = &download;
     req_cbr_t cbr = {
         .ctx = &ctx,
         .body = &tonies_downloadBody,

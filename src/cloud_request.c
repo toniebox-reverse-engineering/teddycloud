@@ -326,6 +326,11 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 httpClientAddHeaderField(&httpClientContext, "User-Agent", cbr_ctx->user_agent);
             }
 
+            if (cbr_ctx->if_none_match)
+            {
+                httpClientAddHeaderField(&httpClientContext, "If-None-Match", cbr_ctx->if_none_match);
+            }
+
             // Send HTTP request header
             error = httpClientWriteHeader(&httpClientContext);
             // Any error to report?
