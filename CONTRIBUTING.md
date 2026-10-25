@@ -48,6 +48,19 @@ reproducible option and is the recommended path on macOS. Linux debug builds com
 with **AddressSanitizer + UBSan** enabled by default — please verify your change is
 clean under them.
 
+## Testing
+
+```bash
+make test      # C unit tests + Python integration tests against a throwaway server
+make test_c    # just the C unit tests (tests/c/)
+```
+
+New pure logic (no running server needed) gets a C test under `tests/c/`; new
+HTTP-level behavior gets a Python test under `tests/py/`, using
+`tests/py/with_server.sh` to start/stop the throwaway server instead of
+duplicating that in the Makefile. See [docs/architecture.md](docs/architecture.md#testing)
+for how these fit together.
+
 ## Vendored / third-party code
 
 TeddyCloud vendors the Oryx Embedded **CycloneTCP / CycloneSSL / CycloneCrypto** stack
@@ -56,8 +69,47 @@ under `cyclone/` (git submodules) plus a few other libraries (cJSON, opus, ogg, 
 **Don't edit the vendored submodule sources directly.** Where TeddyCloud needs to change
 vendored behaviour, it keeps a *patched copy* under `src/cyclone/…` and the `Makefile`
 compiles that instead of the submodule original (the `-Isrc/cyclone/…` include path takes
-precedence). If you must change a vendored file, add or extend the copy there rather than
-modifying the submodule.
+precedence). If you must change a vendored file: copy it unmodified from the submodule into
+the matching path under `src/cyclone/…`, then make your change on that copy. Don't run the
+auto-formatter on it — keep the copy identical to upstream except for the actual patch, so
+the diff against upstream stays reviewable.
+
+## Releases and release candidates
+
+A release is a tag `tc_vX.Y.Z`: it builds the zips, a draft GitHub release and the Docker images
+`X.Y.Z`, `X.Y`, `X` and `latest`.
+
+A **release candidate** has its own tag prefix `rc_` and so never touches the release machinery. Tag a
+commit that is on `develop`:
+
+    git fetch origin
+    git tag rc_v0.7.1 origin/develop          # the first candidate of 0.7.1
+    git push origin rc_v0.7.1
+    # further candidates of the same version: rc_v0.7.1-1, rc_v0.7.1-2 (or rc_v0.7.1-rc1, ...)
+
+It publishes **Docker images only** (no GitHub release): `rc` (the newest candidate of anything),
+`rc0.7.1` (the newest candidate of 0.7.1) and, for a suffixed tag, the exact `rc0.7.1-1` (or
+`rc0.7.1-rc1`) plus the git tag name. `latest`, `0`, `0.7` and `0.7.1` never move, a check in the
+workflow fails the run before pushing if they would. The binary reports `v0.7.1-rc` / `v0.7.1-rc1`.
+An `rc_` tag whose commit is not reachable from `develop` is refused. Candidate runs are queued one
+at a time (the `rc` tags move), so don't re-run an old candidate. Nothing is merged to `master`.
+
+### Promoting a good candidate to a release
+
+Release exactly the commit that was tested, so the release is the candidate. Releases so far are a merge of a
+`develop` commit into `master` (commit message `vX.Y.Z`) and a `tc_vX.Y.Z` tag on that `develop` commit:
+
+    git fetch origin --tags
+    git checkout master && git pull --ff-only origin master
+    git merge --no-ff rc_v0.7.1 -m "v0.7.1"      # the tested commit, not the current develop tip
+    git push origin master
+    git tag tc_v0.7.1 rc_v0.7.1^{commit}         # same commit as the candidate (use rc_v0.7.1-N if that was the good one)
+    git push origin tc_v0.7.1
+
+The `tc_v...` tag builds the zips and a **draft** GitHub release (publish it by hand) and the Docker images
+`0.7.1`, `0.7`, `0` and `latest`. The `rc` / `rc0.7.1` image tags are left alone. If the candidate was not good,
+fix it on `develop` and cut `rc_v0.7.1-1`. Run the "Make web and commit" workflow *before* tagging a candidate if
+the frontend changed, so the candidate already contains the frontend that will be released.
 
 ## Code style
 

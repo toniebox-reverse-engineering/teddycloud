@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include "fs_port.h"
 
 #ifdef _WIN32
@@ -19,6 +21,8 @@ void fsFixPath(char_t *path);
 FsFile *fsOpenFileEx(const char_t *path, char *mode);
 error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, size_t *diff_position);
 error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
+/* Copies the bytes [offset, end) of the open file src to the current position of dst */
+error_t fsCopyFileRange(FILE *src, uint32_t offset, uint32_t end, FILE *dst);
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
 error_t fsCreateDirEx(const char_t *path, bool_t recursive);
 error_t fsRemoveFilename(char *dir);

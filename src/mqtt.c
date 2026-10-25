@@ -644,7 +644,7 @@ void mqtt_publish_string(const char *name, const char *value)
 {
     char path_buffer[128];
 
-    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
+    osSnprintf(path_buffer, sizeof(path_buffer), name, settings_get_string("mqtt.topic"));
 
     if (!mqtt_publish(path_buffer, value))
     {
@@ -657,8 +657,8 @@ void mqtt_publish_float(const char *name, float value)
     char path_buffer[128];
     char buffer[32];
 
-    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
-    sprintf(buffer, "%0.4f", value);
+    osSnprintf(path_buffer, sizeof(path_buffer), name, settings_get_string("mqtt.topic"));
+    osSnprintf(buffer, sizeof(buffer), "%0.4f", value);
 
     if (!mqtt_publish(path_buffer, buffer))
     {
@@ -675,8 +675,8 @@ void mqtt_publish_int(const char *name, uint32_t value)
     {
         return;
     }
-    sprintf(path_buffer, name, settings_get_string("mqtt.topic"));
-    sprintf(buffer, "%u", value);
+    osSnprintf(path_buffer, sizeof(path_buffer), name, settings_get_string("mqtt.topic"));
+    osSnprintf(buffer, sizeof(buffer), "%u", value);
 
     if (!mqtt_publish(path_buffer, buffer))
     {
@@ -977,9 +977,9 @@ error_t mqtt_init_box(t_ha_info *ha_box_instance, client_ctx_t *client_ctx)
     }
 
     ha_setup(ha_box_instance);
-    osSprintf(ha_box_instance->name, "%s", box_name);
-    osSprintf(ha_box_instance->id, "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
-    osSprintf(ha_box_instance->base_topic, "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
+    osSnprintf(ha_box_instance->name, sizeof(ha_box_instance->name), "%s", box_name);
+    osSnprintf(ha_box_instance->id, sizeof(ha_box_instance->id), "%s_Box_%s", settings_get_string("mqtt.topic"), box_id);
+    osSnprintf(ha_box_instance->base_topic, sizeof(ha_box_instance->base_topic), "%s/box/%s", settings_get_string("mqtt.topic"), box_id);
     osSprintf(ha_box_instance->mf, "%s", "tonies");
     osSprintf(ha_box_instance->mdl, "%s", "Toniebox");
     osStrcpy(ha_box_instance->via, ha_server_instance.id);

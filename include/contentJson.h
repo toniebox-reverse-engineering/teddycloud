@@ -50,6 +50,7 @@ typedef struct
 {
     size_t count;
     uint32_t *pos;
+    uint32_t length; // total audio length in seconds, 0 if unknown
 } track_positions_t;
 
 typedef struct
