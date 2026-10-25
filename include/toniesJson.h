@@ -60,6 +60,8 @@ typedef struct
 
 void tonies_init();
 error_t tonies_update();
+void tonies_startUpdateTask();
+void tonies_waitForUpdate();
 error_t toniesV2_update();
 error_t tonieboxes_update();
 void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCount);
