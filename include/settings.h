@@ -350,6 +350,7 @@ typedef struct
     settings_level settings_level;
 
     bool tonies_json_auto_update;
+    uint32_t tonies_json_update_interval;
     bool full_taf_validation;
     bool tap_taf_validation;
     bool track_pos_taf_validation;
