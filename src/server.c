@@ -523,6 +523,15 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                     TRACE_INFO("Box generation set %d to %d\r\n", client_ctx->settings->toniebox.boxGeneration, boxGen);
                     settings_set_unsigned_id("toniebox.boxGeneration", boxGen, client_ctx->settings->internal.overlayNumber);
                 }
+
+                settings_box_type boxIC = firmware_info->boxIC;
+                if (boxIC != BOX_UNKNOWN && client_ctx->settings->boxVersion != boxIC && client_ctx->settings->internal.overlayNumber > 0)
+                {
+                    // persist the hardware in the overlay, so it is known before the box connects again
+                    TRACE_INFO("Box version set %d to %d\r\n", client_ctx->settings->boxVersion, boxIC);
+                    settings_set_unsigned_id("boxVersion", boxIC, client_ctx->settings->internal.overlayNumber);
+                    settings_save();
+                }
             }
         }
     }
