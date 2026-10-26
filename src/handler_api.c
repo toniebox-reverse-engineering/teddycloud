@@ -434,6 +434,7 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
         cJSON_AddStringToObject(jsonEntry, "boxName", settings->boxName);
         cJSON_AddStringToObject(jsonEntry, "boxModel", settings->boxModel); // TODO add color name + url
+        cJSON_AddNumberToObject(jsonEntry, "boxVersion", settings->boxVersion);
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
     }

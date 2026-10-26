@@ -137,6 +137,7 @@ static void option_map_init(uint8_t settingsId)
     OPTION_INTERNAL_STRING("commonName", &settings->commonName, "default", "common name of the certificate (for overlays)", LEVEL_NONE)
     OPTION_INTERNAL_STRING("boxName", &settings->boxName, "Toniebox", "Name of the box", LEVEL_NONE)
     OPTION_INTERNAL_STRING("boxModel", &settings->boxModel, "", "Model of the box", LEVEL_NONE)
+    OPTION_INTERNAL_UNSIGNED("boxVersion", &settings->boxVersion, BOX_UNKNOWN, BOX_UNKNOWN, BOX_TB2, "Version (IC) of the box, persisted from the User Agent", LEVEL_NONE)
 
     OPTION_TREE_DESC("log", "Logging", LEVEL_DETAIL)
     OPTION_UNSIGNED("log.level", &settings->log.level, 4, 0, 6, "Loglevel", "0=off - 6=verbose", LEVEL_DETAIL)
@@ -984,7 +985,7 @@ static error_t settings_save_ovl(bool overlay)
         while (option_map[pos].type != TYPE_END)
         {
             setting_item_t *opt = &option_map[pos];
-            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName") || !osStrcmp(opt->option_name, "boxModel"))))
+            if (!opt->internal || !osStrcmp(opt->option_name, "configVersion") || (overlay && (!osStrcmp(opt->option_name, "commonName") || !osStrcmp(opt->option_name, "boxName") || !osStrcmp(opt->option_name, "boxModel") || !osStrcmp(opt->option_name, "boxVersion"))))
             {
                 char *overlayPrefix;
                 if (overlay)
