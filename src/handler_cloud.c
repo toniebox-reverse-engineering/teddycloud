@@ -625,11 +625,27 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
     return tonieInfo;
 }
 
-error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api)
+/* A forced download clears the source before fetching from the cloud. If nothing was cached,
+ * the tag gets its previous (corrupted, but existing) file back instead of none. */
+static void restoreSourceIfNotCached(char ruid[17], const char *previousSource, settings_t *settings)
+{
+    tonie_info_t *tonieInfo = getTonieInfoFromRuid(ruid, true, settings);
+    if (!tonieInfo->exists && (tonieInfo->json.source == NULL || tonieInfo->json.source[0] == '\0'))
+    {
+        TRACE_WARNING(" >> Nothing cached from the cloud, restoring source %s\r\n", previousSource);
+        free(tonieInfo->json.source);
+        tonieInfo->json.source = strdup(previousSource);
+        tonieInfo->json._updated = true;
+    }
+    freeTonieInfo(tonieInfo);
+}
+
+error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api, bool_t forceCloud)
 {
     char ruid[17];
     error_t error = NO_ERROR;
     bool_t tonie_marked = false;
+    char *previousSource = NULL;
 
     tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, ruid_begin, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
 
@@ -753,7 +769,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             osDelayTask(100);
         }
     }
-    else if (tonieInfo->exists && tonieInfo->valid && (!tonie_marked || !can_use_cloud))
+    else if (tonieInfo->exists && tonieInfo->valid && !forceCloud && (!tonie_marked || !can_use_cloud))
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
@@ -867,6 +883,10 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             if (tonieInfo->json.source != NULL)
             {
                 TRACE_INFO(" >> Removing source %s for download\r\n", tonieInfo->json.source);
+                if (forceCloud && tonieInfo->json.source[0] != '\0')
+                {
+                    previousSource = strdup(tonieInfo->json.source);
+                }
                 tonieInfo->json.source[0] = '\0';
                 tonieInfo->json._updated = true;
                 freeTonieInfo(tonieInfo);
@@ -890,25 +910,30 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         }
     }
     freeTonieInfo(tonieInfo);
+    if (previousSource != NULL)
+    {
+        restoreSourceIfNotCached(ruid, previousSource, client_ctx->settings);
+        free(previousSource);
+    }
     return error;
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, bool_t forceCloud)
 {
-    return handleCloudContentExt(connection, uri, queryString, client_ctx, noPassword, 12, V2_CONTENT);
+    return handleCloudContentExt(connection, uri, queryString, client_ctx, noPassword, 12, V2_CONTENT, forceCloud);
 }
 
 
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return handleCloudContent(connection, uri, queryString, client_ctx, TRUE);
+    return handleCloudContent(connection, uri, queryString, client_ctx, TRUE, FALSE);
 }
 
 error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
-        return handleCloudContent(connection, uri, queryString, client_ctx, FALSE);
+        return handleCloudContent(connection, uri, queryString, client_ctx, FALSE, FALSE);
     }
     else
     {
@@ -1580,7 +1605,7 @@ error_t handleCloudChapterV3(HttpConnection *connection, const char_t *uri, cons
 
         connection->private.client_ctx.skip_taf_header = true;
 
-        return handleCloudContentExt(connection, uri, queryString, client_ctx, false, 12 + 11 + 3, V3_CHAPTER);
+        return handleCloudContentExt(connection, uri, queryString, client_ctx, false, 12 + 11 + 3, V3_CHAPTER, false);
     }
 
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Chapter)

@@ -2378,6 +2378,32 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
 
     return error;
 }
+
+static error_t writeApiStatusText(HttpConnection *connection, uint_t statusCode, const char *message);
+
+/* The tag plays its own cloud content: a TAF in the content dir, or the library file it was cached to.
+ * A forced cloud download clears the source, so it must not be offered for any other source. */
+static bool_t isCachedCloudContent(tonie_info_t *tonieInfo)
+{
+    if (tonieInfo->json._source_type != CT_SOURCE_NONE && tonieInfo->json._source_type != CT_SOURCE_TAF)
+    {
+        return false;
+    }
+    if (tonieInfo->json.source == NULL || tonieInfo->json.source[0] == '\0')
+    {
+        return true;
+    }
+    if (tonieInfo->tafHeader == NULL)
+    {
+        return false;
+    }
+    /* same as getLibraryCachePath(settings, audioId, true), which also creates directories */
+    char *cachePath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", tonieInfo->tafHeader->audio_id);
+    bool_t cached = osStrcmp(tonieInfo->json.source, cachePath) == 0;
+    osFreeMem(cachePath);
+    return cached;
+}
+
 error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     // TODO Rewrite URL
@@ -2431,6 +2457,30 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
         return export_error;
     }
 
+    bool_t forceCloud = false;
+    char force_param[8];
+    if (queryGet(queryString, "force", force_param, sizeof(force_param)) && force_param[0] == 't')
+    {
+        tonie_info_t *tonieInfo = getTonieInfo(pathAbsolute, false, client_ctx->settings);
+        bool_t cached = isCachedCloudContent(tonieInfo);
+        freeTonieInfo(tonieInfo);
+        if (!cached)
+        {
+            osFreeMem(pathAbsolute);
+            TRACE_WARNING("Not redownloading '%s', the tag has a custom source\r\n", path);
+            return writeApiStatusText(connection, 409, "Tag has a custom source, not redownloading it");
+        }
+        if (!client_ctx->settings->cloud.cacheContent)
+        {
+            osFreeMem(pathAbsolute);
+            TRACE_WARNING("Not redownloading '%s', cloud.cacheContent is disabled\r\n", path);
+            return writeApiStatusText(connection, 409, "Caching cloud content is disabled, not redownloading");
+        }
+        forceCloud = true;
+        /* force and overlay are local parameters, the cloud gets a plain content request */
+        queryString = "";
+    }
+
     char ruid[17];
 
     contentJson_t contentJson;
@@ -2451,13 +2501,13 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     if (isSys || contentJson.nocloud)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
-        error = handleCloudContent(connection, uri, queryString, client_ctx, true);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, true, forceCloud);
     }
     else
     {
         osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
         osSprintf((char *)uri, "/v2/content/%s", ruid);
-        error = handleCloudContent(connection, uri, queryString, client_ctx, false);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, false, forceCloud);
     }
 
     free_content_json(&contentJson);
@@ -4927,7 +4977,7 @@ bool isHexString(const char *buf, size_t maxLen)
     return isHex;
 }
 
-error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ctx)
+error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, bool_t validate, client_ctx_t *client_ctx)
 {
     error_t error = NO_ERROR;
     /* build filename with 8 chars of the taf/json */
@@ -4944,7 +4994,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
         contentJson_t contentJson;
         /* read TAF info - would create .json if not existing */
         // tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
-        tonie_info_t *tafInfo = getTonieInfo(fullTagPath, false, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfoV2(fullTagPath, false, validate, client_ctx->settings);
         /* now update with updated model if found. */
         saveTonieInfo(tafInfo, true);
         contentJson = tafInfo->json;
@@ -4978,6 +5028,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             }
             cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
             cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+            cJSON_AddBoolToObject(jsonEntry, "corrupt", tafInfo->corrupt);
             cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
             cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
             cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
@@ -5008,6 +5059,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
                 {
                     cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
                 }
+            }
+            if (tafInfo->exists && !tafInfo->json.nocloud && client_ctx->settings->cloud.cacheContent && (contentJson._has_cloud_auth || isSys) && isCachedCloudContent(tafInfo))
+            {
+                char *redownloadUrl = custom_asprintf("%s&force=true", downloadUrl);
+                cJSON_AddStringToObject(jsonEntry, "redownloadUrl", redownloadUrl);
+                osFreeMem(redownloadUrl);
             }
             osFreeMem(audioUrl);
             osFreeMem(downloadUrl);
@@ -5065,10 +5122,13 @@ error_t handleApiTagInfo(HttpConnection *connection, const char_t *uri, const ch
     {
         return ERROR_FAILURE;
     }
+    /* validate=true reads the whole TAF to check its SHA1 hash and length */
+    char validate[8];
+    bool_t fullValidation = queryGet(queryString, "validate", validate, sizeof(validate)) && validate[0] == 't';
 
     cJSON *json = cJSON_CreateObject();
 
-    error_t error = getTagInfoJson(ruid, json, client_ctx);
+    error_t error = getTagInfoJson(ruid, json, fullValidation, client_ctx);
     if (error != NO_ERROR)
     {
         cJSON_Delete(json);
@@ -5160,7 +5220,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 ruid[i] = tolower(ruid[i]);
             }
 
-            if (getTagInfoJson(ruid, jsonArray, client_ctx) == NO_ERROR)
+            if (getTagInfoJson(ruid, jsonArray, false, client_ctx) == NO_ERROR)
             {
                 break;
             }

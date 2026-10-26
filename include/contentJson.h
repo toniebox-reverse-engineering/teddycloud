@@ -64,6 +64,7 @@ typedef struct
     char *jsonPath;
     bool_t exists;
     bool_t valid;
+    bool_t corrupt; // header is fine, but SHA1 hash or length of the audio is not
     bool_t updated;
     bool_t locked;
     contentJson_t json;
