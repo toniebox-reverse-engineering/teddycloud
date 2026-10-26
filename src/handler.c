@@ -884,11 +884,12 @@ void readTrackPositions(tonie_info_t *tonieInfo, FsFile *file)
             osFreeMem(trackPos->pos);
             trackPos->pos = NULL;
 
-            if (get_settings()->core.track_pos_taf_validation)
+            if (get_settings()->core.track_pos_taf_validation && !tonieInfo->corrupt)
             {
                 if (!isValidTaf(tonieInfo->contentPath, true))
                 {
                     TRACE_ERROR("SHA1 not valid or length different for TAF %s. File may be corrupted!\r\n", tonieInfo->contentPath);
+                    tonieInfo->corrupt = true;
                 }
             }
         }
@@ -921,6 +922,7 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
 
     tonieInfo->valid = false;
+    tonieInfo->corrupt = false;
     tonieInfo->updated = false;
     tonieInfo->tafHeader = NULL;
     tonieInfo->contentPath = strdup(contentPath);
@@ -976,11 +978,15 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
                         {
                             if (tonieInfo->tafHeader->sha1_hash.len == 20)
                             {
-                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation || force_taf_validation);
+                                bool_t fullValidation = settings->core.full_taf_validation || force_taf_validation;
+                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, fullValidation);
+                                tonieInfo->corrupt = fullValidation && !tonieInfo->valid;
                                 readTrackPositions(tonieInfo, file);
                                 if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                                 {
                                     tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
+                                    /* still being written, the hash cannot match yet */
+                                    tonieInfo->corrupt = false;
                                 }
                                 else if ((tonieInfo->json.tonie_model == NULL || tonieInfo->json.tonie_model[0] == '\0') && (tonieInfo->json._source_type == CT_SOURCE_NONE || tonieInfo->json._source_type == CT_SOURCE_TAF)) // TAF beside the content json
                                 {
