@@ -218,6 +218,18 @@ class Traversal513(Base):
             self.OUTSIDE.unlink(missing_ok=True)
 
 
+class LongMoveTarget(Base):
+    """A move target longer than the server's buffer was cut short and the move still answered OK."""
+
+    def test_too_long_target_is_refused(self):
+        self.put_library("__move_long.txt")
+        target = "a" * 300 + ".taf"
+        self.library_files.append(target[:258])  # removed in tearDown, ignored if it was never created
+        form = "source=__move_long.txt&target=" + target
+        status, _ = request("POST", "/api/fileMove?special=library", form, {"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(status, 400)
+
+
 class Ota(Base):
     """Local V3 OTA delivery: /v3/ota/<type>/<hash> serves <firmware>/ota/<type>/<hash>.bin.
     OTA hashes with ".." can't be tested over HTTP, the URI is canonicalised before the handler runs."""
