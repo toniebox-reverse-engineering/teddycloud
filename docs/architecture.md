@@ -66,7 +66,9 @@ audio (`toniefile.c`/`.h`, via `libopus`) wrapped in a protobuf header
 (`proto/toniebox.pb.taf-header.proto`) carrying chapter/track offsets, an
 `audio_id`, and a SHA1 integrity hash. `.tap` playlist files
 (`tonie_audio_playlist.c`) are an alternative content source that points at
-one or more other files instead of embedding audio directly.
+one or more other files instead of embedding audio directly: a playlist
+(`type: tap`) is encoded into one TAF, a random pool (`type: random`) serves
+one of its TAFs per content request (see [random-pool.md](./random-pool.md)).
 
 Per-content metadata lives in each item's `content.json`
 (`contentJson.c`): the `nocloud` flag, the `source` (a local TAF/TAP path

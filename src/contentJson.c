@@ -122,7 +122,13 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                         size_t src_len = osStrlen(content_json->_source_resolved);
                         bool_t looks_like_tap = (src_len >= 4 && osStrncasecmp(content_json->_source_resolved + src_len - 4, ".tap", 4) == 0);
                         error_t tap_error = looks_like_tap ? tap_load(content_json->_source_resolved, &content_json->_tap) : ERROR_INVALID_FILE;
-                        if (tap_error == NO_ERROR && content_json->_tap._valid)
+                        if (tap_error == NO_ERROR && content_json->_tap._valid && content_json->_tap._random)
+                        {
+                            content_json->_source_type = CT_SOURCE_TAP_RANDOM;
+                            /* A new pick after each freshness check, never a resume inside a TAF the box does not get again. */
+                            force_live_nocloud(content_json);
+                        }
+                        else if (tap_error == NO_ERROR && content_json->_tap._valid)
                         {
                             if (content_json->_tap._cached)
                             {

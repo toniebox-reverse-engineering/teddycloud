@@ -917,7 +917,7 @@ tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *setti
     return getTonieInfoV2(contentPath, lock, false, settings);
 }
 
-static TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path)
+TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path)
 {
     TonieboxAudioFileHeader *tafHeader = NULL;
     uint8_t headerBuffer[TAF_HEADER_SIZE];
@@ -1032,9 +1032,43 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
             osFreeMem(tonieInfo->contentPath);
             tonieInfo->contentPath = custom_asprintf("%s.tmp", tonieInfo->json._source_resolved);
         }
+        else if (tonieInfo->json._source_type == CT_SOURCE_TAP_RANDOM)
+        {
+            /* The pool itself, which is no TAF; one is picked only for a content request (pickRandomTonieContent). */
+            osFreeMem(tonieInfo->contentPath);
+            tonieInfo->contentPath = strdup(tonieInfo->json._source_resolved);
+            tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
+            return tonieInfo;
+        }
         readTonieInfoTaf(tonieInfo, force_taf_validation, settings);
     }
     return tonieInfo;
+}
+
+bool_t pickRandomTonieContent(tonie_info_t *tonieInfo, uint32_t audio_id, const uint8_t *sha1_prefix, settings_t *settings)
+{
+    char *picked = NULL;
+    if (tap_random_pick(&tonieInfo->json._tap, audio_id, sha1_prefix, settings, &picked) != NO_ERROR)
+    {
+        TRACE_WARNING("Random TAP %s has no TAF to pick\r\n", tonieInfo->json._source_resolved);
+        return false;
+    }
+    TRACE_INFO("Random TAP %s picked %s\r\n", tonieInfo->json._source_resolved, picked);
+    /* A second pick, after a resume whose TAF changed meanwhile, replaces what the first one read. */
+    if (tonieInfo->tafHeader)
+    {
+        toniebox_audio_file_header__free_unpacked(tonieInfo->tafHeader, NULL);
+        tonieInfo->tafHeader = NULL;
+    }
+    osFreeMem(tonieInfo->json._source_model);
+    tonieInfo->json._source_model = NULL;
+    osFreeMem(tonieInfo->additional.track_positions.pos);
+    osMemset(&tonieInfo->additional.track_positions, 0, sizeof(tonieInfo->additional.track_positions));
+    osFreeMem(tonieInfo->contentPath);
+    tonieInfo->contentPath = picked;
+    tonieInfo->valid = false;
+    readTonieInfoTaf(tonieInfo, false, settings);
+    return tonieInfo->valid;
 }
 
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock)
