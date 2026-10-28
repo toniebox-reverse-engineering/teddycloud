@@ -1322,7 +1322,6 @@ void mqtt_init()
         setting_item_t *s = settings_get(index);
         if (s->internal)
         {
-            index++;
             continue;
         }
         memset(&entity, 0x00, sizeof(entity));
