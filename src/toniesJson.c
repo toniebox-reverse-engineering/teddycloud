@@ -528,6 +528,23 @@ toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
     return item;
 }
 
+/* Tonies encoded in the same second share the audio id and differ only in the hash, so a known hash
+ * picks the right one. Without a hash, or when no entry lists it, the first tonie with the audio id is
+ * returned, which may be another tonie of the same batch. */
+toniesJson_item_t *tonies_byAudioIdPreferHash(uint32_t audio_id, uint8_t *hash)
+{
+    toniesJson_item_t *item = NULL;
+    if (hash != NULL)
+    {
+        item = tonies_byAudioIdHash(audio_id, hash);
+    }
+    if (item == NULL)
+    {
+        item = tonies_byAudioId(audio_id);
+    }
+    return item;
+}
+
 toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
     if (model == NULL || osStrcmp(model, "") == 0)

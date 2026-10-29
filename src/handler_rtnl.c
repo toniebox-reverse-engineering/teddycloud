@@ -306,19 +306,31 @@ void rtnlEvent(HttpConnection *connection, TonieRtnlRPC *rpc, client_ctx_t *clie
             uint32_t audioId = read_little_endian32(rpc->log2->field6.data);
             client_ctx->state->tag.audio_id = audioId;
             osSprintf(str_buf, "%u", audioId);
-            toniesJson_item_t *item = tonies_byAudioId(audioId);
-            sse_sendEvent("ContentAudioId", str_buf, true);
-            mqtt_sendBoxEvent("ContentAudioId", str_buf, client_ctx);
-
-            if (item == NULL || audioId == SPECIAL_AUDIO_ID_ONE)
+            /* no valid tag (none since the server started, playback stopped, or an invalid tag; log entries
+               can arrive late): reading it would create content for a tag that is not playing */
+            tonie_info_t *tonieInfo = NULL;
+            if (client_ctx->state->tag.uid != 0 && client_ctx->state->tag.valid)
             {
-                tonie_info_t *tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, false, client_ctx->settings);
-                if (tonieInfo->valid || (tonieInfo->json._valid && tonieInfo->json.tonie_model != NULL))
-                {
-                    item = tonies_byModel(tonieInfo->json.tonie_model);
-                }
+                tonieInfo = getTonieInfoFromUid(client_ctx->state->tag.uid, false, client_ctx->settings);
+            }
+            toniesJson_item_t *item = NULL;
+            /* audio id 1 is the empty content of creative tonies, mostly with one shared hash: only the tag's model tells them apart */
+            if (audioId != SPECIAL_AUDIO_ID_ONE)
+            {
+                /* the box reports no hash: take the one of the tag's TAF when that is what it plays */
+                uint8_t *hash = (tonieInfo != NULL && tonieInfo->valid && tonieInfo->tafHeader->audio_id == audioId) ? tonieInfo->tafHeader->sha1_hash.data : NULL;
+                item = tonies_byAudioIdPreferHash(audioId, hash);
+            }
+            if (item == NULL && tonieInfo != NULL && (tonieInfo->valid || (tonieInfo->json._valid && tonieInfo->json.tonie_model != NULL)))
+            {
+                item = tonies_byModel(tonieInfo->json.tonie_model);
+            }
+            if (tonieInfo != NULL)
+            {
                 freeTonieInfo(tonieInfo);
             }
+            sse_sendEvent("ContentAudioId", str_buf, true);
+            mqtt_sendBoxEvent("ContentAudioId", str_buf, client_ctx);
 
             if (item == NULL)
             {
