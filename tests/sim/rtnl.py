@@ -7,10 +7,12 @@ import struct
 FUGR_FIRMWARE = 8
 FUGR_TILT = 12
 FUGR_TAG = 15
+FUGR_AUDIO_A = 20
 FUGR_VOLUME = 27
 FUNC_TAG_VALID_CC3200 = 8627
 FUNC_TAG_INVALID_CC3200 = 8646
 FUNC_TAG_VALID_ESP32 = 16065
+FUNC_AUDIO_ID_CC3200 = 6803
 FUNC_VOLUME_CHANGE_CC3200 = 8672
 FUNC_VOLUME_CHANGE_ESP32 = 15524
 
@@ -75,6 +77,11 @@ def tag_placed(uid, valid=True, uptime=1000, sequence=1):
     """UID is the 8 bytes the box reports (big endian as read by the server)"""
     func = FUNC_TAG_VALID_CC3200 if valid else FUNC_TAG_INVALID_CC3200
     return log2(uptime, sequence, FUGR_TAG, func, struct.pack(">Q", uid), field9=CRLF)
+
+
+def audio_id(value, uptime=1000, sequence=1):
+    """The audio id of the content the box starts to play"""
+    return log2(uptime, sequence, FUGR_AUDIO_A, FUNC_AUDIO_ID_CC3200, struct.pack("<I", value), field9=CRLF)
 
 
 def volume_changed(level, db, uptime=1000, sequence=1):

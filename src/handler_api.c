@@ -2044,7 +2044,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     }
     osMemcpy(pages, tafInfo->tafHeader->track_page_nums, page_count * sizeof(uint32_t));
     num_bytes = tafInfo->tafHeader->num_bytes;
-    tonieItem = tonies_byAudioId(tafInfo->tafHeader->audio_id);
+    tonieItem = tonies_byAudioIdPreferHash(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data);
     if (tonieItem != NULL)
     {
         size_t name_count = tonieItem->tracks_count;
