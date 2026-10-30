@@ -160,10 +160,14 @@ def test_settings_reload_while_cloud_requests_run(box, cloud):
     t = threading.Thread(target=requests_loop)
     t.start()
     try:
-        for i in range(12):
+        # at least 12 reloads and 10 s, so that enough requests overlap with the reloads
+        start = time.time()
+        i = 0
+        while i < 12 or time.time() - start < 10:
             assert api("POST", "/api/settings/set/hass.name", f"reload {i}")[0] == 200
             assert api("GET", "/api/triggerWriteConfig")[0] == 200
             time.sleep(0.4)
+            i += 1
     finally:
         stop.set()
         t.join(15)

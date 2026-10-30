@@ -60,6 +60,7 @@ typedef struct
 } settings_parked_t;
 static settings_parked_t *settings_parked = NULL;
 static size_t settings_parked_len = 0;
+static size_t settings_parked_size = 0;
 
 static void settings_free_later(void *ptr)
 {
@@ -68,10 +69,21 @@ static void settings_free_later(void *ptr)
         return;
     }
     mutex_lock(MUTEX_SETTINGS_FREE);
-    settings_parked_t *grown = realloc(settings_parked, sizeof(settings_parked_t) * (settings_parked_len + 1));
+    /* grow by doubling: every reload parks each string of every overlay, one realloc per entry
+       made the reloads quadratic in the number of parked entries */
+    settings_parked_t *grown = settings_parked;
+    if (settings_parked_len == settings_parked_size)
+    {
+        size_t size = settings_parked_size ? settings_parked_size * 2 : 256;
+        grown = realloc(settings_parked, sizeof(settings_parked_t) * size);
+        if (grown != NULL)
+        {
+            settings_parked = grown;
+            settings_parked_size = size;
+        }
+    }
     if (grown != NULL)
     {
-        settings_parked = grown;
         settings_parked[settings_parked_len].ptr = ptr;
         settings_parked[settings_parked_len].when = time(NULL);
         settings_parked_len++;
@@ -105,6 +117,7 @@ static void settings_free_parked(bool all)
     {
         free(settings_parked);
         settings_parked = NULL;
+        settings_parked_size = 0;
     }
     mutex_unlock(MUTEX_SETTINGS_FREE);
 }
