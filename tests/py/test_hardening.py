@@ -229,6 +229,14 @@ class LongMoveTarget(Base):
         status, _ = request("POST", "/api/fileMove?special=library", form, {"Content-Type": "application/x-www-form-urlencoded"})
         self.assertEqual(status, 400)
 
+    def test_deep_list_path_is_not_the_root(self):
+        self.put_library("__deep_list.txt")
+        try:
+            _, body = request("GET", "/api/fileIndexV2?special=library&path=" + "a" * 200)
+        except http.client.RemoteDisconnected:
+            body = ""  # the folder does not exist
+        self.assertNotIn("__deep_list.txt", body)
+
 
 class Ota(Base):
     """Local V3 OTA delivery: /v3/ota/<type>/<hash> serves <firmware>/ota/<type>/<hash>.bin.

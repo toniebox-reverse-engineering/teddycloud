@@ -659,7 +659,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         return ERROR_FAILURE;
     }
 
-    char path[128];
+    char path[256 + 1];
 
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
@@ -859,7 +859,7 @@ error_t handleApiFileSetListened(HttpConnection *connection, const char_t *uri, 
         return ERROR_FAILURE;
     }
 
-    char path[128];
+    char path[256 + 1];
 
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
@@ -923,7 +923,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             return ERROR_FAILURE;
         }
 
-        char path[128];
+        char path[256 + 1];
 
         if (!queryGet(queryString, "path", path, sizeof(path)))
         {
