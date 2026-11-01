@@ -229,6 +229,11 @@ class LongMoveTarget(Base):
         status, _ = request("POST", "/api/fileMove?special=library", form, {"Content-Type": "application/x-www-form-urlencoded"})
         self.assertEqual(status, 400)
 
+    def test_too_long_folder_is_refused(self):
+        status, body = request("POST", "/api/dirCreate?special=library", "/" + "/".join(["d" * 50] * 6))
+        self.assertEqual(status, 400)
+        self.assertEqual(body, "path too long")
+
     def test_deep_list_path_is_not_the_root(self):
         self.put_library("__deep_list.txt")
         try:

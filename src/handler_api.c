@@ -2896,6 +2896,15 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     char path[256 + 3];
     size_t size = 0;
 
+    if (connection->request.contentLength > sizeof(path) - 3)
+    {
+        char message[] = "path too long";
+        connection->request.keepAlive = FALSE; /* the unread body would be taken for the next request */
+        httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+        connection->response.statusCode = 400;
+        return httpWriteResponseString(connection, message, false);
+    }
+
     error_t error = httpReceive(connection, &path, sizeof(path) - 3, &size, 0x00);
     if (error != NO_ERROR)
     {
