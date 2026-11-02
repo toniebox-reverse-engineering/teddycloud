@@ -1,0 +1,52 @@
+# Example: expose TeddyCloud behind Traefik.
+#
+# Use two hostnames:
+#   teddycloud.example.com  -> web UI on container port 80 (HTTP)
+#   box.example.com         -> Toniebox TLS on container port 443 (TCP passthrough)
+#
+# Do not publish the web UI to the internet without enabling web UI login.
+# TeddyCloud cannot tell LAN clients from Traefik: the proxy source IP looks local.
+#
+# Replace the image/hostnames and attach this service to your Traefik network.
+
+services:
+  teddycloud:
+    image: ghcr.io/toniebox-reverse-engineering/teddycloud:latest
+    hostname: teddycloud
+    environment:
+      # Recovery only — bypasses web UI login:
+      # - TEDDYCLOUD_WEB_AUTH_DISABLE=1
+    volumes:
+      - certs:/teddycloud/certs
+      - config:/teddycloud/config
+      - content:/teddycloud/data/content
+      - library:/teddycloud/data/library
+      - custom_img:/teddycloud/data/www/custom_img
+      - firmware:/teddycloud/data/firmware
+      - cache:/teddycloud/data/cache
+      - plugins:/teddycloud/data/www/plugins
+    labels:
+      - traefik.enable=true
+      # Web UI — HTTP router to port 80
+      - traefik.http.routers.teddycloud-web.rule=Host(`teddycloud.example.com`)
+      - traefik.http.routers.teddycloud-web.entrypoints=websecure
+      - traefik.http.routers.teddycloud-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.teddycloud-web.service=teddycloud-web
+      - traefik.http.services.teddycloud-web.loadbalancer.server.port=80
+      # Toniebox — TCP passthrough of TLS (HostSNI) to port 443
+      - traefik.tcp.routers.teddycloud-box.rule=HostSNI(`box.example.com`)
+      - traefik.tcp.routers.teddycloud-box.entrypoints=websecure
+      - traefik.tcp.routers.teddycloud-box.tls.passthrough=true
+      - traefik.tcp.routers.teddycloud-box.service=teddycloud-box
+      - traefik.tcp.services.teddycloud-box.loadbalancer.server.port=443
+    restart: unless-stopped
+
+volumes:
+  certs:
+  config:
+  content:
+  library:
+  custom_img:
+  firmware:
+  cache:
+  plugins:

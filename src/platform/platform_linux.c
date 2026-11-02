@@ -313,7 +313,8 @@ error_t socketReceive(Socket *socket, void *data_in,
             }
         }
 
-        if (buff->buffer_used >= size)
+        /* cap at the requested size, but never override a line end found above */
+        if (buff->buffer_used >= size && (!return_count || return_count > size))
         {
             return_count = size;
         }

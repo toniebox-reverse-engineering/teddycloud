@@ -49,7 +49,10 @@ jobs:
       fail-fast: false
       matrix:
         platform: ${{ fromJson(inputs.platforms) }}
-    runs-on: ubuntu-latest
+    # aarch64 is built/tested natively so AddressSanitizer works (QEMU-user
+    # emulation cannot satisfy libasan's fixed 64-bit allocator mapping).
+    # All other platforms stay on the amd64 runner and cross-build via QEMU.
+    runs-on: ${{ matrix.platform == 'linux/arm64/v8' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -70,6 +73,20 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Release candidate version
+        id: rc_version
+        if: ${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+        run: |
+          # rc_v0.7.1, rc_v0.7.1-1 or rc_v0.7.1-rc0: base = 0.7.1, full = 0.7.1-1 / 0.7.1-rc0 (empty for the base tag)
+          ver="${GITHUB_REF_NAME#rc_v}"
+          if ! [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::$GITHUB_REF_NAME is not rc_vX.Y.Z or rc_vX.Y.Z-<suffix>"
+            exit 1
+          fi
+          base="${ver%%-*}"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if [ "$ver" != "$base" ]; then echo "full=$ver" >> "$GITHUB_OUTPUT"; fi
+
       - name: Docker meta matrix
         id: matrix_meta
         uses: docker/metadata-action@v6
@@ -86,14 +103,36 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
             type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
             type=raw,value=nightly-develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=rc,enable=${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+            type=raw,value=rc${{ steps.rc_version.outputs.base }},enable=${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+            type=raw,value=rc${{ steps.rc_version.outputs.full }},enable=${{ startsWith(github.ref, 'refs/tags/rc_v') && steps.rc_version.outputs.full != '' }}
             type=ref,event=tag
             type=match,pattern=tc_v(\d+),group=1
             type=match,pattern=tc_v(\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
+            latest=false
             prefix=arch_,onlatest=true
             suffix=_${{ matrix.platform }}_${{ inputs.system }},onlatest=${{ inputs.primary_image }}
+
+      - name: Release candidates must not move latest or the plain version tags
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'rc_v') }}
+        env:
+          TAGS: ${{ steps.matrix_meta.outputs.tags }}
+        run: |
+          # do not rely on metadata-action internals (e.g. automatic latest): look at what it generated
+          echo "$TAGS"
+          bad=0
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            name="${tag##*:}"; name="${name#arch_}"; name="${name%%_*}"
+            if [ "$name" = latest ] || [[ "$name" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+              echo "::error::release candidate $GITHUB_REF_NAME would get the image tag '$tag'"
+              bad=1
+            fi
+          done <<< "$TAGS"
+          exit $bad
 
       - name: Modify tags
         id: modify_tags
@@ -141,10 +180,27 @@ jobs:
           platform=$(echo "${{ matrix.platform }}" | tr '/' '_')
           echo "platform=$platform"
           echo "platform=$platform" >> $GITHUB_OUTPUT
+      - name: Lower ASLR entropy for AddressSanitizer (aarch64)
+        if: ${{ matrix.platform == 'linux/arm64/v8' }}
+        run: |
+          # Native arm64 runners use a recent kernel with vm.mmap_rnd_bits=32, which can
+          # collide with libasan's fixed 64-bit allocator base and abort at startup with
+          # "CHECK failed: sanitizer_allocator_primary64.h". 28 still gives strong ASLR.
+          # Load-bearing when the base image's libasan predates LLVM 17 (GCC <=13); a
+          # no-op for GCC 14+, which moved the allocator base to tolerate 32-bit ASLR.
+          # vm.* sysctls are not namespaced, so this host-level change reaches the
+          # container started below. CI-only; does not touch shipped images. Non-fatal.
+          sudo sysctl -w vm.mmap_rnd_bits=28 || echo "warning: could not set vm.mmap_rnd_bits"
       - name: Run docker image test
         id: docker-test
         run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          # QEMU binfmt is only needed to run foreign-arch containers on the amd64
+          # runner. The native arm64 runner runs arm64 containers directly, and the
+          # multiarch/qemu-user-static helper is not arm64-compatible there
+          # (it fails with "Exec format error"), so skip it for arm64.
+          if [ "${{ matrix.platform }}" != "linux/arm64/v8" ]; then
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          fi
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             docker run -e DOCKER_TEST=1 --platform ${{ matrix.platform }} --name teddyCloud-test teddycloud-test:local
           else
@@ -231,6 +287,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release candidate version
+        id: rc_version
+        if: ${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+        run: |
+          # rc_v0.7.1, rc_v0.7.1-1 or rc_v0.7.1-rc0: base = 0.7.1, full = 0.7.1-1 / 0.7.1-rc0 (empty for the base tag)
+          ver="${GITHUB_REF_NAME#rc_v}"
+          if ! [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::$GITHUB_REF_NAME is not rc_vX.Y.Z or rc_vX.Y.Z-<suffix>"
+            exit 1
+          fi
+          base="${ver%%-*}"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if [ "$ver" != "$base" ]; then echo "full=$ver" >> "$GITHUB_OUTPUT"; fi
+
       - name: Docker meta
         if: ${{ steps.check_digests.outputs.has_digests == 'true' }}
         id: teddycloud_meta # you'll use this in the next step
@@ -250,14 +320,35 @@ jobs:
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/tc_v') }}
             type=raw,value=nightly,enable=${{ startsWith(github.ref, 'refs/tags/tc_nightly') }}
             type=raw,value=nightly-develop,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=rc,enable=${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+            type=raw,value=rc${{ steps.rc_version.outputs.base }},enable=${{ startsWith(github.ref, 'refs/tags/rc_v') }}
+            type=raw,value=rc${{ steps.rc_version.outputs.full }},enable=${{ startsWith(github.ref, 'refs/tags/rc_v') && steps.rc_version.outputs.full != '' }}
             type=ref,event=tag
             type=match,pattern=tc_v(\d+),group=1
             type=match,pattern=tc_v(\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+),group=1
             type=match,pattern=tc_v(\d+.\d+.\d+-\S+),group=1
           flavor: |
+            latest=false
             suffix=_${{ inputs.system }},onlatest=${{ !inputs.primary_image }}
 
+      - name: Release candidates must not move latest or the plain version tags
+        if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'rc_v') }}
+        env:
+          TAGS: ${{ steps.teddycloud_meta.outputs.tags }}
+        run: |
+          # do not rely on metadata-action internals (e.g. automatic latest): look at what it generated
+          echo "$TAGS"
+          bad=0
+          while read -r tag; do
+            [ -n "$tag" ] || continue
+            name="${tag##*:}"; name="${name#arch_}"; name="${name%%_*}"
+            if [ "$name" = latest ] || [[ "$name" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+              echo "::error::release candidate $GITHUB_REF_NAME would get the image tag '$tag'"
+              bad=1
+            fi
+          done <<< "$TAGS"
+          exit $bad
       - name: Create manifest list and push (primary)
         if: ${{ inputs.primary_image && steps.check_digests.outputs.has_digests == 'true' }}
         working-directory: /tmp/digests/${{ github.sha }}

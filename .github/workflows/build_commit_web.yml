@@ -91,12 +91,12 @@ jobs:
       - name: Commit and push if changed
         run: |
           if [[ -n $(git status --porcelain) ]]; then
-          git add .
-          git commit -m "Update frontend (make web)"
-          git pull --rebase
-          git push
+            git add .
+            git commit -m "Update frontend (make web)"
+            git pull --no-recurse-submodules --no-tags --rebase
+            git push --no-recurse-submodules
           else
-          echo "No changes to commit and push."
+            echo "No changes to commit and push."
           fi
 
       - name: Get Last Commit Hash

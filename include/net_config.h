@@ -36,7 +36,6 @@
 #include "pcaplog_types.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
-#define JWT_AUTH_TOKEN_LENGTH 32
 
 typedef struct
 {
@@ -59,6 +58,7 @@ typedef struct
 typedef struct
 {
     uint8_t authentication_token[TONIE_AUTH_TOKEN_LENGTH];
+    char web_bearer_token[65];
     client_ctx_t client_ctx;
     bool_t authenticated;
     pcaplog_t pcap_data;
@@ -76,6 +76,7 @@ typedef struct
     void *sourceCtx;
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
+#define HTTP_SERVER_COOKIE_SUPPORT ENABLED
 #define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
 #define HTTP_SERVER_PERSISTENT_CONN_SUPPORT ENABLED
 

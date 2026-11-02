@@ -22,14 +22,44 @@ Currently implemented are:
 * Decode RTNL logs
 * MQTT client
 * Home Assistant integration (MQTT)
+* Optional web UI login (disabled by default; enable in the web interface)
 * [Web frontend](https://github.com/toniebox-reverse-engineering/teddycloud_web) (full stack developers welcome)
 
 ## Planned
 * teddyBench integration
 * Toniebox 2 support
 
+## Web UI login
+
+Login protection is **off by default**. When enabled, the web interface requires a username and password; Toniebox cloud APIs on the box port are unchanged.
+
+- Create users and turn login on in the web UI (Settings).
+- Users are stored as salted SHA-256 hashes in `web_users.json` under the config directory.
+- After five failed logins from the same IP, further attempts are blocked for 10 minutes.
+- Set `TEDDYCLOUD_WEB_AUTH_DISABLE=1` to bypass login (for recovery).
+- Removing `web_users.json` (no users left) turns login protection off again.
+- **Still not recommended for public exposure:** the login only protects the web UI. The direct APIs are still unprotected, so do not host TeddyCloud publicly unless you know how to secure a self-hosted service (for example behind a VPN or an authenticating reverse proxy). TeddyCloud does not treat LAN and reverse-proxy traffic differently (a proxy often looks like a local client).
+
+A Traefik example that separates the web UI (HTTP) from the Toniebox port (TLS passthrough) is in [`docker/docker-compose.traefik.example.yaml`](docker/docker-compose.traefik.example.yaml).
+
 ## Where to start?
 If you want to get started, please follow our [guide on our website](https://toniebox-reverse-engineering.github.io/docs/tools/teddycloud/).
+
+## Docker images and release candidates
+Docker images are published to `ghcr.io/toniebox-reverse-engineering/teddycloud`:
+
+| Tag | What it is |
+|-----|------------|
+| `latest`, `0.7.0`, `0.7`, `0` | the newest release (git tag `tc_vX.Y.Z`) |
+| `nightly-develop` | the current `develop` branch |
+| `rc`, `rc0.7.1`, `rc_v0.7.1` | release candidates, see below |
+
+Before a release there can be **release candidates** (`rc`) for testing. They are cut from `develop` with a git tag
+`rc_vX.Y.Z` (more candidates of the same version: `rc_vX.Y.Z-1`, `rc_vX.Y.Z-2`, ...). `rc` always points to the newest
+candidate and `rc0.7.1` to the newest candidate of version 0.7.1; the exact tag (e.g. `rc0.7.1-1`) stays available.
+A candidate is published as Docker image only (no GitHub release), never moves `latest` or the version tags, and the
+version shown by TeddyCloud is `v0.7.1-rc`, `v0.7.1-rc1`, ... Please test them and report problems before the release.
+How to cut one is described in [CONTRIBUTING.md](CONTRIBUTING.md#releases-and-release-candidates).
 
 ## Development and bulding
 Please use the [develop](tree/develop) for your development and pull requests. Stable builds are available from the master branch. Don't forget to clone the submodules with --recurse-submodules.
@@ -62,7 +92,7 @@ TeddyCloud consists of two repositories: the backend (teddycloud) and the web fr
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | [Make web and commit](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/build_commit_web.yml) | Manual (`workflow_dispatch`) | Builds the web from the teddycloud_web submodule, commits files to `contrib/data/www/`, pushes, and triggers the Docker build. |
-| [Docker Image Publish Matrix](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/publish_docker_matrix_all.yml) | Push to `master`/`develop` or tags | Builds Docker images automatically. |
+| [Docker Image Publish Matrix](https://github.com/toniebox-reverse-engineering/teddycloud/actions/workflows/publish_docker_matrix_all.yml) | Push to `master`/`develop` or tags (`tc_v...` releases, `rc_v...` release candidates) | Builds Docker images automatically. |
 
 **After merging:** Once both PRs are merged, a maintainer runs the "Make web and commit" workflow. It builds the frontend from the current teddycloud_web state (same branch), commits the built files, and updates the submodule pointer if needed. The subsequent push triggers the Docker build automatically.
 

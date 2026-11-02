@@ -8,6 +8,11 @@ static uint8_t sseSubscriptionCount = 0;
 
 error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *ctx)
 {
+    /* A subscriber joins between events: event writers hold MUTEX_SSE_EVENT from
+     * the first piece of an event to the last. It becomes active only after its
+     * response header is out, so no event piece can come before the header and a
+     * failed header leaves the slot free. */
+    mutex_lock(MUTEX_SSE_EVENT);
     mutex_lock(MUTEX_SSE_CTX);
 
     SseSubscriptionContext *sseCtx = NULL;
@@ -26,6 +31,7 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     if (sseCtx == NULL)
     {
         mutex_unlock(MUTEX_SSE_CTX);
+        mutex_unlock(MUTEX_SSE_EVENT);
         TRACE_ERROR("All slots full, in total %" PRIu8 " clients\r\n", sseSubscriptionCount);
         httpInitResponseHeader(connection);
         connection->response.contentLength = 0;
@@ -35,16 +41,6 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
         return httpWriteHeader(connection);
     }
 
-    sseCtx->lastConnection = time(NULL);
-    sseCtx->connection = connection;
-    sseCtx->active = TRUE;
-    sseCtx->error = NO_ERROR;
-    sseSubscriptionCount++;
-
-    mutex_unlock(MUTEX_SSE_CTX);
-
-    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", sseCtx->channel, sseSubscriptionCount);
-
     httpInitResponseHeader(connection);
     connection->response.contentType = "text/event-stream";
     connection->response.keepAlive = TRUE;
@@ -53,13 +49,34 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
     error_t error = httpWriteHeader(connection);
     if (error != NO_ERROR)
     {
+        mutex_unlock(MUTEX_SSE_CTX);
+        mutex_unlock(MUTEX_SSE_EVENT);
         TRACE_ERROR("Failed to send header\r\n");
         return error;
     }
 
+    sseCtx->lastConnection = time(NULL);
+    sseCtx->connection = connection;
+    sseCtx->active = TRUE;
+    sseCtx->error = NO_ERROR;
+    sseSubscriptionCount++;
+
+    mutex_unlock(MUTEX_SSE_CTX);
+    mutex_unlock(MUTEX_SSE_EVENT);
+
+    TRACE_INFO("SSE Client connected in slot %" PRIu8 " in total %" PRIu8 " clients\r\n", sseCtx->channel, sseSubscriptionCount);
+
     time_t last = 0;
     while (true)
     {
+        /* A keep-alive must not land inside an event, so it holds MUTEX_SSE_EVENT.
+         * Event writers take MUTEX_SSE_EVENT before MUTEX_SSE_CTX; taking them in
+         * the other order here deadlocks both and every later /api/sse request. */
+        bool_t keepAlive = time(NULL) - last > SSE_KEEPALIVE_S;
+        if (keepAlive)
+        {
+            mutex_lock(MUTEX_SSE_EVENT);
+        }
         mutex_lock(MUTEX_SSE_CTX);
         if (sseCtx->error != NO_ERROR || sseCtx->active == FALSE || (sseCtx->lastConnection + SSE_TIMEOUT_S < time(NULL)))
         {
@@ -73,13 +90,16 @@ error_t handleApiSse(HttpConnection *connection, const char_t *uri, const char_t
                 TRACE_ERROR("SSE Client with error %s\r\n", error2text(error));
             }
             mutex_unlock(MUTEX_SSE_CTX);
+            if (keepAlive)
+            {
+                mutex_unlock(MUTEX_SSE_EVENT);
+            }
             break;
         }
 
-        time_t now = time(NULL);
-        if (now - last > SSE_KEEPALIVE_S)
+        if (keepAlive)
         {
-            mutex_lock(MUTEX_SSE_EVENT);
+            time_t now = time(NULL);
             sseCtx->error = httpWriteString(connection, "event: keep-alive\ndata: { \"type\":\"keep-alive\", \"data\":\"\" }\n\n");
             mutex_unlock(MUTEX_SSE_EVENT);
             last = now;

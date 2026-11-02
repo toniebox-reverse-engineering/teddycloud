@@ -71,6 +71,11 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
         if (ctx->file == NULL)
         {
             ctx->file = fsOpenFile(tonies_json_tmp_path, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
+            if (ctx->file == NULL)
+            {
+                TRACE_ERROR("Failed to open %s\r\n", tonies_json_tmp_path);
+                return;
+            }
         }
         error_t errorWrite = NO_ERROR;
         if (length > 0)
@@ -78,19 +83,26 @@ void tonies_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const char
             errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
         }
 
+        bool_t finished = false;
         if (error == ERROR_END_OF_STREAM)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
         }
         else if (error != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("tonies.json download body error=%s\r\n", error2text(error));
         }
         if (errorWrite != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("tonies.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
+        }
+
+        if (finished)
+        {
+            fsCloseFile(ctx->file);
+            ctx->file = NULL;
         }
     }
 }
@@ -183,6 +195,11 @@ void tonieboxes_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const 
             ctx->file = fsOpenFile(target_tmp, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
             osFreeMem(target);
             osFreeMem(target_tmp);
+            if (ctx->file == NULL)
+            {
+                TRACE_ERROR("Failed to open tonieboxes.json temp file\r\n");
+                return;
+            }
         }
         error_t errorWrite = NO_ERROR;
         if (length > 0)
@@ -190,19 +207,26 @@ void tonieboxes_downloadBody(void *src_ctx, HttpClientContext *cloud_ctx, const 
             errorWrite = fsWriteFile(ctx->file, (void *)payload, length);
         }
 
+        bool_t finished = false;
         if (error == ERROR_END_OF_STREAM)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
         }
         else if (error != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("tonieboxes.json download body error=%s\r\n", error2text(error));
         }
         if (errorWrite != NO_ERROR)
         {
-            fsCloseFile(ctx->file);
+            finished = true;
             TRACE_ERROR("tonieboxes.json (%s) write error=%s\r\n", tonies_json_tmp_path, error2text(error));
+        }
+
+        if (finished)
+        {
+            fsCloseFile(ctx->file);
+            ctx->file = NULL;
         }
     }
 }
@@ -288,7 +312,10 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
 
         while (pos < fileSize)
         {
-            fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead);
+            if (fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) != NO_ERROR || sizeRead == 0)
+            {
+                break;
+            }
             pos += sizeRead;
         }
         fsCloseFile(fsFile);
@@ -362,10 +389,18 @@ void tonies_readJson(char *source, toniesJson_item_t **retCache, size_t *retCoun
                 if (item->tracks_count > 0)
                 {
                     item->tracks = osAllocMem(item->tracks_count * sizeof(char *));
-                    uint8_t i = 0;
+                    size_t i = 0;
                     const cJSON *track;
                     cJSON_ArrayForEach(track, tracks)
                     {
+                        /* tracks_count is a uint8_t and was assigned from a
+                           (possibly larger, truncated) array size; never write
+                           past the allocation, and use a size_t index so it
+                           cannot wrap. */
+                        if (i >= item->tracks_count)
+                        {
+                            break;
+                        }
                         if (track != NULL && cJSON_IsString(track) && track->valuestring != NULL)
                         {
                             item->tracks[i++] = strdup(track->valuestring);

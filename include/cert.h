@@ -36,7 +36,7 @@ error_t cert_get_rsa_priv(RsaPrivateKey *cert_privkey, uint8_t **priv_data, size
  *
  * The CA certificate and private key are loaded from PEM-formatted strings within the settings.
  */
-error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv);
+error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv, uint8_t **server_ca_der_out);
 
 /**
  * @brief Generate a certificate based on MAC address
