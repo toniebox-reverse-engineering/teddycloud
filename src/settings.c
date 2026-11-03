@@ -1139,7 +1139,8 @@ static error_t settings_load_ovl(bool overlay)
             if (*line != '\0' && *line != '#')
             {
                 // Split the line into option_name and value
-                char *option_name = strtok(line, "=");
+                char *save = NULL;
+                char *option_name = strtok_r(line, "=", &save);
                 char *value_str = &line[osStrlen(option_name) + 1];
 
                 char *overlay_unique_id = NULL;
@@ -1148,7 +1149,7 @@ static error_t settings_load_ovl(bool overlay)
                 {
                     option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
                     tokenizer = strdup(option_name);
-                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok(tokenizer, "."));
+                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok_r(tokenizer, ".", &save));
                     option_name += osStrlen(overlay_unique_id) + 1;
 
                     if (get_overlay_id(overlay_unique_id) == 0)

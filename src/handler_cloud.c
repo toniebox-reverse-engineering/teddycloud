@@ -167,7 +167,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
                 continue;
             }
             char *tmpname = strdup(entry.name);
-            char *biggest_timestamp_txt = strtok(tmpname, "-_");
+            char *save = NULL;
+            char *biggest_timestamp_txt = strtok_r(tmpname, "-_", &save);
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
