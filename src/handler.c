@@ -1189,6 +1189,14 @@ char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPa
     return libraryPath;
 }
 
+/* libraryPath (ending in ".taf") with the first 8 hex digits of the TAF's SHA1 added before the extension. */
+static char *libraryPathWithHash(const char *libraryPath, const TonieboxAudioFileHeader *tafHeader)
+{
+    const uint8_t *sha1 = tafHeader->sha1_hash.data;
+    size_t baseLen = osStrlen(libraryPath) - osStrlen(".taf");
+    return custom_asprintf("%.*s-%02x%02x%02x%02x.taf", (int)baseLen, libraryPath, sha1[0], sha1[1], sha1[2], sha1[3]);
+}
+
 error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir)
 {
     error_t error = NO_ERROR;
@@ -1227,6 +1235,20 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
         if (libraryPath)
         {
             tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, false, settings);
+            if (tonieInfoLib->valid && osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
+            {
+                /* The audio id is the time the audio was encoded, so different TAFs can share it.
+                   When that name holds other audio, this TAF goes next to it under a name that
+                   adds the start of its hash. */
+                char *suffixedPath = libraryPathWithHash(libraryPath, tonieInfo->tafHeader);
+                char *suffixedShortPath = libraryPathWithHash(libraryShortPath, tonieInfo->tafHeader);
+                osFreeMem(libraryPath);
+                osFreeMem(libraryShortPath);
+                libraryPath = suffixedPath;
+                libraryShortPath = suffixedShortPath;
+                freeTonieInfo(tonieInfoLib);
+                tonieInfoLib = getTonieInfo(libraryPath, false, settings);
+            }
             bool moveToLibrary = true;
             bool skipMove = false;
             if (tonieInfoLib->valid)
