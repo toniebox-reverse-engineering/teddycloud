@@ -835,7 +835,12 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
             error_t error = httpExtSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
-            if (error)
+            if (error == ERROR_WRITE_FAILED || error == ERROR_CONNECTION_RESET || error == ERROR_CONNECTION_CLOSING)
+            {
+                // client aborted the transfer (e.g. browser player replacing a range request)
+                TRACE_WARNING(" >> transfer of %s aborted by client, error=%s\r\n", tonieInfo->contentPath, error2text(error));
+            }
+            else if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
