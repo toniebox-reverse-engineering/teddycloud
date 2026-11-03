@@ -1329,7 +1329,7 @@ void mqtt_init()
 
         char *name = mqtt_settingname_clean(s->option_name);
         entity.id = name;
-        entity.name = custom_asprintf("%s - %s", s->option_name, s->description);
+        entity.name = custom_asprintf("%s - %s", s->option_name, s->label ? s->label : s->option_name);
         entity.stat_t = mqtt_topic_str("%s/%s/status", name);
         entity.cmd_t = mqtt_topic_str("%s/%s/command", name);
         entity.transmit = &mqtt_settings_tx;
