@@ -63,6 +63,8 @@ typedef struct
     const char_t *uri;
     const char_t *queryString;
     char_t *user_agent;
+    uint32_t range_start;   /* content: the box's Range start, 0: whole file */
+    const char_t *if_range; /* content: the box's If-Range, NULL or empty: none */
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;

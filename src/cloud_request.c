@@ -327,6 +327,17 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 httpClientAddHeaderField(&httpClientContext, "User-Agent", cbr_ctx->user_agent);
             }
 
+            if (cbr_ctx->range_start != 0)
+            {
+                char range_line[32];
+                osSnprintf(range_line, sizeof(range_line), "bytes=%" PRIu32 "-", cbr_ctx->range_start);
+                httpClientAddHeaderField(&httpClientContext, "Range", range_line);
+                if (cbr_ctx->if_range != NULL && cbr_ctx->if_range[0] != '\0')
+                {
+                    httpClientAddHeaderField(&httpClientContext, "If-Range", cbr_ctx->if_range);
+                }
+            }
+
             // Send HTTP request header
             error = httpClientWriteHeader(&httpClientContext);
             // Any error to report?

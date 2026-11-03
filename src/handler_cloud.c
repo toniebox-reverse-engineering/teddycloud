@@ -892,6 +892,10 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
             ctx.tonieInfo = tonieInfo;
+            /* A box resuming a download asks for the rest of the file; the cloud has to see that, or it
+             * answers 200 with the whole file and the box starts over */
+            ctx.range_start = connection->request.Range.start;
+            ctx.if_range = connection->request.ifRange;
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
         }
