@@ -596,17 +596,21 @@ const char *tonies_strcasestr(const char *haystack, const char *needle)
     return NULL;
 }
 
-bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
+bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[TONIES_SEARCH_MAX], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
     size_t count = *result_size;
+    bool hasModel = model != NULL && osStrlen(model) > 0;
+    bool hasSeries = series != NULL && osStrlen(series) > 0;
+    bool hasEpisode = episode != NULL && osStrlen(episode) > 0;
+    size_t fields = hasModel + hasSeries + hasEpisode;
 
-    if (model != NULL && osStrlen(model) > 0)
+    if (hasModel)
     {
         size_t count_model = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_model >= (max_slots - count) / 3)
+            if (count >= max_slots || count_model >= (max_slots - count) / fields)
             {
                 break;
             }
@@ -628,13 +632,14 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
                 }
             }
         }
+        fields--;
     }
-    if (series != NULL && osStrlen(series) > 0)
+    if (hasSeries)
     {
         size_t count_series = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_series >= (max_slots - count) / 2)
+            if (count >= max_slots || count_series >= (max_slots - count) / fields)
             {
                 break;
             }
@@ -656,13 +661,14 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
                 }
             }
         }
+        fields--;
     }
-    if (episode != NULL && osStrlen(episode) > 0)
+    if (hasEpisode)
     {
         size_t count_episode = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_episode >= (max_slots - count) / 1)
+            if (count >= max_slots || count_episode >= (max_slots - count))
             {
                 break;
             }
@@ -692,12 +698,12 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
 #endif
 }
 
-bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
+bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[TONIES_SEARCH_MAX], size_t *result_size)
 {
     size_t count = 0;
     mutex_lock(MUTEX_TONIES_JSON_CACHE);
-    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
-    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
+    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, TONIES_SEARCH_MAX / 2, toniesCustomJsonCache, toniesCustomJsonCount);
+    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, TONIES_SEARCH_MAX, toniesJsonCache, toniesJsonCount);
     mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     *result_size = count;
     return *result_size > 0;

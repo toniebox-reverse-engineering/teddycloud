@@ -4739,7 +4739,7 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
     searchModel[0] = '\0';
     searchSeries[0] = '\0';
     searchEpisode[0] = '\0';
-    toniesJson_item_t *result[18];
+    toniesJson_item_t *result[TONIES_SEARCH_MAX];
     size_t result_size;
 
     queryGet(queryString, "searchModel", searchModel, sizeof(searchModel));
