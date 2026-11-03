@@ -741,7 +741,7 @@ bool_t isValidTaf(const char *contentPath, bool checkHashAndSize)
         fsReadFile(file, headerBuffer, 4, &read_length);
         if (read_length == 4)
         {
-            uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+            uint32_t protobufSize = ((uint32_t)headerBuffer[0] << 24) | ((uint32_t)headerBuffer[1] << 16) | ((uint32_t)headerBuffer[2] << 8) | headerBuffer[3];
             if (protobufSize <= TAF_HEADER_SIZE)
             {
                 fsReadFile(file, headerBuffer, protobufSize, &read_length);
@@ -966,7 +966,7 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
             fsReadFile(file, headerBuffer, 4, &read_length);
             if (read_length == 4)
             {
-                uint32_t protobufSize = (uint32_t)((headerBuffer[0] << 24) | (headerBuffer[1] << 16) | (headerBuffer[2] << 8) | headerBuffer[3]);
+                uint32_t protobufSize = ((uint32_t)headerBuffer[0] << 24) | ((uint32_t)headerBuffer[1] << 16) | ((uint32_t)headerBuffer[2] << 8) | headerBuffer[3];
                 if (protobufSize <= TAF_HEADER_SIZE)
                 {
                     fsReadFile(file, headerBuffer, protobufSize, &read_length);
