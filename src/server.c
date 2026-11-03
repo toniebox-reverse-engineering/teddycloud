@@ -1,5 +1,6 @@
 
 
+#include "error_text.h"
 #include <errno.h>     // for error_t
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf
@@ -276,7 +277,7 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
         return httpSendRedirectResponse(connection, 301, entry->original_url);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, entry->file_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, entry->file_path);
     return err;
 }
 
@@ -287,7 +288,7 @@ static error_t handleCorsOptions(
     client_ctx_t *client_ctx)
 {
     char line[256];
-    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+    const char_t *allowOrigin = httpExtAllowOrigin();
 
     osSnprintf(line, sizeof(line), "HTTP/%d.%d 204 No Content\r\n", MSB(connection->request.version), LSB(connection->request.version));
 
@@ -547,7 +548,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
-        if (connection->settings->isHttps && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
+        if (httpExtIsHttps(connection) && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
         {
             error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
@@ -608,7 +609,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
 
             char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-            error = httpSendResponse(connection, newUri);
+            error = httpExtSendResponse(connection, newUri);
             free(newUri);
         }
         else
@@ -940,16 +941,13 @@ void server_init(bool test)
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
-    http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    http_settings.isHttps = false;
+    httpExtSetAllowOrigin(settings_get_string("core.allowOrigin"));
 
     /* use them for HTTPS */
     https_web_settings = http_settings;
     https_web_settings.connections = httpsWebConnections;
     https_web_settings.port = settings_get_unsigned("core.server.https_web_port");
     https_web_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    https_web_settings.isHttps = true;
 
     /* use them for Box HTTPS */
     https_api_settings = https_web_settings;

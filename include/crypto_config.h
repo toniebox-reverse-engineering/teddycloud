@@ -264,4 +264,10 @@
 // Ed448 certificate support
 #define X509_ED448_SUPPORT DISABLED
 
+//HMAC_DRBG pseudorandom number generator (replaces Yarrow, which Cyclone 2.6 removed)
+#define HMAC_DRBG_SUPPORT ENABLED
+
+//TLS 1.2 pseudorandom function
+#define TLS_KDF_SUPPORT ENABLED
+
 #endif

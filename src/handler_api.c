@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>
@@ -1362,7 +1363,7 @@ error_t handleApiGetCaDer(HttpConnection *connection, const char_t *uri, const c
     settings_t *settings = get_settings();
     char *ca_path = custom_asprintf("%s%c%s", settings->internal.basedirfull, PATH_SEPARATOR, settings->core.server_cert.file.ca_der);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, ca_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, ca_path);
     osFreeMem(ca_path);
     return err;
 }
@@ -2176,7 +2177,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     if (track_count == 1)
     {
         /* the uri only selects the content type by extension */
-        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
+        error = httpExtSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
     }
     else
     {
@@ -2189,7 +2190,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             error = ERROR_FAILURE;
             goto cleanup;
         }
-        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
+        error = httpExtSendResponseUnsafe(connection, "tracks.zip", zip_path);
     }
 
 cleanup:
@@ -2285,22 +2286,24 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     }
 
     char *range_hdr = NULL;
+    uint32_t first = 0, last = 0;
 
     // Format HTTP response header
-    // TODO add status 416 on invalid ranges
-    if (!isStream && connection->request.Range.start > 0)
+    HttpRangeResult range = isStream ? HTTP_RANGE_FULL : httpExtResolveRange(&connection->request.Range, length, &first, &last);
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        connection->request.Range.size = length;
-        if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-        {
-            connection->request.Range.end = connection->request.Range.size - 1;
-        }
-
-        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, length);
         connection->response.contentRange = range_hdr;
         connection->response.statusCode = 206;
-        connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+        connection->response.contentLength = last - first + 1;
         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+    }
+    else if (range == HTTP_RANGE_UNSATISFIABLE)
+    {
+        range_hdr = custom_asprintf("bytes */%" PRIu32, length);
+        connection->response.contentRange = range_hdr;
+        connection->response.statusCode = 416;
+        connection->response.contentLength = 0;
     }
     else
     {
@@ -2317,6 +2320,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     if (range_hdr)
     {
         osFreeMem(range_hdr);
+        connection->response.contentRange = NULL;
     }
 
     if (error)
@@ -2325,15 +2329,20 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         return error;
     }
 
-    if (!isStream && connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
+        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", first);
+        fsSeekFile(file, startOffset + first, FS_SEEK_SET);
+        length = last - first + 1;
     }
     else
     {
         TRACE_DEBUG("No seeking, sending from beginning\r\n");
         fsSeekFile(file, startOffset, FS_SEEK_SET);
+        if (range == HTTP_RANGE_UNSATISFIABLE)
+        {
+            length = 0; /* header only */
+        }
     }
 
     // Send response body
@@ -3096,7 +3105,7 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 {
     char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, tonies_path);
     osFreeMem(tonies_path);
     return err;
 }
@@ -4717,7 +4726,7 @@ error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *ur
         fsCloseFile(file);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, path);
     osFreeMem(path);
     return err;
 }
@@ -4763,7 +4772,7 @@ error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, cons
         return ERROR_FAILURE;
     }
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
-    return httpSendResponseUnsafe(connection, uri, file_path);
+    return httpExtSendResponseUnsafe(connection, uri, file_path);
 }
 
 error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, char **contentPath)
@@ -4797,7 +4806,7 @@ error_t handleApiContentJsonGet(HttpConnection *connection, const char_t *uri, c
     }
 
     contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
-    error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
+    error = httpExtSendResponseUnsafe(connection, uri, contentJsonPath);
     osFreeMem(contentPath);
     osFreeMem(contentJsonPath);
     return error;

@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -41,10 +41,40 @@
 #include "str.h"
 #include "path.h"
 #include "debug.h"
-#include "pcaplog.h"
 
 //Check TCP/IP stack configuration
 #if (HTTP_SERVER_SUPPORT == ENABLED)
+
+
+/**
+ * @brief HTTP status codes
+ **/
+
+static const HttpStatusCodeDesc statusCodeList[] =
+{
+   //Success
+   {200, "OK"},
+   {201, "Created"},
+   {202, "Accepted"},
+   {204, "No Content"},
+   {206, "Partial Content"},
+   //Redirection
+   {301, "Moved Permanently"},
+   {302, "Found"},
+   {304, "Not Modified"},
+   //Client error
+   {400, "Bad Request"},
+   {401, "Unauthorized"},
+   {403, "Forbidden"},
+   {404, "Not Found"},
+   {410, "Gone"},
+   {416, "Range Not Satisfiable"},
+   //Server error
+   {500, "Internal Server Error"},
+   {501, "Not Implemented"},
+   {502, "Bad Gateway"},
+   {503, "Service Unavailable"}
+};
 
 
 /**
@@ -52,17 +82,6 @@
  * @param[in] connection Structure representing an HTTP connection
  * @return Error code
  **/
-
-const char* httpStatusCodeText(uint_t statusCode)
-{
-   size_t statusCodeLen = sizeof(statusCodeList) / sizeof(statusCodeList[0]);
-   for(size_t i = 0; i < statusCodeLen; i++) 
-   {
-      if(statusCodeList[i].value == statusCode)
-         return statusCodeList[i].message;
-   }
-   return statusCodeList[0].message;
-}
 
 error_t httpReadRequestHeader(HttpConnection *connection)
 {
@@ -200,7 +219,8 @@ error_t httpParseRequestLine(HttpConnection *connection, char_t *requestLine)
 
    //The Method token indicates the method to be performed on the
    //resource identified by the Request-URI
-   error = strSafeCopy(connection->request.method, token, HTTP_SERVER_METHOD_MAX_LEN + 1);
+   error = strSafeCopy(connection->request.method, token,
+      HTTP_SERVER_METHOD_MAX_LEN + 1);
    //Any error to report?
    if(error)
       return ERROR_INVALID_REQUEST;
@@ -412,7 +432,7 @@ void httpParseHeaderField(HttpConnection *connection,
    {
       //Save host name
       strSafeCopy(connection->request.host, value,
-         HTTP_SERVER_HOST_MAX_LEN);
+         HTTP_SERVER_HOST_MAX_LEN + 1);
    }
    //Connection header field?
    else if(osStrcasecmp(name, "Connection") == 0)
@@ -451,21 +471,6 @@ void httpParseHeaderField(HttpConnection *connection,
       //Parse Authorization header field
       httpParseAuthorizationField(connection, value);
    }
-   // Range header field?
-   else if (osStrcasecmp(name, "Range") == 0)
-   {
-      sscanf(value, "bytes=%" PRIu32 "-%" PRIu32, &connection->request.Range.start, &connection->request.Range.end);
-      if (connection->request.Range.start < 0)
-         connection->request.Range.start = 0;
-      if (connection->request.Range.end < 0)
-         connection->request.Range.end = 0;
-   }
-   // If-Range header field?
-   else if (osStrcasecmp(name, "If-Range") == 0)
-   {
-      strSafeCopy(connection->request.ifRange, value,
-                  HTTP_SERVER_IFRANGE_MAX_LEN);
-   }
 #if (HTTP_SERVER_WEB_SOCKET_SUPPORT == ENABLED)
    //Upgrade header field?
    else if(osStrcasecmp(name, "Upgrade") == 0)
@@ -490,11 +495,11 @@ void httpParseHeaderField(HttpConnection *connection,
       httpParseCookieField(connection, value);
    }
 #endif
-   else if (osStrcasecmp(name, "User-Agent") == 0)
-   {
-      strSafeCopy(connection->request.userAgent, value,
-                  sizeof(connection->request.userAgent));
-   }
+
+#if defined(HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK)
+   //Parse custom header fields
+   HTTP_PARSE_REQUEST_HEADER_FIELD_HOOK(connection, name, value);
+#endif
 }
 
 
@@ -557,7 +562,15 @@ void httpParseContentTypeField(HttpConnection *connection,
    size_t n;
    char_t *p;
    char_t *token;
+#endif
 
+#if (HTTP_SERVER_CONTENT_TYPE_MAX_LEN > 0)
+   //Save the contents of the Content-Type header field
+   strSafeCopy(connection->request.contentType, value,
+      HTTP_SERVER_CONTENT_TYPE_MAX_LEN + 1);
+#endif
+
+#if (HTTP_SERVER_MULTIPART_TYPE_SUPPORT == ENABLED)
    //Retrieve type
    token = osStrtok_r(value, "/", &p);
    //Any parsing error?
@@ -659,7 +672,8 @@ void httpParseCookieField(HttpConnection *connection, char_t *value)
 {
 #if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
    //Save the value of the header field
-   strSafeCopy(connection->request.cookie, value, HTTP_SERVER_COOKIE_MAX_LEN);
+   strSafeCopy(connection->request.cookie, value,
+      HTTP_SERVER_COOKIE_MAX_LEN + 1);
 #endif
 }
 
@@ -867,9 +881,6 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Connection: close\r\n");
    }
 
-   // Add Range accept field
-   p += osSprintf(p, "Accept-Ranges: bytes\r\n");
-
    //Specify the caching policy
    if(connection->response.noCache)
    {
@@ -912,23 +923,11 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
    }
 #endif
 
-   char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
-   if (allowOrigin != NULL && osStrlen(allowOrigin) > 0)
-   {
-      p += osSprintf(p, "Access-Control-Allow-Origin: %s\r\n", allowOrigin);
-   }
-
    //Valid content type?
    if(connection->response.contentType != NULL)
    {
       //Content type
       p += osSprintf(p, "Content-Type: %s\r\n", connection->response.contentType);
-   }
-
-   // Range included?
-   if (connection->response.contentRange != NULL)
-   {
-      p += osSprintf(p, "Content-Range: %s\r\n", connection->response.contentRange);
    }
 
 #if (HTTP_SERVER_GZIP_TYPE_SUPPORT == ENABLED)
@@ -953,8 +952,13 @@ error_t httpFormatResponseHeader(HttpConnection *connection, char_t *buffer)
       p += osSprintf(p, "Content-Length: %" PRIuSIZE "\r\n", connection->response.contentLength);
    }
 
+#if defined(HTTP_FORMAT_RESPONSE_HEADER_HOOK)
+   //Format custom header fields
+   HTTP_FORMAT_RESPONSE_HEADER_HOOK(connection, p);
+#endif
+
    //Terminate the header with an empty line
-   p += osSprintf(p, "\r\n");
+   osStrcat(p, "\r\n");
 
    //Successful processing
    return NO_ERROR;
@@ -988,14 +992,8 @@ error_t httpSend(HttpConnection *connection,
       //Transmit data to the client
       error = socketSend(connection->socket, data, length, NULL, flags);
    }
-   
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = connection->settings->ipAddr.ipv4Addr;
-   ctx.local_endpoint.port = connection->settings->port;
-   ctx.remote_endpoint.ipv4 = connection->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = connection->socket->remotePort;
-   ctx.pcap_data = &connection->private.pcap_data;
-   pcaplog_write(&ctx, true, (const uint8_t *)data, length);
+
+   httpExtPcapServerWrite(connection, true, data, length);
 
    //Return status code
    return error;
@@ -1044,14 +1042,8 @@ error_t httpReceive(HttpConnection *connection,
       //Receive data from the client
       error = socketReceive(connection->socket, data, size, received, flags);
    }
-   
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = connection->settings->ipAddr.ipv4Addr;
-   ctx.local_endpoint.port = connection->settings->port;
-   ctx.remote_endpoint.ipv4 = connection->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = connection->socket->remotePort;
-   ctx.pcap_data = &connection->private.pcap_data;
-   pcaplog_write(&ctx, false, (const uint8_t *)data, *received);
+
+   httpExtPcapServerWrite(connection, false, data, *received);
 
    //Return status code
    return error;

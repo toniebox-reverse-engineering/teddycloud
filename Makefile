@@ -69,23 +69,15 @@ build_os:="$(OS)"
 CFLAGS_VERSION:=-DBUILD_GIT_IS_DIRTY=${build_gitDirty} -DBUILD_GIT_DATETIME=\"${build_gitDateTime}\" -DBUILD_RAW_DATETIME=\"${build_rawDateTime}\" -DBUILD_GIT_SHORT_SHA=\"${build_gitShortSha}\" -DBUILD_GIT_SHA=\"${build_gitSha}\" -DBUILD_GIT_TAG=\"${build_gitTag}\"
 CFLAGS_VERSION+=-DBUILD_PLATFORM=\"${build_platform}\" -DBUILD_OS=\"${build_os}\" -DBUILD_OS_ID=\"${build_os_id}\" -DBUILD_ARCH=\"${build_arch}\" -DBUILD_ARCH_BITS=\"${build_arch_bits}\"
 
-ifeq ($(build_os_id),"alpine")
-ifeq ($(build_arch_bits),32)
+# time_t is 64 bit on some 32-bit targets (musl, Debian/Ubuntu armhf since 2024) while long is 32 bit,
+# then the printf format PRIuTIME has to be "llu". Ask the compiler instead of guessing from the distro and the machine name:
+# uname -m says aarch64 inside a 32-bit container on a 64-bit ARM kernel, which broke the native armv7 build.
+ifneq ($(PLATFORM),windows)
+ifeq ($(shell printf 'int main(void) { return 0; }\n' | $(CC) -x c -c -o /dev/null - 2>/dev/null && echo ok),)
+$(warning cannot run "$(CC)" to check the size of time_t, assuming a 64 bit time_t on a 32 bit target)
+endif
+ifeq ($(shell printf '\043include <time.h>\n_Static_assert(sizeof(time_t) == sizeof(long), "");\n' | $(CC) -x c -c -o /dev/null - 2>/dev/null && echo long),)
 CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
-endif
-
-ifeq ($(build_os_id),"ubuntu")
-ifeq ($(build_arch_bits),32)
-CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
-endif
-
-ifeq ($(build_os_id),"debian")
-ifeq ($(build_arch_bits),32)
-ifeq ($(build_arch),"armv7l")
-CFLAGS_VERSION+=-DBUILD_PRIuTIME_LLU=1
-endif
 endif
 endif
 
@@ -225,7 +217,7 @@ INCLUDES_windows = \
 SOURCES_windows = \
 	src/platform/platform_$(PLATFORM).c\
 	src/cyclone/common/os_port_windows.c \
-	src/cyclone/common/fs_port_windows.c \
+	src/platform/fs_port_windows.c \
 	src/platform/getopt.c
 LFLAGS_windows = /DEBUG:FULL
 CFLAGS_windows = /DEBUG:FULL /Zi /nologo -DWIN32 /D_UNICODE
@@ -241,6 +233,10 @@ INCLUDES = \
 	-Isrc/cyclone/cyclone_tcp \
 	-Icyclone/common \
 	-Icyclone/cyclone_ssl \
+	-Icyclone/cyclone_ssl/tls \
+	-Icyclone/cyclone_ssl/tls13 \
+	-Icyclone/cyclone_ssl/dtls \
+	-Icyclone/cyclone_ssl/dtls13 \
 	-Icyclone/cyclone_tcp \
 	-Icyclone/cyclone_crypto \
 	-Icyclone/cyclone_crypto/pkix \
@@ -345,32 +341,32 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_tcp/mqtt/mqtt_client.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_packet.c \
 	cyclone/cyclone_tcp/mqtt/mqtt_client_misc.c \
-	cyclone/cyclone_ssl/tls.c \
-	cyclone/cyclone_ssl/tls_cipher_suites.c \
-	cyclone/cyclone_ssl/tls_handshake.c \
-	cyclone/cyclone_ssl/tls_client.c \
-	cyclone/cyclone_ssl/tls_client_fsm.c \
-	cyclone/cyclone_ssl/tls_client_extensions.c \
-	cyclone/cyclone_ssl/tls_client_misc.c \
-	cyclone/cyclone_ssl/tls_server.c \
-	cyclone/cyclone_ssl/tls_server_fsm.c \
-	cyclone/cyclone_ssl/tls_server_extensions.c \
-	cyclone/cyclone_ssl/tls_server_misc.c \
-	cyclone/cyclone_ssl/tls_common.c \
-	cyclone/cyclone_ssl/tls_extensions.c \
-	cyclone/cyclone_ssl/tls_certificate.c \
-	cyclone/cyclone_ssl/tls_sign_generate.c \
-	cyclone/cyclone_ssl/tls_sign_misc.c \
-	cyclone/cyclone_ssl/tls_sign_verify.c \
-	cyclone/cyclone_ssl/tls_key_material.c \
-	cyclone/cyclone_ssl/tls_transcript_hash.c \
-	cyclone/cyclone_ssl/tls_cache.c \
-	cyclone/cyclone_ssl/tls_ticket.c \
-	cyclone/cyclone_ssl/tls_ffdhe.c \
-	cyclone/cyclone_ssl/tls_record.c \
-	cyclone/cyclone_ssl/tls_record_encryption.c \
-	cyclone/cyclone_ssl/tls_record_decryption.c \
-	cyclone/cyclone_ssl/tls_misc.c \
+	cyclone/cyclone_ssl/tls/tls.c \
+	cyclone/cyclone_ssl/tls/tls_cipher_suites.c \
+	cyclone/cyclone_ssl/tls/tls_handshake.c \
+	cyclone/cyclone_ssl/tls/tls_client.c \
+	cyclone/cyclone_ssl/tls/tls_client_fsm.c \
+	cyclone/cyclone_ssl/tls/tls_client_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_client_misc.c \
+	cyclone/cyclone_ssl/tls/tls_server.c \
+	cyclone/cyclone_ssl/tls/tls_server_fsm.c \
+	cyclone/cyclone_ssl/tls/tls_server_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_server_misc.c \
+	cyclone/cyclone_ssl/tls/tls_common.c \
+	cyclone/cyclone_ssl/tls/tls_extensions.c \
+	cyclone/cyclone_ssl/tls/tls_certificate.c \
+	cyclone/cyclone_ssl/tls/tls_sign_generate.c \
+	cyclone/cyclone_ssl/tls/tls_sign_misc.c \
+	cyclone/cyclone_ssl/tls/tls_sign_verify.c \
+	cyclone/cyclone_ssl/tls/tls_key_material.c \
+	cyclone/cyclone_ssl/tls/tls_transcript_hash.c \
+	cyclone/cyclone_ssl/tls/tls_cache.c \
+	cyclone/cyclone_ssl/tls/tls_ticket.c \
+	cyclone/cyclone_ssl/tls/tls_ffdhe.c \
+	cyclone/cyclone_ssl/tls/tls_record.c \
+	cyclone/cyclone_ssl/tls/tls_record_encrypt.c \
+	cyclone/cyclone_ssl/tls/tls_record_decrypt.c \
+	cyclone/cyclone_ssl/tls/tls_misc.c \
 	cyclone/cyclone_crypto/hash/sha1.c \
 	cyclone/cyclone_crypto/hash/sha256.c \
 	cyclone/cyclone_crypto/hash/sha384.c \
@@ -416,33 +412,28 @@ CYCLONE_SOURCES = \
 	cyclone/cyclone_crypto/pkix/x509_sign_generate.c \
 	cyclone/cyclone_crypto/pkix/x509_sign_format.c \
 	cyclone/cyclone_crypto/kdf/hkdf.c \
-	cyclone/cyclone_crypto/rng/yarrow.c
+	cyclone/cyclone_crypto/rng/hmac_drbg.c \
+	cyclone/cyclone_crypto/mpi/mpi.c \
+	cyclone/cyclone_crypto/mpi/mpi_misc.c \
+	cyclone/cyclone_crypto/ecc/ec_misc.c \
+	cyclone/cyclone_crypto/kdf/tls_kdf.c \
+	cyclone/cyclone_crypto/pkc/rsa_misc.c \
+	cyclone/cyclone_crypto/pkix/pem_key_import.c \
+	cyclone/cyclone_crypto/pkix/pem_key_export.c \
+	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c
 
 # remove cyclone sources for which modifications exist
 CYCLONE_SOURCES := $(filter-out \
-	cyclone/common/debug.c \
-	cyclone/common/error.c \
-	cyclone/cyclone_crypto/cipher/aes.c \
 	cyclone/cyclone_tcp/http/http_client_transport.c \
 	cyclone/cyclone_tcp/http/http_server.c \
 	cyclone/cyclone_tcp/http/http_server_misc.c \
-	cyclone/cyclone_tcp/http/mime.c \
-	cyclone/cyclone_ssl/tls_certificate.c \
-	cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
 	, $(CYCLONE_SOURCES))
 
 # and add modified ones
 CYCLONE_SOURCES += \
-	src/cyclone/common/debug.c \
-	src/cyclone/common/error.c \
-	src/cyclone/cyclone_crypto/mpi.c \
-	src/cyclone/cyclone_crypto/cipher/aes.c \
 	src/cyclone/cyclone_tcp/http/http_client_transport.c \
 	src/cyclone/cyclone_tcp/http/http_server.c \
-	src/cyclone/cyclone_tcp/http/http_server_misc.c \
-	src/cyclone/cyclone_tcp/http/mime.c \
-	src/cyclone/cyclone_tcp/mqtt/mqtt_client_transport.c \
-	src/cyclone/cyclone_ssl/tls_certificate.c
+	src/cyclone/cyclone_tcp/http/http_server_misc.c
 
 CFLAGS += -D GPL_LICENSE_TERMS_ACCEPTED
 CFLAGS += -D TRACE_NOPATH_FILE
@@ -569,7 +560,7 @@ endif
 	$(shell $(MKDIR) $(subst /,$(SEP),$@) $(TO_TRASH))
 
 .SECONDEXPANSION:
-$(LINK_LO_FILE): $$(dir $$@)
+$(LINK_LO_FILE): $(OBJECTS) $(THIS_MAKEFILE) | $$(dir $$@)
 	$(file >$@, $(OBJECTS) $(OBJ_ONLY_FILES) )
 
 workdirs: certs/server/ certs/server_tb2/ certs/client/ config/ data/www/ data/content/ data/library/ data/www/web/ data/firmware/ data/cache/
@@ -585,6 +576,16 @@ $(EXECUTABLE): $(LINK_LO_FILE) $(OBJECTS) $(HEADERS) $(THIS_MAKEFILE) workdirs |
 ifneq ($(PLATFORM),windows)
 $(OBJ_DIR)/cyclone/%$(OBJ_EXT): CFLAGS += -Wno-error=discarded-qualifiers -Wno-discarded-qualifiers
 $(OBJ_DIR)/src/cyclone/%$(OBJ_EXT): CFLAGS += -Wno-error=discarded-qualifiers -Wno-discarded-qualifiers
+endif
+
+# Our src/mpi_prime.c and src/tls_adapter.c replace functions Cyclone defines as weak.
+# MSVC has no weak symbols, so rename the Cyclone variants in their own object only.
+$(OBJ_DIR)/cyclone/cyclone_ssl/tls/tls_certificate$(OBJ_EXT): CFLAGS += -DtlsParseCertificateList=tlsParseCertificateList_override
+$(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -DmpiCheckProbablePrime=mpiCheckProbablePrime_upstream
+ifneq ($(PLATFORM),windows)
+# was #pragma GCC optimize("O3") in the patched mpi.c
+$(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -O3
+$(OBJ_DIR)/src/mpi_prime$(OBJ_EXT): CFLAGS += -O3
 endif
 
 $(OBJ_DIR)/%$(OBJ_EXT): %.c $(HEADERS) $(THIS_MAKEFILE) | $$(dir $$@)
@@ -686,7 +687,11 @@ submodules:
 	$(QUIET)git submodule init
 	$(QUIET)git submodule update
 
-preinstall: clean build web_copy $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+# clean must be finished before the build starts, which a plain prerequisite list does not
+# guarantee with make -j (clean would delete objects and generated files while they are used)
+preinstall: $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
+	$(QUIET)$(MAKE) --no-print-directory clean
+	$(QUIET)$(MAKE) --no-print-directory build web_copy
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
@@ -816,7 +821,7 @@ TEST_C_SRC := $(wildcard tests/c/*.c)
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(SRC_DIR)/cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c
+	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_ssl/tls -I cyclone/cyclone_ssl/tls13 -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(SRC_DIR)/cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test

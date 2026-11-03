@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -40,13 +40,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include "os_port.h"
 #include "os_port_windows.h"
-//#include "debug.h"
+#include "debug.h"
 
-// Default task parameters
+//Default task parameters
 const OsTaskParameters OS_TASK_DEFAULT_PARAMS =
 {
    0, //Size of the stack
@@ -92,10 +90,11 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg,
    handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) taskCode,
       arg, 0, NULL);
 
+   //Name the thread for debuggers
    WCHAR wname[128];
    MultiByteToWideChar(CP_ACP, 0, name, -1, wname, sizeof(wname) / sizeof(wname[0]));
    SetThreadDescription(handle, wname);
-   
+
    //Return a pointer to the newly created thread
    return (OsTaskId) handle;
 }
@@ -144,22 +143,13 @@ void osSwitchTask(void)
 }
 
 
-static CRITICAL_SECTION critSec;
-static bool isCritSecInitialized = false;
-
 /**
  * @brief Suspend scheduler activity
  **/
 
 void osSuspendAllTasks(void)
 {
-   if (!isCritSecInitialized)
-   {
-      InitializeCriticalSection(&critSec);
-      isCritSecInitialized = true;
-   }
-
-   EnterCriticalSection(&critSec);
+   //Not implemented
 }
 
 
@@ -169,14 +159,7 @@ void osSuspendAllTasks(void)
 
 void osResumeAllTasks(void)
 {
-   if (!isCritSecInitialized)
-   {
-      InitializeCriticalSection(&critSec);
-      isCritSecInitialized = true;
-      return;
-   }
-
-   LeaveCriticalSection(&critSec);
+   //Not implemented
 }
 
 

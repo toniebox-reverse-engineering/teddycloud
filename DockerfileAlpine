@@ -13,7 +13,7 @@ WORKDIR /buildenv
 
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonies.json -o /tmp/tonies.json || true
 RUN curl -f https://raw.githubusercontent.com/toniebox-reverse-engineering/tonies-json/release/tonieboxes.json -o /tmp/tonieboxes.json || true
-RUN make test_git_version && make zip NO_SANITIZERS=${NO_SANITIZERS}
+RUN make test_git_version && make -j$(nproc) zip NO_SANITIZERS=${NO_SANITIZERS}
 RUN cp /tmp/tonies.json /tmp/tonieboxes.json /buildenv/contrib/config/ || true
 #RUN make preinstall
 

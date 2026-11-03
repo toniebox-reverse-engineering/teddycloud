@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
@@ -166,7 +167,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
                 continue;
             }
             char *tmpname = strdup(entry.name);
-            char *biggest_timestamp_txt = strtok(tmpname, "-_");
+            char *save = NULL;
+            char *biggest_timestamp_txt = strtok_r(tmpname, "-_", &save);
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
@@ -246,7 +248,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     if (new_ota)
     {
         // TODO add Content-Disposition: attachment;filename=
-        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+        ret = httpExtSendResponseStreamUnsafe(connection, uri, local_file, false);
     }
     else
     {
@@ -693,7 +695,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             ffmpeg_ctx.sweep = false;
 
             osDelayTask(delay);
-            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            error_t response_error = httpExtSendResponseStream(connection, streamFileRel, true);
             if (response_error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
@@ -735,7 +737,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
 
         if (stream_ctx->error == NO_ERROR)
         {
-            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            error_t response_error = httpExtSendResponseStream(connection, streamFileRel, true);
             if (response_error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
@@ -833,8 +835,13 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
-            if (error)
+            error_t error = httpExtSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
+            if (error == ERROR_WRITE_FAILED || error == ERROR_CONNECTION_RESET || error == ERROR_CONNECTION_CLOSING)
+            {
+                // client aborted the transfer (e.g. browser player replacing a range request)
+                TRACE_WARNING(" >> transfer of %s aborted by client, error=%s\r\n", tonieInfo->contentPath, error2text(error));
+            }
+            else if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
@@ -885,6 +892,10 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
             ctx.tonieInfo = tonieInfo;
+            /* A box resuming a download asks for the rest of the file; the cloud has to see that, or it
+             * answers 200 with the whole file and the box starts over */
+            ctx.range_start = connection->request.Range.start;
+            ctx.if_range = connection->request.ifRange;
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
         }
@@ -1710,7 +1721,7 @@ error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const ch
     
     if (new_ota)
     {
-        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+        ret = httpExtSendResponseStreamUnsafe(connection, uri, local_file, false);
     }
     else
     {

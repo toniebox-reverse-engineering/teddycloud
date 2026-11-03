@@ -10,12 +10,25 @@
 #include "settings.h"
 #include "mutex_manager.h"
 #include "tls_adapter.h"
+#include "platform.h"
 
 #include "fs_port.h"
 #include "fs_ext.h"
 #include "os_ext.h"
 #include "server_helpers.h"
 #include "cert.h"
+
+int tc_log_level(void)
+{
+    return get_settings()->log.level;
+}
+
+bool tc_log_color(void)
+{
+    settings_t *settings = get_settings();
+    return settings->log.color && settings->internal.logColorSupport;
+}
+
 
 /* static functions*/
 static void settings_init_opt(setting_item_t *opt);
@@ -60,6 +73,7 @@ typedef struct
 } settings_parked_t;
 static settings_parked_t *settings_parked = NULL;
 static size_t settings_parked_len = 0;
+static size_t settings_parked_size = 0;
 
 static void settings_free_later(void *ptr)
 {
@@ -68,10 +82,21 @@ static void settings_free_later(void *ptr)
         return;
     }
     mutex_lock(MUTEX_SETTINGS_FREE);
-    settings_parked_t *grown = realloc(settings_parked, sizeof(settings_parked_t) * (settings_parked_len + 1));
+    /* grow by doubling: every reload parks each string of every overlay, one realloc per entry
+       made the reloads quadratic in the number of parked entries */
+    settings_parked_t *grown = settings_parked;
+    if (settings_parked_len == settings_parked_size)
+    {
+        size_t size = settings_parked_size ? settings_parked_size * 2 : 256;
+        grown = realloc(settings_parked, sizeof(settings_parked_t) * size);
+        if (grown != NULL)
+        {
+            settings_parked = grown;
+            settings_parked_size = size;
+        }
+    }
     if (grown != NULL)
     {
-        settings_parked = grown;
         settings_parked[settings_parked_len].ptr = ptr;
         settings_parked[settings_parked_len].when = time(NULL);
         settings_parked_len++;
@@ -105,6 +130,7 @@ static void settings_free_parked(bool all)
     {
         free(settings_parked);
         settings_parked = NULL;
+        settings_parked_size = 0;
     }
     mutex_unlock(MUTEX_SETTINGS_FREE);
 }
@@ -923,7 +949,7 @@ error_t settings_init(const char *cwd, const char *base_dir)
     settings_set_string("internal.version_web.v_long", WEB_FULL_NAME_LONG);
     settings_set_string("internal.version_web.v_full", WEB_FULL_NAME_FULL);
 
-    settings_set_bool("internal.logColorSupport", supportsAnsiColors());
+    settings_set_bool("internal.logColorSupport", platform_supports_ansi_colors());
     settings_set_bool("internal.autogen_certs", autogen_certs);
 
     Settings_Overlay[0].internal.config_init = true;
@@ -1113,7 +1139,8 @@ static error_t settings_load_ovl(bool overlay)
             if (*line != '\0' && *line != '#')
             {
                 // Split the line into option_name and value
-                char *option_name = strtok(line, "=");
+                char *save = NULL;
+                char *option_name = strtok_r(line, "=", &save);
                 char *value_str = &line[osStrlen(option_name) + 1];
 
                 char *overlay_unique_id = NULL;
@@ -1122,7 +1149,7 @@ static error_t settings_load_ovl(bool overlay)
                 {
                     option_name += osStrlen(OVERLAY_CONFIG_PREFIX);
                     tokenizer = strdup(option_name);
-                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok(tokenizer, "."));
+                    overlay_unique_id = settings_sanitize_box_id((const char *)strtok_r(tokenizer, ".", &save));
                     option_name += osStrlen(overlay_unique_id) + 1;
 
                     if (get_overlay_id(overlay_unique_id) == 0)

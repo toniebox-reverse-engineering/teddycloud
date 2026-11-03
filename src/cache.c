@@ -148,6 +148,32 @@ void cache_entry_add(cache_entry_t *entry)
     TRACE_DEBUG("Finished adding cache entry with hash: %08X\r\n", entry->hash);
 }
 
+/* the entry of an URL, without fetching its file */
+static cache_entry_t *cache_find_by_url(const char *url)
+{
+    if (url == NULL)
+    {
+        TRACE_ERROR("URL is NULL\r\n");
+        return NULL;
+    }
+
+    cache_entry_t *pos = &cache_table;
+
+    while (pos != NULL)
+    {
+        if (pos->original_url && osStrcmp(pos->original_url, url) == 0)
+        {
+            TRACE_DEBUG("Cache entry found for URL: %s\r\n", url);
+            return pos;
+        }
+
+        pos = pos->next;
+    }
+
+    TRACE_DEBUG("No cache entry found for URL: %s\r\n", url);
+    return NULL;
+}
+
 cache_entry_t *cache_add(const char *url)
 {
     const char *cachePath = get_settings()->internal.cachedirfull;
@@ -161,8 +187,9 @@ cache_entry_t *cache_add(const char *url)
     /* Return the existing entry if this URL is already cached. cache_entry_add()
        drops a duplicate without linking it, so without this the freshly built
        entry (and its three strdup'd strings) would be orphaned and leaked - which
-       happens a lot because tonies.json repeats the same picture URL. */
-    cache_entry_t *existing = cache_fetch_by_url(url);
+       happens a lot because tonies.json repeats the same picture URL. Only look it
+       up: fetching here would download every picture whenever tonies.json loads. */
+    cache_entry_t *existing = cache_find_by_url(url);
     if (existing != NULL)
     {
         return existing;
@@ -248,28 +275,13 @@ bool cache_fetch_entry(cache_entry_t *entry)
 
 cache_entry_t *cache_fetch_by_url(const char *url)
 {
-    if (url == NULL)
+    cache_entry_t *entry = cache_find_by_url(url);
+
+    if (entry != NULL)
     {
-        TRACE_ERROR("URL is NULL\r\n");
-        return NULL;
+        cache_fetch_entry(entry);
     }
-
-    cache_entry_t *pos = &cache_table;
-
-    while (pos != NULL)
-    {
-        if (pos->original_url && osStrcmp(pos->original_url, url) == 0)
-        {
-            TRACE_DEBUG("Cache entry found for URL: %s\r\n", url);
-            cache_fetch_entry(pos);
-            return pos;
-        }
-
-        pos = pos->next;
-    }
-
-    TRACE_DEBUG("No cache entry found for URL: %s\r\n", url);
-    return NULL;
+    return entry;
 }
 
 cache_entry_t *cache_fetch_by_cached_url(const char *cached_url)

@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-#include "rng/yarrow.h"
+#include "rng/prng_algorithms.h"
 
 #include "error.h"
 
