@@ -72,7 +72,6 @@ typedef struct
     size_t bufferLen;
     uint32_t status;
     FsFile *file;
-    tonie_info_t *tonieInfo;
     void *customData;
     size_t customDataLen;
     HttpConnection *connection;
@@ -111,7 +110,13 @@ TonieboxAudioFileHeader *tafReadHeader(FsFile *file, const char *logPath);
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
-tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
+/* how getTonieInfoV2 checks the TAF before it calls it valid */
+typedef enum
+{
+    TAF_VALIDATION_SETTING, /* hash and length if core.full_taf_validation, else the header */
+    TAF_VALIDATION_HEADER,  /* the header: the file was checked in full right before */
+} taf_validation_t;
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, taf_validation_t validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);

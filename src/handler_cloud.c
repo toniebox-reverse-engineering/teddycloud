@@ -9,6 +9,7 @@
 #include "handler.h"
 #include "handler_api.h"
 #include "handler_cloud.h"
+#include "content_download.h"
 #include "http/http_client.h"
 
 #include "mqtt.h"
@@ -871,7 +872,9 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         {
             TRACE_INFO("Serve cloud content from %s\r\n", uri);
 
-            if (tonieInfo->json.source != NULL)
+            /* only if there is one: requests joining a running download would rewrite the content json while
+               the download may be caching the file and setting the source */
+            if (tonieInfo->json.source != NULL && tonieInfo->json.source[0] != '\0')
             {
                 TRACE_INFO(" >> Removing source %s for download\r\n", tonieInfo->json.source);
                 tonieInfo->json.source[0] = '\0';
@@ -888,16 +891,28 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
                 TRACE_INFO("Serve cloud from alternative rUID %s, auth %s\r\n", tonieInfo->json.cloud_ruid, msg);
             }
 
+            /* Saved and unlocked before the content comes in, which can take many minutes: the download caches it
+               and writes the content json meanwhile (moveTAF2Lib sets the source), and saving this copy afterwards
+               would undo that. It takes the same per-file lock (mutex_lock_id, which locks nothing today). */
+            saveTonieInfo(tonieInfo, true);
+
             connection->response.keepAlive = true;
-            cbr_ctx_t ctx;
-            req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
-            ctx.tonieInfo = tonieInfo;
-            /* A box resuming a download asks for the rest of the file; the cloud has to see that, or it
-             * answers 200 with the whole file and the box starts over */
-            ctx.range_start = connection->request.Range.start;
-            ctx.if_range = connection->request.ifRange;
-            cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
-            error = NO_ERROR;
+            bool_t served = false;
+            if (api == V2_CONTENT && client_ctx->settings->cloud.cacheContent)
+            {
+                error = contentDownloadServe(connection, uri, token, tonieInfo->contentPath, client_ctx, &served);
+            }
+            if (!served)
+            {
+                cbr_ctx_t ctx;
+                req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
+                /* A box resuming a download asks for the rest of the file; the cloud has to see that, or it
+                 * answers 200 with the whole file and the box starts over */
+                ctx.range_start = connection->request.Range.start;
+                ctx.if_range = connection->request.ifRange;
+                cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
+                error = NO_ERROR;
+            }
         }
     }
     freeTonieInfo(tonieInfo);
