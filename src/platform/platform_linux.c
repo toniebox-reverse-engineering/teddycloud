@@ -549,3 +549,29 @@ Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
 {
     return socketOpen(type, protocol);
 }
+
+/*
+ * Replaces Cyclone's osCreateTask (cyclone/common/os_port_posix.c, renamed there in the Makefile), which creates
+ * joinable threads. Nothing joins a task, and a joinable thread keeps its stack mapped after it ended until it is
+ * joined: every task that ends (a stream, a TAP being generated) left its stack, 8 MB by default, of address space
+ * behind. A detached one gives it back when it ends. As Cyclone's, it takes neither the name nor the parameters.
+ */
+OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg, const OsTaskParameters *params)
+{
+    (void)name;
+    (void)params;
+    pthread_t thread;
+    pthread_attr_t attr;
+    int ret = pthread_attr_init(&attr);
+    if (ret == 0)
+    {
+        ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        if (ret == 0)
+        {
+            ret = pthread_create(&thread, &attr, (void *(*)(void *))taskCode, arg);
+        }
+        pthread_attr_destroy(&attr);
+    }
+    /* pthread_t is a pointer on some libcs (musl), the plain -1 does not convert */
+    return (ret == 0) ? (OsTaskId)thread : (OsTaskId)OS_INVALID_TASK_ID;
+}

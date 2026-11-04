@@ -18,3 +18,4 @@ void test_zip_write_stored(void);
 void test_error_text(void);
 void test_log_lock(void);
 void test_range_ext(void);
+void test_os_task_ends_without_its_stack(void);
