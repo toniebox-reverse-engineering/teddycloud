@@ -843,6 +843,8 @@ PY_TESTS := $(filter-out tests/py/test_hardening.py tests/py/test_auth_pool_reus
 # make test_py PYTEST_ARGS="-k name" extra pytest arguments
 # ASan fills only the first 4 KiB of a new allocation with garbage by default;
 # filling all of it makes use of uninitialised memory fail reliably (Tap495).
+# A test file's "# server env: NAME=value ..." line sets those for its server (and for pytest); the line is split at
+# spaces as it is, so no spaces, quotes or wildcards in a value.
 .PHONY: test_py
 test_py: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Run pytest, a fresh sandboxed server per entry"
@@ -850,7 +852,7 @@ test_py: build
 	$(QUIET)rc=0; for t in $(PY_TESTS); do \
 		[ -z "$(TESTS)" ] || echo "$$t" | grep -q -- "$(TESTS)" || continue; \
 		ASAN_OPTIONS="$${ASAN_OPTIONS:+$$ASAN_OPTIONS:}max_malloc_fill_size=1073741824" \
-		tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 60 -- \
+		env $$(sed -n 's/^# server env: //p' "$${t%%::*}") tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 60 -- \
 			$(PYTHON) -m pytest -q $(PYTEST_ARGS) $$t || rc=1; \
 	done; exit $$rc
 

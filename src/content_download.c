@@ -100,6 +100,7 @@ typedef struct content_download_s
     char *contentPath; /* the cache file in the content directory */
     char *tmpPath;     /* <contentPath>.tmp */
     systime_t stallMs; /* how long its readers wait when it does not move, see CONTENT_DOWNLOAD_STALL_TIMEOUTS */
+    uint32_t testCacheDelayMs; /* see contentDownloadTestCacheDelayMs */
 
     /* the cloud request, only used by the task */
     char *uri;
@@ -115,6 +116,24 @@ typedef struct content_download_s
 
 /* the list, protected by MUTEX_CONTENT_DOWNLOAD; taken before the lock of an entry, never while holding one */
 static content_download_t *contentDownloads = NULL;
+
+/* Test only: TEDDYCLOUD_TEST_CACHE_DELAY_MS waits this long (ms, up to a minute) before a download goes into the
+   cache, as a slow library drive would, for tests of the requests coming in meanwhile
+   (tests/py/test_cloud_content_slow_cache.py). Unset it is 0. Read once, by the first download started, with
+   MUTEX_CONTENT_DOWNLOAD held for that anyway; a download keeps it in testCacheDelayMs. */
+#define CONTENT_DOWNLOAD_TEST_CACHE_DELAY_MAX_MS 60000
+static uint32_t contentDownloadTestCacheDelayMs(void)
+{
+    static int64_t delay = -1; /* MUTEX_CONTENT_DOWNLOAD */
+    if (delay < 0)
+    {
+        const char *value = getenv("TEDDYCLOUD_TEST_CACHE_DELAY_MS");
+        char *end = NULL;
+        unsigned long long ms = (value != NULL && value[0] != '\0') ? strtoull(value, &end, 10) : 0;
+        delay = (end == NULL || *end == '\0') ? (int64_t)MIN(ms, CONTENT_DOWNLOAD_TEST_CACHE_DELAY_MAX_MS) : 0;
+    }
+    return (uint32_t)delay;
+}
 
 static void contentDownloadFree(content_download_t *dl)
 {
@@ -678,6 +697,11 @@ static void contentDownloadTask(void *param)
     bool_t cached = FALSE;
     if (valid)
     {
+        if (dl->testCacheDelayMs > 0)
+        {
+            TRACE_WARNING(">> Waiting %" PRIu32 " ms before caching %s (TEDDYCLOUD_TEST_CACHE_DELAY_MS)\r\n", dl->testCacheDelayMs, dl->contentPath);
+            osDelayTask(dl->testCacheDelayMs);
+        }
         char *path = contentDownloadCache(dl);
         if (path != NULL)
         {
@@ -728,6 +752,7 @@ static content_download_t *contentDownloadStart(HttpConnection *connection, cons
     reader->next = NULL;
     dl->waiting = reader;
     dl->stallMs = (systime_t)CONTENT_DOWNLOAD_STALL_TIMEOUTS * client_ctx->settings->core.http_client_timeout;
+    dl->testCacheDelayMs = contentDownloadTestCacheDelayMs();
     dl->uri = strdup(uri);
     if (client_ctx->settings->internal.overlayNumber > 0) /* as fillBaseCtx does */
     {
