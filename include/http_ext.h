@@ -40,14 +40,15 @@ HttpRangeResult httpExtResolveRange(const HttpRangeHeader *range, uint32_t size,
     HttpRangeHeader Range;
 
 #define HTTP_RESPONSE_PRIVATE_HEADER_FIELDS \
-    const char *contentRange;
+    const char *contentRange;               \
+    const char *extraHeaders; /* further header lines, each ended by CRLF; set for one response */
 
 struct _HttpConnection;
 struct _HttpClientContext;
 
 /* Range, If-Range and User-Agent */
 void httpExtParseRequestHeaderField(struct _HttpConnection *connection, const char *name, char *value);
-/* Accept-Ranges, Access-Control-Allow-Origin and Content-Range, returns the length written to p */
+/* Accept-Ranges, Access-Control-Allow-Origin, Content-Range and extraHeaders, returns the length written to p */
 size_t httpExtFormatResponseHeader(struct _HttpConnection *connection, char *p);
 
 /* like httpSendResponse(), see http_ext.c; Unsafe takes the absolute path instead of resolving uri */

@@ -71,6 +71,12 @@ size_t httpExtFormatResponseHeader(HttpConnection *connection, char *p)
         p += osSprintf(p, "Content-Range: %s\r\n", connection->response.contentRange);
     }
 
+    /* those of a proxied answer */
+    if (connection->response.extraHeaders != NULL)
+    {
+        p += osSprintf(p, "%s", connection->response.extraHeaders);
+    }
+
     return p - start;
 }
 
