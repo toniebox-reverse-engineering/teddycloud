@@ -89,6 +89,44 @@ error_t httpExtSendResponseUnsafe(HttpConnection *connection, const char_t *uri,
 {
    return httpExtSendResponseStreamUnsafe(connection, uri, absolutePath, false);
 }
+uint32_t httpExtTafServedLength(HttpConnection *connection, uint32_t fileLength)
+{
+   if (connection->private.client_ctx.taf_chapter_split)
+   {
+      uint32_t header_size = connection->private.client_ctx.taf_chapter_header_size;
+      uint32_t start_off = connection->private.client_ctx.taf_chapter_start_offset;
+      uint32_t end_off = connection->private.client_ctx.taf_chapter_end_offset;
+      return header_size + (end_off - start_off);
+   }
+   if (connection->private.client_ctx.skip_taf_header)
+   {
+      /* Guard against a content file shorter than the TAF header, which would
+         underflow length to a huge value and be sent as the Content-Length. */
+      return (fileLength >= TONIE_HEADER_LENGTH) ? fileLength - TONIE_HEADER_LENGTH : 0;
+   }
+   return fileLength;
+}
+
+uint32_t httpExtPrepareRangeResponse(HttpConnection *connection, uint32_t size, size_t fullLength, bool useRange,
+                                     char *contentRange, size_t contentRangeSize)
+{
+   uint32_t first = 0, last = 0;
+   connection->request.Range.size = size;
+   // An unsatisfiable range (start behind the data, empty resource) falls back to the full content
+   if (useRange && httpExtResolveRange(&connection->request.Range, size, &first, &last) == HTTP_RANGE_PARTIAL)
+   {
+      osSnprintf(contentRange, contentRangeSize, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, size);
+      connection->response.contentRange = contentRange;
+      connection->response.statusCode = 206;
+      connection->response.contentLength = last - first + 1;
+      TRACE_DEBUG("Added response range %s\r\n", contentRange);
+      return first;
+   }
+   connection->response.statusCode = 200;
+   connection->response.contentLength = fullLength;
+   return 0;
+}
+
 error_t httpExtSendResponseStream(HttpConnection *connection, const char_t *uri, bool_t isStream)
 {
    // Retrieve the full pathname
@@ -219,26 +257,7 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
    }
 #endif
 
-   if (connection->private.client_ctx.taf_chapter_split)
-   {
-      uint32_t header_size = connection->private.client_ctx.taf_chapter_header_size;
-      uint32_t start_off = connection->private.client_ctx.taf_chapter_start_offset;
-      uint32_t end_off = connection->private.client_ctx.taf_chapter_end_offset;
-      length = header_size + (end_off - start_off);
-   }
-   else if (connection->private.client_ctx.skip_taf_header)
-   {
-      /* Guard against a content file shorter than the TAF header, which would
-         underflow length to a huge value and be sent as the Content-Length. */
-      if (length >= TONIE_HEADER_LENGTH)
-      {
-         length -= TONIE_HEADER_LENGTH;
-      }
-      else
-      {
-         length = 0;
-      }
-   }
+   length = httpExtTafServedLength(connection, length);
    file_length = length;
    if (isStream)
    {
@@ -250,35 +269,11 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
    }
 
    // Format HTTP response header
-   uint32_t first = 0, last = 0;
-   connection->request.Range.size = file_length;
-   // An unsatisfiable range (start behind the data, empty resource) falls back to the full content
    // A stream that is still growing only honours a range that starts behind its beginning, as before:
    // "bytes=0-" would otherwise cut it off at the size it has right now
-   HttpRangeResult range = (isStream && connection->request.Range.start == 0) ? HTTP_RANGE_FULL
-                                                                              : httpExtResolveRange(&connection->request.Range, file_length, &first, &last);
-   if (range == HTTP_RANGE_PARTIAL && connection->response.contentRange == NULL)
-   {
-      connection->response.contentRange = osAllocMem(255);
-      if (connection->response.contentRange == NULL)
-      {
-         range = HTTP_RANGE_FULL;
-      }
-   }
-
-   if (range == HTTP_RANGE_PARTIAL)
-   {
-      osSprintf((char *)connection->response.contentRange, "bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, file_length);
-      connection->response.statusCode = 206;
-      connection->response.contentLength = last - first + 1;
-      TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
-   }
-   else
-   {
-      first = 0;
-      connection->response.statusCode = 200;
-      connection->response.contentLength = length;
-   }
+   char contentRange[64];
+   uint32_t first = httpExtPrepareRangeResponse(connection, file_length, length, !isStream || connection->request.Range.start > 0,
+                                                contentRange, sizeof(contentRange));
 
    if (connection->response.contentType == NULL || osStrlen(connection->response.contentType) == 0 || osStrcmp(connection->response.contentType, "application/octet-stream") == 0)
    {
@@ -295,13 +290,8 @@ error_t httpExtSendResponseStreamUnsafe(HttpConnection *connection, const char_t
 
    // Send the header to the client
    error = httpWriteHeader(connection);
-   // The Content-Range string has now been serialized into the header; free it
-   // here so it does not leak (the response struct is zeroed per request).
-   if (connection->response.contentRange != NULL)
-   {
-      osFreeMem((void *)connection->response.contentRange);
-      connection->response.contentRange = NULL;
-   }
+   // The Content-Range string (on the stack) has now been serialized into the header
+   connection->response.contentRange = NULL;
    // Any error to report?
    if (error)
    {
