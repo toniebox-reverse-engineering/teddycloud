@@ -64,8 +64,22 @@ static setting_item_t **Option_Sorted_Overlay[MAX_OVERLAYS];
    them (settings_loop -> settings_load, settings changes). Freeing the old memory right away is a
    use-after-free for such a reader, so replaced memory is parked here and released after a grace period.
    ponytail: fixed grace period; a request running longer than that could still read freed memory
-   (http client timeouts are far below). Proper fix: reference-counted settings snapshots. */
+   (http client timeouts are far below). Proper fix: reference-counted settings snapshots.
+   TEDDYCLOUD_SETTINGS_FREE_GRACE_S (seconds) shortens it for tests (tests/py/with_server.sh), so code that
+   holds settings memory across a reload is caught by the sanitizers instead of passing by luck. */
 #define SETTINGS_FREE_GRACE_S 120
+static time_t settings_free_grace_s(void)
+{
+    static time_t grace = -1; /* read once, under MUTEX_SETTINGS_FREE */
+    if (grace < 0)
+    {
+        const char *value = getenv("TEDDYCLOUD_SETTINGS_FREE_GRACE_S");
+        char *end = NULL;
+        long seconds = (value != NULL && value[0] != '\0') ? strtol(value, &end, 10) : -1;
+        grace = (seconds >= 0 && *end == '\0') ? (time_t)seconds : SETTINGS_FREE_GRACE_S;
+    }
+    return grace;
+}
 typedef struct
 {
     void *ptr;
@@ -113,10 +127,11 @@ static void settings_free_parked(bool all)
 {
     mutex_lock(MUTEX_SETTINGS_FREE);
     time_t now = time(NULL);
+    time_t grace = settings_free_grace_s();
     size_t keep = 0;
     for (size_t i = 0; i < settings_parked_len; i++)
     {
-        if (all || now - settings_parked[i].when >= SETTINGS_FREE_GRACE_S)
+        if (all || now - settings_parked[i].when >= grace)
         {
             osFreeMem(settings_parked[i].ptr);
         }
