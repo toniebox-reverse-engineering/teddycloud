@@ -23,6 +23,8 @@ error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, siz
 error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
 /* Copies the bytes [offset, end) of the open file src to the current position of dst */
 error_t fsCopyFileRange(FILE *src, uint32_t offset, uint32_t end, FILE *dst);
+/* Hands what was written to file over to the OS, so a reader with its own handle sees it */
+error_t fsFlushFile(FsFile *file);
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite);
 error_t fsCreateDirEx(const char_t *path, bool_t recursive);
 error_t fsRemoveFilename(char *dir);

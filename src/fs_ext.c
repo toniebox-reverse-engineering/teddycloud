@@ -189,6 +189,13 @@ error_t fsCopyFileRange(FILE *src, uint32_t offset, uint32_t end, FILE *dst)
     }
     return NO_ERROR;
 }
+error_t fsFlushFile(FsFile *file)
+{
+    if (file == NULL)
+        return ERROR_INVALID_FILE;
+
+    return (fflush((FILE *)file) == 0) ? NO_ERROR : ERROR_WRITE_FAILED;
+}
 error_t fsMoveFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
 {
     if (!overwrite && fsFileExists(target_path)) {
