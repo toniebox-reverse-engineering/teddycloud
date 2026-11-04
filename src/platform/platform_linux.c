@@ -6,6 +6,11 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
+#include <poll.h>
+#ifndef POLLRDHUP
+/* Linux (asm-generic/poll.h); poll.h names it only with _GNU_SOURCE, whose error_t clashes with cyclone's */
+#define POLLRDHUP 0x2000
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
@@ -14,6 +19,7 @@
 #include <arpa/inet.h>
 
 #include "platform.h"
+#include "fs_ext.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -479,6 +485,48 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
     return 0;
 }
 
+bool socketPeerClosed(Socket *socket)
+{
+    if (socket == NULL)
+    {
+        return false;
+    }
+
+    /* poll, not select: no limit on the descriptor's number. POLLRDHUP also tells a FIN behind data not read yet
+       (a request that came after the one being answered); a half-close is taken for gone too, see platform.h. */
+    struct pollfd pfd = {.fd = socket->descriptor, .events = POLLIN | POLLRDHUP};
+    if (poll(&pfd, 1, 0) <= 0)
+    {
+        return false;
+    }
+    if (pfd.revents & (POLLRDHUP | POLLHUP | POLLERR | POLLNVAL))
+    {
+        return true;
+    }
+
+    socket_buffer_t *buff = (socket_buffer_t *)socket->interface;
+    if (buff != NULL && buff->buffer_used > 0)
+    {
+        return false; /* read already and waiting for the next request: not a close */
+    }
+    uint8_t first = 0;
+    ssize_t n = recv(socket->descriptor, &first, 1, MSG_PEEK | MSG_DONTWAIT);
+    if (n == 0)
+    {
+        return true; /* FIN */
+    }
+    if (n < 0)
+    {
+        return errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR;
+    }
+    return first == 0x15; /* a TLS record of type alert */
+}
+
+error_t fsLinkFile(const char_t *existingPath, const char_t *newPath)
+{
+    return (link(existingPath, newPath) == 0) ? NO_ERROR : ERROR_FAILURE;
+}
+
 /**
  * @brief Get current time
  * @return Unix timestamp
@@ -548,4 +596,30 @@ void netUnlock(NetContext *context)
 Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
 {
     return socketOpen(type, protocol);
+}
+
+/*
+ * Replaces Cyclone's osCreateTask (cyclone/common/os_port_posix.c, renamed there in the Makefile), which creates
+ * joinable threads. Nothing joins a task, and a joinable thread keeps its stack mapped after it ended until it is
+ * joined: every task that ends (a stream, a TAP being generated) left its stack, 8 MB by default, of address space
+ * behind. A detached one gives it back when it ends. As Cyclone's, it takes neither the name nor the parameters.
+ */
+OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg, const OsTaskParameters *params)
+{
+    (void)name;
+    (void)params;
+    pthread_t thread;
+    pthread_attr_t attr;
+    int ret = pthread_attr_init(&attr);
+    if (ret == 0)
+    {
+        ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        if (ret == 0)
+        {
+            ret = pthread_create(&thread, &attr, (void *(*)(void *))taskCode, arg);
+        }
+        pthread_attr_destroy(&attr);
+    }
+    /* pthread_t is a pointer on some libcs (musl), the plain -1 does not convert */
+    return (ret == 0) ? (OsTaskId)thread : (OsTaskId)OS_INVALID_TASK_ID;
 }

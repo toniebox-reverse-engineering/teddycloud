@@ -582,6 +582,9 @@ endif
 # MSVC has no weak symbols, so rename the Cyclone variants in their own object only.
 $(OBJ_DIR)/cyclone/cyclone_ssl/tls/tls_certificate$(OBJ_EXT): CFLAGS += -DtlsParseCertificateList=tlsParseCertificateList_override
 $(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -DmpiCheckProbablePrime=mpiCheckProbablePrime_upstream
+# src/platform/platform_linux.c creates tasks detached (rebuilt with the Makefile, else an old object clashes)
+$(OBJ_DIR)/src/cyclone/common/os_port_posix$(OBJ_EXT): CFLAGS += -DosCreateTask=osCreateTask_upstream
+$(OBJ_DIR)/src/cyclone/common/os_port_posix$(OBJ_EXT): $(THIS_MAKEFILE)
 ifneq ($(PLATFORM),windows)
 # was #pragma GCC optimize("O3") in the patched mpi.c
 $(OBJ_DIR)/cyclone/cyclone_crypto/mpi/mpi$(OBJ_EXT): CFLAGS += -O3
@@ -816,12 +819,14 @@ dev-sandbox-restart: dev-sandbox-down
 	fi
 
 TEST_C_SRC := $(wildcard tests/c/*.c)
+TEST_C_CFLAGS := -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_ssl/tls -I cyclone/cyclone_ssl/tls13 -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections
 
 .PHONY: test_c
 test_c:
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Build and run C unit tests"
 	$(QUIET)mkdir -p $(BIN_DIR)
-	$(QUIET)$(CC) -I include -I src/cyclone/common -I src/cyclone/cyclone_tcp -I cyclone/common -I cyclone/cyclone_tcp -I cyclone/cyclone_ssl -I cyclone/cyclone_ssl/tls -I cyclone/cyclone_ssl/tls13 -I cyclone/cyclone_crypto -D GPL_LICENSE_TERMS_ACCEPTED -pthread -ffunction-sections -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(SRC_DIR)/cyclone/common/os_port_posix.c $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
+	$(QUIET)$(CC) $(TEST_C_CFLAGS) -DosCreateTask=osCreateTask_upstream -c -o $(BIN_DIR)/test_c_os_port_posix.o $(SRC_DIR)/cyclone/common/os_port_posix.c
+	$(QUIET)$(CC) $(TEST_C_CFLAGS) -Wl,--gc-sections -o $(BIN_DIR)/test_c $(TEST_C_SRC) $(SRC_DIR)/os_ext.c $(SRC_DIR)/str_ext.c $(SRC_DIR)/fs_ext.c $(SRC_DIR)/esp32_port.c $(SRC_DIR)/platform/platform_linux.c $(BIN_DIR)/test_c_os_port_posix.o $(SRC_DIR)/box_cert.c $(SRC_DIR)/zip_writer.c $(SRC_DIR)/error_text.c $(SRC_DIR)/range_ext.c
 	$(QUIET)$(BIN_DIR)/test_c
 
 .PHONY: test
@@ -838,6 +843,8 @@ PY_TESTS := $(filter-out tests/py/test_hardening.py tests/py/test_auth_pool_reus
 # make test_py PYTEST_ARGS="-k name" extra pytest arguments
 # ASan fills only the first 4 KiB of a new allocation with garbage by default;
 # filling all of it makes use of uninitialised memory fail reliably (Tap495).
+# A test file's "# server env: NAME=value ..." line sets those for its server (and for pytest); the line is split at
+# spaces as it is, so no spaces, quotes or wildcards in a value.
 .PHONY: test_py
 test_py: build
 	$(QUIET)$(ECHO) "[ ${CYAN}TEST${NC} ] Run pytest, a fresh sandboxed server per entry"
@@ -845,7 +852,7 @@ test_py: build
 	$(QUIET)rc=0; for t in $(PY_TESTS); do \
 		[ -z "$(TESTS)" ] || echo "$$t" | grep -q -- "$(TESTS)" || continue; \
 		ASAN_OPTIONS="$${ASAN_OPTIONS:+$$ASAN_OPTIONS:}max_malloc_fill_size=1073741824" \
-		tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 60 -- \
+		env $$(sed -n 's/^# server env: //p' "$${t%%::*}") tests/py/with_server.sh $(TEST_API_HTTP_PORT) $(TEST_API_HTTPS_PORT) $(TEST_API_HTTPS_API_PORT) 60 -- \
 			$(PYTHON) -m pytest -q $(PYTEST_ARGS) $$t || rc=1; \
 	done; exit $$rc
 

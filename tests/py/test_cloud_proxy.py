@@ -229,19 +229,25 @@ def test_ota_is_cached_and_held_back_by_default(box, cloud):
 
 
 def test_content_resume_passes_range_to_the_cloud(box, cloud):
-    """A box resuming a download asks for the rest with Range and If-Range. Fetched from the cloud, the request
-    has to carry both, or the cloud answers 200 with the whole file and the box starts over at 0."""
-    ruid = "0123456789abcdef"
-    rest = b"R" * 2048
-    cloud.script = lambda h: cloud.reply(h, 206, rest, {"Content-Range": f"bytes 4096-6143/6144"})
-    status, headers, body = box.request("GET", f"/v1/content/{ruid}", headers={"Range": "bytes=4096-", "If-Range": "1792000000"})
-    sent = [r[2] for r in cloud.requests if r[1] == f"/v1/content/{ruid}"]
-    assert len(sent) == 1
-    assert sent[0].get("Range") == "bytes=4096-" and sent[0].get("If-Range") == "1792000000"
-    assert status == 206 and headers.get("Content-Range") == "bytes 4096-6143/6144" and body == rest
+    """A box resuming a download asks for the rest with Range and If-Range. Passed through from the cloud, the
+    request has to carry both, or the cloud answers 200 with the whole file and the box starts over at 0. That is
+    content that is not cached (cloud.cacheContent off); content to be cached is downloaded whole and the range
+    served from the download, see test_cloud_content.py."""
+    setting("cloud.cacheContent", "false")
+    try:
+        ruid = "0123456789abcdef"
+        rest = b"R" * 2048
+        cloud.script = lambda h: cloud.reply(h, 206, rest, {"Content-Range": f"bytes 4096-6143/6144"})
+        status, headers, body = box.request("GET", f"/v1/content/{ruid}", headers={"Range": "bytes=4096-", "If-Range": "1792000000"})
+        sent = [r[2] for r in cloud.requests if r[1] == f"/v1/content/{ruid}"]
+        assert len(sent) == 1
+        assert sent[0].get("Range") == "bytes=4096-" and sent[0].get("If-Range") == "1792000000"
+        assert status == 206 and headers.get("Content-Range") == "bytes 4096-6143/6144" and body == rest
 
-    cloud.requests.clear()
-    cloud.script = lambda h: cloud.reply(h, 404, b"")
-    box.request("GET", f"/v1/content/{ruid}")
-    sent = [r[2] for r in cloud.requests if r[1] == f"/v1/content/{ruid}"]
-    assert len(sent) == 1 and "Range" not in sent[0] and "If-Range" not in sent[0]
+        cloud.requests.clear()
+        cloud.script = lambda h: cloud.reply(h, 404, b"")
+        box.request("GET", f"/v1/content/{ruid}")
+        sent = [r[2] for r in cloud.requests if r[1] == f"/v1/content/{ruid}"]
+        assert len(sent) == 1 and "Range" not in sent[0] and "If-Range" not in sent[0]
+    finally:
+        setting("cloud.cacheContent", "true")

@@ -65,17 +65,18 @@ typedef struct
     char_t *user_agent;
     uint32_t range_start;   /* content: the box's Range start, 0: whole file */
     const char_t *if_range; /* content: the box's If-Range, NULL or empty: none */
+    const char_t *accept_encoding; /* sent as Accept-Encoding if set */
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;
     size_t bufferLen;
     uint32_t status;
     FsFile *file;
-    tonie_info_t *tonieInfo;
     void *customData;
     size_t customDataLen;
     HttpConnection *connection;
     client_ctx_t *client_ctx;
+    bool_t cancel; /* set by a callback that wants no more of the response */
 } cbr_ctx_t;
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
@@ -102,10 +103,20 @@ char *strupr(char input[]);
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings);
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
+/* Reads the TAF header at the current position of file: the 4-byte big-endian length and the protobuf, the file is
+   left right after it. Logs why there is none for logPath, NULL for no log. Free it with
+   toniebox_audio_file_header__free_unpacked. */
+TonieboxAudioFileHeader *tafReadHeader(FsFile *file, const char *logPath);
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
-tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
+/* how getTonieInfoV2 checks the TAF before it calls it valid */
+typedef enum
+{
+    TAF_VALIDATION_SETTING, /* hash and length if core.full_taf_validation, else the header */
+    TAF_VALIDATION_HEADER,  /* the header: the file was checked in full right before */
+} taf_validation_t;
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, taf_validation_t validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);

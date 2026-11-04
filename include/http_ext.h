@@ -40,14 +40,15 @@ HttpRangeResult httpExtResolveRange(const HttpRangeHeader *range, uint32_t size,
     HttpRangeHeader Range;
 
 #define HTTP_RESPONSE_PRIVATE_HEADER_FIELDS \
-    const char *contentRange;
+    const char *contentRange;               \
+    const char *extraHeaders; /* further header lines, each ended by CRLF; set for one response */
 
 struct _HttpConnection;
 struct _HttpClientContext;
 
 /* Range, If-Range and User-Agent */
 void httpExtParseRequestHeaderField(struct _HttpConnection *connection, const char *name, char *value);
-/* Accept-Ranges, Access-Control-Allow-Origin and Content-Range, returns the length written to p */
+/* Accept-Ranges, Access-Control-Allow-Origin, Content-Range and extraHeaders, returns the length written to p */
 size_t httpExtFormatResponseHeader(struct _HttpConnection *connection, char *p);
 
 /* like httpSendResponse(), see http_ext.c; Unsafe takes the absolute path instead of resolving uri */
@@ -55,6 +56,14 @@ error_t httpExtSendResponse(struct _HttpConnection *connection, const char *uri)
 error_t httpExtSendResponseUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath);
 error_t httpExtSendResponseStream(struct _HttpConnection *connection, const char *uri, bool_t isStream);
 error_t httpExtSendResponseStreamUnsafe(struct _HttpConnection *connection, const char *uri, const char *absolutePath, bool_t isStream);
+/* The length a TAF of fileLength bytes is served with: the chapter of a split TAF (V3 chapter request), the file
+   without its TAF header with skip_header, else the whole file. */
+uint32_t httpExtTafServedLength(struct _HttpConnection *connection, uint32_t fileLength);
+/* The answer to the request's Range for a resource of size bytes, as content files get it: a satisfiable range (if
+   useRange) a 206 with its length and the Content-Range, written to contentRange; anything else a 200 with fullLength
+   (a stream is announced longer than it is). Returns the first byte of the resource to send. */
+uint32_t httpExtPrepareRangeResponse(struct _HttpConnection *connection, uint32_t size, size_t fullLength, bool useRange,
+                                     char *contentRange, size_t contentRangeSize);
 
 /* pcap log of the plain HTTP traffic (above TLS), called from the vendored transport functions */
 void httpExtPcapServerWrite(struct _HttpConnection *connection, bool is_tx, const void *data, size_t length);

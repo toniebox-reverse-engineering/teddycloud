@@ -337,6 +337,10 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                     httpClientAddHeaderField(&httpClientContext, "If-Range", cbr_ctx->if_range);
                 }
             }
+            if (cbr_ctx->accept_encoding)
+            {
+                httpClientAddHeaderField(&httpClientContext, "Accept-Encoding", cbr_ctx->accept_encoding);
+            }
 
             // Send HTTP request header
             error = httpClientWriteHeader(&httpClientContext);
@@ -475,6 +479,12 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 TRACE_INFO("Content-Type header field not found!\r\n");
             }
 
+            if (cbr_ctx->cancel)
+            {
+                error = ERROR_ABORTED;
+                break;
+            }
+
             bool binary = true;
             if (!strncmp(content_type, "text", 4))
             {
@@ -502,6 +512,10 @@ error_t web_request(const char *server, int port, bool https, const char *uri, c
                 if (cbr && cbr->body)
                 {
                     cbr->body(cbr->ctx, &httpClientContext, (const char *)buffer, length, error);
+                }
+                if (cbr_ctx->cancel)
+                {
+                    error = ERROR_ABORTED;
                 }
 
                 // Check status code
