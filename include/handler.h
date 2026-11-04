@@ -104,6 +104,10 @@ char *strupr(char input[]);
 void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *settings);
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
+/* Reads the TAF header at the current position of file: the 4-byte big-endian length and the protobuf, the file is
+   left right after it. Logs why there is none for logPath, NULL for no log. Free it with
+   toniebox_audio_file_header__free_unpacked. */
+TonieboxAudioFileHeader *tafReadHeader(FsFile *file, const char *logPath);
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);

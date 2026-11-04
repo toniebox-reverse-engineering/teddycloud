@@ -730,68 +730,97 @@ void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *set
     }
 }
 
+TonieboxAudioFileHeader *tafReadHeader(FsFile *file, const char *logPath)
+{
+    uint8_t headerBuffer[TAF_HEADER_SIZE];
+    size_t read_length = 0;
+
+    fsReadFile(file, headerBuffer, 4, &read_length);
+    if (read_length != 4)
+    {
+        if (logPath != NULL && read_length == 0)
+        {
+            // TODO don't send invalid TAF files via API
+            TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", logPath);
+        }
+        else if (logPath != NULL)
+        {
+            TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", logPath, read_length);
+        }
+        return NULL;
+    }
+
+    uint32_t protobufSize = ((uint32_t)headerBuffer[0] << 24) | ((uint32_t)headerBuffer[1] << 16) | ((uint32_t)headerBuffer[2] << 8) | headerBuffer[3];
+    if (protobufSize > TAF_HEADER_SIZE)
+    {
+        if (logPath != NULL)
+        {
+            TRACE_VERBOSE("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", logPath, protobufSize, TAF_HEADER_SIZE);
+        }
+        return NULL;
+    }
+
+    fsReadFile(file, headerBuffer, protobufSize, &read_length);
+    if (read_length != protobufSize)
+    {
+        if (logPath != NULL)
+        {
+            TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", logPath, read_length, protobufSize);
+        }
+        return NULL;
+    }
+    return toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
+}
+
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize)
 {
     bool_t valid = false;
     FsFile *file = fsOpenFile(contentPath, FS_FILE_MODE_READ);
     if (file)
     {
-        uint8_t headerBuffer[TAF_HEADER_SIZE];
-        size_t read_length;
-        fsReadFile(file, headerBuffer, 4, &read_length);
-        if (read_length == 4)
+        TonieboxAudioFileHeader *tafHeader = tafReadHeader(file, NULL);
+        if (tafHeader)
         {
-            uint32_t protobufSize = ((uint32_t)headerBuffer[0] << 24) | ((uint32_t)headerBuffer[1] << 16) | ((uint32_t)headerBuffer[2] << 8) | headerBuffer[3];
-            if (protobufSize <= TAF_HEADER_SIZE)
+            if (tafHeader->sha1_hash.len == 20)
             {
-                fsReadFile(file, headerBuffer, protobufSize, &read_length);
-                if (read_length == protobufSize)
+                if (checkHashAndSize)
                 {
-                    TonieboxAudioFileHeader *tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                    if (tafHeader)
+                    Sha1Context sha1Ctx;
+                    size_t audio_length = 0;
+                    size_t read_length;
+                    sha1Init(&sha1Ctx);
+                    char buffer[TONIEFILE_FRAME_SIZE];
+                    uint8_t sha1[SHA1_DIGEST_SIZE];
+                    while (true)
                     {
-                        if (tafHeader->sha1_hash.len == 20)
+                        error_t error = fsReadFile(file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
+                        if (error != NO_ERROR && error != ERROR_END_OF_FILE)
                         {
-                            if (checkHashAndSize)
-                            {
-                                Sha1Context sha1Ctx;
-                                size_t audio_length = 0;
-                                sha1Init(&sha1Ctx);
-                                char buffer[TONIEFILE_FRAME_SIZE];
-                                uint8_t sha1[SHA1_DIGEST_SIZE];
-                                while (true)
-                                {
-                                    error_t error = fsReadFile(file, buffer, TONIEFILE_FRAME_SIZE, &read_length);
-                                    if (error != NO_ERROR && error != ERROR_END_OF_FILE)
-                                    {
-                                        TRACE_ERROR("Cannot read file, error=%" PRIu16 "\n", error);
-                                        break;
-                                    }
-                                    if (read_length == 0)
-                                    {
-                                        break;
-                                    }
-                                    audio_length += read_length;
-                                    sha1Update(&sha1Ctx, buffer, read_length);
-                                }
-                                sha1Final(&sha1Ctx, sha1);
-                                if (osMemcmp(tafHeader->sha1_hash.data, sha1, SHA1_DIGEST_SIZE) == 0)
-                                {
-                                    if (audio_length == tafHeader->num_bytes)
-                                    {
-                                        valid = true;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                valid = true;
-                            }
+                            TRACE_ERROR("Cannot read file, error=%" PRIu16 "\n", error);
+                            break;
                         }
-                        toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+                        if (read_length == 0)
+                        {
+                            break;
+                        }
+                        audio_length += read_length;
+                        sha1Update(&sha1Ctx, buffer, read_length);
+                    }
+                    sha1Final(&sha1Ctx, sha1);
+                    if (osMemcmp(tafHeader->sha1_hash.data, sha1, SHA1_DIGEST_SIZE) == 0)
+                    {
+                        if (audio_length == tafHeader->num_bytes)
+                        {
+                            valid = true;
+                        }
                     }
                 }
+                else
+                {
+                    valid = true;
+                }
             }
+            toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
         }
         fsCloseFile(file);
     }
@@ -961,62 +990,31 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
         FsFile *file = fsOpenFile(tonieInfo->contentPath, FS_FILE_MODE_READ);
         if (file)
         {
-            uint8_t headerBuffer[TAF_HEADER_SIZE];
-            size_t read_length;
-            fsReadFile(file, headerBuffer, 4, &read_length);
-            if (read_length == 4)
+            tonieInfo->tafHeader = tafReadHeader(file, tonieInfo->contentPath);
+            if (tonieInfo->tafHeader)
             {
-                uint32_t protobufSize = ((uint32_t)headerBuffer[0] << 24) | ((uint32_t)headerBuffer[1] << 16) | ((uint32_t)headerBuffer[2] << 8) | headerBuffer[3];
-                if (protobufSize <= TAF_HEADER_SIZE)
+                if (tonieInfo->tafHeader->sha1_hash.len == 20)
                 {
-                    fsReadFile(file, headerBuffer, protobufSize, &read_length);
-                    if (read_length == protobufSize)
+                    tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation || force_taf_validation);
+                    readTrackPositions(tonieInfo, file);
+                    if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
                     {
-                        tonieInfo->tafHeader = toniebox_audio_file_header__unpack(NULL, protobufSize, (const uint8_t *)headerBuffer);
-                        if (tonieInfo->tafHeader)
-                        {
-                            if (tonieInfo->tafHeader->sha1_hash.len == 20)
-                            {
-                                tonieInfo->valid = isValidTaf(tonieInfo->contentPath, settings->core.full_taf_validation || force_taf_validation);
-                                readTrackPositions(tonieInfo, file);
-                                if (tonieInfo->tafHeader->num_bytes == get_settings()->encode.stream_max_size)
-                                {
-                                    tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
-                                }
-                                else if ((tonieInfo->json.tonie_model == NULL || tonieInfo->json.tonie_model[0] == '\0') && (tonieInfo->json._source_type == CT_SOURCE_NONE || tonieInfo->json._source_type == CT_SOURCE_TAF)) // TAF beside the content json
-                                {
-                                    content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
-                                }
-                                toniesJson_item_t *toniesJson = tonies_byAudioIdHash(tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
-                                if (toniesJson != NULL)
-                                {
-                                    tonieInfo->json._source_model = strdup(toniesJson->model);
-                                }
-                            }
-                            else
-                            {
-                                TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
-                            }
-                        }
+                        tonieInfo->json._source_type = CT_SOURCE_TAF_INCOMPLETE;
                     }
-                    else
+                    else if ((tonieInfo->json.tonie_model == NULL || tonieInfo->json.tonie_model[0] == '\0') && (tonieInfo->json._source_type == CT_SOURCE_NONE || tonieInfo->json._source_type == CT_SOURCE_TAF)) // TAF beside the content json
                     {
-                        TRACE_WARNING("Invalid TAF-header on %s, read_length=%" PRIuSIZE " != protobufSize=%" PRIu32 "\r\n", tonieInfo->contentPath, read_length, protobufSize);
+                        content_json_update_model(&tonieInfo->json, tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
+                    }
+                    toniesJson_item_t *toniesJson = tonies_byAudioIdHash(tonieInfo->tafHeader->audio_id, tonieInfo->tafHeader->sha1_hash.data);
+                    if (toniesJson != NULL)
+                    {
+                        tonieInfo->json._source_model = strdup(toniesJson->model);
                     }
                 }
                 else
                 {
-                    TRACE_VERBOSE("Invalid TAF-header on %s, protobufSize=%" PRIu32 " >= TAF_HEADER_SIZE=%u\r\n", tonieInfo->contentPath, protobufSize, TAF_HEADER_SIZE);
+                    TRACE_WARNING("Invalid TAF-header on %s, sha1_hash.len=%" PRIuSIZE " != 20\r\n", tonieInfo->contentPath, tonieInfo->tafHeader->sha1_hash.len);
                 }
-            }
-            else if (read_length == 0)
-            {
-                // TODO don't send invalid TAF files via API
-                TRACE_VERBOSE("Invalid TAF-header, file %s is empty!", tonieInfo->contentPath);
-            }
-            else
-            {
-                TRACE_WARNING("Invalid TAF-header on %s, Could not read 4 bytes, read_length=%" PRIuSIZE "\r\n", tonieInfo->contentPath, read_length);
             }
             fsCloseFile(file);
         }
