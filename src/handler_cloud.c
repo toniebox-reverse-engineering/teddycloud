@@ -627,6 +627,35 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
     return tonieInfo;
 }
 
+/* Picks the TAF a request for a random pool gets. A request that continues a TAF picked before gets
+   the same one: a resumed download (Range, with the TAF's audio id in If-Range, decimal) and a V3
+   chapter (its name ends in the start of the SHA1 the content meta announced, see
+   handleCloudContentMetaV3). A resume of a TAF no longer in the pool gets a new pick, sent whole. */
+static bool_t pickPoolTaf(HttpConnection *connection, const char_t *uri, int ruid_begin, cloudapi_t api, tonie_info_t *tonieInfo, client_ctx_t *client_ctx)
+{
+    if (api == V3_CHAPTER)
+    {
+        const char_t *suffix = &uri[ruid_begin + 16];
+        char *end = NULL;
+        uint32_t prefix = (suffix[0] == '_') ? (uint32_t)strtoul(&suffix[1], &end, 16) : 0;
+        uint8_t sha1_prefix[TAP_RANDOM_SHA1_PREFIX] = {(uint8_t)(prefix >> 24), (uint8_t)(prefix >> 16), (uint8_t)(prefix >> 8), (uint8_t)prefix};
+        return end == &suffix[1 + 2 * TAP_RANDOM_SHA1_PREFIX] && pickRandomTonieContent(tonieInfo, 0, sha1_prefix, client_ctx->settings);
+    }
+    if (connection->request.Range.start != 0)
+    {
+        uint32_t audio_id = (uint32_t)strtoul(connection->request.ifRange, NULL, 10);
+        if (audio_id != 0 && pickRandomTonieContent(tonieInfo, audio_id, NULL, client_ctx->settings))
+        {
+            return true;
+        }
+        TRACE_INFO("Random TAP: range request for a TAF not in the pool (If-Range '%s'), sending a new pick whole\r\n", connection->request.ifRange);
+        connection->request.Range.valid = false;
+        connection->request.Range.start = 0;
+        connection->request.Range.end = 0;
+    }
+    return pickRandomTonieContent(tonieInfo, 0, NULL, client_ctx->settings);
+}
+
 error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api)
 {
     char ruid[17];
@@ -638,6 +667,14 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
     if (tonieInfo == NULL)
     {
         return error;
+    }
+
+    /* The pick is served below like any local TAF. A pool without one is answered here, as the
+       cloud branch would clear the tonie's source for a tonie with cloud_override. */
+    if (tonieInfo->json._source_type == CT_SOURCE_TAP_RANDOM && !pickPoolTaf(connection, uri, ruid_begin, api, tonieInfo, client_ctx))
+    {
+        freeTonieInfo(tonieInfo);
+        return ERROR_NOT_FOUND;
     }
 
     uint8_t *token = connection->private.authentication_token;
@@ -1064,7 +1101,8 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
                               custom_server ? ", custom" : "");
         }
         TRACE_INFO_RESUME("\r\n");
-        if (!tonieInfo->valid)
+        /* A pool's model is not the one of whatever TAF the box got last. */
+        if (!tonieInfo->valid && tonieInfo->json._source_type != CT_SOURCE_TAP_RANDOM)
         {
             content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
         }
@@ -1450,7 +1488,13 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
     }
     uint8_t *token = connection->private.authentication_token;
 
-    
+    bool_t pool = (tonieInfo->json._source_type == CT_SOURCE_TAP_RANDOM);
+    if (pool && !pickRandomTonieContent(tonieInfo, 0, NULL, client_ctx->settings))
+    {
+        freeTonieInfo(tonieInfo);
+        return ERROR_NOT_FOUND;
+    }
+
     if (tonieInfo->exists && tonieInfo->valid)
     {
         cJSON *respJson = cJSON_CreateObject();
@@ -1484,7 +1528,16 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
 
             cJSON_AddStringToObject(contentItem, "type", "audio");
             char name[64];
-            osSprintf(name, "teddycloud_%02d_%s", i, ruid);
+            if (pool)
+            {
+                /* The chapter requests must get this pick, not a new one (pickPoolTaf). */
+                const uint8_t *sha1 = tonieInfo->tafHeader->sha1_hash.data;
+                osSprintf(name, "teddycloud_%02d_%s_%02X%02X%02X%02X", i, ruid, sha1[0], sha1[1], sha1[2], sha1[3]);
+            }
+            else
+            {
+                osSprintf(name, "teddycloud_%02d_%s", i, ruid);
+            }
             cJSON_AddStringToObject(contentItem, "name", name);
             cJSON_AddStringToObject(contentItem, "auth", "");
             cJSON_AddItemToObject(contentItem, "analytics", cJSON_CreateObject());

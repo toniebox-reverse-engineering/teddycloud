@@ -103,10 +103,17 @@ void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
+/* Reads the protobuf header at the start of a TAF; NULL if there is none. Free it with
+   toniebox_audio_file_header__free_unpacked. */
+TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
+/* For a random pool (CT_SOURCE_TAP_RANDOM): points tonieInfo at one TAF of the pool and reads its
+   header. With audio_id 0 and no sha1_prefix it picks anew at random; otherwise it picks the TAF a
+   request that continues an earlier pick asks for (see tap_random_pick). False when no TAF fits. */
+bool_t pickRandomTonieContent(tonie_info_t *tonieInfo, uint32_t audio_id, const uint8_t *sha1_prefix, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
