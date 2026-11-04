@@ -65,6 +65,7 @@ typedef struct
     char_t *user_agent;
     uint32_t range_start;   /* content: the box's Range start, 0: whole file */
     const char_t *if_range; /* content: the box's If-Range, NULL or empty: none */
+    const char_t *accept_encoding; /* sent as Accept-Encoding if set */
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;
@@ -76,6 +77,7 @@ typedef struct
     size_t customDataLen;
     HttpConnection *connection;
     client_ctx_t *client_ctx;
+    bool_t cancel; /* set by a callback that wants no more of the response */
 } cbr_ctx_t;
 
 void fillBaseCtx(HttpConnection *connection, const char_t *uri, const char_t *queryString, cloudapi_t api, cbr_ctx_t *ctx, client_ctx_t *client_ctx);
