@@ -126,11 +126,6 @@ def test_other_certificate_is_only_logged_without_box_cert_auth(original_box, im
     box_overlay = overlay(original_box)
     assert api("POST", f"/api/settings/set/core.boxCertAuth?overlay={box_overlay}", "false")[0] == 200
     try:
-        # the settings are reloaded asynchronously from the changed file
-        for _ in range(50):
-            if api("GET", f"/api/settings/get/core.boxCertAuth?overlay={box_overlay}")[1].strip() == "false":
-                break
-            time.sleep(0.1)
         assert impostor.request("GET", "/v1/time")[0] == 200
     finally:
         api("POST", f"/api/settings/set/core.boxCertAuth?overlay={box_overlay}", "true")
@@ -188,3 +183,103 @@ def test_uploaded_client_der_is_the_real_certificate(tmp_path):
     finally:
         real.close()
         first.close()
+
+
+def test_box_state_survives_the_save_of_its_pin(tmp_path):
+    box = box_with_own_cert(tmp_path, "deadbeef0015")
+    try:
+        # File times have a resolution of one second: only a save in a later second than the last
+        # load looks like a changed file. The server checks every 250 ms, 0.5 s covers two checks.
+        time.sleep(1.1)
+        assert box.request("GET", "/v1/time")[0] == 200
+        time.sleep(0.5)
+        assert cert_status(box) == "pinned"
+    finally:
+        box.close()
+
+
+def test_client_der_set_as_a_setting_is_the_real_certificate(tmp_path):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "first").mkdir()
+    real = box_with_own_cert(tmp_path / "real", "deadbeef0016")
+    first = box_with_own_cert(tmp_path / "first", "deadbeef0016")
+    openssl("x509", "-in", real.cert, "-outform", "der", "-out", tmp_path / "client.der")
+    try:
+        first.request("GET", "/v1/time")
+        assert cert_status(first) == "pinned"
+
+        setting = f"/api/settings/set/core.client_cert.file.crt?overlay={overlay(first)}"
+        assert api("POST", setting, str(tmp_path / "client.der"))[0] == 200
+        assert real.request("GET", "/v1/time")[0] == 200
+        assert cert_status(real) == "pinned"
+        assert first.request("GET", "/v1/time")[0] == 401
+        assert cert_status(first) == "mismatch"
+    finally:
+        api("POST", f"/api/settings/reset/core.client_cert.file.crt?overlay={overlay(first)}")
+        real.close()
+        first.close()
+
+
+def test_removed_box_starts_over(tmp_path):
+    (tmp_path / "old").mkdir()
+    (tmp_path / "new").mkdir()
+    old = box_with_own_cert(tmp_path / "old", "deadbeef0017")
+    new = box_with_own_cert(tmp_path / "new", "deadbeef0017")
+    try:
+        old.request("GET", "/v1/time")
+        assert cert_status(old) == "pinned"
+
+        assert api("POST", f"/api/settings/removeOverlay?overlay={overlay(old)}")[0] == 200
+        assert new.request("GET", "/v1/time")[0] == 200
+        assert cert_status(new) == "pinned"
+    finally:
+        old.close()
+        new.close()
+
+
+def test_new_box_takes_its_client_der_from_its_cert_dir(tmp_path):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "impostor").mkdir()
+    real = box_with_own_cert(tmp_path / "real", "deadbeef0018")
+    impostor = box_with_own_cert(tmp_path / "impostor", "deadbeef0018")
+    cert_dir = Path(SANDBOX) / "certs" / "client" / "deadbeef0018"
+    cert_dir.mkdir(parents=True, exist_ok=True)
+    openssl("x509", "-in", real.cert, "-outform", "der", "-out", cert_dir / "client.der")
+    try:
+        assert impostor.request("GET", "/v1/time")[0] == 401
+        assert real.request("GET", "/v1/time")[0] == 200
+        assert cert_status(real) == "pinned"
+    finally:
+        real.close()
+        impostor.close()
+
+
+def test_box_dir_setting_takes_effect(teddycloud_box):
+    teddycloud_box.request("GET", "/v1/time")
+    box_overlay = overlay(teddycloud_box)
+    assert api("POST", f"/api/settings/set/core.contentdir?overlay={box_overlay}", "box0010")[0] == 200
+    try:
+        contentdir = api("GET", f"/api/settings/get/internal.contentdirfull?overlay={box_overlay}")[1]
+        assert contentdir.rstrip("/").endswith("box0010")
+    finally:
+        api("POST", f"/api/settings/reset/core.contentdir?overlay={box_overlay}")
+
+
+def test_global_setting_right_after_a_save_is_kept(tmp_path):
+    (tmp_path / "box").mkdir()
+    (tmp_path / "impostor").mkdir()
+    box = box_with_own_cert(tmp_path / "box", "deadbeef0019")
+    impostor = box_with_own_cert(tmp_path / "impostor", "deadbeef0019")
+    before = api("GET", "/api/settings/get/core.boxCertAuth")[1].strip()
+    try:
+        # The pin is saved in a later second than the last load; the global setting follows at once.
+        time.sleep(1.1)
+        assert box.request("GET", "/v1/time")[0] == 200
+        assert api("POST", "/api/settings/set/core.boxCertAuth", "false")[0] == 200
+        time.sleep(0.5)
+        assert api("GET", "/api/settings/get/core.boxCertAuth")[1].strip() == "false"
+        assert impostor.request("GET", "/v1/time")[0] == 200
+    finally:
+        api("POST", "/api/settings/set/core.boxCertAuth", before)
+        box.close()
+        impostor.close()
