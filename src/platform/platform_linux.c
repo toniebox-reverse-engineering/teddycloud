@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 
 #include "platform.h"
+#include "fs_ext.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -519,6 +520,11 @@ bool socketPeerClosed(Socket *socket)
         return errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR;
     }
     return first == 0x15; /* a TLS record of type alert */
+}
+
+error_t fsLinkFile(const char_t *existingPath, const char_t *newPath)
+{
+    return (link(existingPath, newPath) == 0) ? NO_ERROR : ERROR_FAILURE;
 }
 
 /**
