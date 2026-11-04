@@ -53,12 +53,14 @@ class Box:
     def close(self):
         self._dir.cleanup()
 
-    def connect(self, use_cert=True, session=None):
+    def connect(self, use_cert=True, session=None, suppress_ragged_eofs=True, timeout=5):
+        """suppress_ragged_eofs=False: a close without close_notify (a response cut short) raises instead of
+        reading as the end. timeout: for the connection and the handshake, then for each read."""
         # IP literal: no SNI, like a real box (the server picks other certs when SNI is present)
         ctx = self._contexts.get(use_cert) or self._context(use_cert)
-        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=5),
+        return ctx.wrap_socket(socket.create_connection((self.host, self.port), timeout=timeout),
                                server_hostname=(self.profile.tls.sni if self.profile and self.profile.tls.sni else None),
-                               session=session)
+                               session=session, suppress_ragged_eofs=suppress_ragged_eofs)
 
     def _context(self, use_cert):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)

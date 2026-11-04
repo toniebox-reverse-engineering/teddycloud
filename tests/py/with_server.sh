@@ -141,6 +141,7 @@ rm -f "$SANDBOX/.complete"
 export TC_SANDBOX="$SANDBOX" TC_TEMPLATE="$TEMPLATE" # TC_TEMPLATE: tests may cache things signed by the template CA (box certs) there
 
 start_server "$SANDBOX"
+export TC_SERVER_PID="$srv_pid" # tests may look at the server process (/proc)
 
 if ! wait_ready "$srv_pid" "$READY_TIMEOUT"; then
     fail_log "Test server did not become ready on port $HTTP_PORT within ${READY_TIMEOUT}s"
