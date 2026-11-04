@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "platform.h"
+#include "fs_ext.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -562,6 +563,13 @@ bool socketPeerClosed(Socket *socket)
         return error != WSAEWOULDBLOCK && error != WSAEINTR;
     }
     return (uint8_t)first == 0x15; /* a TLS record of type alert */
+}
+
+error_t fsLinkFile(const char_t *existingPath, const char_t *newPath)
+{
+    (void)existingPath;
+    (void)newPath;
+    return ERROR_NOT_IMPLEMENTED; /* see fs_ext.h */
 }
 
 static CRITICAL_SECTION log_section;
