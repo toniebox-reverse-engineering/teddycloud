@@ -38,6 +38,7 @@ static void settings_generate_internal_dirs(settings_t *settings);
 static void settings_changed();
 static error_t settings_save_ovl(bool overlay);
 static error_t settings_load_ovl(bool overlay);
+static void settings_remember_file_time(bool overlay);
 static setting_item_t *settings_get_by_name_id(const char *item, uint8_t settingsId);
 static char *settings_sanitize_box_id(const char *input_id);
 
@@ -629,6 +630,7 @@ settings_t *get_settings_cn(const char *commonName)
                 osFreeMem(key);
 
                 settings_generate_internal_dirs(&Settings_Overlay[i]);
+                settings_load_client_certs_id(i);
                 Settings_Overlay[i].internal.config_used = true;
                 settings_save_ovl(true);
                 mutex_unlock(MUTEX_SETTINGS);
@@ -1063,6 +1065,7 @@ static error_t settings_save_ovl(bool overlay)
         }
     }
     fsCloseFile(file);
+    settings_remember_file_time(overlay);
     Settings_Overlay[0].internal.config_changed = false;
 
     return NO_ERROR;
@@ -1348,9 +1351,18 @@ static error_t settings_load_ovl(bool overlay)
         }
         Settings_Overlay[0].internal.config_changed = false;
     }
+    settings_remember_file_time(overlay);
 
+    return NO_ERROR;
+}
+
+/* settings_loop reloads a config file whose time differs from the one remembered here. A file this
+   server wrote itself must not count as changed: the reload resets every overlay and drops their
+   internal values. */
+static void settings_remember_file_time(bool overlay)
+{
     FsFileStat stat;
-    if (fsGetFileStat(config_path, &stat) == NO_ERROR)
+    if (fsGetFileStat(!overlay ? config_file_path : config_overlay_file_path, &stat) == NO_ERROR)
     {
         if (overlay)
         {
@@ -1361,8 +1373,6 @@ static error_t settings_load_ovl(bool overlay)
             settings_last_load = stat.modified;
         }
     }
-
-    return NO_ERROR;
 }
 
 uint16_t settings_get_size()
@@ -1818,21 +1828,21 @@ void settings_loop()
 {
     FsFileStat stat;
     settings_free_parked(false);
-    if (fsGetFileStat(config_file_path, &stat) == NO_ERROR)
+    /* Under the lock: settings_save holds it from writing a file until its new time is remembered,
+       so a file in the middle of being saved does not look changed. */
+    mutex_lock(MUTEX_SETTINGS);
+    bool changed = fsGetFileStat(config_file_path, &stat) == NO_ERROR && compareDateTime(&stat.modified, &settings_last_load);
+    bool changed_ovl = fsGetFileStat(config_overlay_file_path, &stat) == NO_ERROR && compareDateTime(&stat.modified, &settings_last_load_ovl);
+    mutex_unlock(MUTEX_SETTINGS);
+    if (changed)
     {
-        if (compareDateTime(&stat.modified, &settings_last_load))
-        {
-            TRACE_INFO("Settings file changed. Reloading.\r\n");
-            settings_load();
-        }
+        TRACE_INFO("Settings file changed. Reloading.\r\n");
+        settings_load();
     }
-    if (fsGetFileStat(config_overlay_file_path, &stat) == NO_ERROR)
+    else if (changed_ovl)
     {
-        if (compareDateTime(&stat.modified, &settings_last_load_ovl))
-        {
-            TRACE_INFO("Overlay settings file changed. Reloading.\r\n");
-            settings_load();
-        }
+        TRACE_INFO("Overlay settings file changed. Reloading.\r\n");
+        settings_load();
     }
 }
 

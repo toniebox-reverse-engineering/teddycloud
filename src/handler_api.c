@@ -27,6 +27,7 @@
 #include "esp32.h"
 #include "cache.h"
 #include "libraryMeta.h"
+#include "mutex_manager.h"
 #include "zip_writer.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
@@ -543,6 +544,27 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
+/* settings_set_* derives the internal directories only for the base settings; overlays and resets
+   need it here. Cert settings take effect only when the files are loaded, and that load must not
+   generate: a path that does not exist yet would replace the server certificate. */
+static void apply_setting(const char *item, uint8_t settingsId, bool derive_dirs)
+{
+    if (derive_dirs)
+    {
+        settings_changed_id(settingsId);
+    }
+    mutex_lock(MUTEX_SETTINGS);
+    if (osStrncmp(item, "core.server_cert", 16) == 0)
+    {
+        settings_try_load_certs_id(settingsId);
+    }
+    else if (osStrncmp(item, "core.client_cert.", 17) == 0)
+    {
+        settings_load_client_certs_id(settingsId);
+    }
+    mutex_unlock(MUTEX_SETTINGS);
+}
+
 error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
@@ -589,6 +611,8 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
 
         if (success)
         {
+            uint8_t settingsId = get_overlay_id(overlay);
+            apply_setting(item, settingsId, settingsId > 0);
             osStrcpy(response, "OK");
         }
     }
@@ -624,6 +648,7 @@ error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, co
             {
                 TRACE_INFO("Setting: '%s' overlay removed\r\n", item);
             }
+            apply_setting(item, get_overlay_id(overlay), true);
             success = true;
         }
         else
@@ -5260,8 +5285,17 @@ error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const
         TRACE_ERROR("No overlay detected %s\n", overlay);
         return ERROR_FAILURE;
     }
-    get_settings_cn(overlay)->internal.config_used = false;
-    settings_save();
+    settings_t *settings = get_settings_cn(overlay);
+    settings->internal.config_used = false;
+    if (settings_save() != NO_ERROR)
+    {
+        settings->internal.config_used = true;
+        TRACE_ERROR("Could not save the settings, overlay %s not removed\n", overlay);
+        return ERROR_FAILURE;
+    }
+    /* The slot still carries the box's name and values; loading the saved files clears it, so the box
+       starts over on its next connection. */
+    settings_load();
     TRACE_INFO("Removed overlay %s\n", overlay);
 
     return httpOkResponse(connection);
