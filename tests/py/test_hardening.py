@@ -218,6 +218,31 @@ class Traversal513(Base):
             self.OUTSIDE.unlink(missing_ok=True)
 
 
+class LongMoveTarget(Base):
+    """A move target longer than the server's buffer was cut short and the move still answered OK."""
+
+    def test_too_long_target_is_refused(self):
+        self.put_library("__move_long.txt")
+        target = "a" * 300 + ".taf"
+        self.library_files.append(target[:258])  # removed in tearDown, ignored if it was never created
+        form = "source=__move_long.txt&target=" + target
+        status, _ = request("POST", "/api/fileMove?special=library", form, {"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(status, 400)
+
+    def test_too_long_folder_is_refused(self):
+        status, body = request("POST", "/api/dirCreate?special=library", "/" + "/".join(["d" * 50] * 6))
+        self.assertEqual(status, 400)
+        self.assertEqual(body, "path too long")
+
+    def test_deep_list_path_is_not_the_root(self):
+        self.put_library("__deep_list.txt")
+        try:
+            _, body = request("GET", "/api/fileIndexV2?special=library&path=" + "a" * 200)
+        except http.client.RemoteDisconnected:
+            body = ""  # the folder does not exist
+        self.assertNotIn("__deep_list.txt", body)
+
+
 class Ota(Base):
     """Local V3 OTA delivery: /v3/ota/<type>/<hash> serves <firmware>/ota/<type>/<hash>.bin.
     OTA hashes with ".." can't be tested over HTTP, the URI is canonicalised before the handler runs."""
