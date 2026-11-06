@@ -188,3 +188,16 @@ def test_uploaded_client_der_is_the_real_certificate(tmp_path):
     finally:
         real.close()
         first.close()
+
+
+def test_setting_changed_after_first_contact_is_kept(tmp_path):
+    # the first contact pins the certificate and saves the settings; that save must not be reloaded over the change
+    box = box_with_own_cert(tmp_path, "deadbeef0015")
+    try:
+        assert box.request("GET", "/v1/time")[0] == 200
+        assert api("POST", "/api/settings/set/core.boxCertAuth", "false")[0] == 200
+        time.sleep(1)
+        assert api("GET", "/api/settings/get/core.boxCertAuth")[1].strip() == "false"
+    finally:
+        api("POST", "/api/settings/set/core.boxCertAuth", "true")
+        box.close()

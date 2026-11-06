@@ -975,6 +975,23 @@ error_t settings_save()
     return err;
 }
 
+/* the time of the file as it is in memory now, so settings_loop only reloads changes from outside */
+static void settings_note_file_time(bool overlay)
+{
+    FsFileStat stat;
+    if (fsGetFileStat(overlay ? config_overlay_file_path : config_file_path, &stat) == NO_ERROR)
+    {
+        if (overlay)
+        {
+            settings_last_load_ovl = stat.modified;
+        }
+        else
+        {
+            settings_last_load = stat.modified;
+        }
+    }
+}
+
 static error_t settings_save_ovl(bool overlay)
 {
     char_t *config_path = (!overlay ? config_file_path : config_overlay_file_path);
@@ -1063,6 +1080,7 @@ static error_t settings_save_ovl(bool overlay)
         }
     }
     fsCloseFile(file);
+    settings_note_file_time(overlay);
     Settings_Overlay[0].internal.config_changed = false;
 
     return NO_ERROR;
@@ -1349,18 +1367,7 @@ static error_t settings_load_ovl(bool overlay)
         Settings_Overlay[0].internal.config_changed = false;
     }
 
-    FsFileStat stat;
-    if (fsGetFileStat(config_path, &stat) == NO_ERROR)
-    {
-        if (overlay)
-        {
-            settings_last_load_ovl = stat.modified;
-        }
-        else
-        {
-            settings_last_load = stat.modified;
-        }
-    }
+    settings_note_file_time(overlay);
 
     return NO_ERROR;
 }
