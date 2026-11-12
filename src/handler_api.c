@@ -14,6 +14,7 @@
 #include "fs_port.h"
 #include "handler.h"
 #include "handler_api.h"
+#include "http/mime.h"
 #include "handler_cloud.h"
 #include "settings.h"
 #include "stats.h"
@@ -2336,9 +2337,11 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         connection->response.statusCode = 200;
         connection->response.contentLength = length;
     }
-    /* content files are mostly extensionless TAFs, but tag configs are JSON (iOS names the download after the type) */
-    const char *ext = strrchr(uri, '.');
-    connection->response.contentType = (ext != NULL && !osStrcasecmp(ext, ".json")) ? "application/json" : "audio/ogg";
+    /* content files are mostly extensionless TAFs; anything else gets the type of its extension, as browsers
+       (iOS) name a download after its type (#556) */
+    const char *name = strrchr(uri, '/') ? strrchr(uri, '/') + 1 : uri;
+    const char *ext = strrchr(name, '.');
+    connection->response.contentType = (ext == NULL || !osStrcasecmp(ext, ".taf")) ? "audio/ogg" : mimeGetType(name);
     connection->response.chunkedEncoding = FALSE;
 
     error = httpWriteHeader(connection);
