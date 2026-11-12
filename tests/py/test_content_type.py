@@ -31,6 +31,7 @@ class ContentType(Base):
             ("__ctype.json", "application/json"),
             ("__ctype.mp3", "audio/mpeg"),
             ("__ctype.taf", "audio/ogg"),
+            ("__ctype", "audio/ogg"),  # extensionless content is a TAF
         ):
             self.put_library(name)
             self.assertEqual(content_type(f"/content/{name}?special=library"), (200, mime), name)

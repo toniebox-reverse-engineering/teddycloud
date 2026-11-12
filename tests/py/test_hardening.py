@@ -236,11 +236,13 @@ class LongMoveTarget(Base):
 
     def test_deep_list_path_is_not_the_root(self):
         self.put_library("__deep_list.txt")
-        try:
-            _, body = request("GET", "/api/fileIndexV2?special=library&path=" + "a" * 200)
-        except http.client.RemoteDisconnected:
-            body = ""  # the folder does not exist
-        self.assertNotIn("__deep_list.txt", body)
+        for length in (200, 300):  # fits the buffer / does not fit and is refused
+            with self.subTest(length=length):
+                try:
+                    _, body = request("GET", "/api/fileIndexV2?special=library&path=" + "a" * length)
+                except http.client.RemoteDisconnected:
+                    body = ""  # the folder does not exist, or the request was refused
+                self.assertNotIn("__deep_list.txt", body)
 
 
 class Ota(Base):
