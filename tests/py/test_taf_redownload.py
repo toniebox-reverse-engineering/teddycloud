@@ -175,8 +175,8 @@ def test_failed_cloud_download_keeps_the_source(cloud, taf_file):
         api("GET", redownload)
     finally:
         cloud.script = script
-    info = tag_info()
-    assert info["exists"] and info["source"] == f"lib://by/audioID/{AUDIO_ID}.taf"
+    # the old source is restored after the cloud's answer went to the client
+    assert wait_for(lambda: tag_info()["exists"] and tag_info()["source"] == f"lib://by/audioID/{AUDIO_ID}.taf"), tag_info()
     assert library_file().read_bytes() == taf_file
 
 

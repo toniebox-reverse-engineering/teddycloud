@@ -8,6 +8,7 @@
 #include "server_helpers.h"
 #include "toniesJson.h"
 #include "handler.h"
+#include "mutex_manager.h"
 #include "json_helper.h"
 
 /* For sources the box must not keep a copy of, and that replace the tonie's cloud content. */
@@ -50,11 +51,18 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
 
     if (fsFileExists(jsonPath))
     {
+        /* Not while the json is replaced: the size would belong to the old file and the data to the new one.
+           A json that does not parse is written anew below, which would lose what it held. */
+        mutex_lock(MUTEX_CONTENT_JSON);
         size_t fileSize = 0;
         fsGetFileSize(jsonPath, (uint32_t *)(&fileSize));
 
         FsFile *fsFile = fsOpenFile(jsonPath, FS_FILE_MODE_READ);
-        if (fsFile != NULL)
+        if (fsFile == NULL)
+        {
+            mutex_unlock(MUTEX_CONTENT_JSON);
+        }
+        else
         {
             size_t sizeRead;
             char *data = osAllocMem(fileSize);
@@ -69,6 +77,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 pos += sizeRead;
             }
             fsCloseFile(fsFile);
+            mutex_unlock(MUTEX_CONTENT_JSON);
 
             cJSON *contentJson = cJSON_ParseWithLengthOpts(data, fileSize, 0, 0);
             osFreeMem(data);
@@ -206,6 +215,10 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
     }
     osFreeMem(content_dir);
 
+    /* All writers share the one .tmp file, so two saves of a json at once (a tag info request saves
+       what it updated while the cloud handler saves the same json) would truncate each other's
+       file and leave a broken json behind. The per-id locks are switched off (mutex_lock_id). */
+    mutex_lock(MUTEX_CONTENT_JSON);
     char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
     cJSON *contentJson = cJSON_CreateObject();
@@ -246,6 +259,8 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
         content_json->_updated = false;
         content_json->_version = CONTENT_JSON_VERSION;
     }
+
+    mutex_unlock(MUTEX_CONTENT_JSON);
 
     cJSON_Delete(contentJson);
     osFreeMem(jsonRaw);
