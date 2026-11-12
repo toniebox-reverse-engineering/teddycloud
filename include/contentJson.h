@@ -15,6 +15,8 @@ typedef enum
     CT_SOURCE_TAP_STREAM,
     CT_SOURCE_TAP_CACHED,
     CT_SOURCE_STREAM,
+    /* A random pool: _source_resolved stays the .tap file, the TAF is picked per content request. */
+    CT_SOURCE_TAP_RANDOM,
 } ct_source_t;
 
 typedef struct
