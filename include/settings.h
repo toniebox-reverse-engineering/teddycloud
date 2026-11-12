@@ -410,6 +410,7 @@ typedef struct
     char *commonName;
     char *boxName;
     char *boxModel;
+    uint32_t boxVersion;
     char *ip;
     settings_core_t core;
     settings_cloud_t cloud;

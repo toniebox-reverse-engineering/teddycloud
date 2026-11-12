@@ -33,6 +33,7 @@
       "Bash(gh pr diff:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
+      "Bash(gh issue comment:*)",
       "Bash(gh repo view:*)",
       "Bash(gh auth status:*)",
       "Bash(make)",
@@ -65,7 +66,6 @@
       "Bash(rsync:*-e ssh*)",
       "Bash(rsync:*--rsh=ssh*)",
       "Bash(gh pr comment:*)",
-      "Bash(gh issue comment:*)",
       "Bash(gh pr review:*)"
     ]
   }

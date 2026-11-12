@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include <sys/types.h>
 #include <time.h>
 #include <stdbool.h>
@@ -13,6 +14,7 @@
 #include "fs_port.h"
 #include "handler.h"
 #include "handler_api.h"
+#include "http/mime.h"
 #include "handler_cloud.h"
 #include "settings.h"
 #include "stats.h"
@@ -26,6 +28,7 @@
 #include "esp32.h"
 #include "cache.h"
 #include "libraryMeta.h"
+#include "mutex_manager.h"
 #include "zip_writer.h"
 
 error_t parsePostData(HttpConnection *connection, char_t *post_data, size_t buffer_size)
@@ -434,6 +437,7 @@ error_t handleApiGetBoxes(HttpConnection *connection, const char_t *uri, const c
         cJSON_AddStringToObject(jsonEntry, "commonName", settings->commonName);
         cJSON_AddStringToObject(jsonEntry, "boxName", settings->boxName);
         cJSON_AddStringToObject(jsonEntry, "boxModel", settings->boxModel); // TODO add color name + url
+        cJSON_AddNumberToObject(jsonEntry, "boxVersion", settings->boxVersion);
 
         cJSON_AddItemToArray(jsonArray, jsonEntry);
     }
@@ -542,6 +546,27 @@ error_t handleApiSettingsGet(HttpConnection *connection, const char_t *uri, cons
     return httpWriteResponse(connection, (char_t *)response_ptr, connection->response.contentLength, false);
 }
 
+/* settings_set_* derives the internal directories only for the base settings; overlays and resets
+   need it here. Cert settings take effect only when the files are loaded, and that load must not
+   generate: a path that does not exist yet would replace the server certificate. */
+static void apply_setting(const char *item, uint8_t settingsId, bool derive_dirs)
+{
+    if (derive_dirs)
+    {
+        settings_changed_id(settingsId);
+    }
+    mutex_lock(MUTEX_SETTINGS);
+    if (osStrncmp(item, "core.server_cert", 16) == 0)
+    {
+        settings_try_load_certs_id(settingsId);
+    }
+    else if (osStrncmp(item, "core.client_cert.", 17) == 0)
+    {
+        settings_load_client_certs_id(settingsId);
+    }
+    mutex_unlock(MUTEX_SETTINGS);
+}
+
 error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     char response[256];
@@ -588,6 +613,8 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
 
         if (success)
         {
+            uint8_t settingsId = get_overlay_id(overlay);
+            apply_setting(item, settingsId, settingsId > 0);
             osStrcpy(response, "OK");
         }
     }
@@ -623,6 +650,7 @@ error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, co
             {
                 TRACE_INFO("Setting: '%s' overlay removed\r\n", item);
             }
+            apply_setting(item, get_overlay_id(overlay), true);
             success = true;
         }
         else
@@ -658,7 +686,7 @@ error_t handleApiFileIndexV2(HttpConnection *connection, const char_t *uri, cons
         return ERROR_FAILURE;
     }
 
-    char path[128];
+    char path[256 + 1];
 
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
@@ -858,7 +886,7 @@ error_t handleApiFileSetListened(HttpConnection *connection, const char_t *uri, 
         return ERROR_FAILURE;
     }
 
-    char path[128];
+    char path[256 + 1];
 
     if (!queryGet(queryString, "path", path, sizeof(path)))
     {
@@ -922,7 +950,7 @@ error_t handleApiFileIndex(HttpConnection *connection, const char_t *uri, const 
             return ERROR_FAILURE;
         }
 
-        char path[128];
+        char path[256 + 1];
 
         if (!queryGet(queryString, "path", path, sizeof(path)))
         {
@@ -1362,7 +1390,7 @@ error_t handleApiGetCaDer(HttpConnection *connection, const char_t *uri, const c
     settings_t *settings = get_settings();
     char *ca_path = custom_asprintf("%s%c%s", settings->internal.basedirfull, PATH_SEPARATOR, settings->core.server_cert.file.ca_der);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, ca_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, ca_path);
     osFreeMem(ca_path);
     return err;
 }
@@ -2044,7 +2072,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     }
     osMemcpy(pages, tafInfo->tafHeader->track_page_nums, page_count * sizeof(uint32_t));
     num_bytes = tafInfo->tafHeader->num_bytes;
-    tonieItem = tonies_byAudioId(tafInfo->tafHeader->audio_id);
+    tonieItem = tonies_byAudioIdPreferHash(tafInfo->tafHeader->audio_id, tafInfo->tafHeader->sha1_hash.data);
     if (tonieItem != NULL)
     {
         size_t name_count = tonieItem->tracks_count;
@@ -2176,7 +2204,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
     if (track_count == 1)
     {
         /* the uri only selects the content type by extension */
-        error = httpSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
+        error = httpExtSendResponseUnsafe(connection, "track.ogg", out_paths[0]);
     }
     else
     {
@@ -2189,7 +2217,7 @@ static error_t handleApiContentTrackExport(HttpConnection *connection, const cha
             error = ERROR_FAILURE;
             goto cleanup;
         }
-        error = httpSendResponseUnsafe(connection, "tracks.zip", zip_path);
+        error = httpExtSendResponseUnsafe(connection, "tracks.zip", zip_path);
     }
 
 cleanup:
@@ -2285,31 +2313,35 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     }
 
     char *range_hdr = NULL;
+    uint32_t first = 0, last = 0;
 
     // Format HTTP response header
-    // TODO add status 416 on invalid ranges
-    if (!isStream && connection->request.Range.start > 0)
+    HttpRangeResult range = isStream ? HTTP_RANGE_FULL : httpExtResolveRange(&connection->request.Range, length, &first, &last);
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        connection->request.Range.size = length;
-        if (connection->request.Range.end >= connection->request.Range.size || connection->request.Range.end == 0)
-        {
-            connection->request.Range.end = connection->request.Range.size - 1;
-        }
-
-        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, connection->request.Range.start, connection->request.Range.end, connection->request.Range.size);
+        range_hdr = custom_asprintf("bytes %" PRIu32 "-%" PRIu32 "/%" PRIu32, first, last, length);
         connection->response.contentRange = range_hdr;
         connection->response.statusCode = 206;
-        connection->response.contentLength = connection->request.Range.end - connection->request.Range.start + 1;
+        connection->response.contentLength = last - first + 1;
         TRACE_DEBUG("Added response range %s\r\n", connection->response.contentRange);
+    }
+    else if (range == HTTP_RANGE_UNSATISFIABLE)
+    {
+        range_hdr = custom_asprintf("bytes */%" PRIu32, length);
+        connection->response.contentRange = range_hdr;
+        connection->response.statusCode = 416;
+        connection->response.contentLength = 0;
     }
     else
     {
         connection->response.statusCode = 200;
         connection->response.contentLength = length;
     }
-    /* content files are mostly extensionless TAFs, but tag configs are JSON (iOS names the download after the type) */
-    const char *ext = strrchr(uri, '.');
-    connection->response.contentType = (ext != NULL && !osStrcasecmp(ext, ".json")) ? "application/json" : "audio/ogg";
+    /* content files are mostly extensionless TAFs; anything else gets the type of its extension, as browsers
+       (iOS) name a download after its type (#556) */
+    const char *name = strrchr(uri, '/') ? strrchr(uri, '/') + 1 : uri;
+    const char *ext = strrchr(name, '.');
+    connection->response.contentType = (ext == NULL || !osStrcasecmp(ext, ".taf")) ? "audio/ogg" : mimeGetType(name);
     connection->response.chunkedEncoding = FALSE;
 
     error = httpWriteHeader(connection);
@@ -2317,6 +2349,7 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
     if (range_hdr)
     {
         osFreeMem(range_hdr);
+        connection->response.contentRange = NULL;
     }
 
     if (error)
@@ -2325,15 +2358,20 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
         return error;
     }
 
-    if (!isStream && connection->request.Range.start > 0 && connection->request.Range.start < connection->request.Range.size)
+    if (range == HTTP_RANGE_PARTIAL)
     {
-        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", connection->request.Range.start);
-        fsSeekFile(file, startOffset + connection->request.Range.start, FS_SEEK_SET);
+        TRACE_DEBUG("Seeking file to %" PRIu32 "\r\n", first);
+        fsSeekFile(file, startOffset + first, FS_SEEK_SET);
+        length = last - first + 1;
     }
     else
     {
         TRACE_DEBUG("No seeking, sending from beginning\r\n");
         fsSeekFile(file, startOffset, FS_SEEK_SET);
+        if (range == HTTP_RANGE_UNSATISFIABLE)
+        {
+            length = 0; /* header only */
+        }
     }
 
     // Send response body
@@ -2378,6 +2416,31 @@ error_t handleApiContent(HttpConnection *connection, const char_t *uri, const ch
 
     return error;
 }
+
+static error_t writeApiStatusText(HttpConnection *connection, uint_t statusCode, const char *message);
+
+/* The tag plays its own cloud content: a TAF in the content dir, or the library file it was cached to.
+ * A forced cloud download clears the source, so it must not be offered for any other source. */
+static bool_t isCachedCloudContent(tonie_info_t *tonieInfo, settings_t *settings)
+{
+    if (tonieInfo->json._source_type != CT_SOURCE_NONE && tonieInfo->json._source_type != CT_SOURCE_TAF)
+    {
+        return false;
+    }
+    if (tonieInfo->json.source == NULL || tonieInfo->json.source[0] == '\0')
+    {
+        return true;
+    }
+    if (tonieInfo->tafHeader == NULL)
+    {
+        return false;
+    }
+    char *cachePath = getLibraryCachePathNoCreate(settings, tonieInfo->tafHeader->audio_id, true);
+    bool_t cached = osStrcmp(tonieInfo->json.source, cachePath) == 0;
+    osFreeMem(cachePath);
+    return cached;
+}
+
 error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     // TODO Rewrite URL
@@ -2431,6 +2494,30 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
         return export_error;
     }
 
+    bool_t forceCloud = false;
+    char force_param[8];
+    if (queryGet(queryString, "force", force_param, sizeof(force_param)) && force_param[0] == 't')
+    {
+        tonie_info_t *tonieInfo = getTonieInfo(pathAbsolute, false, client_ctx->settings);
+        bool_t cached = isCachedCloudContent(tonieInfo, client_ctx->settings);
+        freeTonieInfo(tonieInfo);
+        if (!cached)
+        {
+            osFreeMem(pathAbsolute);
+            TRACE_WARNING("Not redownloading '%s', the tag has a custom source\r\n", path);
+            return writeApiStatusText(connection, 409, "Tag has a custom source, not redownloading it");
+        }
+        if (!client_ctx->settings->cloud.cacheContent)
+        {
+            osFreeMem(pathAbsolute);
+            TRACE_WARNING("Not redownloading '%s', cloud.cacheContent is disabled\r\n", path);
+            return writeApiStatusText(connection, 409, "Caching cloud content is disabled, not redownloading");
+        }
+        forceCloud = true;
+        /* force and overlay are local parameters, the cloud gets a plain content request */
+        queryString = "";
+    }
+
     char ruid[17];
 
     contentJson_t contentJson;
@@ -2451,13 +2538,13 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     if (isSys || contentJson.nocloud)
     {
         osSprintf((char *)uri, "/v1/content/%s", ruid);
-        error = handleCloudContent(connection, uri, queryString, client_ctx, true);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, true, forceCloud);
     }
     else
     {
         osMemcpy(connection->private.authentication_token, contentJson.cloud_auth, contentJson.cloud_auth_len);
         osSprintf((char *)uri, "/v2/content/%s", ruid);
-        error = handleCloudContent(connection, uri, queryString, client_ctx, false);
+        error = handleCloudContent(connection, uri, queryString, client_ctx, false, forceCloud);
     }
 
     free_content_json(&contentJson);
@@ -2887,6 +2974,15 @@ error_t handleApiDirectoryCreate(HttpConnection *connection, const char_t *uri, 
     char path[256 + 3];
     size_t size = 0;
 
+    if (connection->request.contentLength > sizeof(path) - 3)
+    {
+        char message[] = "path too long";
+        connection->request.keepAlive = FALSE; /* the unread body would be taken for the next request */
+        httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(message));
+        connection->response.statusCode = 400;
+        return httpWriteResponseString(connection, message, false);
+    }
+
     error_t error = httpReceive(connection, &path, sizeof(path) - 3, &size, 0x00);
     if (error != NO_ERROR)
     {
@@ -3096,7 +3192,7 @@ error_t handleApiToniesJson(HttpConnection *connection, const char_t *uri, const
 {
     char *tonies_path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIES_JSON_FILE);
 
-    error_t err = httpSendResponseUnsafe(connection, uri, tonies_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, tonies_path);
     osFreeMem(tonies_path);
     return err;
 }
@@ -4717,7 +4813,7 @@ error_t handleApiTonieboxCustomJson(HttpConnection *connection, const char_t *ur
         fsCloseFile(file);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, path);
     osFreeMem(path);
     return err;
 }
@@ -4730,7 +4826,7 @@ error_t handleApiToniesJsonSearch(HttpConnection *connection, const char_t *uri,
     searchModel[0] = '\0';
     searchSeries[0] = '\0';
     searchEpisode[0] = '\0';
-    toniesJson_item_t *result[18];
+    toniesJson_item_t *result[TONIES_SEARCH_MAX];
     size_t result_size;
 
     queryGet(queryString, "searchModel", searchModel, sizeof(searchModel));
@@ -4763,7 +4859,7 @@ error_t handleApiContentJson(HttpConnection *connection, const char_t *uri, cons
         return ERROR_FAILURE;
     }
     char *file_path = custom_asprintf("%s%s", rootPath, &uri[13]);
-    return httpSendResponseUnsafe(connection, uri, file_path);
+    return httpExtSendResponseUnsafe(connection, uri, file_path);
 }
 
 error_t handleApiContentJsonBase(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, char **contentPath)
@@ -4797,7 +4893,7 @@ error_t handleApiContentJsonGet(HttpConnection *connection, const char_t *uri, c
     }
 
     contentJsonPath = custom_asprintf("%s%s", contentPath, ".json");
-    error = httpSendResponseUnsafe(connection, uri, contentJsonPath);
+    error = httpExtSendResponseUnsafe(connection, uri, contentJsonPath);
     osFreeMem(contentPath);
     osFreeMem(contentJsonPath);
     return error;
@@ -4927,7 +5023,7 @@ bool isHexString(const char *buf, size_t maxLen)
     return isHex;
 }
 
-error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ctx)
+error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, bool_t validate, client_ctx_t *client_ctx)
 {
     error_t error = NO_ERROR;
     /* build filename with 8 chars of the taf/json */
@@ -4944,7 +5040,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
         contentJson_t contentJson;
         /* read TAF info - would create .json if not existing */
         // tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
-        tonie_info_t *tafInfo = getTonieInfo(fullTagPath, false, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfoV2(fullTagPath, false, validate, client_ctx->settings);
         /* now update with updated model if found. */
         saveTonieInfo(tafInfo, true);
         contentJson = tafInfo->json;
@@ -4978,6 +5074,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
             }
             cJSON_AddBoolToObject(jsonEntry, "valid", tafInfo->valid);
             cJSON_AddBoolToObject(jsonEntry, "exists", tafInfo->exists);
+            cJSON_AddBoolToObject(jsonEntry, "corrupt", tafInfo->corrupt);
             cJSON_AddBoolToObject(jsonEntry, "live", tafInfo->json.live);
             cJSON_AddBoolToObject(jsonEntry, "nocloud", tafInfo->json.nocloud);
             cJSON_AddBoolToObject(jsonEntry, "hasCloudAuth", tafInfo->json._has_cloud_auth && !tafInfo->json.cloud_override);
@@ -5008,6 +5105,12 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, client_ctx_t *client_ct
                 {
                     cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
                 }
+            }
+            if (tafInfo->exists && !tafInfo->json.nocloud && client_ctx->settings->cloud.cacheContent && (contentJson._has_cloud_auth || isSys) && isCachedCloudContent(tafInfo, client_ctx->settings))
+            {
+                char *redownloadUrl = custom_asprintf("%s&force=true", downloadUrl);
+                cJSON_AddStringToObject(jsonEntry, "redownloadUrl", redownloadUrl);
+                osFreeMem(redownloadUrl);
             }
             osFreeMem(audioUrl);
             osFreeMem(downloadUrl);
@@ -5065,10 +5168,13 @@ error_t handleApiTagInfo(HttpConnection *connection, const char_t *uri, const ch
     {
         return ERROR_FAILURE;
     }
+    /* validate=true reads the whole TAF to check its SHA1 hash and length */
+    char validate[8];
+    bool_t fullValidation = queryGet(queryString, "validate", validate, sizeof(validate)) && validate[0] == 't';
 
     cJSON *json = cJSON_CreateObject();
 
-    error_t error = getTagInfoJson(ruid, json, client_ctx);
+    error_t error = getTagInfoJson(ruid, json, fullValidation, client_ctx);
     if (error != NO_ERROR)
     {
         cJSON_Delete(json);
@@ -5160,7 +5266,7 @@ error_t handleApiTagIndex(HttpConnection *connection, const char_t *uri, const c
                 ruid[i] = tolower(ruid[i]);
             }
 
-            if (getTagInfoJson(ruid, jsonArray, client_ctx) == NO_ERROR)
+            if (getTagInfoJson(ruid, jsonArray, false, client_ctx) == NO_ERROR)
             {
                 break;
             }
@@ -5251,8 +5357,17 @@ error_t handleDeleteOverlay(HttpConnection *connection, const char_t *uri, const
         TRACE_ERROR("No overlay detected %s\n", overlay);
         return ERROR_FAILURE;
     }
-    get_settings_cn(overlay)->internal.config_used = false;
-    settings_save();
+    settings_t *settings = get_settings_cn(overlay);
+    settings->internal.config_used = false;
+    if (settings_save() != NO_ERROR)
+    {
+        settings->internal.config_used = true;
+        TRACE_ERROR("Could not save the settings, overlay %s not removed\n", overlay);
+        return ERROR_FAILURE;
+    }
+    /* The slot still carries the box's name and values; loading the saved files clears it, so the box
+       starts over on its next connection. */
+    settings_load();
     TRACE_INFO("Removed overlay %s\n", overlay);
 
     return httpOkResponse(connection);

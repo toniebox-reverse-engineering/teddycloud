@@ -218,6 +218,33 @@ class Traversal513(Base):
             self.OUTSIDE.unlink(missing_ok=True)
 
 
+class LongMoveTarget(Base):
+    """A move target longer than the server's buffer was cut short and the move still answered OK."""
+
+    def test_too_long_target_is_refused(self):
+        self.put_library("__move_long.txt")
+        target = "a" * 300 + ".taf"
+        self.library_files.append(target[:258])  # removed in tearDown, ignored if it was never created
+        form = "source=__move_long.txt&target=" + target
+        status, _ = request("POST", "/api/fileMove?special=library", form, {"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(status, 400)
+
+    def test_too_long_folder_is_refused(self):
+        status, body = request("POST", "/api/dirCreate?special=library", "/" + "/".join(["d" * 50] * 6))
+        self.assertEqual(status, 400)
+        self.assertEqual(body, "path too long")
+
+    def test_deep_list_path_is_not_the_root(self):
+        self.put_library("__deep_list.txt")
+        for length in (200, 300):  # fits the buffer / does not fit and is refused
+            with self.subTest(length=length):
+                try:
+                    _, body = request("GET", "/api/fileIndexV2?special=library&path=" + "a" * length)
+                except http.client.RemoteDisconnected:
+                    body = ""  # the folder does not exist, or the request was refused
+                self.assertNotIn("__deep_list.txt", body)
+
+
 class Ota(Base):
     """Local V3 OTA delivery: /v3/ota/<type>/<hash> serves <firmware>/ota/<type>/<hash>.bin.
     OTA hashes with ".." can't be tested over HTTP, the URI is canonicalised before the handler runs."""
@@ -364,6 +391,25 @@ class Secrets505(Base):
         self.assertEqual(status, 200)
         leaked = [o["ID"] for o in json.loads(text)["options"] if "PRIVATE KEY" in str(o.get("value", ""))]
         self.assertEqual(leaked, [])
+
+
+class DumpRuidAuth(Base):
+    """A box asking about a tag whose content json cannot be written (here a file is where its directory goes)
+    crashed the server: dumpRuidAuth took the length of the cloud_ruid that the json never got."""
+
+    def test_unwritable_content_json(self):
+        blocker = BASE_DIR / "data" / "content" / "default" / "0A00DEAD"
+        blocker.parent.mkdir(parents=True, exist_ok=True)
+        blocker.write_bytes(b"")
+        try:
+            for path in ("/v1/claim/0a00dead500304e0", "/v1/content/0a00dead500304e0"):
+                try:
+                    request("GET", path, headers={"Authorization": "BD " + "5a" * 32}, timeout=5)
+                except (OSError, http.client.HTTPException):
+                    pass  # the crash
+                self.assertTrue(self.server_alive(), f"{path} crashed the server")
+        finally:
+            blocker.unlink()
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
@@ -166,7 +167,8 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
                 continue;
             }
             char *tmpname = strdup(entry.name);
-            char *biggest_timestamp_txt = strtok(tmpname, "-_");
+            char *save = NULL;
+            char *biggest_timestamp_txt = strtok_r(tmpname, "-_", &save);
             time_t file_timestamp = (time_t)atoi(biggest_timestamp_txt);
             if (file_timestamp > biggest_timestamp)
             {
@@ -246,7 +248,7 @@ error_t handleCloudOTA(HttpConnection *connection, const char_t *uri, const char
     if (new_ota)
     {
         // TODO add Content-Disposition: attachment;filename=
-        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+        ret = httpExtSendResponseStreamUnsafe(connection, uri, local_file, false);
     }
     else
     {
@@ -314,7 +316,8 @@ void markLiveTonie(tonie_info_t *tonieInfo)
 
 void dumpRuidAuth(contentJson_t *content_json, char *ruid, uint8_t *authentication)
 {
-    if (!content_json->cloud_override && osStrlen(content_json->cloud_ruid) == 0)
+    /* cloud_ruid is NULL when the content json could not be created (load_content_json) */
+    if (!content_json->cloud_override && (content_json->cloud_ruid == NULL || content_json->cloud_ruid[0] == '\0'))
     {
         osFreeMem(content_json->cloud_auth);
         content_json->cloud_auth_len = TONIE_AUTH_TOKEN_LENGTH;
@@ -625,17 +628,70 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
     return tonieInfo;
 }
 
-error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api)
+/* Picks the TAF a request for a random pool gets. A request that continues a TAF picked before gets
+   the same one: a resumed download (Range, with the TAF's audio id in If-Range, decimal) and a V3
+   chapter (its name ends in the start of the SHA1 the content meta announced, see
+   handleCloudContentMetaV3). A resume of a TAF no longer in the pool gets a new pick, sent whole. */
+static bool_t pickPoolTaf(HttpConnection *connection, const char_t *uri, int ruid_begin, cloudapi_t api, tonie_info_t *tonieInfo, client_ctx_t *client_ctx)
+{
+    if (api == V3_CHAPTER)
+    {
+        const char_t *suffix = &uri[ruid_begin + 16];
+        char *end = NULL;
+        uint32_t prefix = (suffix[0] == '_') ? (uint32_t)strtoul(&suffix[1], &end, 16) : 0;
+        uint8_t sha1_prefix[TAP_RANDOM_SHA1_PREFIX] = {(uint8_t)(prefix >> 24), (uint8_t)(prefix >> 16), (uint8_t)(prefix >> 8), (uint8_t)prefix};
+        return end == &suffix[1 + 2 * TAP_RANDOM_SHA1_PREFIX] && pickRandomTonieContent(tonieInfo, 0, sha1_prefix, client_ctx->settings);
+    }
+    if (connection->request.Range.start != 0)
+    {
+        uint32_t audio_id = (uint32_t)strtoul(connection->request.ifRange, NULL, 10);
+        if (audio_id != 0 && pickRandomTonieContent(tonieInfo, audio_id, NULL, client_ctx->settings))
+        {
+            return true;
+        }
+        TRACE_INFO("Random TAP: range request for a TAF not in the pool (If-Range '%s'), sending a new pick whole\r\n", connection->request.ifRange);
+        connection->request.Range.valid = false;
+        connection->request.Range.start = 0;
+        connection->request.Range.end = 0;
+    }
+    return pickRandomTonieContent(tonieInfo, 0, NULL, client_ctx->settings);
+}
+
+/* A forced download clears the source before fetching from the cloud. If nothing was cached,
+ * the tag gets its previous (corrupted, but existing) file back instead of none. */
+static void restoreSourceIfNotCached(char ruid[17], const char *previousSource, settings_t *settings)
+{
+    tonie_info_t *tonieInfo = getTonieInfoFromRuid(ruid, true, settings);
+    if (!tonieInfo->exists && (tonieInfo->json.source == NULL || tonieInfo->json.source[0] == '\0'))
+    {
+        TRACE_WARNING(" >> Nothing cached from the cloud, restoring source %s\r\n", previousSource);
+        free(tonieInfo->json.source);
+        tonieInfo->json.source = strdup(previousSource);
+        tonieInfo->json._updated = true;
+    }
+    freeTonieInfo(tonieInfo);
+}
+
+error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, int ruid_begin, cloudapi_t api, bool_t forceCloud)
 {
     char ruid[17];
     error_t error = NO_ERROR;
     bool_t tonie_marked = false;
+    char *previousSource = NULL;
 
     tonie_info_t *tonieInfo = getTonieInfoForRequest(connection, uri, ruid_begin, queryString, client_ctx, noPassword, ruid, &tonie_marked, &error);
 
     if (tonieInfo == NULL)
     {
         return error;
+    }
+
+    /* The pick is served below like any local TAF. A pool without one is answered here, as the
+       cloud branch would clear the tonie's source for a tonie with cloud_override. */
+    if (tonieInfo->json._source_type == CT_SOURCE_TAP_RANDOM && !pickPoolTaf(connection, uri, ruid_begin, api, tonieInfo, client_ctx))
+    {
+        freeTonieInfo(tonieInfo);
+        return ERROR_NOT_FOUND;
     }
 
     uint8_t *token = connection->private.authentication_token;
@@ -693,7 +749,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             ffmpeg_ctx.sweep = false;
 
             osDelayTask(delay);
-            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            error_t response_error = httpExtSendResponseStream(connection, streamFileRel, true);
             if (response_error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
@@ -735,7 +791,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
 
         if (stream_ctx->error == NO_ERROR)
         {
-            error_t response_error = httpSendResponseStream(connection, streamFileRel, true);
+            error_t response_error = httpExtSendResponseStream(connection, streamFileRel, true);
             if (response_error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
@@ -753,7 +809,7 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             osDelayTask(100);
         }
     }
-    else if (tonieInfo->exists && tonieInfo->valid && (!tonie_marked || !can_use_cloud))
+    else if (tonieInfo->exists && tonieInfo->valid && !forceCloud && (!tonie_marked || !can_use_cloud))
     {
         TRACE_INFO("Serve local content from %s\r\n", tonieInfo->contentPath);
         connection->response.keepAlive = true;
@@ -833,8 +889,13 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
         size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)
         {
-            error_t error = httpSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
-            if (error)
+            error_t error = httpExtSendResponseStream(connection, &tonieInfo->contentPath[dataPathLen], (tonieInfo->json._source_type == CT_SOURCE_TAF_INCOMPLETE));
+            if (error == ERROR_WRITE_FAILED || error == ERROR_CONNECTION_RESET || error == ERROR_CONNECTION_CLOSING)
+            {
+                // client aborted the transfer (e.g. browser player replacing a range request)
+                TRACE_WARNING(" >> transfer of %s aborted by client, error=%s\r\n", tonieInfo->contentPath, error2text(error));
+            }
+            else if (error)
             {
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(error));
             }
@@ -867,6 +928,10 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             if (tonieInfo->json.source != NULL)
             {
                 TRACE_INFO(" >> Removing source %s for download\r\n", tonieInfo->json.source);
+                if (forceCloud && tonieInfo->json.source[0] != '\0')
+                {
+                    previousSource = strdup(tonieInfo->json.source);
+                }
                 tonieInfo->json.source[0] = '\0';
                 tonieInfo->json._updated = true;
                 freeTonieInfo(tonieInfo);
@@ -885,30 +950,39 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             cbr_ctx_t ctx;
             req_cbr_t cbr = getCloudCbr(connection, uri, queryString, api, &ctx, client_ctx);
             ctx.tonieInfo = tonieInfo;
+            /* A box resuming a download asks for the rest of the file; the cloud has to see that, or it
+             * answers 200 with the whole file and the box starts over */
+            ctx.range_start = connection->request.Range.start;
+            ctx.if_range = connection->request.ifRange;
             cloud_request_get(NULL, 0, uri, queryString, token, &cbr);
             error = NO_ERROR;
         }
     }
     freeTonieInfo(tonieInfo);
+    if (previousSource != NULL)
+    {
+        restoreSourceIfNotCached(ruid, previousSource, client_ctx->settings);
+        free(previousSource);
+    }
     return error;
 }
 
-error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword)
+error_t handleCloudContent(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx, bool_t noPassword, bool_t forceCloud)
 {
-    return handleCloudContentExt(connection, uri, queryString, client_ctx, noPassword, 12, V2_CONTENT);
+    return handleCloudContentExt(connection, uri, queryString, client_ctx, noPassword, 12, V2_CONTENT, forceCloud);
 }
 
 
 error_t handleCloudContentV1(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
-    return handleCloudContent(connection, uri, queryString, client_ctx, TRUE);
+    return handleCloudContent(connection, uri, queryString, client_ctx, TRUE, FALSE);
 }
 
 error_t handleCloudContentV2(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
 {
     if (connection->request.auth.found && connection->request.auth.mode == HTTP_AUTH_MODE_DIGEST)
     {
-        return handleCloudContent(connection, uri, queryString, client_ctx, FALSE);
+        return handleCloudContent(connection, uri, queryString, client_ctx, FALSE, FALSE);
     }
     else
     {
@@ -1053,7 +1127,8 @@ void process_freshness_check(client_ctx_t *client_ctx, TonieFreshnessCheckReques
                               custom_server ? ", custom" : "");
         }
         TRACE_INFO_RESUME("\r\n");
-        if (!tonieInfo->valid)
+        /* A pool's model is not the one of whatever TAF the box got last. */
+        if (!tonieInfo->valid && tonieInfo->json._source_type != CT_SOURCE_TAP_RANDOM)
         {
             content_json_update_model(&tonieInfo->json, boxAudioId, NULL);
         }
@@ -1439,7 +1514,13 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
     }
     uint8_t *token = connection->private.authentication_token;
 
-    
+    bool_t pool = (tonieInfo->json._source_type == CT_SOURCE_TAP_RANDOM);
+    if (pool && !pickRandomTonieContent(tonieInfo, 0, NULL, client_ctx->settings))
+    {
+        freeTonieInfo(tonieInfo);
+        return ERROR_NOT_FOUND;
+    }
+
     if (tonieInfo->exists && tonieInfo->valid)
     {
         cJSON *respJson = cJSON_CreateObject();
@@ -1473,7 +1554,16 @@ error_t handleCloudContentMetaV3(HttpConnection *connection, const char_t *uri, 
 
             cJSON_AddStringToObject(contentItem, "type", "audio");
             char name[64];
-            osSprintf(name, "teddycloud_%02d_%s", i, ruid);
+            if (pool)
+            {
+                /* The chapter requests must get this pick, not a new one (pickPoolTaf). */
+                const uint8_t *sha1 = tonieInfo->tafHeader->sha1_hash.data;
+                osSprintf(name, "teddycloud_%02d_%s_%02X%02X%02X%02X", i, ruid, sha1[0], sha1[1], sha1[2], sha1[3]);
+            }
+            else
+            {
+                osSprintf(name, "teddycloud_%02d_%s", i, ruid);
+            }
             cJSON_AddStringToObject(contentItem, "name", name);
             cJSON_AddStringToObject(contentItem, "auth", "");
             cJSON_AddItemToObject(contentItem, "analytics", cJSON_CreateObject());
@@ -1580,7 +1670,7 @@ error_t handleCloudChapterV3(HttpConnection *connection, const char_t *uri, cons
 
         connection->private.client_ctx.skip_taf_header = true;
 
-        return handleCloudContentExt(connection, uri, queryString, client_ctx, false, 12 + 11 + 3, V3_CHAPTER);
+        return handleCloudContentExt(connection, uri, queryString, client_ctx, false, 12 + 11 + 3, V3_CHAPTER, false);
     }
 
     if (client_ctx->settings->cloud.enabled && client_ctx->settings->cloud.enableV3Chapter)
@@ -1710,7 +1800,7 @@ error_t handleCloudOtaV3(HttpConnection *connection, const char_t *uri, const ch
     
     if (new_ota)
     {
-        ret = httpSendResponseStreamUnsafe(connection, uri, local_file, false);
+        ret = httpExtSendResponseStreamUnsafe(connection, uri, local_file, false);
     }
     else
     {

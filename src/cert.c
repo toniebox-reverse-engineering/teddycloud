@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include "debug.h"
 #include "error.h"
 #include "fs_port.h"
@@ -8,6 +9,8 @@
 #include "rand.h"
 #include "pem_import.h"
 #include "pem_export.h"
+#include "pem_key_import.h"
+#include "pem_key_export.h"
 #include "x509_cert_parse.h"
 #include "x509_cert_create.h"
 #include "x509_key_format.h"
@@ -21,6 +24,14 @@
 #include "tls_adapter.h"
 #include "settings.h"
 #include "cert.h"
+
+/* accept CA certificates with extensions Cyclone does not know */
+static const X509Options x509_options_lenient(void)
+{
+    X509Options options = X509_DEFAULT_OPTIONS;
+    options.ignoreUnknownExtensions = TRUE;
+    return options;
+}
 
 static int hex2int(char ch)
 {
@@ -98,7 +109,8 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv, uint8_t **ser
     }
 
     osMemset(cert, 0x00, sizeof(X509CertInfo));
-    if (x509ParseCertificateEx(server_ca_der, ca_size, cert, true) != NO_ERROR)
+    const X509Options x509_options = x509_options_lenient();
+    if (x509ParseCertificateEx(server_ca_der, ca_size, cert, &x509_options) != NO_ERROR)
     {
         TRACE_ERROR("x509ParseCertificateEx failed\r\n");
         osFreeMem(server_ca_der);
@@ -109,7 +121,7 @@ error_t cert_load_ca(X509CertInfo *cert, RsaPrivateKey *cert_priv, uint8_t **ser
     osMemset(cert_priv, 0x00, sizeof(RsaPrivateKey));
 
     TRACE_INFO("Load CA key...\r\n");
-    if (pemImportRsaPrivateKey(server_key, osStrlen(server_key), NULL, cert_priv) != NO_ERROR)
+    if (pemImportRsaPrivateKey(cert_priv, server_key, osStrlen(server_key), NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportRsaPrivateKey failed\r\n");
         osFreeMem(server_ca_der);
@@ -170,7 +182,7 @@ error_t cert_generate_signed(const char *subject, const uint8_t *serial_number, 
            must not be called with a NULL output buffer.) */
         char_t temp_pem_buf[8192];
         size_t temp_pem_size = sizeof(temp_pem_buf);
-        if (pemExportRsaPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size) == NO_ERROR && temp_pem_size > 0)
+        if (pemExportRsaPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size, PEM_PRIVATE_KEY_FORMAT_PKCS8) == NO_ERROR && temp_pem_size > 0)
         {
             priv_pem_data = osAllocMem(temp_pem_size + 1);
             osMemcpy(priv_pem_data, temp_pem_buf, temp_pem_size);
@@ -530,101 +542,6 @@ error_t cert_generate_default()
     return settings_try_load_certs_id(0);
 }
 
-error_t x509ExportEcPrivateKey(const EcCurveInfo *curveInfo,
-   const EcPrivateKey *privateKey, const EcPublicKey *publicKey,
-   uint8_t *output, size_t *written)
-{
-   uint8_t temp_buf[512];
-   error_t error;
-   size_t n;
-   size_t length;
-   uint8_t *p;
-   Asn1Tag tag;
-
-   p = temp_buf;
-   length = 0;
-
-   //Format Version field (refer to RFC 5915, section 3)
-   error = asn1WriteInt32(1, FALSE, p, &n);
-   if(error) return error;
-   length += n;
-   p += n;
-
-   //Write the EC private key d as an octet string
-   error = mpiWriteRaw(&privateKey->d, p, curveInfo->pLen);
-   if(error) return error;
-
-   tag.constructed = FALSE;
-   tag.objClass = ASN1_CLASS_UNIVERSAL;
-   tag.objType = ASN1_TYPE_OCTET_STRING;
-   tag.length = curveInfo->pLen;
-   tag.value = p;
-
-   error = asn1WriteTag(&tag, FALSE, p, &n);
-   if(error) return error;
-
-   n = tag.totalLength;
-   length += n;
-   p += n;
-
-   //The parameters field is optional but some parsers require it
-   if(curveInfo->oid != NULL)
-   {
-      //Write the curve OID
-      tag.constructed = FALSE;
-      tag.objClass = ASN1_CLASS_UNIVERSAL;
-      tag.objType = ASN1_TYPE_OBJECT_IDENTIFIER;
-      tag.length = curveInfo->oidSize;
-      tag.value = curveInfo->oid;
-
-      error = asn1WriteTag(&tag, FALSE, p, &n);
-      if(error) return error;
-
-      n = tag.totalLength;
-
-      //Wrap in a context-specific tag [0]
-      tag.constructed = TRUE;
-      tag.objClass = ASN1_CLASS_CONTEXT_SPECIFIC;
-      tag.objType = 0;
-      tag.length = n;
-      tag.value = p;
-
-      error = asn1WriteTag(&tag, FALSE, p, &n);
-      if(error) return error;
-
-      n = tag.totalLength;
-      length += n;
-      p += n;
-   }
-
-
-   //The public key is optional
-   if(publicKey != NULL)
-   {
-      error = pkcs8FormatEcPublicKey(curveInfo, publicKey, p, &n);
-      if(error) return error;
-      length += n;
-      p += n;
-   }
-
-   //Format ECPrivateKey field
-   tag.constructed = TRUE;
-   tag.objClass = ASN1_CLASS_UNIVERSAL;
-   tag.objType = ASN1_TYPE_SEQUENCE;
-   tag.length = length;
-   tag.value = temp_buf;
-
-   error = asn1WriteTag(&tag, FALSE, temp_buf, &n);
-   if(error) return error;
-
-   *written = tag.totalLength;
-   if(output != NULL)
-   {
-      osMemcpy(output, temp_buf, tag.totalLength);
-   }
-   return NO_ERROR;
-}
-
 error_t cert_load_ca_ec(const char *ca_cert_setting, const char *ca_key_setting, X509CertInfo *cert, EcPrivateKey *cert_priv, uint8_t **server_ca_der_out)
 {
     const char *server_ca = settings_get_string(ca_cert_setting);
@@ -653,7 +570,8 @@ error_t cert_load_ca_ec(const char *ca_cert_setting, const char *ca_key_setting,
     }
 
     osMemset(cert, 0x00, sizeof(X509CertInfo));
-    if (x509ParseCertificateEx(server_ca_der, ca_size, cert, true) != NO_ERROR)
+    const X509Options x509_options = x509_options_lenient();
+    if (x509ParseCertificateEx(server_ca_der, ca_size, cert, &x509_options) != NO_ERROR)
     {
         TRACE_ERROR("x509ParseCertificateEx failed\r\n");
         osFreeMem(server_ca_der);
@@ -665,7 +583,7 @@ error_t cert_load_ca_ec(const char *ca_cert_setting, const char *ca_key_setting,
     ecInitPrivateKey(cert_priv);
 
     TRACE_INFO("Load CA key...\r\n");
-    if (pemImportEcPrivateKey(server_key, osStrlen(server_key), NULL, cert_priv) != NO_ERROR)
+    if (pemImportEcPrivateKey(cert_priv, server_key, osStrlen(server_key), NULL) != NO_ERROR)
     {
         TRACE_ERROR("pemImportEcPrivateKey failed\r\n");
         osFreeMem(server_ca_der);
@@ -719,27 +637,13 @@ error_t cert_generate_signed_ec(
     size_t priv_size = 0;
     uint8_t *priv_data = NULL;
 
-    EcDomainParameters params;
-    ecInitDomainParameters(&params);
-    if (ecLoadDomainParameters(&params, SECP384R1_CURVE) != NO_ERROR)
-    {
-        TRACE_ERROR("ecLoadDomainParameters failed\r\n");
-        ecFreePrivateKey(&cert_privkey);
-        ecFreePublicKey(&cert_pubkey);
-        ecFreeDomainParameters(&params);
-        if (!self_sign) {
-            ecFreePrivateKey(&issuer_priv);
-            if (server_ca_der) osFreeMem(server_ca_der);
-        }
-        return ERROR_FAILURE;
-    }
+    const EcCurve *curve = SECP384R1_CURVE;
 
-    if (ecGenerateKeyPair(rand_get_algo(), rand_get_context(), &params, &cert_privkey, &cert_pubkey) != NO_ERROR)
+    if (ecGenerateKeyPair(rand_get_algo(), rand_get_context(), curve, &cert_privkey, &cert_pubkey) != NO_ERROR)
     {
         TRACE_ERROR("ecGenerateKeyPair failed\r\n");
         ecFreePrivateKey(&cert_privkey);
         ecFreePublicKey(&cert_pubkey);
-        ecFreeDomainParameters(&params);
         if (!self_sign) {
             ecFreePrivateKey(&issuer_priv);
             if (server_ca_der) osFreeMem(server_ca_der);
@@ -753,7 +657,6 @@ error_t cert_generate_signed_ec(
         TRACE_ERROR("x509ExportEcPrivateKey size check failed\r\n");
         ecFreePrivateKey(&cert_privkey);
         ecFreePublicKey(&cert_pubkey);
-        ecFreeDomainParameters(&params);
         if (!self_sign) {
             ecFreePrivateKey(&issuer_priv);
             if (server_ca_der) osFreeMem(server_ca_der);
@@ -768,7 +671,6 @@ error_t cert_generate_signed_ec(
         osFreeMem(priv_data);
         ecFreePrivateKey(&cert_privkey);
         ecFreePublicKey(&cert_pubkey);
-        ecFreeDomainParameters(&params);
         if (!self_sign) {
             ecFreePrivateKey(&issuer_priv);
             if (server_ca_der) osFreeMem(server_ca_der);
@@ -782,7 +684,7 @@ error_t cert_generate_signed_ec(
     char_t temp_pem_buf[2048];
     size_t temp_pem_size = sizeof(temp_pem_buf);
 
-    if (pemExportEcPrivateKey(SECP384R1_CURVE, &cert_privkey, &cert_pubkey, temp_pem_buf, &temp_pem_size) == NO_ERROR)
+    if (pemExportEcPrivateKey(&cert_privkey, temp_pem_buf, &temp_pem_size, PEM_PRIVATE_KEY_FORMAT_PKCS8) == NO_ERROR)
     {
         priv_pem_data = osAllocMem(temp_pem_size + 1);
         osMemcpy(priv_pem_data, temp_pem_buf, temp_pem_size);
@@ -914,7 +816,6 @@ error_t cert_generate_signed_ec(
         if (priv_pem_data) osFreeMem(priv_pem_data);
         ecFreePublicKey(&cert_pubkey);
         ecFreePrivateKey(&cert_privkey);
-        ecFreeDomainParameters(&params);
         if (!self_sign) {
             ecFreePrivateKey(&issuer_priv);
             if (server_ca_der) osFreeMem(server_ca_der);
@@ -924,7 +825,6 @@ error_t cert_generate_signed_ec(
 
     ecFreePublicKey(&cert_pubkey);
     ecFreePrivateKey(&cert_privkey);
-    ecFreeDomainParameters(&params);
     if (!self_sign) {
         ecFreePrivateKey(&issuer_priv);
         if (server_ca_der) osFreeMem(server_ca_der);

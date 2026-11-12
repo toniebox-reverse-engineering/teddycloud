@@ -8,7 +8,19 @@
 #include "server_helpers.h"
 #include "toniesJson.h"
 #include "handler.h"
+#include "mutex_manager.h"
 #include "json_helper.h"
+
+/* For sources the box must not keep a copy of, and that replace the tonie's cloud content. */
+static void force_live_nocloud(contentJson_t *content_json)
+{
+    if (!content_json->live || !content_json->nocloud)
+    {
+        content_json->live = true;
+        content_json->nocloud = true;
+        content_json->_updated = true;
+    }
+}
 
 error_t load_content_json(const char *content_path, contentJson_t *content_json, bool create_if_missing, settings_t *settings)
 {
@@ -39,11 +51,18 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
 
     if (fsFileExists(jsonPath))
     {
+        /* Not while the json is replaced: the size would belong to the old file and the data to the new one.
+           A json that does not parse is written anew below, which would lose what it held. */
+        mutex_lock(MUTEX_CONTENT_JSON);
         size_t fileSize = 0;
         fsGetFileSize(jsonPath, (uint32_t *)(&fileSize));
 
         FsFile *fsFile = fsOpenFile(jsonPath, FS_FILE_MODE_READ);
-        if (fsFile != NULL)
+        if (fsFile == NULL)
+        {
+            mutex_unlock(MUTEX_CONTENT_JSON);
+        }
+        else
         {
             size_t sizeRead;
             char *data = osAllocMem(fileSize);
@@ -58,6 +77,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 pos += sizeRead;
             }
             fsCloseFile(fsFile);
+            mutex_unlock(MUTEX_CONTENT_JSON);
 
             cJSON *contentJson = cJSON_ParseWithLengthOpts(data, fileSize, 0, 0);
             osFreeMem(data);
@@ -100,7 +120,8 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                 if (osStrlen(content_json->source) > 0)
                 {
                     resolveSpecialPathPrefix(&content_json->_source_resolved, settings);
-                    if (isValidTaf(content_json->_source_resolved, settings->core.full_taf_validation))
+                    /* header only: a TAF with a wrong SHA1 hash is still a TAF (corrupted), not a stream source */
+                    if (isValidTaf(content_json->_source_resolved, false))
                     {
                         content_json->_source_type = CT_SOURCE_TAF;
                     }
@@ -111,7 +132,13 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                         size_t src_len = osStrlen(content_json->_source_resolved);
                         bool_t looks_like_tap = (src_len >= 4 && osStrncasecmp(content_json->_source_resolved + src_len - 4, ".tap", 4) == 0);
                         error_t tap_error = looks_like_tap ? tap_load(content_json->_source_resolved, &content_json->_tap) : ERROR_INVALID_FILE;
-                        if (tap_error == NO_ERROR && content_json->_tap._valid)
+                        if (tap_error == NO_ERROR && content_json->_tap._valid && content_json->_tap._random)
+                        {
+                            content_json->_source_type = CT_SOURCE_TAP_RANDOM;
+                            /* A new pick after each freshness check, never a resume inside a TAF the box does not get again. */
+                            force_live_nocloud(content_json);
+                        }
+                        else if (tap_error == NO_ERROR && content_json->_tap._valid)
                         {
                             if (content_json->_tap._cached)
                             {
@@ -127,12 +154,7 @@ error_t load_content_json(const char *content_path, contentJson_t *content_json,
                         else if (fsFileExists(content_json->_source_resolved) || osStrstr(content_json->_source_resolved, "://"))
                         {
                             content_json->_source_type = CT_SOURCE_STREAM;
-                            if (!content_json->live || !content_json->nocloud)
-                            {
-                                content_json->live = true;
-                                content_json->nocloud = true;
-                                content_json->_updated = true;
-                            }
+                            force_live_nocloud(content_json);
                         }
                     }
                 }
@@ -193,6 +215,10 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
     }
     osFreeMem(content_dir);
 
+    /* All writers share the one .tmp file, so two saves of a json at once (a tag info request saves
+       what it updated while the cloud handler saves the same json) would truncate each other's
+       file and leave a broken json behind. The per-id locks are switched off (mutex_lock_id). */
+    mutex_lock(MUTEX_CONTENT_JSON);
     char *jsonPathTmp = custom_asprintf("%s.tmp", json_path);
     error_t error = NO_ERROR;
     cJSON *contentJson = cJSON_CreateObject();
@@ -233,6 +259,8 @@ error_t save_content_json(const char *json_path, contentJson_t *content_json)
         content_json->_updated = false;
         content_json->_version = CONTENT_JSON_VERSION;
     }
+
+    mutex_unlock(MUTEX_CONTENT_JSON);
 
     cJSON_Delete(contentJson);
     osFreeMem(jsonRaw);

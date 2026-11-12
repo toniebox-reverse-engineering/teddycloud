@@ -1,5 +1,6 @@
 
 
+#include "error_text.h"
 #include <errno.h>     // for error_t
 #include <stdint.h>    // for uint8_t
 #include <stdio.h>     // for printf
@@ -276,7 +277,7 @@ error_t handleCacheDownload(HttpConnection *connection, const char_t *uri, const
         return httpSendRedirectResponse(connection, 301, entry->original_url);
     }
 
-    error_t err = httpSendResponseUnsafe(connection, uri, entry->file_path);
+    error_t err = httpExtSendResponseUnsafe(connection, uri, entry->file_path);
     return err;
 }
 
@@ -287,7 +288,7 @@ static error_t handleCorsOptions(
     client_ctx_t *client_ctx)
 {
     char line[256];
-    const char_t *allowOrigin = connection->serverContext->settings.allowOrigin;
+    const char_t *allowOrigin = httpExtAllowOrigin();
 
     osSnprintf(line, sizeof(line), "HTTP/%d.%d 204 No Content\r\n", MSB(connection->request.version), LSB(connection->request.version));
 
@@ -523,6 +524,15 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                     TRACE_INFO("Box generation set %d to %d\r\n", client_ctx->settings->toniebox.boxGeneration, boxGen);
                     settings_set_unsigned_id("toniebox.boxGeneration", boxGen, client_ctx->settings->internal.overlayNumber);
                 }
+
+                settings_box_type boxIC = firmware_info->boxIC;
+                if (boxIC != BOX_UNKNOWN && client_ctx->settings->boxVersion != boxIC && client_ctx->settings->internal.overlayNumber > 0)
+                {
+                    // persist the hardware in the overlay, so it is known before the box connects again
+                    TRACE_INFO("Box version set %d to %d\r\n", client_ctx->settings->boxVersion, boxIC);
+                    settings_set_unsigned_id("boxVersion", boxIC, client_ctx->settings->internal.overlayNumber);
+                    settings_save();
+                }
             }
         }
     }
@@ -547,7 +557,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             break;
         }
 
-        if (connection->settings->isHttps && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
+        if (httpExtIsHttps(connection) && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
         {
             error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
@@ -608,7 +618,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
 
             char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
 
-            error = httpSendResponse(connection, newUri);
+            error = httpExtSendResponse(connection, newUri);
             free(newUri);
         }
         else
@@ -940,16 +950,13 @@ void server_init(bool test)
     http_settings.uriNotFoundCallback = httpServerUriNotFoundCallback;
     http_settings.authCallback = httpServerAuthCallback;
     http_settings.port = settings_get_unsigned("core.server.http_port");
-    http_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    http_settings.isHttps = false;
+    httpExtSetAllowOrigin(settings_get_string("core.allowOrigin"));
 
     /* use them for HTTPS */
     https_web_settings = http_settings;
     https_web_settings.connections = httpsWebConnections;
     https_web_settings.port = settings_get_unsigned("core.server.https_web_port");
     https_web_settings.tlsInitCallback = httpServerTlsInitCallback;
-    https_web_settings.allowOrigin = strdup(settings_get_string("core.allowOrigin"));
-    https_web_settings.isHttps = true;
 
     /* use them for Box HTTPS */
     https_api_settings = https_web_settings;
@@ -1026,27 +1033,11 @@ void server_init(bool test)
         size_t openConnections = 0;
         for (size_t i = 0; i < APP_HTTP_MAX_CONNECTIONS; i++)
         {
-            HttpConnection *conn = &httpsWebConnections[i];
-            if (!conn->running)
+            /* a browser, also when it asks for a box: it says nothing about the boxes */
+            if (httpsWebConnections[i].running)
             {
-                continue;
+                openConnections++;
             }
-            openConnections++;
-            mutex_lock(MUTEX_CLIENT_CTX);
-            client_ctx_t *client_ctx = &conn->private.client_ctx;
-            if (client_ctx->settings == NULL)
-            {
-                mutex_unlock(MUTEX_CLIENT_CTX);
-                continue;
-            }
-            settings_internal_t *internal = &client_ctx->settings->internal;
-            if (internal->config_used)
-            {
-                time_t curr_time = time(NULL);
-                internal->online = true;
-                internal->last_connection = curr_time;
-            }
-            mutex_unlock(MUTEX_CLIENT_CTX);
         }
         if (openConnections != openWebConnectionsLast)
         {
@@ -1070,7 +1061,8 @@ void server_init(bool test)
                 continue;
             }
             settings_internal_t *internal = &client_ctx->settings->internal;
-            if (internal->config_used)
+            /* only a box's own settings: the server's are copied into every box when they are loaded */
+            if (internal->config_used && internal->overlayNumber > 0)
             {
                 time_t curr_time = time(NULL);
                 internal->online = true;

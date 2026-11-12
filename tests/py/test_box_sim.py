@@ -129,3 +129,22 @@ def test_rtnl_malformed_input_does_not_kill_the_server(box, sse, name):
     assert alive(), f"server died on '{name}'"
     box.rtnl(rtnl.frame(rtnl.tag_placed(1, sequence=99)))
     assert sse.wait_for("rtnl-raw-log2")[-1]["sequence"] in (1, 99)
+
+
+def test_reloading_the_config_does_not_make_boxes_seen_now(box):
+    """loading the config copies the server's settings into every box: an open web connection must
+    not have made them online or seen, else every box looks seen at the time of the reload"""
+    import http.client
+    import ssl
+
+    assert box.request("GET", "/v1/time")[0] == 200
+    time.sleep(3)  # the box's connection has ended, its last contact lies in the past
+    port = int(os.environ["TC_HTTPS_WEB_PORT"])
+    web = http.client.HTTPSConnection(BASE.hostname, port, timeout=10, context=ssl._create_unverified_context())
+    web.request("GET", "/api/settings/get/core.allowNewBox")
+    web.getresponse().read()
+    time.sleep(2)  # the browser keeps its connection
+    assert api("GET", "/api/triggerReloadConfig")[0] == 200
+    seen = int(api("GET", "/api/settings/get/internal.last_connection?overlay=deadbeef0001")[1])
+    web.close()
+    assert seen < time.time() - 2, seen

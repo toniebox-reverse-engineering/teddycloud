@@ -63,6 +63,8 @@ typedef struct
     const char_t *uri;
     const char_t *queryString;
     char_t *user_agent;
+    uint32_t range_start;   /* content: the box's Range start, 0: whole file */
+    const char_t *if_range; /* content: the box's If-Range, NULL or empty: none */
     cloudapi_t api;
     char_t *buffer;
     size_t bufferPos;
@@ -101,10 +103,17 @@ void getContentPathFromCharRUID(char ruid[17], char **pcontentPath, settings_t *
 void getContentPathFromUID(uint64_t uid, char **pcontentPath, settings_t *settings);
 void setTonieboxSettings(TonieFreshnessCheckResponse *freshResp, settings_t *settings);
 bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
+/* Reads the protobuf header at the start of a TAF; NULL if there is none. Free it with
+   toniebox_audio_file_header__free_unpacked. */
+TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
+/* For a random pool (CT_SOURCE_TAP_RANDOM): points tonieInfo at one TAF of the pool and reads its
+   header. With audio_id 0 and no sha1_prefix it picks anew at random; otherwise it picks the TAF a
+   request that continues an earlier pick asks for (see tap_random_pick). False when no TAF fits. */
+bool_t pickRandomTonieContent(tonie_info_t *tonieInfo, uint32_t audio_id, const uint8_t *sha1_prefix, settings_t *settings);
 void saveTonieInfo(tonie_info_t *tonieInfo, bool unlock);
 void freeTonieInfo(tonie_info_t *tonieInfo);
 
@@ -118,6 +127,7 @@ error_t httpOkResponse(HttpConnection *connection);
 void setLastUid(uint64_t uid, settings_t *settings);
 void setLastRuid(char ruid[17], settings_t *settings);
 
+char *getLibraryCachePathNoCreate(settings_t *settings, uint32_t audioId, bool_t shortPath);
 char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath);
 error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDir);
 

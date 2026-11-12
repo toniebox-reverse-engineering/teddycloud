@@ -27,6 +27,7 @@ RATE = 4000  # low rate: the test upload helper only handles small bodies, the s
 TAF = "__trackexport.taf"
 TAG_DIR, TAG_FILE = "A64E581D", "500304E0"
 CUSTOM_MODEL = "TC_TEST_TRACK_EXPORT"
+COLLIDING_MODEL = "TC_TEST_TRACK_EXPORT_COLLIDING"
 
 
 def white_noise_wav(seconds):
@@ -67,12 +68,13 @@ class TrackExport(Base):
 
     def tearDown(self):
         self.tag_json.unlink(missing_ok=True)
-        body = json.dumps({"models": [CUSTOM_MODEL]})
+        body = json.dumps({"models": [CUSTOM_MODEL, COLLIDING_MODEL]})
         request("POST", "/api/toniesCustomJsonDelete", body, {"Content-Type": "application/json"})
         super().tearDown()
 
-    def name_tracks(self, titles):
-        """Give the TAF track titles, like a tonies.custom.json entry does for a real tonie."""
+    def name_tracks(self, titles, colliding_titles=None, colliding_first=True):
+        """Give the TAF track titles, like a tonies.custom.json entry does for a real tonie.
+        colliding_titles go to another tonie with the same audio id but another hash."""
         status, text = request("GET", "/api/fileIndexV2?path=/&special=library")
         self.assertEqual(status, 200, text)
         header = next(f["tafHeader"] for f in json.loads(text)["files"] if f["name"] == TAF)
@@ -84,7 +86,10 @@ class TrackExport(Base):
             "hash": [header["sha1Hash"].upper()],
             "tracks": titles,
         }
-        status, text = request("POST", "/api/toniesCustomJsonUpsert", json.dumps([entry]), {"Content-Type": "application/json"})
+        entries = [entry]
+        if colliding_titles:
+            entries.insert(0 if colliding_first else 1, dict(entry, model=COLLIDING_MODEL, hash=["0" * 40], tracks=colliding_titles))
+        status, text = request("POST", "/api/toniesCustomJsonUpsert", json.dumps(entries), {"Content-Type": "application/json"})
         self.assertEqual(status, 200, text)
 
     def assert_zip_of_tracks(self, path, count):
@@ -136,6 +141,20 @@ class TrackExport(Base):
         self.assertEqual(names[1], "02 3. Satz: „Allegro”.ogg")
         # cut at a character boundary, never in the middle of a UTF-8 sequence
         self.assertEqual(names[2], "03 " + "ä" * 47 + ".ogg")
+
+    def test_track_names_of_the_tonie_with_the_same_hash(self):
+        # tonies encoded in the same second share the audio id, only the hash tells them apart;
+        # a lookup by audio id alone finds whichever comes first, so both orders are tested
+        for colliding_first in (True, False):
+            with self.subTest(colliding_first=colliding_first):
+                # an upsert updates existing entries in place, so the order only changes after a delete
+                models = json.dumps({"models": [CUSTOM_MODEL, COLLIDING_MODEL]})
+                request("POST", "/api/toniesCustomJsonDelete", models, {"Content-Type": "application/json"})
+                self.name_tracks(["Own one", "Own two", "Own three"], ["Other one", "Other two", "Other three"], colliding_first)
+                status, _, body = get(f"/content/{TAF}?special=library&ogg=true&tracks=1%2C2")
+                self.assertEqual(status, 200, body[:200])
+                with zipfile.ZipFile(io.BytesIO(body)) as z:
+                    self.assertEqual(z.namelist(), ["01 Own one.ogg", "02 Own two.ogg"])
 
     def test_content_download_tag_invalid_track(self):
         for query in ("tracks=9", "tracks=0", "tracks=abc", "tracks=,"):

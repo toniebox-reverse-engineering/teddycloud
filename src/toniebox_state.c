@@ -105,19 +105,20 @@ void tbs_playback_file(client_ctx_t *client_ctx, char *filepath)
 {
     // filepath: content/00000000/00000012
     // Get the first part ("content")
-    char *content = strtok(filepath, "/");
+    char *save = NULL;
+    char *content = strtok_r(filepath, "/", &save);
     if (content == NULL)
     {
         return;
     }
     // Get the second part ("00000000")
-    char *dir = strtok(NULL, "/");
+    char *dir = strtok_r(NULL, "/", &save);
     if (dir == NULL || strlen(dir) != 8)
     {
         return;
     }
     // Get the third part ("00000012")
-    char *file = strtok(NULL, "/");
+    char *file = strtok_r(NULL, "/", &save);
     if (file == NULL || strlen(file) != 8)
     {
         return;

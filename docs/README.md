@@ -7,6 +7,8 @@
   HTTPS listener picks a TB1 vs. TB2 certificate.
 - [Web radio streaming](./webradio-streaming.md) — how a stream tag is served
   and its tuning settings.
+- [Random pool](./random-pool.md) - a tag that plays a random TAF of a folder
+  or list.
 - [Custom Tonies API](./api/custom-tonies.md) — the `/api/toniesCustomJson*`
   endpoints.
 
