@@ -32,6 +32,46 @@ static char *toniesV2_custom_json_path = NULL;
 static char *toniesV2_json_tmp_path = NULL;
 #endif
 
+/* the cache serves an image only after its entry was added; add the box images now, so that
+   /cache/ URLs handed out by /api/tonieboxesJson before a restart keep working */
+static void tonieboxes_cacheImages()
+{
+    if (!settings_get_bool("tonie_json.cache_images"))
+    {
+        return;
+    }
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+    size_t fileSize = 0;
+    fsGetFileSize(path, (uint32_t *)(&fileSize));
+    FsFile *fsFile = fsOpenFile(path, FS_FILE_MODE_READ);
+    osFreeMem(path);
+    if (fsFile == NULL)
+    {
+        return;
+    }
+    char *data = osAllocMem(fileSize);
+    size_t pos = 0;
+    size_t sizeRead;
+    while (pos < fileSize && fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) == NO_ERROR && sizeRead > 0)
+    {
+        pos += sizeRead;
+    }
+    fsCloseFile(fsFile);
+    cJSON *boxesJson = cJSON_ParseWithLengthOpts(data, pos, 0, 0);
+    osFreeMem(data);
+
+    cJSON *boxJson;
+    cJSON_ArrayForEach(boxJson, boxesJson)
+    {
+        cJSON *img_src = cJSON_GetObjectItemCaseSensitive(boxJson, "img_src");
+        if (cJSON_IsString(img_src) && osStrlen(img_src->valuestring) > 0 && !cache_fetch_by_url(img_src->valuestring))
+        {
+            cache_add(img_src->valuestring);
+        }
+    }
+    cJSON_Delete(boxesJson);
+}
+
 void tonies_init()
 {
     /* lock tonies cache and update caches */
@@ -45,6 +85,7 @@ void tonies_init()
 
         tonies_readJson(tonies_custom_json_path, &toniesCustomJsonCache, &toniesCustomJsonCount);
         tonies_readJson(tonies_json_path, &toniesJsonCache, &toniesJsonCount);
+        tonieboxes_cacheImages();
         toniesJsonInitialized = true;
     }
 
