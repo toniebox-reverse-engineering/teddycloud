@@ -1218,7 +1218,7 @@ void setLastRuid(char ruid[17], settings_t *settings)
     freeTonieInfo(tonieInfo);
 }
 
-char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)
+char *getLibraryCachePathNoCreate(settings_t *settings, uint32_t audioId, bool_t shortPath)
 {
     char *libraryPathPrefix;
     if (shortPath)
@@ -1229,9 +1229,18 @@ char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPa
     {
         libraryPathPrefix = settings->internal.librarydirfull;
     }
-    char *libraryByPath = custom_asprintf("%s/by", libraryPathPrefix);
-    char *libraryBasePath = custom_asprintf("%s/audioID", libraryByPath);
-    char *libraryPath = custom_asprintf("%s/%" PRIu32 ".taf", libraryBasePath, audioId);
+    return custom_asprintf("%s/by/audioID/%" PRIu32 ".taf", libraryPathPrefix, audioId);
+}
+
+char *getLibraryCachePath(settings_t *settings, uint32_t audioId, bool_t shortPath)
+{
+    char *libraryPath = getLibraryCachePathNoCreate(settings, audioId, shortPath);
+
+    /* create the directories of that path, <prefix>/by and <prefix>/by/audioID */
+    char *libraryBasePath = custom_asprintf("%s", libraryPath);
+    *strrchr(libraryBasePath, '/') = '\0';
+    char *libraryByPath = custom_asprintf("%s", libraryBasePath);
+    *strrchr(libraryByPath, '/') = '\0';
 
     fsCreateDir(libraryByPath);
     fsCreateDir(libraryBasePath);

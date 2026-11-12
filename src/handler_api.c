@@ -2421,7 +2421,7 @@ static error_t writeApiStatusText(HttpConnection *connection, uint_t statusCode,
 
 /* The tag plays its own cloud content: a TAF in the content dir, or the library file it was cached to.
  * A forced cloud download clears the source, so it must not be offered for any other source. */
-static bool_t isCachedCloudContent(tonie_info_t *tonieInfo)
+static bool_t isCachedCloudContent(tonie_info_t *tonieInfo, settings_t *settings)
 {
     if (tonieInfo->json._source_type != CT_SOURCE_NONE && tonieInfo->json._source_type != CT_SOURCE_TAF)
     {
@@ -2435,8 +2435,7 @@ static bool_t isCachedCloudContent(tonie_info_t *tonieInfo)
     {
         return false;
     }
-    /* same as getLibraryCachePath(settings, audioId, true), which also creates directories */
-    char *cachePath = custom_asprintf("lib://by/audioID/%" PRIu32 ".taf", tonieInfo->tafHeader->audio_id);
+    char *cachePath = getLibraryCachePathNoCreate(settings, tonieInfo->tafHeader->audio_id, true);
     bool_t cached = osStrcmp(tonieInfo->json.source, cachePath) == 0;
     osFreeMem(cachePath);
     return cached;
@@ -2500,7 +2499,7 @@ error_t handleApiContentDownload(HttpConnection *connection, const char_t *uri, 
     if (queryGet(queryString, "force", force_param, sizeof(force_param)) && force_param[0] == 't')
     {
         tonie_info_t *tonieInfo = getTonieInfo(pathAbsolute, false, client_ctx->settings);
-        bool_t cached = isCachedCloudContent(tonieInfo);
+        bool_t cached = isCachedCloudContent(tonieInfo, client_ctx->settings);
         freeTonieInfo(tonieInfo);
         if (!cached)
         {
@@ -5107,7 +5106,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, bool_t validate, client
                     cJSON_AddStringToObject(jsonEntry, "downloadTriggerUrl", "");
                 }
             }
-            if (tafInfo->exists && !tafInfo->json.nocloud && client_ctx->settings->cloud.cacheContent && (contentJson._has_cloud_auth || isSys) && isCachedCloudContent(tafInfo))
+            if (tafInfo->exists && !tafInfo->json.nocloud && client_ctx->settings->cloud.cacheContent && (contentJson._has_cloud_auth || isSys) && isCachedCloudContent(tafInfo, client_ctx->settings))
             {
                 char *redownloadUrl = custom_asprintf("%s&force=true", downloadUrl);
                 cJSON_AddStringToObject(jsonEntry, "redownloadUrl", redownloadUrl);
