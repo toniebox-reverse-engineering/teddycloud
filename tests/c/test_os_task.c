@@ -59,12 +59,13 @@ void test_os_task_ends_without_its_stack(void)
     {
         assert(osCreateTask("ending", ending_task, NULL, &OS_TASK_DEFAULT_PARAMS) != (OsTaskId)OS_INVALID_TASK_ID);
     }
-    /* until they have all ended */
-    for (int i = 0; i < 500 && status_field("Threads") > threads; i++)
+    /* until they have all ended: up to 30 s on a loaded runner; threads of earlier tests may end meanwhile, so
+       fewer than before is fine too */
+    for (int i = 0; i < 3000 && status_field("Threads") > threads; i++)
     {
         nanosleep(&(struct timespec){.tv_nsec = 10 * 1000 * 1000}, NULL);
     }
-    assert(status_field("Threads") == threads);
+    assert(status_field("Threads") <= threads);
 
     /* a stack each if they keep them; glibc keeps a few given back (up to 40 MB) for the next threads */
     long grown = (status_field("VmSize") - before) * 1024;
