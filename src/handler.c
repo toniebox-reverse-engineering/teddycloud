@@ -1282,7 +1282,10 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
         if (libraryPath)
         {
             tonie_info_t *tonieInfoLib = getTonieInfo(libraryPath, false, settings);
-            if (tonieInfoLib->valid && osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
+            /* Decided by the header, not by valid: with core.full_taf_validation a corrupted file of
+               other audio is not valid either, and it must not be replaced by this one. */
+            if (tonieInfoLib->tafHeader && tonieInfoLib->tafHeader->sha1_hash.len == 20 &&
+                osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
             {
                 /* The audio id is the time the audio was encoded, so different TAFs can share it.
                    When that name holds other audio, this TAF goes next to it under a name that
@@ -1293,12 +1296,20 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
                 osFreeMem(libraryShortPath);
                 libraryPath = suffixedPath;
                 libraryShortPath = suffixedShortPath;
-                freeTonieInfo(tonieInfoLib);
-                tonieInfoLib = getTonieInfo(libraryPath, false, settings);
             }
+            /* full validation of the file that will be used, a corrupted library file has the
+               same header hash as a fresh download */
+            freeTonieInfo(tonieInfoLib);
+            tonieInfoLib = getTonieInfoV2(libraryPath, false, true, settings);
             bool moveToLibrary = true;
             bool skipMove = false;
-            if (tonieInfoLib->valid)
+            bool overwrite = false;
+            if (tonieInfoLib->exists && !tonieInfoLib->valid)
+            {
+                TRACE_WARNING(">> Library file %s for Audio ID %" PRIu32 " is corrupted, replacing it\r\n", libraryPath, audioId);
+                overwrite = true;
+            }
+            else if (tonieInfoLib->valid)
             {
                 if (!osMemcmp(tonieInfoLib->tafHeader->sha1_hash.data, tonieInfo->tafHeader->sha1_hash.data, tonieInfoLib->tafHeader->sha1_hash.len))
                 {
@@ -1317,7 +1328,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
             {
                 if (!skipMove)
                 {
-                    error = fsMoveFile(tonieInfo->contentPath, libraryPath, false);
+                    error = fsMoveFile(tonieInfo->contentPath, libraryPath, overwrite);
                 }
                 if (error == NO_ERROR)
                 {
