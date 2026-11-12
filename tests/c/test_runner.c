@@ -33,6 +33,7 @@ static const test_case_t tests[] = {
     {"error_text", test_error_text},
     {"log_lock", test_log_lock},
     {"range_ext", test_range_ext},
+    {"os_task_ends_without_its_stack", test_os_task_ends_without_its_stack},
 };
 
 int main(void)
