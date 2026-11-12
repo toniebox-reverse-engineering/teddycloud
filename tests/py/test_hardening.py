@@ -393,5 +393,24 @@ class Secrets505(Base):
         self.assertEqual(leaked, [])
 
 
+class DumpRuidAuth(Base):
+    """A box asking about a tag whose content json cannot be written (here a file is where its directory goes)
+    crashed the server: dumpRuidAuth took the length of the cloud_ruid that the json never got."""
+
+    def test_unwritable_content_json(self):
+        blocker = BASE_DIR / "data" / "content" / "default" / "0A00DEAD"
+        blocker.parent.mkdir(parents=True, exist_ok=True)
+        blocker.write_bytes(b"")
+        try:
+            for path in ("/v1/claim/0a00dead500304e0", "/v1/content/0a00dead500304e0"):
+                try:
+                    request("GET", path, headers={"Authorization": "BD " + "5a" * 32}, timeout=5)
+                except (OSError, http.client.HTTPException):
+                    pass  # the crash
+                self.assertTrue(self.server_alive(), f"{path} crashed the server")
+        finally:
+            blocker.unlink()
+
+
 if __name__ == "__main__":
     unittest.main()

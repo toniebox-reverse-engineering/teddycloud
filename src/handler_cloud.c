@@ -316,7 +316,8 @@ void markLiveTonie(tonie_info_t *tonieInfo)
 
 void dumpRuidAuth(contentJson_t *content_json, char *ruid, uint8_t *authentication)
 {
-    if (!content_json->cloud_override && osStrlen(content_json->cloud_ruid) == 0)
+    /* cloud_ruid is NULL when the content json could not be created (load_content_json) */
+    if (!content_json->cloud_override && (content_json->cloud_ruid == NULL || content_json->cloud_ruid[0] == '\0'))
     {
         osFreeMem(content_json->cloud_auth);
         content_json->cloud_auth_len = TONIE_AUTH_TOKEN_LENGTH;
