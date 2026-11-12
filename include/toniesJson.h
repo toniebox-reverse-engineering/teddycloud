@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include "error.h"
 
+#define TONIES_SEARCH_MAX 60
+
 typedef struct
 {
     uint16_t no;
@@ -68,5 +70,5 @@ toniesJson_item_t *tonies_byAudioId(uint32_t audio_id);
 toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash);
 toniesJson_item_t *tonies_byModel(char *model);
 toniesJson_item_t *tonies_byAudioIdHashModel(uint32_t audio_id, uint8_t *hash, char *model);
-bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size);
+bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[TONIES_SEARCH_MAX], size_t *result_size);
 void tonies_deinit();
