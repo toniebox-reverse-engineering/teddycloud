@@ -382,75 +382,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
         }
         break;
     case V2_CONTENT: // Also handles V1_CONTENT
-        if (ctx->client_ctx->settings->cloud.cacheContent && httpClientContext->statusCode == 200)
-        {
-            // TRACE_INFO(">> cbrCloudBodyPassthrough: %lu received\r\n", length);
-            // TRACE_INFO(">> %s\r\n", ctx->uri);
-            if (ctx->status == PROX_STATUS_HEAD)
-            {
-                /* URI is always "/v2/content/xxxxxxxxxx0304E0" where the x's are hex digits. length has to be fixed */
-                TRACE_INFO(">> Start caching uri=%s\r\n", ctx->uri);
-                // TODO detect partial downloads
-                if (strlen(ctx->uri) < 28)
-                {
-                    TRACE_ERROR(">> ctx->uri is too short\r\n");
-                    return;
-                }
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
-
-                char *dir = strdup(ctx->tonieInfo->contentPath);
-                dir[osStrlen(dir) - 8] = '\0';
-                fsCreateDir(dir);
-
-                ctx->file = fsOpenFile(tmpPath, FS_FILE_MODE_WRITE | FS_FILE_MODE_TRUNC);
-
-                if (ctx->file == NULL)
-                {
-                    TRACE_ERROR(">> Could not open file %s\r\n", tmpPath);
-                }
-                free(tmpPath);
-                free(dir);
-            }
-            if (length > 0 && ctx->file != NULL)
-            {
-                error = fsWriteFile(ctx->file, (void *)payload, length);
-                if (error)
-                {
-                    TRACE_ERROR(">> fsWriteFile Error: %s\r\n", error2text(error));
-                }
-            }
-            if (error == ERROR_END_OF_STREAM)
-            {
-                fsCloseFile(ctx->file);
-                char *tmpPath = custom_asprintf("%s.tmp", ctx->tonieInfo->contentPath);
-
-                if (isValidTaf(tmpPath, true))
-                {
-                    fsDeleteFile(ctx->tonieInfo->contentPath);
-                    fsRenameFile(tmpPath, ctx->tonieInfo->contentPath);
-                    if (fsFileExists(ctx->tonieInfo->contentPath))
-                    {
-                        TRACE_INFO(">> Successfully cached %s\r\n", ctx->tonieInfo->contentPath);
-
-                        if (ctx->client_ctx->settings->cloud.cacheToLibrary)
-                        {
-                            tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, TAF_VALIDATION_FULL, ctx->client_ctx->settings);
-                            moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
-                            freeTonieInfo(tonieInfo);
-                        }
-                    }
-                    else
-                    {
-                        TRACE_ERROR(">> Error caching %s, file not found\r\n", ctx->tonieInfo->contentPath);
-                    }
-                }
-                else
-                {
-                    TRACE_ERROR(">> Error caching %s, not a valid TAF\r\n", ctx->tonieInfo->contentPath);
-                }
-                free(tmpPath);
-            }
-        }
+        /* passed through as it comes in; content to be cached is downloaded in the background instead, see content_download.c */
         send_err = httpSend(ctx->connection, payload, length, HTTP_FLAG_DELAY);
         if (send_err)
         {

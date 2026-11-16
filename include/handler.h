@@ -72,7 +72,6 @@ typedef struct
     size_t bufferLen;
     uint32_t status;
     FsFile *file;
-    tonie_info_t *tonieInfo;
     void *customData;
     size_t customDataLen;
     HttpConnection *connection;
