@@ -110,7 +110,14 @@ bool_t isValidTaf(const char *contentPath, bool checkHashAndSize);
 TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path);
 tonie_info_t *getTonieInfoFromUid(uint64_t uid, bool lock, settings_t *settings);
 tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *settings);
-tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings);
+/* how getTonieInfoV2 checks the TAF before it calls it valid */
+typedef enum
+{
+    TAF_VALIDATION_SETTING, /* hash and length if core.full_taf_validation, else the header */
+    TAF_VALIDATION_FULL,    /* hash and length */
+    TAF_VALIDATION_HEADER,  /* the header: the file was checked in full right before */
+} taf_validation_t;
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, taf_validation_t validation, settings_t *settings);
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings);
 /* For a random pool (CT_SOURCE_TAP_RANDOM): points tonieInfo at one TAF of the pool and reads its
    header. With audio_id 0 and no sha1_prefix it picks anew at random; otherwise it picks the TAF a

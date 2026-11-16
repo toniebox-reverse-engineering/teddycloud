@@ -434,7 +434,7 @@ void cbrCloudBodyPassthrough(void *src_ctx, HttpClientContext *cloud_ctx, const 
 
                         if (ctx->client_ctx->settings->cloud.cacheToLibrary)
                         {
-                            tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, true, ctx->client_ctx->settings);
+                            tonie_info_t *tonieInfo = getTonieInfoV2(ctx->tonieInfo->contentPath, true, TAF_VALIDATION_FULL, ctx->client_ctx->settings);
                             moveTAF2Lib(tonieInfo, ctx->client_ctx->settings, false);
                             freeTonieInfo(tonieInfo);
                         }
@@ -915,7 +915,7 @@ tonie_info_t *getTonieInfoFromRuid(char ruid[17], bool lock, settings_t *setting
 }
 tonie_info_t *getTonieInfo(const char *contentPath, bool lock, settings_t *settings)
 {
-    return getTonieInfoV2(contentPath, lock, false, settings);
+    return getTonieInfoV2(contentPath, lock, TAF_VALIDATION_SETTING, settings);
 }
 
 TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path)
@@ -956,7 +956,7 @@ TonieboxAudioFileHeader *readTafHeader(FsFile *file, const char *path)
     return tafHeader;
 }
 
-static void readTonieInfoTaf(tonie_info_t *tonieInfo, bool force_taf_validation, settings_t *settings)
+static void readTonieInfoTaf(tonie_info_t *tonieInfo, taf_validation_t validation, settings_t *settings)
 {
     tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
 
@@ -968,7 +968,7 @@ static void readTonieInfoTaf(tonie_info_t *tonieInfo, bool force_taf_validation,
         {
             if (tonieInfo->tafHeader->sha1_hash.len == 20)
             {
-                bool_t fullValidation = settings->core.full_taf_validation || force_taf_validation;
+                bool_t fullValidation = (validation == TAF_VALIDATION_FULL) || (validation == TAF_VALIDATION_SETTING && settings->core.full_taf_validation);
                 tonieInfo->valid = isValidTaf(tonieInfo->contentPath, fullValidation);
                 tonieInfo->corrupt = fullValidation && !tonieInfo->valid;
                 readTrackPositions(tonieInfo, file);
@@ -997,7 +997,7 @@ static void readTonieInfoTaf(tonie_info_t *tonieInfo, bool force_taf_validation,
     }
 }
 
-tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_validation, settings_t *settings)
+tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, taf_validation_t validation, settings_t *settings)
 {
     tonie_info_t *tonieInfo;
     tonieInfo = osAllocMem(sizeof(tonie_info_t));
@@ -1046,7 +1046,7 @@ tonie_info_t *getTonieInfoV2(const char *contentPath, bool lock, bool force_taf_
             tonieInfo->exists = fsFileExists(tonieInfo->contentPath);
             return tonieInfo;
         }
-        readTonieInfoTaf(tonieInfo, force_taf_validation, settings);
+        readTonieInfoTaf(tonieInfo, validation, settings);
     }
     return tonieInfo;
 }
@@ -1073,7 +1073,7 @@ bool_t pickRandomTonieContent(tonie_info_t *tonieInfo, uint32_t audio_id, const 
     osFreeMem(tonieInfo->contentPath);
     tonieInfo->contentPath = picked;
     tonieInfo->valid = false;
-    readTonieInfoTaf(tonieInfo, false, settings);
+    readTonieInfoTaf(tonieInfo, TAF_VALIDATION_SETTING, settings);
     return tonieInfo->valid;
 }
 
@@ -1315,7 +1315,7 @@ error_t moveTAF2Lib(tonie_info_t *tonieInfo, settings_t *settings, bool_t rootDi
             /* full validation of the file that will be used, a corrupted library file has the
                same header hash as a fresh download */
             freeTonieInfo(tonieInfoLib);
-            tonieInfoLib = getTonieInfoV2(libraryPath, false, true, settings);
+            tonieInfoLib = getTonieInfoV2(libraryPath, false, TAF_VALIDATION_FULL, settings);
             bool moveToLibrary = true;
             bool skipMove = false;
             bool overwrite = false;

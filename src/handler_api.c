@@ -5040,7 +5040,7 @@ error_t getTagInfoJson(char ruid[17], cJSON *jsonTarget, bool_t validate, client
         contentJson_t contentJson;
         /* read TAF info - would create .json if not existing */
         // tonie_info_t *tafInfo = getTonieInfoFromRuid(ruid, true, client_ctx->settings);
-        tonie_info_t *tafInfo = getTonieInfoV2(fullTagPath, false, validate, client_ctx->settings);
+        tonie_info_t *tafInfo = getTonieInfoV2(fullTagPath, false, validate ? TAF_VALIDATION_FULL : TAF_VALIDATION_SETTING, client_ctx->settings);
         /* now update with updated model if found. */
         saveTonieInfo(tafInfo, true);
         contentJson = tafInfo->json;
