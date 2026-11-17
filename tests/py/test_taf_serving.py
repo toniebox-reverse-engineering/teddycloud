@@ -15,7 +15,7 @@ import sys
 import unittest
 from pathlib import Path
 
-from test_hardening import BASE, BASE_DIR, Base
+from test_hardening import BASE, BASE_DIR, Base, request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sim import profiles, taf  # noqa: E402
@@ -28,11 +28,13 @@ AUDIO = b"".join(bytes([block + 1]) * BLOCK for block in range(8))
 CONTENT = taf.build(0x1A8DECAE, AUDIO, track_pages=TRACK_PAGES)
 
 
-def get(path, byte_range=None):
+def get(path, byte_range=None, if_range=None):
     conn = http.client.HTTPConnection(BASE.hostname, BASE.port, timeout=5)
     headers = {"Authorization": profiles.AUTHORIZATION}
     if byte_range:
         headers["Range"] = byte_range
+    if if_range is not None:
+        headers["If-Range"] = if_range
     try:
         conn.request("GET", path, headers=headers)
         resp = conn.getresponse()
@@ -41,7 +43,9 @@ def get(path, byte_range=None):
         conn.close()
 
 
-class TafServing(Base):
+class TafContent(Base):
+    """Content files put into the sandbox, removed after the test."""
+
     def setUp(self):
         super().setUp()
         self.paths = []
@@ -57,6 +61,8 @@ class TafServing(Base):
         path.write_bytes(data)
         self.paths.append(path)
 
+
+class TafServing(TafContent):
     def test_header_is_kept_by_default(self):
         self.put_content(CONTENT)
         status, _, body = get(f"/v2/content/{RUID}")
@@ -136,6 +142,29 @@ class TafServing(Base):
         self.assertEqual(status, 206)
         self.assertEqual(resp.getheader("Content-Range"), f"bytes 300-799/{len(expected)}")
         self.assertEqual(body, expected[300:800])
+
+
+class IfRange(TafContent):
+    """A box resumes a download with Range and the audio id of the TAF it has a part of in If-Range (decimal). If
+    the tag serves another TAF by now (its source was changed), the rest of the new one would complete a mix of two
+    TAFs on the box."""
+
+    OTHER = taf.build(0x1A8DECAF, b"".join(bytes([0x80 + block]) * BLOCK for block in range(6)))
+    OTHER_NAME = "__if_range_other.taf"
+
+    def change_source(self):
+        """The tag had CONTENT, its source is now OTHER in the library."""
+        self.put_content(CONTENT)
+        other = BASE_DIR / "data" / "library" / self.OTHER_NAME
+        other.write_bytes(self.OTHER)
+        self.paths += [other, BASE_DIR / "data" / "content" / "default" / RUID[:8].upper() / (RUID[8:].upper() + ".json")]
+        self.assertEqual(request("POST", f"/content/json/set/{RUID}", f"source=lib://{self.OTHER_NAME}")[0], 200)
+
+    @unittest.expectedFailure  # gets the rest of the other TAF: 206, bytes 20000-28671/28672
+    def test_resume_of_a_changed_source_gets_the_whole_file(self):
+        self.change_source()
+        status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", str(0x1A8DECAE))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (200, None, self.OTHER))
 
 
 if __name__ == "__main__":
