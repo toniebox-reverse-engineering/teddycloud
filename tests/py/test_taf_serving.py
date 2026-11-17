@@ -160,11 +160,45 @@ class IfRange(TafContent):
         self.paths += [other, BASE_DIR / "data" / "content" / "default" / RUID[:8].upper() / (RUID[8:].upper() + ".json")]
         self.assertEqual(request("POST", f"/content/json/set/{RUID}", f"source=lib://{self.OTHER_NAME}")[0], 200)
 
-    @unittest.expectedFailure  # gets the rest of the other TAF: 206, bytes 20000-28671/28672
     def test_resume_of_a_changed_source_gets_the_whole_file(self):
         self.change_source()
         status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", str(0x1A8DECAE))
         self.assertEqual((status, resp.getheader("Content-Range"), body), (200, None, self.OTHER))
+
+    def test_resume_with_the_audio_id_of_the_file_gets_the_rest(self):
+        self.change_source()
+        status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", str(0x1A8DECAF))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (206, f"bytes 20000-{len(self.OTHER) - 1}/{len(self.OTHER)}", self.OTHER[20000:]))
+
+    def test_resume_without_if_range_gets_the_rest(self):
+        self.change_source()
+        status, _, body = get(f"/v2/content/{RUID}", "bytes=20000-")
+        self.assertEqual((status, body), (206, self.OTHER[20000:]))
+
+    def test_if_range_that_is_no_audio_id_is_served_as_before(self):
+        # Only a decimal number is the boxes' audio id. Anything else is a validator TeddyCloud cannot compare, and a
+        # client must not lose its resume over it: as without If-Range. A number with text after it is no number,
+        # and neither is one too large for an audio id.
+        self.change_source()
+        for value in ('"0123abcd"', "Wed, 21 Oct 2026 07:28:00 GMT", f"{0x1A8DECAE}abc", "99999999999"):
+            status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", value)
+            self.assertEqual((status, resp.getheader("Content-Range"), body), (206, f"bytes 20000-{len(self.OTHER) - 1}/{len(self.OTHER)}", self.OTHER[20000:]), value)
+
+    def test_skip_header(self):
+        # the audio id is the one of the file, its header is not sent
+        self.put_content(CONTENT)
+        status, _, body = get(f"/v2/content/{RUID}?skip_header=true", "bytes=5000-", str(0x1A8DECAE))
+        self.assertEqual((status, body), (206, AUDIO[5000:]))
+        status, resp, body = get(f"/v2/content/{RUID}?skip_header=true", "bytes=5000-", str(0x1A8DECAF))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (200, None, AUDIO))
+
+    def test_chapter(self):
+        self.put_content(CONTENT)
+        expected = AUDIO[:512] + AUDIO[TRACK_PAGES[1] * BLOCK : TRACK_PAGES[2] * BLOCK]
+        status, _, body = get(f"/v3/chapter/teddycloud_01_{RUID}", "bytes=300-799", str(0x1A8DECAE))
+        self.assertEqual((status, body), (206, expected[300:800]))
+        status, _, body = get(f"/v3/chapter/teddycloud_01_{RUID}", "bytes=300-799", str(0x1A8DECAF))
+        self.assertEqual((status, body), (200, expected))
 
 
 if __name__ == "__main__":
