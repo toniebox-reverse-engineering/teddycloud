@@ -632,7 +632,7 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
                     osFreeMem(tc_file);
                     if (mismatch)
                     {
-                        return httpSendErrorResponse(connection, 500, "Broken installation");
+                        return httpSendErrorResponse(connection, 500, "Broken installation, frontend+backend not on the same version. (Most likely a Proxmox Helper Script update bug, please ask the CREATOR of the script to fix it.)");
                     }
                 }
                 else
