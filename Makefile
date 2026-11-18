@@ -122,7 +122,7 @@ web_version:=vX.X.X
 CFLAGS_VERSION+=-DWEB_GIT_IS_DIRTY=${web_gitDirty} -DWEB_GIT_DATETIME=\"${web_gitDateTime}\" -DWEB_RAW_DATETIME=\"${web_rawDateTime}\" -DWEB_GIT_SHORT_SHA=\"${web_gitShortSha}\" -DWEB_GIT_SHA=\"${web_gitSha}\" -DWEB_GIT_TAG=\"${web_gitTag}\"
 ifeq ($(web_gitTagPrefix),tcw)
 	web_version:=$(subst ${web_gitTagPrefix}_,,${web_gitTag})
-	CFLAGS_VERSION+=-Dweb_VERSION=\"${web_version}\"
+	CFLAGS_VERSION+=-DWEB_VERSION=\"${web_version}\"
 endif
 
 ifeq ($(OS),Windows_NT)
