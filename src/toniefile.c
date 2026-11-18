@@ -143,7 +143,7 @@ toniefile_t *toniefile_create(const char *fullPath, uint32_t audio_id, bool appe
             }
             audio_id = tafHeader->audio_id;
             ctx->taf.audio_id = audio_id;
-            toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+            /* tafHeader is still needed further down (ogg/page state) and freed there */
         }
     }
     else

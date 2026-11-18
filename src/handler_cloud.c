@@ -755,10 +755,15 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
                 TRACE_ERROR(" >> file %s not available or not send, error=%s...\r\n", tonieInfo->contentPath, error2text(response_error));
             }
         }
-        stream_ctx->active = false;
-        while (!stream_ctx->quit)
+        /* only the request that started the encoder may stop it: a force-restart
+         * answer must not end the stream of the box's next request */
+        if (!force_restart)
         {
-            osDelayTask(100);
+            stream_ctx->active = false;
+            while (!stream_ctx->quit)
+            {
+                osDelayTask(100);
+            }
         }
     }
     else if (tonieInfo->json._source_type == CT_SOURCE_TAP_STREAM)
