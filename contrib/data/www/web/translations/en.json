@@ -1715,7 +1715,7 @@
                 "cancel": "Cancel",
                 "chipMAC": "Chip MAC",
                 "chipType": "Chip Type",
-                "chipTypeError": "Chip type error - unexpected type read. Read {{actualname}}, expected {{expectedname}}. Abort processing, check connection and try again!",
+                "chipTypeError": "Chip type error - unexpected type read. Read {{actualtype}}, expected {{expectedtype}}. Abort processing, check connection and try again!",
                 "confirmFlashDialog": "Do you really want to flash your Toniebox? Please ensure a stable connection and do not interrupt the process!",
                 "confirmFlashDialogHint": "To ensure your Toniebox works correctly, the specified TeddyCloud instance is absolutely necessary. If your TeddyCloud is offline, your Toniebox won't be able to access new content!",
                 "confirmFlashModal": "Flash Toniebox with patched firmware",
@@ -1978,6 +1978,7 @@
             "title": "Content",
             "toniePicture": "Tonie Picture"
         },
+        "corruptHint": "The audio file is corrupted. Open the information to redownload it from the cloud.",
         "currentPath": "Current Path: ",
         "customEditor": {
             "actions": {
@@ -2295,6 +2296,7 @@
             "titleSelect": "Select image"
         },
         "infoModal": {
+            "corrupt": "Corrupted:",
             "download": "Download TAF as *.ogg",
             "exists": "Exists:",
             "model": "Model:",
@@ -2306,7 +2308,11 @@
         "informationModal": {
             "hideTag": "Hide Tonie/Tag",
             "ok": "OK",
-            "unknownModel": "Unknown Model"
+            "redownload": "Redownload",
+            "redownloadConfirm": "Replace the local file with a fresh download from the cloud?",
+            "unknownModel": "Unknown Model",
+            "verifyFile": "Check file",
+            "verifyFileHint": "Reads the whole audio file and checks its SHA1 hash and length. May take a while."
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Last played Tonie",
@@ -2337,6 +2343,10 @@
             "downloadingDetails": "Downloading \"{{model}}\" [{{ruid}}]...",
             "errorDuringDownload": "Error during background download",
             "errorDuringDownloadDetails": "Error during background download of \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringRedownload": "Error during redownload",
+            "errorDuringRedownloadDetails": "Error during redownload of \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringVerify": "Error during check",
+            "errorDuringVerifyDetails": "Error during check of \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Error fetching updated card!",
             "errorFetchingUpdatedCardDetails": "Error fetching updated card for \"{{model}}\" [{{ruid}}]: ",
             "filterDeleted": "Filter deleted",
@@ -2355,6 +2365,10 @@
             "liveEnabledDetails": "Live flag enabled for \"{{model}}\" [{{ruid}}]",
             "noFilterFound": "No filter found",
             "noFilterFoundDetails": "No filter with name {{name}} was found",
+            "redownloadedFile": "Redownloaded file",
+            "redownloadedFileDetails": "Redownloaded \"{{model}}\" [{{ruid}}] from the cloud",
+            "redownloading": "Redownloading...",
+            "redownloadingDetails": "Redownloading \"{{model}}\" [{{ruid}}] from the cloud...",
             "setToEmptyValue": "empty",
             "setTonieToModelFailed": "Could not change tonie model!",
             "setTonieToModelFailedDetails": "Could not change tonie model for [{{ruid}}]: ",
@@ -2363,7 +2377,11 @@
             "setTonieToSourceFailed": "Could not change tonie source!",
             "setTonieToSourceFailedDetails": "Could not change tonie source for [{{ruid}}]: ",
             "setTonieToSourceSuccessful": "Set tonie source successful!",
-            "setTonieToSourceSuccessfulDetails": "Set tonie source to {{selectedSource}} for [{{ruid}}]"
+            "setTonieToSourceSuccessfulDetails": "Set tonie source to {{selectedSource}} for [{{ruid}}]",
+            "verifiedCorrupt": "File is corrupted",
+            "verifiedCorruptDetails": "The audio file of \"{{model}}\" [{{ruid}}] failed the full check. Redownload it from the cloud.",
+            "verifiedValid": "File is valid",
+            "verifiedValidDetails": "The audio file of \"{{model}}\" [{{ruid}}] passed the full check"
         },
         "navigationTitle": "Tonies",
         "noData": "No Tonies/Custom tags found.",
@@ -2572,6 +2590,7 @@
                 "customFilterHelp": {
                     "fields": {
                         "claimed": "Whether this Tonie has been claimed (true/false).",
+                        "corrupt": "Whether the audio file failed the full check (true/false).",
                         "episode": "The episode name of the Tonie.",
                         "exists": "Whether the Tonie exists (true/false).",
                         "hasCloudAuth": "Whether the Tonie has cloud authorization (true/false).",

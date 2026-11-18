@@ -367,6 +367,25 @@ static bool create_session_unlocked(const char *username, char *token, size_t to
     return true;
 }
 
+/* Sliding session: a refresh moves the expiry to a full lifetime from now. */
+static bool extend_session_unlocked(const char *token)
+{
+    if (token == NULL || token[0] == '\0')
+    {
+        return false;
+    }
+    purge_sessions_unlocked();
+    for (int i = 0; i < MAX_WEB_SESSIONS; i++)
+    {
+        if (sessions[i].used && const_time_equal(sessions[i].token_hex, token))
+        {
+            sessions[i].expires = time(NULL) + SESSION_TTL_SECONDS;
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool session_user_unlocked(const char *token, char *username, size_t username_size)
 {
     if (token == NULL || token[0] == '\0')
@@ -854,10 +873,34 @@ error_t handleApiAuthRefreshToken(HttpConnection *connection, const char_t *uri,
     {
         return send_message(connection, 401, "unauthorized", "Login required");
     }
+
+    /* Extend the session that authenticated this request, so clients that stay open (e.g. the
+     * Teddybox on a child's device) remain logged in as long as they are used. */
+    char token[WEB_BEARER_TOKEN_MAX + 1];
+    char cookieToken[WEB_BEARER_TOKEN_MAX + 1];
+    token[0] = '\0';
+    cookieToken[0] = '\0';
+#if (HTTP_SERVER_COOKIE_SUPPORT == ENABLED)
+    extract_cookie_token(connection->request.cookie, cookieToken, sizeof(cookieToken));
+#endif
+    if (connection->private.web_bearer_token[0] != '\0')
+    {
+        copy_str(token, sizeof(token), connection->private.web_bearer_token);
+    }
+    else
+    {
+        copy_str(token, sizeof(token), cookieToken);
+    }
+    lock_auth();
+    bool extended = extend_session_unlocked(token);
+    unlock_auth();
+    /* renew the cookie as well when the browser holds this session in it */
+    bool renewCookie = extended && cookieToken[0] != '\0' && const_time_equal(cookieToken, token);
+
     cJSON *json = cJSON_CreateObject();
     cJSON_AddBoolToObject(json, "ok", true);
     cJSON_AddStringToObject(json, "username", username);
-    return send_json_status(connection, 200, json, NULL, false);
+    return send_json_status(connection, 200, json, renewCookie ? token : NULL, false);
 }
 
 error_t handleApiAuthUsersGet(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)

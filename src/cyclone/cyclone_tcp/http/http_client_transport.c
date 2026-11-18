@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneTCP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -36,7 +36,6 @@
 #include "http/http_client.h"
 #include "http/http_client_transport.h"
 #include "debug.h"
-#include "pcaplog.h"
 
 //Check TCP/IP stack configuration
 #if (HTTP_CLIENT_SUPPORT == ENABLED)
@@ -53,7 +52,8 @@ error_t httpClientOpenConnection(HttpClientContext *context)
    error_t error;
 
    //Open a TCP socket
-   context->socket = socketOpen(SOCKET_TYPE_STREAM, SOCKET_IP_PROTO_TCP);
+   context->socket = socketOpenEx(context->netContext, SOCKET_TYPE_STREAM,
+      SOCKET_IP_PROTO_TCP);
    //Failed to open socket?
    if(context->socket == NULL)
       return ERROR_OPEN_FAILED;
@@ -81,7 +81,8 @@ error_t httpClientOpenConnection(HttpClientContext *context)
          return ERROR_OPEN_FAILED;
 
       //Select client operation mode
-      error = tlsSetConnectionEnd(context->tlsContext, TLS_CONNECTION_END_CLIENT);
+      error = tlsSetConnectionEnd(context->tlsContext,
+         TLS_CONNECTION_END_CLIENT);
       //Any error to report?
       if(error)
          return error;
@@ -106,7 +107,8 @@ error_t httpClientOpenConnection(HttpClientContext *context)
          return error;
 
       //Perform TLS related initialization
-      error = context->tlsInitCallback(context, context->tlsContext);
+      error = context->tlsInitCallback(context, context->tlsContext,
+         context->tlsInitParam);
       //Any error to report?
       if(error)
          return error;
@@ -167,15 +169,8 @@ error_t httpClientShutdownConnection(HttpClientContext *context)
 
    //Initialize status code
    error = NO_ERROR;
-   
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = 0;
-   ctx.local_endpoint.port = context->socket->localPort;
-   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = context->socket->remotePort;
-   ctx.pcap_data = &context->private.pcap_data;
-   pcaplog_reset(&ctx);
 
+   httpExtPcapClientReset(context);
 
 #if (HTTP_CLIENT_TLS_SUPPORT == ENABLED)
    //Valid TLS context?
@@ -255,14 +250,8 @@ error_t httpClientSendData(HttpClientContext *context, const void *data,
       //Transmit data
       error = socketSend(context->socket, data, length, written, flags);
    }
-   
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = 0;
-   ctx.local_endpoint.port = context->socket->localPort;
-   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = context->socket->remotePort;
-   ctx.pcap_data = &context->private.pcap_data;
-   pcaplog_write(&ctx, true, (const uint8_t *)data, length);
+
+   httpExtPcapClientWrite(context, true, data, length);
 
    //Return status code
    return error;
@@ -298,13 +287,7 @@ error_t httpClientReceiveData(HttpClientContext *context, void *data,
       error = socketReceive(context->socket, data, size, received, flags);
    }
 
-   pcaplog_ctx_t ctx;
-   ctx.local_endpoint.ipv4 = 0;
-   ctx.local_endpoint.port = context->socket->localPort;
-   ctx.remote_endpoint.ipv4 = context->socket->remoteIpAddr.ipv4Addr;
-   ctx.remote_endpoint.port = context->socket->remotePort;
-   ctx.pcap_data = &context->private.pcap_data;
-   pcaplog_write(&ctx, false, (const uint8_t *)data, *received);
+   httpExtPcapClientWrite(context, false, data, *received);
 
    //Return status code
    return error;

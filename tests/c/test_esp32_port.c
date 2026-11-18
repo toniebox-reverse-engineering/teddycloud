@@ -53,3 +53,45 @@ void test_esp32_port_patch(void)
     assert(esp32_port_supported(32767));
     assert(!esp32_port_supported(32768));
 }
+
+/* the reachability check of v5.237.0 */
+static const uint8_t check_function[] = {
+    0x36, 0x41, 0x00, 0x65, 0x86, 0x21, 0xc2, 0xa7, 0x53, 0xe0, 0xcc, 0x11,
+    0xb2, 0xa1, 0xbb, 0x16, 0x1a, 0x01, 0xa1, 0xde, 0xd4, 0xa5, 0x41, 0x21,
+    0x22, 0xa0, 0x00, 0xcc, 0x3a, 0x65, 0x09, 0x0d, 0x0c, 0x12, 0x1d, 0xf0};
+
+#define CHECK_AT 0x80
+
+/* the port and timeout the patched code computes: movi a11, addmi a11, addmi a12 */
+static void assert_check_args(const uint8_t *image, int port)
+{
+    const uint8_t *args = &image[CHECK_AT + 6];
+    assert(args[0] == 0xb2 && args[1] == 0xa0 && args[3] == 0xb2 && args[4] == 0xdb && args[6] == 0xc2 && args[7] == 0xdb);
+    int a11 = args[2] + (int8_t)args[5] * 0x100;
+    int a12 = a11 + (int8_t)args[8] * 0x100;
+    assert(a11 == port);
+    assert(a12 >= 7500 - 128 && a12 <= 7500 + 128);
+}
+
+void test_esp32_port_patch_check(void)
+{
+    uint8_t image[0x100], original[sizeof(image)];
+    memset(image, 0, sizeof(image));
+    memcpy(&image[CHECK_AT], check_function, sizeof(check_function));
+    memcpy(original, image, sizeof(image));
+
+    assert(esp32_port_patch_check(image, sizeof(image), 10443) == 1);
+    assert_check_args(image, 10443);
+    assert(memcmp(&image[CHECK_AT + 15], &original[CHECK_AT + 15], sizeof(check_function) - 15) == 0);
+
+    assert(esp32_port_patch_check(image, sizeof(image), 1) == 1);
+    assert_check_args(image, 1);
+    assert(esp32_port_patch_check(image, sizeof(image), 32767) == 1);
+    assert_check_args(image, 32767);
+
+    assert(esp32_port_patch_check(image, sizeof(image), 443) == 1);
+    assert(memcmp(image, original, sizeof(image)) == 0);
+
+    image[CHECK_AT + 0x20] ^= 0xff;
+    assert(esp32_port_patch_check(image, sizeof(image), 10443) == 0);
+}

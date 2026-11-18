@@ -532,3 +532,68 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 
     return 0;
 }
+
+static CRITICAL_SECTION log_section;
+static INIT_ONCE log_section_once = INIT_ONCE_STATIC_INIT;
+
+static BOOL CALLBACK log_section_init(PINIT_ONCE once, PVOID param, PVOID *context)
+{
+    InitializeCriticalSection(&log_section);
+    return TRUE;
+}
+
+void tc_log_lock(void)
+{
+    InitOnceExecuteOnce(&log_section_once, log_section_init, NULL, NULL);
+    EnterCriticalSection(&log_section);
+}
+
+void tc_log_unlock(void)
+{
+    LeaveCriticalSection(&log_section);
+}
+
+bool platform_supports_ansi_colors(void)
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return false; // Cannot get standard output handle.
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return false; // Cannot get console mode.
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return false; // Cannot set console mode.
+    }
+
+    return true; // ANSI escape sequences are supported.
+}
+
+/*
+ * Cyclone 2.6 asks the stack for a NetContext. teddycloud uses OS sockets and has no Cyclone stack
+ * instance, so there is nothing to look up or lock.
+ */
+NetContext *netGetDefaultContext(void)
+{
+    return NULL;
+}
+
+void netLock(NetContext *context)
+{
+}
+
+void netUnlock(NetContext *context)
+{
+}
+
+Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
+{
+    return socketOpen(type, protocol);
+}

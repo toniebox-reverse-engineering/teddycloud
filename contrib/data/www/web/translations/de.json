@@ -1978,6 +1978,7 @@
             "title": "Content",
             "toniePicture": "Tonie Bild"
         },
+        "corruptHint": "Die Audiodatei ist beschädigt. Öffne die Informationen, um sie erneut aus der Cloud herunterzuladen.",
         "currentPath": "Aktueller Pfad: ",
         "customEditor": {
             "actions": {
@@ -2295,6 +2296,7 @@
             "titleSelect": "Bild auswählen"
         },
         "infoModal": {
+            "corrupt": "Beschädigt:",
             "download": "Download TAF als *.ogg",
             "exists": "Existiert:",
             "model": "Modell:",
@@ -2306,7 +2308,11 @@
         "informationModal": {
             "hideTag": "Tonie/Tag ausblenden",
             "ok": "OK",
-            "unknownModel": "Unbekanntes Model"
+            "redownload": "Erneut herunterladen",
+            "redownloadConfirm": "Die lokale Datei durch einen neuen Download aus der Cloud ersetzen?",
+            "unknownModel": "Unbekanntes Model",
+            "verifyFile": "Datei prüfen",
+            "verifyFileHint": "Liest die ganze Audiodatei und prüft SHA1-Hash und Länge. Kann eine Weile dauern."
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Zuletzt gepielter Tonie",
@@ -2337,6 +2343,10 @@
             "downloadingDetails": "\"{{model}}\" [{{ruid}}] wird heruntergeladen...",
             "errorDuringDownload": "Fehler beim Herunterladen im Hintergrund",
             "errorDuringDownloadDetails": "Fehler beim Hintergrund-Download von \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringRedownload": "Fehler beim erneuten Herunterladen",
+            "errorDuringRedownloadDetails": "Fehler beim erneuten Herunterladen von \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringVerify": "Fehler bei der Prüfung",
+            "errorDuringVerifyDetails": "Fehler bei der Prüfung von \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Fehler beim Abrufen der aktualisierten Karte!",
             "errorFetchingUpdatedCardDetails": "Fehler beim Abrufen der aktualisierten Karte für \"{{model}}\" [{{ruid}}]: ",
             "filterDeleted": "Filter gelöscht",
@@ -2355,6 +2365,10 @@
             "liveEnabledDetails": "Live-Flag für \"{{model}}\" [{{ruid}}] aktiviert",
             "noFilterFound": "Kein Filter gefunden",
             "noFilterFoundDetails": "Kein Filter mit dem Namen {{name}} wurde gefunden",
+            "redownloadedFile": "Datei erneut heruntergeladen",
+            "redownloadedFileDetails": "\"{{model}}\" [{{ruid}}] wurde erneut aus der Cloud heruntergeladen",
+            "redownloading": "Lade erneut herunter...",
+            "redownloadingDetails": "Lade \"{{model}}\" [{{ruid}}] erneut aus der Cloud herunter...",
             "setToEmptyValue": "leer",
             "setTonieToModelFailed": "Konnte Tonie-Modell nicht ändern!",
             "setTonieToModelFailedDetails": "Konnte Tonie-Modell für [{{ruid}}] nicht ändern: ",
@@ -2363,7 +2377,11 @@
             "setTonieToSourceFailed": "Konnte Tonie-Quelle nicht ändern!",
             "setTonieToSourceFailedDetails": "Konnte Tonie-Quelle für [{{ruid}}] nicht ändern: ",
             "setTonieToSourceSuccessful": "Tonie-Quelle erfolgreich gesetzt!",
-            "setTonieToSourceSuccessfulDetails": "Tonie-Quelle auf {{selectedSource}} für [{{ruid}}] gesetzt"
+            "setTonieToSourceSuccessfulDetails": "Tonie-Quelle auf {{selectedSource}} für [{{ruid}}] gesetzt",
+            "verifiedCorrupt": "Datei ist beschädigt",
+            "verifiedCorruptDetails": "Die Audiodatei von \"{{model}}\" [{{ruid}}] hat die vollständige Prüfung nicht bestanden. Lade sie erneut aus der Cloud herunter.",
+            "verifiedValid": "Datei ist gültig",
+            "verifiedValidDetails": "Die Audiodatei von \"{{model}}\" [{{ruid}}] hat die vollständige Prüfung bestanden"
         },
         "navigationTitle": "Tonies",
         "noData": "Keine Tonies/benutzerdefinierten Tags gefunden.",
@@ -2572,6 +2590,7 @@
                 "customFilterHelp": {
                     "fields": {
                         "claimed": "Ob dieser Tonie beansprucht wurde (true/false).",
+                        "corrupt": "Ob die Audiodatei die vollständige Prüfung nicht bestanden hat (true/false).",
                         "episode": "Der Name der Episode des Tonies.",
                         "exists": "Ob der Tonie existiert (true/false).",
                         "hasCloudAuth": "Ob der Tonie Cloud-Zugriff hat (true/false).",

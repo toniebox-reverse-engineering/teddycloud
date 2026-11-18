@@ -1967,10 +1967,11 @@ error_t esp32_patch_port(const char *patchedPath, uint32_t port)
     if (!error)
     {
         int patched = esp32_port_patch(image, size, (uint16_t)port);
-        TRACE_INFO(" patched %d connect function(s)\r\n", patched);
-        if (patched == 0)
+        int checks = esp32_port_patch_check(image, size, (uint16_t)port);
+        TRACE_INFO(" patched %d connect function(s) and %d reachability check(s)\r\n", patched, checks);
+        if (patched == 0 || checks != patched)
         {
-            TRACE_ERROR("Connect function not found, firmware version not supported\r\n");
+            TRACE_ERROR("Connect function or reachability check not found, firmware version not supported\r\n");
             error = ERROR_NOT_FOUND;
         }
     }

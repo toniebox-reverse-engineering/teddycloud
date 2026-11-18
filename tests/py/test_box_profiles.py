@@ -69,6 +69,27 @@ def test_hardware_is_detected_from_user_agent(box):
     assert overlay_setting(box, "toniebox.boxGeneration") == box.profile.generation
 
 
+def test_box_version_is_persisted_in_the_overlay(box):
+    """The detected hardware is written to config.overlay.ini, so it is known before the box connects again."""
+    assert box.request("GET", "/v1/time")[0] == 200
+    assert overlay_setting(box, "boxVersion") == box.profile.box_ic
+    ini = Path(SANDBOX, "config", "config.overlay.ini").read_text()
+    assert f"overlay.{overlay_id(box)}.boxVersion={box.profile.box_ic}\n" in ini
+    boxes = json.loads(api_get("/api/getBoxes")[1])["boxes"]
+    assert next(b for b in boxes if b["ID"] == overlay_id(box))["boxVersion"] == box.profile.box_ic
+
+    assert api_get("/api/triggerReloadConfig")[0] == 200
+    assert overlay_setting(box, "boxVersion") == box.profile.box_ic
+
+
+def test_unknown_user_agent_keeps_the_box_version(box):
+    assert box.request("GET", "/v1/time")[0] == 200
+    box.user_agent = "Mozilla/5.0"
+    assert box.request("GET", "/v1/time")[0] == 200
+    assert overlay_setting(box, "internal.toniebox_firmware.boxIC") == 0
+    assert overlay_setting(box, "boxVersion") == box.profile.box_ic
+
+
 def test_tls_handshake_with_the_profile_parameters(box):
     """The box connects with its own TLS version range, cipher suites and SNI use."""
     status, _, body = box.request("GET", "/v1/time")

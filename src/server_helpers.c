@@ -1,4 +1,5 @@
 
+#include "error_text.h"
 #include <string.h>
 #include <stdarg.h>
 
@@ -130,7 +131,14 @@ bool queryGetMulti(const char *query, const char *key, char *data, size_t data_l
                     }
                 }
                 *b = '\0';                         // Null-terminate the buffer
-                urldecode(data, data_len, buffer); // Decode and copy the value
+                char decoded[sizeof(buffer)];
+                size_t len = urldecode(decoded, sizeof(decoded), buffer);
+                if ((*q && *q != '&') || len >= data_len)
+                {
+                    TRACE_WARNING("Value of query parameter '%s' is too long\r\n", key);
+                    return false;
+                }
+                osMemcpy(data, decoded, len + 1);
                 return true;
             }
             else
@@ -822,7 +830,7 @@ error_t httpServerUriNotFoundCallback(HttpConnection *connection, const char_t *
 
     /*
     char_t *newUri = custom_asprintf("%s/404.html", get_settings()->core.wwwdir);
-    error = httpSendResponse(connection, newUri);
+    error = httpExtSendResponse(connection, newUri);
     free(newUri);
     */
 

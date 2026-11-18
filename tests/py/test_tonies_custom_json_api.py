@@ -252,6 +252,24 @@ class ToniesCustomJsonApiTests(ToniesCustomJsonTestBase):
         result = json.loads(body)
         self.assertTrue(any(item.get("model") == last_model for item in result))
 
+    def test_search_finds_all_matching_custom_entries(self):
+        payload = [
+            {
+                "model": f"zzz-search-{i:02d}",
+                "series": f"ZZZ-Search {i:02d}",
+                "audio_id": [998000 + i],
+                "hash": [f"{998000 + i:040x}"],
+            }
+            for i in range(12)
+        ]
+        self.post_custom_json(payload)
+
+        for field in ("searchModel", "searchSeries"):
+            status, body = self.request_text("GET", f"/api/toniesJsonSearch?{field}=zzz-search")
+            self.assertEqual(status, 200)
+            models = {item.get("model") for item in json.loads(body)}
+            self.assertLessEqual({p["model"] for p in payload}, models)
+
     def test_save_multiple_entries_and_readback_and_reload(self):
         payload = [
             {

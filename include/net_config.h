@@ -34,6 +34,7 @@
 #include "settings.h"
 #include "toniebox_state_type.h"
 #include "pcaplog_types.h"
+#include "http_ext.h"
 
 #define TONIE_AUTH_TOKEN_LENGTH 32
 
@@ -70,14 +71,14 @@ typedef struct
 #define TONIE_LENGTH_MAX (CONTENT_LENGTH_MAX - TONIE_HEADER_LENGTH)
 
 #define HTTP_CLIENT_BUFFER_SIZE 1024 * 16
-#define HTTP_CLIENT_PRIVATE_CONTEXT \
+#define HTTP_CLIENT_CONTEXT_PRIVATE \
     const char *serverName;         \
     http_client_private_t private;  \
     void *sourceCtx;
 
 #define HTTP_SERVER_DIGEST_AUTH_SUPPORT ENABLED
 #define HTTP_SERVER_COOKIE_SUPPORT ENABLED
-#define HTTP_SERVER_PRIVATE_CONTEXT http_connection_private_t private;
+#define HTTP_SERVER_CONTEXT_PRIVATE http_connection_private_t private;
 #define HTTP_SERVER_PERSISTENT_CONN_SUPPORT ENABLED
 
 #define MQTT_CLIENT_DEFAULT_TIMEOUT 500

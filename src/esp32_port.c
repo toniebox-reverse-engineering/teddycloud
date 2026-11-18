@@ -3,7 +3,8 @@
 #include <string.h>
 
 /* The connect function of the box firmware (v5.231.0 to v5.237.0) passes the
- * port to esp_tls_conn_new_sync() and uses TLS only for port 443. */
+ * port to esp_tls_conn_new_sync() and uses TLS only for port 443. Before that,
+ * a reachability check opens a plain TCP connection to the API host on port 443. */
 
 #define ANY -1
 #define CODE_SIZE 3
@@ -32,6 +33,22 @@ static const site_t sites[] = {
     {0xe3, {0x80, 0x57, 0x83}, {0x52, 0xa0}}, /* moveqz a5, a7, a8    ->  movi a5, 0 (TLS on) */
 };
 #define SITE_COUNT (sizeof(sites) / sizeof(sites[0]))
+
+/* reachability check: entry, call8, then the arguments of the TCP connect (checked separately, original or patched) */
+static const int16_t check_function[] = {
+    0x36, 0x41, 0x00, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY, ANY,
+    ANY, ANY, ANY, 0x16, 0x1a, 0x01, 0xa1, ANY, ANY, ANY, ANY, ANY,
+    0x22, 0xa0, 0x00, 0xcc, 0x3a, ANY, ANY, ANY, 0x0c, 0x12, 0x1d, 0xf0};
+#define CHECK_LENGTH (sizeof(check_function) / sizeof(check_function[0]))
+#define CHECK_ARGS 0x06
+#define CHECK_ARGS_SIZE 9
+#define CHECK_TIMEOUT 7500
+
+static const uint8_t check_args_original[CHECK_ARGS_SIZE] = {
+    0xc2, 0xa7, 0x53, /* movi a12, 0x753 */
+    0xe0, 0xcc, 0x11, /* slli a12, a12, 2 */
+    0xb2, 0xa1, 0xbb, /* movi a11, 443 */
+};
 
 bool esp32_port_supported(uint32_t port)
 {
@@ -66,6 +83,39 @@ static bool is_connect_function(const uint8_t *function)
         }
     }
     return true;
+}
+
+static bool is_check_function(const uint8_t *function)
+{
+    const uint8_t *args = &function[CHECK_ARGS];
+    bool original = !memcmp(args, check_args_original, CHECK_ARGS_SIZE);
+    bool patched = args[0] == 0xb2 && args[1] == 0xa0 && args[3] == 0xb2 && args[4] == 0xdb && args[6] == 0xc2 && args[7] == 0xdb;
+
+    return (original || patched) && matches(function, check_function, CHECK_LENGTH);
+}
+
+int esp32_port_patch_check(uint8_t *image, size_t length, uint16_t port)
+{
+    /* the timeout is computed from the port: port + k * 256, as close to 7500 ms as possible */
+    int timeout_step = (CHECK_TIMEOUT + 128 - port + 0x8000) / 0x100 - 0x80;
+    const uint8_t patched[CHECK_ARGS_SIZE] = {
+        0xb2, 0xa0, port & 0xff,         /* movi a11, port & 0xff */
+        0xb2, 0xdb, port >> 8,           /* addmi a11, a11, port & 0xff00 */
+        0xc2, 0xdb, timeout_step & 0xff, /* addmi a12, a11, timeout_step * 256 */
+    };
+    int count = 0;
+
+    for (size_t pos = 0; pos + CHECK_LENGTH <= length; pos++)
+    {
+        uint8_t *function = &image[pos];
+        if (!is_check_function(function))
+        {
+            continue;
+        }
+        memcpy(&function[CHECK_ARGS], port == 443 ? check_args_original : patched, CHECK_ARGS_SIZE);
+        count++;
+    }
+    return count;
 }
 
 int esp32_port_patch(uint8_t *image, size_t length, uint16_t port)

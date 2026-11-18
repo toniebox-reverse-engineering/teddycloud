@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include <sys/types.h>
 #include <errno.h>
 #include <string.h>
@@ -22,7 +23,7 @@ typedef struct
 
 } mqtt_ctx_t;
 
-#define MQTT_CLIENT_PRIVATE_CONTEXT mqtt_ctx_t *mqtt_ctx;
+#define MQTT_CLIENT_CONTEXT_PRIVATE mqtt_ctx_t *mqtt_ctx;
 
 #include "mqtt/mqtt_client.h"
 #include "tls.h"
@@ -1322,14 +1323,13 @@ void mqtt_init()
         setting_item_t *s = settings_get(index);
         if (s->internal)
         {
-            index++;
             continue;
         }
         memset(&entity, 0x00, sizeof(entity));
 
         char *name = mqtt_settingname_clean(s->option_name);
         entity.id = name;
-        entity.name = custom_asprintf("%s - %s", s->option_name, s->description);
+        entity.name = custom_asprintf("%s - %s", s->option_name, s->label ? s->label : s->option_name);
         entity.stat_t = mqtt_topic_str("%s/%s/status", name);
         entity.cmd_t = mqtt_topic_str("%s/%s/command", name);
         entity.transmit = &mqtt_settings_tx;

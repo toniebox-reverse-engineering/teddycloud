@@ -17,6 +17,7 @@ typedef struct
 error_t multipart_handle(HttpConnection *connection, multipart_cbr_t *cbr, void *multipart_ctx);
 
 int urldecode(char *dest, size_t dest_max, const char *src);
+/* false when the key is missing or its decoded value does not fit into data */
 bool queryGet(const char *query, const char *key, char *data, size_t data_len);
 bool queryGetMulti(const char *query, const char *key, char *data, size_t data_len, size_t skip_len);
 char_t *ipAddrToString(const IpAddr *ipAddr, char_t *str);

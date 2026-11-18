@@ -7,6 +7,7 @@
 #include "cJSON.h"
 #include "json_helper.h"
 #include "handler.h"
+#include "rand.h"
 
 /* Upper bound on playlist entries, matching the fixed source array the
    ffmpeg encoder (ffmpeg_stream/ffmpeg_convert) operates on. */
@@ -69,13 +70,20 @@ error_t tap_load(char *filename, tonie_audio_playlist_t *tap)
     else
     {
         tap->type = jsonGetString(tapJson, "type");
-        if (osStrcmp(tap->type, "tap") == 0)
+        tap->_random = (osStrcmp(tap->type, TAP_TYPE_RANDOM) == 0);
+        if (osStrcmp(tap->type, TAP_TYPE_TAP) == 0 || tap->_random)
         {
             tap->audio_id = jsonGetUInt32(tapJson, "audio_id");
             tap->filepath = jsonGetString(tapJson, "filepath");
 
             tap->_filepath_resolved = strdup(tap->filepath);
             resolveSpecialPathPrefix(&tap->_filepath_resolved, get_settings());
+
+            if (tap->_random)
+            {
+                tap->directory = jsonGetString(tapJson, "directory");
+                resolveSpecialPathPrefix(&tap->directory, get_settings());
+            }
 
             tap->name = jsonGetString(tapJson, "name");
             const cJSON *filesJson = cJSON_GetObjectItemCaseSensitive(tapJson, "files");
@@ -192,8 +200,181 @@ void tap_free(tonie_audio_playlist_t *tap)
     {
         osFreeMem(tap->name);
     }
+    if (tap->directory != NULL)
+    {
+        osFreeMem(tap->directory);
+    }
 
     osMemset(tap, 0, sizeof(tonie_audio_playlist_t));
+}
+
+/* Reads the audio id and hash of a pool candidate that is a complete TAF: one still being encoded
+   or uploaded already has a header, but its file is shorter than the header says. Small files
+   (also pipes and devices, which report size 0) are never opened. Only files under the data
+   directory can be served. */
+static bool_t tap_random_header(const char *path, settings_t *settings, uint32_t *audio_id, uint8_t sha1[20])
+{
+    uint32_t fileSize = 0;
+    if (osStrncmp(path, settings->internal.datadirfull, osStrlen(settings->internal.datadirfull)) != 0 ||
+        fsGetFileSize(path, &fileSize) != NO_ERROR || fileSize <= 4096)
+    {
+        return false;
+    }
+    FsFile *file = fsOpenFile(path, FS_FILE_MODE_READ);
+    if (file == NULL)
+    {
+        return false;
+    }
+    TonieboxAudioFileHeader *tafHeader = readTafHeader(file, path);
+    fsCloseFile(file);
+    bool_t complete = tafHeader != NULL && tafHeader->sha1_hash.len == 20 && (uint64_t)(fileSize - 4096) == tafHeader->num_bytes;
+    if (complete)
+    {
+        *audio_id = tafHeader->audio_id;
+        osMemcpy(sha1, tafHeader->sha1_hash.data, 20);
+    }
+    if (tafHeader != NULL)
+    {
+        toniebox_audio_file_header__free_unpacked(tafHeader, NULL);
+    }
+    return complete;
+}
+
+static void tap_random_add(char ***paths, size_t *count, size_t *capacity, char *path)
+{
+    if (*count == *capacity)
+    {
+        *capacity = (*capacity == 0) ? 64 : *capacity * 2;
+        *paths = realloc(*paths, *capacity * sizeof(char *));
+    }
+    (*paths)[(*count)++] = path;
+}
+
+/* The candidates of a pool: the files directly in its directory (no subfolders) and its listed
+   files; a listed file that is also in the directory is taken once. Nothing is opened yet. */
+static size_t tap_random_candidates(const tonie_audio_playlist_t *tap, char ***paths)
+{
+    size_t count = 0;
+    size_t capacity = 0;
+    *paths = NULL;
+
+    if (tap->directory[0] != '\0')
+    {
+        /* Without its trailing separator, so that a listed file in the folder compares equal. */
+        char *dirPath = strdup(tap->directory);
+        size_t dirLen = osStrlen(dirPath);
+        while (dirLen > 1 && (dirPath[dirLen - 1] == '/' || dirPath[dirLen - 1] == '\\'))
+        {
+            dirPath[--dirLen] = '\0';
+        }
+        FsDir *dir = fsOpenDir(dirPath);
+        if (dir != NULL)
+        {
+            FsDirEntry entry;
+            while (fsReadDir(dir, &entry) == NO_ERROR)
+            {
+                if (!(entry.attributes & FS_FILE_ATTR_DIRECTORY))
+                {
+                    tap_random_add(paths, &count, &capacity, custom_asprintf("%s%c%s", dirPath, PATH_SEPARATOR, entry.name));
+                }
+            }
+            fsCloseDir(dir);
+        }
+        else
+        {
+            TRACE_WARNING("Random TAP folder %s cannot be read\r\n", dirPath);
+        }
+        osFreeMem(dirPath);
+    }
+    size_t inDirectory = count;
+    for (size_t i = 0; i < tap->filesCount; i++)
+    {
+        bool_t listedTwice = false;
+        for (size_t j = 0; j < inDirectory && !listedTwice; j++)
+        {
+            listedTwice = (osStrcmp((*paths)[j], tap->files[i]._filepath_resolved) == 0);
+        }
+        if (!listedTwice)
+        {
+            tap_random_add(paths, &count, &capacity, strdup(tap->files[i]._filepath_resolved));
+        }
+    }
+    return count;
+}
+
+/* The candidate a request that continues an earlier pick asks for: the one whose SHA1 starts with
+   sha1_prefix (TAP_RANDOM_SHA1_PREFIX bytes) when that is given, else the one with audio_id. Two
+   different TAFs that both match (audio ids are often encode times in seconds) make it ambiguous:
+   then none is returned, as continuing the wrong one would splice two files. */
+static char *tap_random_find(char **paths, size_t count, uint32_t audio_id, const uint8_t *sha1_prefix, settings_t *settings)
+{
+    char *found = NULL;
+    uint8_t foundSha1[20];
+    for (size_t i = 0; i < count; i++)
+    {
+        uint32_t id = 0;
+        uint8_t sha1[20];
+        if (!tap_random_header(paths[i], settings, &id, sha1) ||
+            (sha1_prefix != NULL ? osMemcmp(sha1, sha1_prefix, TAP_RANDOM_SHA1_PREFIX) != 0 : id != audio_id))
+        {
+            continue;
+        }
+        if (found != NULL && osMemcmp(sha1, foundSha1, 20) != 0)
+        {
+            TRACE_WARNING("Random TAP: %s and %s both match the requested TAF\r\n", found, paths[i]);
+            return NULL;
+        }
+        found = paths[i];
+        osMemcpy(foundSha1, sha1, 20);
+    }
+    return found;
+}
+
+/* Picks one TAF of a random pool, each equally likely. Only the drawn candidate is opened; one that
+   is no complete TAF (a cover, an unfinished encode) is dropped and another drawn, so a request
+   costs a few opens, not one per file of the folder. With audio_id != 0 or a sha1_prefix the TAF
+   an earlier pick served is picked instead (tap_random_find). Returns ERROR_NOT_FOUND when no TAF
+   fits; the caller frees *picked otherwise. */
+error_t tap_random_pick(const tonie_audio_playlist_t *tap, uint32_t audio_id, const uint8_t *sha1_prefix, settings_t *settings, char **picked)
+{
+    char **paths;
+    size_t count = tap_random_candidates(tap, &paths);
+    bool_t continuing = (audio_id != 0 || sha1_prefix != NULL);
+    *picked = NULL;
+
+    if (continuing)
+    {
+        char *found = tap_random_find(paths, count, audio_id, sha1_prefix, settings);
+        if (found != NULL)
+        {
+            *picked = strdup(found);
+        }
+    }
+    while (!continuing && count > 0 && *picked == NULL)
+    {
+        /* A failed draw leaves 0 and takes the first candidate. */
+        uint32_t draw = 0;
+        rand_get_algo()->generate(rand_get_context(), (uint8_t *)&draw, sizeof(draw));
+        size_t index = draw % count;
+        uint32_t id;
+        uint8_t sha1[20];
+        if (tap_random_header(paths[index], settings, &id, sha1))
+        {
+            *picked = paths[index];
+        }
+        else
+        {
+            osFreeMem(paths[index]);
+        }
+        paths[index] = paths[--count];
+    }
+    for (size_t i = 0; i < count; i++)
+    {
+        osFreeMem(paths[i]);
+    }
+    osFreeMem(paths);
+
+    return (*picked != NULL) ? NO_ERROR : ERROR_NOT_FOUND;
 }
 
 error_t tap_generate_taf(tonie_audio_playlist_t *tap, size_t *current_source, bool_t *active, bool_t force)

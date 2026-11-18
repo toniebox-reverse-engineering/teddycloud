@@ -56,6 +56,12 @@ class ContentMime(Base):
         self.assertEqual(status, 200)
         self.assertEqual(content_type, "audio/ogg")
 
+    def test_wasm_type(self):
+        # needed for WebAssembly.instantiateStreaming in the web UI
+        status, content_type = get_content_type("/web/wasm/taf_encoder.wasm")
+        self.assertEqual(status, 200)
+        self.assertEqual(content_type, "application/wasm")
+
 
 if __name__ == "__main__":
     unittest.main()

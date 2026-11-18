@@ -9,3 +9,7 @@ bool esp32_port_supported(uint32_t port);
 /* Sets the port the box firmware connects to (443 restores the original code).
  * Returns how many connect functions were patched. */
 int esp32_port_patch(uint8_t *image, size_t length, uint16_t port);
+
+/* Sets the port of the reachability check the box firmware does before it connects
+ * (443 restores the original code). Returns how many checks were patched. */
+int esp32_port_patch_check(uint8_t *image, size_t length, uint16_t port);

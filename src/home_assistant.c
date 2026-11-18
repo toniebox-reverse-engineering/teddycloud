@@ -33,11 +33,12 @@ void ha_addstrarray(cJSON *json_obj, const char *name, const char *value)
         osStrcpy(tmp_value, value);
         cJSON *json_arr = cJSON_AddArrayToObject(json_obj, name);
 
-        char *token = strtok(tmp_value, ";");
+        char *save = NULL;
+        char *token = strtok_r(tmp_value, ";", &save);
         while (token != NULL)
         {
             cJSON_AddItemToArray(json_arr, cJSON_CreateString(token));
-            token = strtok(NULL, ";");
+            token = strtok_r(NULL, ";", &save);
         }
 
         osFreeMem(tmp_value);

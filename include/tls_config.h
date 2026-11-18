@@ -34,7 +34,7 @@
 #define TLS_TX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
 #define TLS_RX_BUFFER_SIZE TLS_MAX_RECORD_LENGTH
 
-#define TLS_PRIVATE_CONTEXT       \
+#define TLS_CONTEXT_PRIVATE       \
     char client_cert_issuer[128]; \
     char client_cert_subject[32]; \
     char client_cert_serial[64];  \
@@ -237,5 +237,12 @@
 #define TLS_ED25519_SUPPORT DISABLED
 // Ed448 elliptic curve support
 #define TLS_ED448_SUPPORT DISABLED
+
+// Cyclone 2.6 raised the minimum RSA/DH/DSA key sizes of peer certificates to 2048 bits and
+// turned on Encrypt-then-MAC. Keep what 2.4 did, old boxes and brokers must keep working.
+#define TLS_MIN_RSA_MODULUS_SIZE 1024
+#define TLS_MIN_DH_MODULUS_SIZE 1024
+#define TLS_MIN_DSA_MODULUS_SIZE 1024
+#define TLS_ENCRYPT_THEN_MAC_SUPPORT DISABLED
 
 #endif

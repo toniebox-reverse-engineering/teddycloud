@@ -15,6 +15,8 @@ typedef enum
     CT_SOURCE_TAP_STREAM,
     CT_SOURCE_TAP_CACHED,
     CT_SOURCE_STREAM,
+    /* A random pool: _source_resolved stays the .tap file, the TAF is picked per content request. */
+    CT_SOURCE_TAP_RANDOM,
 } ct_source_t;
 
 typedef struct
@@ -64,6 +66,7 @@ typedef struct
     char *jsonPath;
     bool_t exists;
     bool_t valid;
+    bool_t corrupt; // header is fine, but SHA1 hash or length of the audio is not
     bool_t updated;
     bool_t locked;
     contentJson_t json;

@@ -1,3 +1,4 @@
+#include "error_text.h"
 #include "toniesJson.h"
 #include "fs_port.h"
 #include "os_port.h"
@@ -31,6 +32,46 @@ static char *toniesV2_custom_json_path = NULL;
 static char *toniesV2_json_tmp_path = NULL;
 #endif
 
+/* the cache serves an image only after its entry was added; add the box images now, so that
+   /cache/ URLs handed out by /api/tonieboxesJson before a restart keep working */
+static void tonieboxes_cacheImages()
+{
+    if (!settings_get_bool("tonie_json.cache_images"))
+    {
+        return;
+    }
+    char *path = custom_asprintf("%s%c%s", settings_get_string("internal.configdirfull"), PATH_SEPARATOR, TONIEBOX_JSON_FILE);
+    size_t fileSize = 0;
+    fsGetFileSize(path, (uint32_t *)(&fileSize));
+    FsFile *fsFile = fsOpenFile(path, FS_FILE_MODE_READ);
+    osFreeMem(path);
+    if (fsFile == NULL)
+    {
+        return;
+    }
+    char *data = osAllocMem(fileSize);
+    size_t pos = 0;
+    size_t sizeRead;
+    while (pos < fileSize && fsReadFile(fsFile, &data[pos], fileSize - pos, &sizeRead) == NO_ERROR && sizeRead > 0)
+    {
+        pos += sizeRead;
+    }
+    fsCloseFile(fsFile);
+    cJSON *boxesJson = cJSON_ParseWithLengthOpts(data, pos, 0, 0);
+    osFreeMem(data);
+
+    cJSON *boxJson;
+    cJSON_ArrayForEach(boxJson, boxesJson)
+    {
+        cJSON *img_src = cJSON_GetObjectItemCaseSensitive(boxJson, "img_src");
+        if (cJSON_IsString(img_src) && osStrlen(img_src->valuestring) > 0 && !cache_fetch_by_url(img_src->valuestring))
+        {
+            cache_add(img_src->valuestring);
+        }
+    }
+    cJSON_Delete(boxesJson);
+}
+
 void tonies_init()
 {
     /* lock tonies cache and update caches */
@@ -44,6 +85,7 @@ void tonies_init()
 
         tonies_readJson(tonies_custom_json_path, &toniesCustomJsonCache, &toniesCustomJsonCount);
         tonies_readJson(tonies_json_path, &toniesJsonCache, &toniesJsonCount);
+        tonieboxes_cacheImages();
         toniesJsonInitialized = true;
     }
 
@@ -528,6 +570,23 @@ toniesJson_item_t *tonies_byAudioIdHash(uint32_t audio_id, uint8_t *hash)
     return item;
 }
 
+/* Tonies encoded in the same second share the audio id and differ only in the hash, so a known hash
+ * picks the right one. Without a hash, or when no entry lists it, the first tonie with the audio id is
+ * returned, which may be another tonie of the same batch. */
+toniesJson_item_t *tonies_byAudioIdPreferHash(uint32_t audio_id, uint8_t *hash)
+{
+    toniesJson_item_t *item = NULL;
+    if (hash != NULL)
+    {
+        item = tonies_byAudioIdHash(audio_id, hash);
+    }
+    if (item == NULL)
+    {
+        item = tonies_byAudioId(audio_id);
+    }
+    return item;
+}
+
 toniesJson_item_t *tonies_byModel_base(char *model, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
     if (model == NULL || osStrcmp(model, "") == 0)
@@ -595,17 +654,21 @@ const char *tonies_strcasestr(const char *haystack, const char *needle)
     return NULL;
 }
 
-bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
+bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, toniesJson_item_t *result[TONIES_SEARCH_MAX], size_t *result_size, size_t max_slots, toniesJson_item_t *toniesCache, size_t toniesCount)
 {
 #if TONIES_JSON_CACHED == 1
     size_t count = *result_size;
+    bool hasModel = model != NULL && osStrlen(model) > 0;
+    bool hasSeries = series != NULL && osStrlen(series) > 0;
+    bool hasEpisode = episode != NULL && osStrlen(episode) > 0;
+    size_t fields = hasModel + hasSeries + hasEpisode;
 
-    if (model != NULL && osStrlen(model) > 0)
+    if (hasModel)
     {
         size_t count_model = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_model >= (max_slots - count) / 3)
+            if (count >= max_slots || count_model >= (max_slots - count) / fields)
             {
                 break;
             }
@@ -627,13 +690,14 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
                 }
             }
         }
+        fields--;
     }
-    if (series != NULL && osStrlen(series) > 0)
+    if (hasSeries)
     {
         size_t count_series = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_series >= (max_slots - count) / 2)
+            if (count >= max_slots || count_series >= (max_slots - count) / fields)
             {
                 break;
             }
@@ -655,13 +719,14 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
                 }
             }
         }
+        fields--;
     }
-    if (episode != NULL && osStrlen(episode) > 0)
+    if (hasEpisode)
     {
         size_t count_episode = 0;
         for (size_t i = 0; i < toniesCount; i++)
         {
-            if (count >= max_slots || count_episode >= (max_slots - count) / 1)
+            if (count >= max_slots || count_episode >= (max_slots - count))
             {
                 break;
             }
@@ -691,12 +756,12 @@ bool tonies_byModelSeriesEpisode_base(char *model, char *series, char *episode, 
 #endif
 }
 
-bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[18], size_t *result_size)
+bool tonies_byModelSeriesEpisode(char *model, char *series, char *episode, toniesJson_item_t *result[TONIES_SEARCH_MAX], size_t *result_size)
 {
     size_t count = 0;
     mutex_lock(MUTEX_TONIES_JSON_CACHE);
-    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 9, toniesCustomJsonCache, toniesCustomJsonCount);
-    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, 18, toniesJsonCache, toniesJsonCount);
+    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, TONIES_SEARCH_MAX / 2, toniesCustomJsonCache, toniesCustomJsonCount);
+    tonies_byModelSeriesEpisode_base(model, series, episode, result, &count, TONIES_SEARCH_MAX, toniesJsonCache, toniesJsonCount);
     mutex_unlock(MUTEX_TONIES_JSON_CACHE);
     *result_size = count;
     return *result_size > 0;

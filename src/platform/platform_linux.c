@@ -6,6 +6,9 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -484,4 +487,91 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
 time_t getCurrentUnixTime(void)
 {
     return time(NULL);
+}
+static pthread_mutex_t log_mutex;
+static pthread_once_t log_mutex_once = PTHREAD_ONCE_INIT;
+
+static void log_mutex_init(void)
+{
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&log_mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
+}
+
+void tc_log_lock(void)
+{
+    pthread_once(&log_mutex_once, log_mutex_init);
+    pthread_mutex_lock(&log_mutex);
+}
+
+void tc_log_unlock(void)
+{
+    pthread_mutex_unlock(&log_mutex);
+}
+
+bool platform_supports_ansi_colors(void)
+{
+    char *term = getenv("TERM");
+    if (term)
+    {
+        if (strncmp(term, "xterm", 5) == 0 ||
+            strncmp(term, "rxvt", 4) == 0 ||
+            // ... other terminals known to support ANSI colors ...
+            0)
+        {
+            return true; // This terminal probably supports ANSI color codes.
+        }
+    }
+
+    return false; // Default to not supported.
+}
+
+/*
+ * Cyclone 2.6 asks the stack for a NetContext. teddycloud uses OS sockets and has no Cyclone stack
+ * instance, so there is nothing to look up or lock.
+ */
+NetContext *netGetDefaultContext(void)
+{
+    return NULL;
+}
+
+void netLock(NetContext *context)
+{
+}
+
+void netUnlock(NetContext *context)
+{
+}
+
+Socket *socketOpenEx(NetContext *context, uint_t type, uint_t protocol)
+{
+    return socketOpen(type, protocol);
+}
+
+/*
+ * Replaces Cyclone's osCreateTask (cyclone/common/os_port_posix.c, renamed there in the Makefile), which creates
+ * joinable threads. Nothing joins a task, and a joinable thread keeps its stack mapped after it ended until it is
+ * joined: every task that ends (a stream, a TAP being generated) left its stack, 8 MB by default, of address space
+ * behind. A detached one gives it back when it ends. As Cyclone's, it takes neither the name nor the parameters.
+ */
+OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg, const OsTaskParameters *params)
+{
+    (void)name;
+    (void)params;
+    pthread_t thread;
+    pthread_attr_t attr;
+    int ret = pthread_attr_init(&attr);
+    if (ret == 0)
+    {
+        ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+        if (ret == 0)
+        {
+            ret = pthread_create(&thread, &attr, (void *(*)(void *))taskCode, arg);
+        }
+        pthread_attr_destroy(&attr);
+    }
+    /* pthread_t is a pointer on some libcs (musl), the plain -1 does not convert */
+    return (ret == 0) ? (OsTaskId)thread : (OsTaskId)OS_INVALID_TASK_ID;
 }

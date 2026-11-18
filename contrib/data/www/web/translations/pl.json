@@ -1715,7 +1715,7 @@
                 "cancel": "Anuluj",
                 "chipMAC": "MAC układu",
                 "chipType": "Typ układu",
-                "chipTypeError": "Błąd typu układu - odczytano nieoczekiwany typ. Odczytano {{actualname}}, oczekiwano {{expectedname}}. Przerwij przetwarzanie, sprawdź połączenie i spróbuj ponownie!",
+                "chipTypeError": "Błąd typu układu - odczytano nieoczekiwany typ. Odczytano {{actualtype}}, oczekiwano {{expectedtype}}. Przerwij przetwarzanie, sprawdź połączenie i spróbuj ponownie!",
                 "confirmFlashDialog": "Czy na pewno chcesz zflashować swojego Tonieboxa? Upewnij się, że masz stabilne połączenie i nie przerywaj procesu!",
                 "confirmFlashDialogHint": "Aby Twój Toniebox działał prawidłowo, podana instancja TeddyCloud jest absolutnie niezbędna. Jeśli Twój TeddyCloud jest offline, Twój Toniebox nie będzie mógł uzyskać dostępu do nowej zawartości!",
                 "confirmFlashModal": "Zflashuj Tonieboxa spatchowanym firmware",
@@ -1978,6 +1978,7 @@
             "title": "Zawartość",
             "toniePicture": "Obraz Tonie"
         },
+        "corruptHint": "Plik audio jest uszkodzony. Otwórz informacje, aby pobrać go ponownie z chmury.",
         "currentPath": "Bieżąca ścieżka: ",
         "customEditor": {
             "actions": {
@@ -2295,6 +2296,7 @@
             "titleSelect": "Wybierz obraz"
         },
         "infoModal": {
+            "corrupt": "Uszkodzony:",
             "download": "Pobierz TAF jako *.ogg",
             "exists": "Istnieje:",
             "model": "Model:",
@@ -2306,7 +2308,11 @@
         "informationModal": {
             "hideTag": "Ukryj Tonie/Tag",
             "ok": "OK",
-            "unknownModel": "Nieznany model"
+            "redownload": "Pobierz ponownie",
+            "redownloadConfirm": "Zastąpić plik lokalny nowym pobraniem z chmury?",
+            "unknownModel": "Nieznany model",
+            "verifyFile": "Sprawdź plik",
+            "verifyFileHint": "Odczytuje cały plik audio i sprawdza jego hash SHA1 oraz długość. Może to chwilę potrwać."
         },
         "lastPlayedOnModal": {
             "lastPlayedOn": "Ostatnio odtwarzany Tonie",
@@ -2337,6 +2343,10 @@
             "downloadingDetails": "Pobieranie \"{{model}}\" [{{ruid}}]...",
             "errorDuringDownload": "Błąd podczas pobierania w tle",
             "errorDuringDownloadDetails": "Błąd podczas pobierania w tle \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringRedownload": "Błąd podczas ponownego pobierania",
+            "errorDuringRedownloadDetails": "Błąd podczas ponownego pobierania \"{{model}}\" [{{ruid}}]: ",
+            "errorDuringVerify": "Błąd podczas sprawdzania",
+            "errorDuringVerifyDetails": "Błąd podczas sprawdzania \"{{model}}\" [{{ruid}}]: ",
             "errorFetchingUpdatedCard": "Błąd podczas pobierania zaktualizowanej karty!",
             "errorFetchingUpdatedCardDetails": "Błąd podczas pobierania zaktualizowanej karty dla \"{{model}}\" [{{ruid}}]: ",
             "filterDeleted": "Filtr usunięty",
@@ -2355,6 +2365,10 @@
             "liveEnabledDetails": "Flaga live włączona dla \"{{model}}\" [{{ruid}}]",
             "noFilterFound": "Nie znaleziono filtru",
             "noFilterFoundDetails": "Nie znaleziono filtru o nazwie {{name}}",
+            "redownloadedFile": "Plik pobrany ponownie",
+            "redownloadedFileDetails": "\"{{model}}\" [{{ruid}}] został ponownie pobrany z chmury",
+            "redownloading": "Ponowne pobieranie...",
+            "redownloadingDetails": "Ponowne pobieranie \"{{model}}\" [{{ruid}}] z chmury...",
             "setToEmptyValue": "puste",
             "setTonieToModelFailed": "Nie udało się zmienić modelu tonie!",
             "setTonieToModelFailedDetails": "Nie udało się zmienić modelu tonie dla [{{ruid}}]: ",
@@ -2363,7 +2377,11 @@
             "setTonieToSourceFailed": "Nie udało się zmienić źródła tonie!",
             "setTonieToSourceFailedDetails": "Nie udało się zmienić źródła tonie dla [{{ruid}}]: ",
             "setTonieToSourceSuccessful": "Ustawienie źródła tonie zakończone pomyślnie!",
-            "setTonieToSourceSuccessfulDetails": "Ustawiono źródło tonie na {{selectedSource}} dla [{{ruid}}]"
+            "setTonieToSourceSuccessfulDetails": "Ustawiono źródło tonie na {{selectedSource}} dla [{{ruid}}]",
+            "verifiedCorrupt": "Plik jest uszkodzony",
+            "verifiedCorruptDetails": "Plik audio \"{{model}}\" [{{ruid}}] nie przeszedł pełnego sprawdzenia. Pobierz go ponownie z chmury.",
+            "verifiedValid": "Plik jest poprawny",
+            "verifiedValidDetails": "Plik audio \"{{model}}\" [{{ruid}}] przeszedł pełne sprawdzenie"
         },
         "navigationTitle": "Tonies",
         "noData": "Nie znaleziono Tonies/niestandardowych tagów.",
@@ -2572,6 +2590,7 @@
                 "customFilterHelp": {
                     "fields": {
                         "claimed": "Czy ten Tonie został przypisany (true/false).",
+                        "corrupt": "Czy plik audio nie przeszedł pełnego sprawdzenia (true/false).",
                         "episode": "Nazwa odcinka Tonie.",
                         "exists": "Czy Tonie istnieje (true/false).",
                         "hasCloudAuth": "Czy Tonie ma autoryzację w chmurze (true/false).",

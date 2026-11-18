@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2010-2024 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2010-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.4.4
+ * @version 2.6.6
  **/
 
 //Switch to the appropriate trace level
@@ -34,11 +34,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "os_port.h"
 #include "os_port_posix.h"
 #include "debug.h"
@@ -99,6 +94,7 @@ OsTaskId osCreateTask(const char_t *name, OsTaskCode taskCode, void *arg,
    }
    else
    {
+      //pthread_t is a pointer on some libcs (musl), the plain -1 does not convert
       return (OsTaskId) OS_INVALID_TASK_ID;
    }
 }
@@ -117,13 +113,8 @@ void osDeleteTask(OsTaskId taskId)
       //Kill ourselves
       pthread_exit(NULL);
    }
-   else
-   {
-      pthread_t thread = (pthread_t)taskId;
-
-      pthread_cancel(thread);
-   }
 }
+
 
 /**
  * @brief Delay routine
@@ -146,17 +137,6 @@ void osSwitchTask(void)
    //Not implemented
 }
 
-static pthread_mutex_t mutex;
-static pthread_once_t init_once = PTHREAD_ONCE_INIT;
-
-void osMutexInit(void)
-{
-   pthread_mutexattr_t attr;
-   pthread_mutexattr_init(&attr);
-   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-   pthread_mutex_init(&mutex, &attr);
-   pthread_mutexattr_destroy(&attr);
-}
 
 /**
  * @brief Suspend scheduler activity
@@ -164,8 +144,7 @@ void osMutexInit(void)
 
 void osSuspendAllTasks(void)
 {
-   pthread_once(&init_once, osMutexInit);
-   pthread_mutex_lock(&mutex);
+   //Not implemented
 }
 
 
@@ -175,7 +154,7 @@ void osSuspendAllTasks(void)
 
 void osResumeAllTasks(void)
 {
-   pthread_mutex_unlock(&mutex);
+   //Not implemented
 }
 
 
@@ -444,11 +423,6 @@ bool_t osWaitForSemaphore(OsSemaphore *semaphore, systime_t timeout)
 
 void osReleaseSemaphore(OsSemaphore *semaphore)
 {
-   if (semaphore == NULL)
-   {
-      TRACE_ERROR("osReleaseSemaphore() failed because semaphore is NULL\r\n");
-      return;
-   }
    //Release the semaphore
    sem_post(semaphore);
 }
