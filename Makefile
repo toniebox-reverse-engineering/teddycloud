@@ -698,6 +698,7 @@ preinstall: $(INSTALL_DIR)/ $(PREINSTALL_DIR)/
 	$(QUIET)$(ECHO) '[ ${GREEN}PRE${NC}  ] Preinstall'
 	$(QUIET)$(CP) $(BIN_DIR)/* $(PREINSTALL_DIR)/
 	$(QUIET)$(CP_R) $(subst /,$(SEP),$(CONTRIB_DIR)/*) $(subst /,$(SEP),$(PREINSTALL_DIR)/)
+	$(QUIET)$(CP) $(CONTRIB_DIR)/$(WEB_DIR)/web_version.json $(PREINSTALL_DIR)/web_version.json
 	$(QUIET)cd $(PREINSTALL_DIR)/ \
 		&& find . -name ".gitkeep" -type f -delete \
 		&& cd -

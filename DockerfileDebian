@@ -74,6 +74,8 @@ COPY --from=buildenv \
     /buildenv/install/pre/certs/ /teddycloud/certs/
 COPY --from=buildenv \
     /buildenv/install/pre/data/www/ /teddycloud/data/www/
+COPY --from=buildenv \
+    /buildenv/install/pre/web_version.json /teddycloud/web_version.json
 
 COPY --from=buildenv \
     /buildenv/install/pre/*.sh /usr/local/bin/

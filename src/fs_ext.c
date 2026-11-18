@@ -117,6 +117,55 @@ error_t fsCompareFiles(const char_t *source_path, const char_t *target_path, siz
     return error;
 }
 
+bool fsFileContains(const char_t *path, const char *search_str)
+{
+    if (path == NULL || search_str == NULL || !fsFileExists(path))
+        return false;
+
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL)
+        return false;
+
+    size_t search_len = strlen(search_str);
+    if (search_len == 0)
+    {
+        fclose(fp);
+        return true;
+    }
+
+    char buffer[4096];
+    size_t carry = 0;
+    bool found = false;
+
+    while (!found)
+    {
+        size_t n = fread(buffer + carry, 1, sizeof(buffer) - 1 - carry, fp);
+        if (n == 0)
+            break;
+        size_t total = carry + n;
+        buffer[total] = '\0';
+
+        if (strstr(buffer, search_str) != NULL)
+        {
+            found = true;
+            break;
+        }
+
+        if (total >= search_len)
+        {
+            carry = search_len - 1;
+            memmove(buffer, buffer + total - carry, carry);
+        }
+        else
+        {
+            carry = 0;
+        }
+    }
+
+    fclose(fp);
+    return found;
+}
+
 error_t fsCopyFile(const char_t *source_path, const char_t *target_path, bool_t overwrite)
 {
     // Check if source_path and target_path are not NULL

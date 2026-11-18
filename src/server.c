@@ -15,6 +15,7 @@
 #include "debug.h"                // for TRACE_DEBUG, TRACE_ERROR, TRACE_INFO
 #include "error.h"                // for NO_ERROR, error2text, ERROR_FAILURE
 #include "fs_port_posix.h"        // for fsDirExists
+#include "fs_ext.h"
 #include "handler_api.h"          // for handleApiAssignUnknown, handleApiA...
 #include "handler_cloud.h"        // for handleCloudClaim, handleCloudConte...
 #include "handler_reverse.h"      // for handleReverse
@@ -614,6 +615,30 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
             if (!strncmp(uri, "/web", 4) && (uri[4] == '\0' || uri[strlen(uri) - 1] == '/' || !strchr(uri, '.')))
             {
                 uri = "/web/index.html";
+            }
+
+            if (!strcmp(uri, "/web/index.html"))
+            {
+                char *tc_file = custom_asprintf("%s/web_version.json", client_ctx->settings->internal.basedirfull);
+                if (fsFileExists(tc_file))
+                {
+                    char *web_file = custom_asprintf("%s/web/web_version.json", client_ctx->settings->internal.wwwdirfull);
+                    bool mismatch = !fsFileExists(web_file) || (fsCompareFiles(tc_file, web_file, NULL) != NO_ERROR);
+                    if (mismatch && (fsFileContains(web_file, "DEVELOPMENT MODE") || fsFileContains(tc_file, "DEVELOPMENT MODE")))
+                    {
+                        mismatch = false;
+                    }
+                    osFreeMem(web_file);
+                    osFreeMem(tc_file);
+                    if (mismatch)
+                    {
+                        return httpSendErrorResponse(connection, 500, "Broken installation");
+                    }
+                }
+                else
+                {
+                    osFreeMem(tc_file);
+                }
             }
 
             char_t *newUri = custom_asprintf("%s%s", client_ctx->settings->core.wwwdir, uri);
