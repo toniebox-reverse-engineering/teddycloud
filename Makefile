@@ -465,7 +465,14 @@ $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.c $(PROTO_GEN_DIR)/$(PROTO_DIR)/%.pb-c.h: $
 
 SOURCES += $(PROTO_C_FILES)
 HEADERS += $(PROTO_H_FILES)
-CLEAN_FILES += $(PROTO_C_FILES) $(PROTO_H_FILES)
+# Do not add PROTO_C_FILES/PROTO_H_FILES to CLEAN_FILES because they are tracked in git;
+# deleting them in 'make clean' causes git diff to report the repo as dirty during preinstall/build.
+
+.PHONY: proto
+proto:
+	$(QUIET)$(ECHO) '[${GREEN}PROTO${NC} ] Regenerating protobuf files...'
+	$(QUIET)$(RM) $(PROTO_C_FILES) $(PROTO_H_FILES)
+	$(QUIET)$(MAKE) --no-print-directory $(PROTO_C_FILES) $(PROTO_H_FILES)
 
 
 OBJECTS = $(foreach C,$(SOURCES),$(addprefix $(OBJ_DIR)/,$(C:.c=$(OBJ_EXT))))
