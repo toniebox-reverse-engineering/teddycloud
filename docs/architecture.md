@@ -47,6 +47,14 @@ Both listeners funnel every request through `httpServerRequestCallback()`
 sniffing/box-generation detection and security-mitigation checks before
 falling back to serving a static file from `core.wwwdir`, or a 404.
 
+With `core.boxCertAuth` enabled, the HTTPS box API rejects requests without an
+accepted box certificate before processing automated exposure mitigations. Accepted
+box requests neither trigger those mitigations nor inherit automated web-interface
+locks; the explicit `security_mit.hardLock` still applies. Web listeners and box API
+configurations with certificate authentication disabled retain the automated
+mitigations. This separation is not permission to expose the management listeners:
+keep them private or otherwise protect them independently.
+
 Handlers are split by concern:
 
 - `handler_api.c` — browser-facing REST API (settings, file/content

@@ -551,17 +551,24 @@ error_t httpServerRequestCallback(HttpConnection *connection, const char_t *uri,
     {
         bool handled = false;
 
-        checkSecMitHandlers(connection, uri, connection->request.queryString, client_ctx);
-        if (isSecMitIncident(connection) && get_settings()->security_mit.lockAccess)
+        bool protectedBoxApi = httpExtIsHttps(connection) && connection->private.api_access_only && client_ctx->settings->core.boxCertAuth;
+        if (protectedBoxApi && !connection->private.authenticated)
         {
-            error = handleSecMitLock(connection, uri, connection->request.queryString, client_ctx);
+            // A public box-API probe must not be able to lock out enrolled boxes.
+            error = httpServerUriUnauthorizedCallback(connection, uri);
             break;
         }
 
-        if (httpExtIsHttps(connection) && client_ctx->settings->core.boxCertAuth && connection->private.api_access_only && !connection->private.authenticated)
+        // Automated exposure detection protects the web interface, not the separate
+        // certificate-authenticated box API. Keep the explicit manual hard lock.
+        if (!protectedBoxApi || get_settings()->security_mit.hardLock)
         {
-            error = httpServerUriUnauthorizedCallback(connection, uri);
-            break;
+            checkSecMitHandlers(connection, uri, connection->request.queryString, client_ctx);
+            if (isSecMitIncident(connection) && get_settings()->security_mit.lockAccess)
+            {
+                error = handleSecMitLock(connection, uri, connection->request.queryString, client_ctx);
+                break;
+            }
         }
 
         if (!connection->private.api_access_only && !osStrcasecmp(connection->request.method, "OPTIONS"))
