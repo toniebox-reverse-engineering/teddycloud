@@ -619,7 +619,7 @@ error_t handleApiSettingsSet(HttpConnection *connection, const char_t *uri, cons
         }
     }
 
-    httpPrepareHeader(connection, "text/plain; charset=utf-8", 0);
+    httpPrepareHeader(connection, "text/plain; charset=utf-8", osStrlen(response));
     return httpWriteResponseString(connection, response, false);
 }
 error_t handleApiSettingsReset(HttpConnection *connection, const char_t *uri, const char_t *queryString, client_ctx_t *client_ctx)
