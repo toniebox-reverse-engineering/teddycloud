@@ -628,6 +628,32 @@ tonie_info_t *getTonieInfoForRequest(HttpConnection *connection, const char_t *u
     return tonieInfo;
 }
 
+/* A box resumes a download with Range and, in If-Range, the audio id of the TAF it has the first part of, as a
+   decimal number. When the tag serves another TAF by now (its source was changed), the rest of this one would complete
+   a mix of two TAFs on the box: as for any If-Range whose validator does not match (RFC 9110 13.1.5), the Range is
+   ignored and the whole file sent. Only a decimal number (that fits an audio id) is the boxes' audio id; anything else
+   (an ETag, a date) is not ours to judge, and the Range is served as it is, as without If-Range: a client must not
+   lose its resume over a validator TeddyCloud cannot compare. */
+static void ignoreRangeOfAnotherTaf(HttpConnection *connection, const tonie_info_t *tonieInfo)
+{
+    const char *value = connection->request.ifRange;
+    size_t digits = strspn(value, "0123456789");
+    if (!connection->request.Range.valid || tonieInfo->tafHeader == NULL || digits == 0 || digits > 10 || value[digits] != '\0')
+    {
+        return;
+    }
+    unsigned long long audio_id = strtoull(value, NULL, 10);
+    if (audio_id > UINT32_MAX || audio_id == tonieInfo->tafHeader->audio_id)
+    {
+        return;
+    }
+    TRACE_INFO(" >> If-Range %s is not audio id %" PRIu32 " of %s, sending the whole file\r\n", connection->request.ifRange,
+               tonieInfo->tafHeader->audio_id, tonieInfo->contentPath);
+    connection->request.Range.valid = false;
+    connection->request.Range.start = 0;
+    connection->request.Range.end = 0;
+}
+
 /* Picks the TAF a request for a random pool gets. A request that continues a TAF picked before gets
    the same one: a resumed download (Range, with the TAF's audio id in If-Range, decimal) and a V3
    chapter (its name ends in the start of the SHA1 the content meta announced, see
@@ -885,6 +911,8 @@ error_t handleCloudContentExt(HttpConnection *connection, const char_t *uri, con
             freeTonieInfo(tonieInfo);
             return response_error;
         }
+
+        ignoreRangeOfAnotherTaf(connection, tonieInfo);
 
         size_t dataPathLen = osStrlen(client_ctx->settings->internal.datadirfull);
         if (osStrncmp(tonieInfo->contentPath, client_ctx->settings->internal.datadirfull, dataPathLen) == 0)

@@ -15,7 +15,7 @@ import sys
 import unittest
 from pathlib import Path
 
-from test_hardening import BASE, BASE_DIR, Base
+from test_hardening import BASE, BASE_DIR, Base, request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sim import profiles, taf  # noqa: E402
@@ -28,11 +28,13 @@ AUDIO = b"".join(bytes([block + 1]) * BLOCK for block in range(8))
 CONTENT = taf.build(0x1A8DECAE, AUDIO, track_pages=TRACK_PAGES)
 
 
-def get(path, byte_range=None):
+def get(path, byte_range=None, if_range=None):
     conn = http.client.HTTPConnection(BASE.hostname, BASE.port, timeout=5)
     headers = {"Authorization": profiles.AUTHORIZATION}
     if byte_range:
         headers["Range"] = byte_range
+    if if_range is not None:
+        headers["If-Range"] = if_range
     try:
         conn.request("GET", path, headers=headers)
         resp = conn.getresponse()
@@ -41,7 +43,9 @@ def get(path, byte_range=None):
         conn.close()
 
 
-class TafServing(Base):
+class TafContent(Base):
+    """Content files put into the sandbox, removed after the test."""
+
     def setUp(self):
         super().setUp()
         self.paths = []
@@ -57,6 +61,8 @@ class TafServing(Base):
         path.write_bytes(data)
         self.paths.append(path)
 
+
+class TafServing(TafContent):
     def test_header_is_kept_by_default(self):
         self.put_content(CONTENT)
         status, _, body = get(f"/v2/content/{RUID}")
@@ -136,6 +142,63 @@ class TafServing(Base):
         self.assertEqual(status, 206)
         self.assertEqual(resp.getheader("Content-Range"), f"bytes 300-799/{len(expected)}")
         self.assertEqual(body, expected[300:800])
+
+
+class IfRange(TafContent):
+    """A box resumes a download with Range and the audio id of the TAF it has a part of in If-Range (decimal). If
+    the tag serves another TAF by now (its source was changed), the rest of the new one would complete a mix of two
+    TAFs on the box."""
+
+    OTHER = taf.build(0x1A8DECAF, b"".join(bytes([0x80 + block]) * BLOCK for block in range(6)))
+    OTHER_NAME = "__if_range_other.taf"
+
+    def change_source(self):
+        """The tag had CONTENT, its source is now OTHER in the library."""
+        self.put_content(CONTENT)
+        other = BASE_DIR / "data" / "library" / self.OTHER_NAME
+        other.write_bytes(self.OTHER)
+        self.paths += [other, BASE_DIR / "data" / "content" / "default" / RUID[:8].upper() / (RUID[8:].upper() + ".json")]
+        self.assertEqual(request("POST", f"/content/json/set/{RUID}", f"source=lib://{self.OTHER_NAME}")[0], 200)
+
+    def test_resume_of_a_changed_source_gets_the_whole_file(self):
+        self.change_source()
+        status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", str(0x1A8DECAE))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (200, None, self.OTHER))
+
+    def test_resume_with_the_audio_id_of_the_file_gets_the_rest(self):
+        self.change_source()
+        status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", str(0x1A8DECAF))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (206, f"bytes 20000-{len(self.OTHER) - 1}/{len(self.OTHER)}", self.OTHER[20000:]))
+
+    def test_resume_without_if_range_gets_the_rest(self):
+        self.change_source()
+        status, _, body = get(f"/v2/content/{RUID}", "bytes=20000-")
+        self.assertEqual((status, body), (206, self.OTHER[20000:]))
+
+    def test_if_range_that_is_no_audio_id_is_served_as_before(self):
+        # Only a decimal number is the boxes' audio id. Anything else is a validator TeddyCloud cannot compare, and a
+        # client must not lose its resume over it: as without If-Range. A number with text after it is no number,
+        # and neither is one too large for an audio id.
+        self.change_source()
+        for value in ('"0123abcd"', "Wed, 21 Oct 2026 07:28:00 GMT", f"{0x1A8DECAE}abc", "99999999999"):
+            status, resp, body = get(f"/v2/content/{RUID}", "bytes=20000-", value)
+            self.assertEqual((status, resp.getheader("Content-Range"), body), (206, f"bytes 20000-{len(self.OTHER) - 1}/{len(self.OTHER)}", self.OTHER[20000:]), value)
+
+    def test_skip_header(self):
+        # the audio id is the one of the file, its header is not sent
+        self.put_content(CONTENT)
+        status, _, body = get(f"/v2/content/{RUID}?skip_header=true", "bytes=5000-", str(0x1A8DECAE))
+        self.assertEqual((status, body), (206, AUDIO[5000:]))
+        status, resp, body = get(f"/v2/content/{RUID}?skip_header=true", "bytes=5000-", str(0x1A8DECAF))
+        self.assertEqual((status, resp.getheader("Content-Range"), body), (200, None, AUDIO))
+
+    def test_chapter(self):
+        self.put_content(CONTENT)
+        expected = AUDIO[:512] + AUDIO[TRACK_PAGES[1] * BLOCK : TRACK_PAGES[2] * BLOCK]
+        status, _, body = get(f"/v3/chapter/teddycloud_01_{RUID}", "bytes=300-799", str(0x1A8DECAE))
+        self.assertEqual((status, body), (206, expected[300:800]))
+        status, _, body = get(f"/v3/chapter/teddycloud_01_{RUID}", "bytes=300-799", str(0x1A8DECAF))
+        self.assertEqual((status, body), (200, expected))
 
 
 if __name__ == "__main__":
