@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 POST /api/settings/set answers with its result ("OK" or "ERROR"). The response was sent with
-Content-Length 0, so clients always received an empty body and could not tell success from failure.
+Content-Length 0, so clients always received an empty body, and an unknown setting was reported as
+success. Clients could not tell success from failure.
 
 Run via: make test_py TESTS=settings_set
 """

@@ -1885,7 +1885,7 @@ bool settings_set_by_string_id(const char *item, const char *value, uint8_t sett
     if (opt == NULL)
     {
         TRACE_ERROR("Settings: %s not found\r\n", item);
-        return ERROR_NOT_FOUND;
+        return false;
     }
     else if (opt)
     {
