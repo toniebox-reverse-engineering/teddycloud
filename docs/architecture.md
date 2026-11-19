@@ -54,6 +54,9 @@ Handlers are split by concern:
 - `handler_cloud.c` — the Toniebox cloud protocol itself: `/v1`, `/v2`,
   `/v3` endpoints for time, OTA, claim, content, freshness-check, log,
   cloud-reset.
+- `content_download.c` — official content that is not cached yet: one
+  background download per tonie at the cloud's speed, into a `.tmp` that
+  the boxes asking meanwhile are served from, then cached.
 - `handler_reverse.c` — transparent proxy/passthrough to the real Tonie
   cloud for anything not served locally.
 - `handler_rtnl.c` — the box's real-time notification/log protocol.

@@ -11,6 +11,7 @@
 #include <time.h>
 
 #include "platform.h"
+#include "fs_ext.h"
 #include "tls.h"
 #include "core/net.h"
 #include "core/ethernet.h"
@@ -531,6 +532,44 @@ uint_t tcpWaitForEvents(Socket *socket, uint_t eventMask, systime_t timeout)
     }
 
     return 0;
+}
+
+bool socketPeerClosed(Socket *socket)
+{
+    if (socket == NULL)
+    {
+        return false;
+    }
+    socket_buffer_t *buff = (socket_buffer_t *)socket->interface;
+    if (buff != NULL && buff->buffer_used > 0)
+    {
+        return false; /* read already and waiting for the next request: not a close */
+    }
+    if (!(tcpWaitForEvents(socket, SOCKET_EVENT_RX_READY, 0) & SOCKET_EVENT_RX_READY))
+    {
+        return false;
+    }
+
+    /* readable: the peek does not block */
+    char first = 0;
+    int n = recv(socket->descriptor, &first, 1, MSG_PEEK);
+    if (n == 0)
+    {
+        return true; /* FIN */
+    }
+    if (n == SOCKET_ERROR)
+    {
+        int error = WSAGetLastError();
+        return error != WSAEWOULDBLOCK && error != WSAEINTR;
+    }
+    return (uint8_t)first == 0x15; /* a TLS record of type alert */
+}
+
+error_t fsLinkFile(const char_t *existingPath, const char_t *newPath)
+{
+    (void)existingPath;
+    (void)newPath;
+    return ERROR_NOT_IMPLEMENTED; /* see fs_ext.h */
 }
 
 static CRITICAL_SECTION log_section;

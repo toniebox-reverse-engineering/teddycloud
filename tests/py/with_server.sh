@@ -63,6 +63,9 @@ sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) else 1)
 done
 
 tmp_log="$(mktemp /tmp/teddycloud_test_XXXXXX.log)"
+# Replaced settings memory is freed after a grace period (src/settings.c); 2 s instead of 120 s, so code that
+# holds settings memory across a reload reads freed memory within a test and the sanitizers report it.
+export TEDDYCLOUD_SETTINGS_FREE_GRACE_S="${TEDDYCLOUD_SETTINGS_FREE_GRACE_S:-2}"
 # no tonies.json download from the internet, tests must not depend on the network
 PORT_SETTINGS="core.tonies_json_auto_update=false,core.server.http_port=$HTTP_PORT,core.server.https_web_port=$HTTPS_WEB_PORT,core.server.https_api_port=$HTTPS_API_PORT"
 
@@ -141,6 +144,7 @@ rm -f "$SANDBOX/.complete"
 export TC_SANDBOX="$SANDBOX" TC_TEMPLATE="$TEMPLATE" # TC_TEMPLATE: tests may cache things signed by the template CA (box certs) there
 
 start_server "$SANDBOX"
+export TC_SERVER_PID="$srv_pid" # tests may look at the server process (/proc)
 
 if ! wait_ready "$srv_pid" "$READY_TIMEOUT"; then
     fail_log "Test server did not become ready on port $HTTP_PORT within ${READY_TIMEOUT}s"
